@@ -1,0 +1,22 @@
+spring:
+  config:
+    activate:
+      on-profile: common-dev
+  datasource:
+    url: ${db.url}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${db.username}
+    password: ${db.password}
+
+  servlet:
+    multipart:
+      max-file-size: 25GB
+      max-request-size: 25GB
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        default_batch_fetch_size: 500
+    open-in-view: false
+

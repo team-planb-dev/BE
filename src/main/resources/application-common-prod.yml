@@ -1,0 +1,35 @@
+spring:
+  config:
+    activate:
+      on-profile: common-prod
+  datasource:
+    url: ${mysql_url}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${mysql_username}
+    password: ${mysql_password}
+
+  servlet:
+    multipart:
+      max-file-size: 25GB
+      max-request-size: 25GB
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        default_batch_fetch_size: 500
+    open-in-view: false
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+    disable-swagger-default-url: true
+    display-request-duration: true
+  packages-to-scan: org.woojukang.springdefaultsetting
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+

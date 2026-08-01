@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: default-setting # 추후 변경
+  profiles:
+    active: local
+    group:
+      test: common-test
+      local: common-local
+      dev: common-dev
+      prod: common-prod
+
+decorator:
+  datasource:
+    exclude-beans: dataSource, routingDataSource
+
+Logging:
+  level:
+    org.springframework.core.LocalVariableTableParameterNameDiscoverer: error # 에러 까지만 로깅

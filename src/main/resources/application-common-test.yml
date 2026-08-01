@@ -1,0 +1,49 @@
+spring:
+  config:
+    activate:
+      on-profile: common-test
+
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  servlet:
+    multipart:
+      max-file-size: 25GB
+      max-request-size: 25GB
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        default_batch_fetch_size: 500
+        format_sql: true
+    open-in-view: false
+    show-sql: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+    disable-swagger-default-url: true
+    display-request-duration: true
+  packages-to-scan: org.woojukang.springdefaultsetting
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+
+  h2:
+    console:
+      enabled: true
+
