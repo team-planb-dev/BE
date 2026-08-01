@@ -4,7 +4,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import com.planb.domain.chat.entity.ChatRoomMember;
-import org.woojukang.springChatPractice.domain.chat.entity.QChatRoomMember;
+import com.planb.domain.chat.entity.QChatRoomMember;
 
 import java.util.List;
 import java.util.Optional;

@@ -3,7 +3,7 @@ package com.planb.query.user.repository;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
-import org.woojukang.springChatPractice.domain.user.entity.QUser;
+import com.planb.domain.user.entity.QUser;
 import com.planb.domain.user.entity.User;
 
 import java.util.Optional;

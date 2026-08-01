@@ -16,7 +16,7 @@ import com.querydsl.core.types.dsl.PathInits;
 @Generated("com.querydsl.codegen.DefaultEntitySerializer")
 public class QChatRoomMember extends EntityPathBase<ChatRoomMember> {
 
-    private static final long serialVersionUID = 1413358085L;
+    private static final long serialVersionUID = -1801602582L;
 
     private static final PathInits INITS = PathInits.DIRECT2;
 
