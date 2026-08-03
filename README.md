@@ -2,23 +2,6 @@
 🚀 Project Name : TravelJang(가제)
 ---
 
-: AI-powered personalized travel planning for travelers with chronic conditions
-
-### Language ![Java](https://img.shields.io/badge/Java-21-007396?style=flat&logo=openjdk&logoColor=white)
-
-### Framework ![Spring](https://img.shields.io/badge/Spring-6-6DB33F?style=flat&logo=spring&logoColor=white) ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.5.x-6DB33F?style=flat&logo=springboot&logoColor=white)
-
-### Testing ![JUnit5](https://img.shields.io/badge/JUnit5-5.13.4-25A162?style=flat&logo=junit5&logoColor=white) ![Mockito](https://img.shields.io/badge/Mockito-5.x-78A641?style=flat)
-
-### Database ![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=flat&logo=mysql&logoColor=white) ![Redis](https://img.shields.io/badge/Redis-8-DC382D?style=flat&logo=redis&logoColor=white)
-
-### Frontend ![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black) ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=flat&logo=tailwindcss&logoColor=white)
-
-### Monitoring ![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=flat&logo=prometheus&logoColor=white) ![Grafana](https://img.shields.io/badge/Grafana-F46800?style=flat&logo=grafana&logoColor=white)
-
-
----
-
 # 📌 About
 
 * *Why was this project created?*
@@ -29,6 +12,8 @@
     * This service is designed for travelers managing chronic conditions, such as diabetes, hypertension, or dyslipidemia, as well as anyone seeking a safer and more personalized travel planning experience.<br><br>
 * *What are the main goals?*
     * To provide reliable AI-generated travel itineraries that balance tourism, dining, and health management by leveraging public tourism datasets, nutritional information, and AI-based itinerary planning with rule-based validation.
+ 
+
 
 ---
 
@@ -82,21 +67,37 @@ Describe the overall system architecture. ( 사진첨부 )
 
 
 
----
+
 
 # 🛠️ Tech Stack
 
-| Category | Technologies |
-|-----------|--------------|
-| Backend | Java 21, Spring Framework 7, Spring Boot 4.0.2 |
-| Frontend | React.js, Tailwind CSS |
-| Database | MySQL 8, Redis |
-| Testing | JUnit 5, Mockito |
-| AI | OpenAI API *(Planned)* |
-| Infrastructure | Docker |
-| DevOps | GitHub Actions *(Planned)* |
-| Monitoring | Prometheus, Grafana |
-| Documentation | SpringDoc OpenAPI (Swagger UI) |
+<div align="center">
+
+##### Language
+![Java](https://img.shields.io/badge/Java-21-007396?style=flat&logo=openjdk&logoColor=white)
+
+##### Framework
+![Spring](https://img.shields.io/badge/Spring-6-6DB33F?style=flat&logo=spring&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.5.x-6DB33F?style=flat&logo=springboot&logoColor=white)
+
+##### Testing
+![JUnit5](https://img.shields.io/badge/JUnit5-5.13.4-25A162?style=flat&logo=junit5&logoColor=white)
+![Mockito](https://img.shields.io/badge/Mockito-5.x-78A641?style=flat)
+
+##### Database
+![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=flat&logo=mysql&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-8-DC382D?style=flat&logo=redis&logoColor=white)
+
+##### Frontend
+![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=flat&logo=tailwindcss&logoColor=white)
+
+##### Monitoring
+![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=flat&logo=prometheus&logoColor=white)
+![Grafana](https://img.shields.io/badge/Grafana-F46800?style=flat&logo=grafana&logoColor=white)
+
+</div>
+
 ---
 
 # 📁 Project Structure
