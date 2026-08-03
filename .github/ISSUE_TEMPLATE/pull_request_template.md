@@ -1,22 +1,32 @@
-## 📌 Related Issue
+🔗 Related Issue
 
-- Close
+<!-- Reference the related issue. It will be automatically closed when this PR is merged. -->
 
----
+- Closes: #
 
-## 💬 Description
+📝 Summary
 
-> 작업한 내용을 간략히 적어주세요.  
-> 예시: demo → lettie로 패키지명 변경
+<!-- Briefly describe what this pull request changes. -->
 
+🚀 Key Changes
 
+<!-- Describe the major changes included in this pull request. -->
 
----
+* [ ]
+* [ ]
 
-## 📸 Screenshot
+💥 Breaking Changes
 
+<!-- Describe any breaking changes or backward-incompatible modifications. -->
 
-## 📢 Notes
+* [ ]
+* [ ]
 
-> 추가적인 설명이나 참고 사항을 작성해 주세요.  
-> 예시: 마이그레이션 주의사항, 의도적인 비동기 처리 등
+✅ Self-Check List
+
+<!-- Confirm the following items before requesting a review. -->
+
+* I have reviewed my own code at least once.
+* I followed ktlint formatting and the official Kotlin coding conventions.
+* I avoided unnecessary !! (not-null assertions) and handled exceptions safely using ?: throw where appropriate.
+* I removed unnecessary comments, println statements, and TODOs.
