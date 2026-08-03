@@ -1,4 +1,4 @@
-⸻
+---
 
 name: 🐛 Bug Report
 about: Use this template to report system errors or unexpected behavior
@@ -6,16 +6,16 @@ title: “[BUG] “
 labels: bug
 assignees: “”
 
-⸻
+---
 
 
-🚨 Bug Summary
+## 🚨 Bug Summary
 
 <!-- Clearly describe the bug in one or two sentences. -->
 
 * (Example) A 500 Internal Server Error occurs when calling the PVT result synchronization API in guest mode.
 
-👣 Steps to Reproduce
+### 👣 Steps to Reproduce
 
 <!-- Provide the exact steps required to reproduce the bug. -->
 
@@ -23,19 +23,21 @@ assignees: “”
 2. Complete the PVT test.
 3. Navigate to the result screen.
 
-🎯 Expected Behavior
+## 🎯 Expected Behavior
 
 <!-- Describe what you expected to happen. -->
 
-* Expected: The API should return a 200 OK response.
+### Expected: 
+The API should return a 200 OK response.
 
-🖥️ Actual Behavior
+## 🖥️ Actual Behavior
 
 <!-- Describe what actually happened. -->
 
-* Actual: The API returned a 400 Bad Request response.
+### Actual: 
+The API returned a 400 Bad Request response.
 
-📱 Environment
+## 📱 Environment
 
 <!-- Provide relevant context for troubleshooting. Leave unknown fields blank. -->
 
