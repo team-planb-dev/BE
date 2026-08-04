@@ -58,7 +58,7 @@ chore : add spring test container dependency
 > 🔴️ `hotfix`만 `main`에서 분기. 그 외 모든 작업 브랜치는 `dev`에서 분기.
 >
 
-### 2-2. 브랜치 네이밍 형식
+### 2-2. Branch Name Template
 
 ```
 {Type}-{IssueNumber}-{Description}
