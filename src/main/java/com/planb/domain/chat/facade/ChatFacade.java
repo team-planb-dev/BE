@@ -6,8 +6,6 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import com.planb.domain.chat.dto.MessageType;
-import org.woojukang.springChatPractice.domain.chat.dto.request.*;
-import org.woojukang.springChatPractice.domain.chat.dto.response.*;
 import com.planb.domain.chat.entity.ChatMessage;
 import com.planb.domain.chat.entity.ChatRoom;
 import com.planb.domain.chat.entity.ChatRoomMember;
