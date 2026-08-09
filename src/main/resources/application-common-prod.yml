@@ -29,7 +29,7 @@ springdoc:
     operations-sorter: alpha
     disable-swagger-default-url: true
     display-request-duration: true
-  packages-to-scan: org.woojukang.springdefaultsetting
+  packages-to-scan: com.planb
   default-consumes-media-type: application/json
   default-produces-media-type: application/json
 
