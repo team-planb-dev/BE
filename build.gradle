@@ -39,6 +39,9 @@ dependencies {
     /* Spring boot Web */
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 
+    /* Spring boot WebFlux */
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
     /* Security */
     implementation 'org.springframework.boot:spring-boot-starter-security'
 
@@ -103,6 +106,7 @@ dependencies {
     testAnnotationProcessor 'org.projectlombok:lombok'
     runtimeOnly 'com.h2database:h2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'io.projectreactor:reactor-test'
 
 }
 
