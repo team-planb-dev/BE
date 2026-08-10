@@ -17,6 +17,7 @@ java {
 // QueryDSL Version
 ext {
     querydslVersion = "5.0.0"
+    springAiVersion = "2.0.0"
 }
 
 configurations {
@@ -38,6 +39,9 @@ dependencies {
 
     /* Spring boot Web */
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+
+    /* Spring boot WebFlux */
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
     /* Security */
     implementation 'org.springframework.boot:spring-boot-starter-security'
@@ -86,6 +90,14 @@ dependencies {
     /* Swagger */
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3'
 
+    /* AI */
+    implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+
+    /* MCP Server */
+    implementation 'org.springframework.ai:spring-ai-starter-mcp-server'
+    implementation 'org.springframework.ai:spring-ai-starter-mcp-client'
+
+
 
     /* Test */
     testImplementation 'org.springframework.boot:spring-boot-starter-actuator-test'
@@ -103,6 +115,7 @@ dependencies {
     testAnnotationProcessor 'org.projectlombok:lombok'
     runtimeOnly 'com.h2database:h2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'io.projectreactor:reactor-test'
 
 }
 
@@ -122,6 +135,12 @@ sourceSets {
 // gradle clean 시에 Qclass 디렉토리 삭제
 clean {
     delete file(generated)
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.ai:spring-ai-bom:$springAiVersion"
+    }
 }
 
 tasks.named('test') {
