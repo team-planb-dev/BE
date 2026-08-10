@@ -30,6 +30,21 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        model: ${OPENAI_MODEL}
+    mcp:
+      server:
+        protocol: streamable
+      client:
+        streamable-http:
+          connections:
+            planb:
+              url: http://localhost:8080
+              endpoint: /mcp
+
 springdoc:
   api-docs:
     path: /v3/api-docs
@@ -39,7 +54,7 @@ springdoc:
     operations-sorter: alpha
     disable-swagger-default-url: true
     display-request-duration: true
-  packages-to-scan: org.woojukang.springdefaultsetting
+  packages-to-scan: com.planb
   default-consumes-media-type: application/json
   default-produces-media-type: application/json
 

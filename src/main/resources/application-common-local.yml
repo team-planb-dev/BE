@@ -25,8 +25,36 @@ spring:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
 
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        model: ${OPENAI_MODEL}
+    mcp:
+      server:
+        protocol: streamable
+      client:
+        streamable-http:
+          connections:
+            planb:
+              url: http://localhost:8080
+              endpoint: /mcp
+
 jwt:
   secret: ${JWT_SECRET}
+
+external:
+  food-ntr-cpnt:
+    base-url: ${FOOD_NTR_CPNT_URL}
+    service-key: ${FOOD_NTR_CPNT_KEY}
+
+  kor2-service:
+    base-url: ${KOR2_SERVICE_URL}
+    service-key: ${KOR2_SERVICE_KEY}
+
+  tar-rlte-tar-service:
+    base-url: ${TAR_RLTE_TAR_SERVICE_URL}
+    service-key: ${TAR_RLTE_TAR_SERVICE_KEY}
 
 
 springdoc:
@@ -38,6 +66,6 @@ springdoc:
     operations-sorter: alpha
     disable-swagger-default-url: true
     display-request-duration: true
-  packages-to-scan: org.woojukang.springChatPractice
+  packages-to-scan: com.planb
   default-consumes-media-type: application/json
   default-produces-media-type: application/json
