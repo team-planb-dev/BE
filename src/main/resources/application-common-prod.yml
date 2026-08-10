@@ -20,6 +20,21 @@ spring:
         default_batch_fetch_size: 500
     open-in-view: false
 
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        model: ${OPENAI_MODEL}
+    mcp:
+      server:
+        protocol: streamable
+      client:
+        streamable-http:
+          connections:
+            planb:
+              url: http://localhost:8080
+              endpoint: /mcp
+
 springdoc:
   api-docs:
     path: /v3/api-docs

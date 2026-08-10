@@ -25,6 +25,21 @@ spring:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
 
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        model: ${OPENAI_MODEL}
+    mcp:
+      server:
+        protocol: streamable
+      client:
+        streamable-http:
+          connections:
+            planb:
+              url: http://localhost:8080
+              endpoint: /mcp
+
 jwt:
   secret: ${JWT_SECRET}
 
