@@ -334,7 +334,7 @@ The deployment environment is currently under development. The following technol
 |------|------|--------|
 |PM|이승협|.|
 |Designer|조예원|.|
-| Backend | 강우주 | <a href="https://github.com/wooju-kang"><img src="https://github.com/wooju-kang.png?size=80" width="70"/></a> |
+| Backend | 강우주 | <a href="https://github.com/wooju-kang"><img src="https://github.com/KangWooJu.png?size=80" width="70"/></a> |
 | Frontend | 임성은 | <a href="https://github.com/sungeunlim03"><img src="https://github.com/sungeunlim03.png?size=80" width="70"/></a> |
 
 
