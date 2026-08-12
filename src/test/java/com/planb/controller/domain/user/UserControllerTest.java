@@ -1,6 +1,10 @@
 package com.planb.controller.domain.user;
 
 
+import com.planb.domain.user.dto.request.CheckNicknameDuplicationRequest;
+import com.planb.domain.user.dto.request.CheckUsernameDuplicationRequest;
+import com.planb.domain.user.dto.response.CheckNicknameDuplicationResponse;
+import com.planb.domain.user.dto.response.CheckUsernameDuplicationResponse;
 import org.junit.jupiter.api.DisplayName;
 
 import org.junit.jupiter.api.Test;
@@ -54,14 +58,14 @@ class UserControllerTest {
         UserCreateRequest request =
 
                 new UserCreateRequest(
-                        "testUser",
+                        "testUser@example.com",
                         "testNickname",
-                        "1234"
+                        "test1234"
                 );
 
         UserCreateResponse response =
                 new UserCreateResponse(
-                        "testUser",
+                        "testUser@example.com",
                         Instant.now(),
                         Instant.now()
                 );
@@ -78,7 +82,7 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.success")
                         .value(true))
                 .andExpect(jsonPath("$.data.username")
-                        .value("testUser"));
+                        .value("testUser@example.com"));
 
         verify(userFacade)
                 .create(any(UserCreateRequest.class));
@@ -96,11 +100,11 @@ class UserControllerTest {
         UserAuthCache response =
                 new UserAuthCache(
                         1L,
-                        "testUser",
+                        "testUser@example.com",
                         "USER"
                 );
 
-        when(userFacade.findByUsername("testUser"))
+        when(userFacade.findByUsername("testUser@example.com"))
                 .thenReturn(response);
 
         mockMvc.perform(get("/api/v1/user/me"))
@@ -108,90 +112,55 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.data.userId")
                         .value(1L))
                 .andExpect(jsonPath("$.data.username")
-                        .value("testUser"))
+                        .value("testUser@example.com"))
                 .andExpect(jsonPath("$.data.role")
                         .value("USER"));
 
         verify(userFacade)
-                .findByUsername("testUser");
+                .findByUsername("testUser@example.com");
     }
 
     @Test
     @WithMockUser(
-            username = "testUser",
+            username = "testUser@example.com",
             roles = "USER"
     )
     @DisplayName("회원 삭제 성공")
     void deleteUserSuccess() throws Exception {
 
         Instant deletedAt =
-                Instant.parse("2026-07-21T00:00:00Z");
+                Instant.parse("2026-08-11T00:00:00Z");
 
         UserDeleteResponse response =
                 new UserDeleteResponse(
-                        "testUser",
+                        "testUser@example.com",
                         deletedAt
                 );
 
-        when(userFacade.delete("testUser"))
+        when(userFacade.delete("testUser@example.com"))
                 .thenReturn(response);
 
         mockMvc.perform(delete("/api/v1/user/delete"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.username")
-                        .value("testUser"))
+                        .value("testUser@example.com"))
                 .andExpect(jsonPath("$.data.deletedAt")
-                        .value("2026-07-21T00:00:00Z"));
+                        .value("2026-08-11T00:00:00Z"));
 
         verify(userFacade)
-                .delete("testUser");
+                .delete("testUser@example.com");
     }
 
-
-    // TODO: username 중복 확인 API 구현 후 활성화
-    /*
-    @Test
-    @DisplayName("회원가입 중복 아이디 예외")
-    void createUserDuplicateException() throws Exception {
-
-        UserCreateRequest request =
-                new UserCreateRequest(
-                        "testUser",
-                        "1234"
-                );
-
-        when(userFacade
-                .create(any(UserCreateRequest.class)))
-                .thenThrow(new BaseException(
-                        BaseExceptionEnum
-                                .USER_USERNAME_ALREADY_EXISTS
-                ));
-
-        mockMvc
-                .perform(post("/api/v1/user/create")
-                        .contentType(MediaType
-                                .APPLICATION_JSON)
-                        .content(objectMapper
-                                .writeValueAsString(request)))
-                .andExpect(status()
-                        .isConflict())
-                .andExpect(jsonPath("$.success")
-                        .value(false));
-
-        verify(userFacade)
-                .create(any(UserCreateRequest.class));
-    }
-     */
 
     @Test
     @WithMockUser(
-            username = "testUser",
+            username = "testUser@example.com",
             roles = "USER"
     )
     @DisplayName("존재하지 않는 회원 조회")
     void getUserNotFoundException() throws Exception {
 
-        when(userFacade.findByUsername("testUser"))
+        when(userFacade.findByUsername("testUser@example.com"))
                 .thenThrow(new BaseException(
                         BaseExceptionEnum.USER_NOT_FOUND
                 ));
@@ -206,18 +175,18 @@ class UserControllerTest {
                         .value("해당 유저를 찾을 수 없습니다."));
 
         verify(userFacade)
-                .findByUsername("testUser");
+                .findByUsername("testUser@example.com");
     }
 
     @Test
     @WithMockUser(
-            username = "testUser",
+            username = "testUser@example.com",
             roles = "USER"
     )
     @DisplayName("존재하지 않는 회원 삭제")
     void deleteUserNotFoundException() throws Exception {
 
-        when(userFacade.delete("testUser"))
+        when(userFacade.delete("testUser@example.com"))
                 .thenThrow(new BaseException(
                         BaseExceptionEnum.USER_NOT_FOUND
                 ));
@@ -234,7 +203,81 @@ class UserControllerTest {
                         .value("해당 유저를 찾을 수 없습니다."));
 
         verify(userFacade)
-                .delete("testUser");
+                .delete("testUser@example.com");
+    }
+
+    @Test
+    @DisplayName("username(email) 중복 조회 성공")
+    void checkUsernameDuplicationSuccess() throws Exception {
+
+        // given
+        CheckUsernameDuplicationRequest request =
+                new CheckUsernameDuplicationRequest(
+                        "test@example.com"
+                );
+
+        CheckUsernameDuplicationResponse response =
+                CheckUsernameDuplicationResponse.result(true);
+
+        when(userFacade
+                .checkUsernameDuplication(
+                        any(CheckUsernameDuplicationRequest.class)))
+                .thenReturn(response);
+
+        // when & then
+        mockMvc.perform(
+                        get("/api/v1/user/check/duplication/username")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper
+                                        .writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(true))
+                .andExpect(jsonPath("$.data.duplicate")
+                        .value(true))
+                .andExpect(jsonPath("$.data.message")
+                        .value("이미 존재하는 이메일 입니다."));
+
+        verify(userFacade)
+                .checkUsernameDuplication(
+                        any(CheckUsernameDuplicationRequest.class));
+    }
+
+    @Test
+    @DisplayName("nickname 중복 조회 성공")
+    void checkNicknameDuplicationSuccess() throws Exception {
+
+        // given
+        CheckNicknameDuplicationRequest request =
+                new CheckNicknameDuplicationRequest(
+                        "testNickname"
+                );
+
+        CheckNicknameDuplicationResponse response =
+                CheckNicknameDuplicationResponse.result(true);
+
+        when(userFacade
+                .checkNicknameDuplication(
+                        any(CheckNicknameDuplicationRequest.class)))
+                .thenReturn(response);
+
+        // when & then
+        mockMvc.perform(
+                        get("/api/v1/user/check/duplication/nickname")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper
+                                        .writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(true))
+                .andExpect(jsonPath("$.data.duplicate")
+                        .value(true))
+                .andExpect(jsonPath("$.data.message")
+                        .value("이미 존재하는 닉네임 입니다."));
+
+        verify(userFacade)
+                .checkNicknameDuplication(
+                        any(CheckNicknameDuplicationRequest.class));
     }
 
 }

@@ -35,7 +35,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * User API 통합 테스트
- *
  * 회원 생성, 조회, 삭제 기능과 예외 상황을 검증한다.
  */
 public class UserIntegrationTest extends IntegrationTest {
@@ -54,6 +53,12 @@ public class UserIntegrationTest extends IntegrationTest {
 
     private static final String DELETE_USER_URL =
             "/api/v1/user/delete";
+
+    private static final String CHECK_USERNAME_DUPLICATION_URL =
+            "/api/v1/user/check/duplication/username";
+
+    private static final String CHECK_NICKNAME_DUPLICATION_URL =
+            "/api/v1/user/check/duplication/nickname";
 
     // User 테스트 객체 password 필드
     private static final String NICKNAME =
@@ -224,7 +229,8 @@ public class UserIntegrationTest extends IntegrationTest {
     private String createUniqueUsername() {
         return "test-" + UUID.randomUUID()
                 .toString()
-                .substring(0, 8);
+                .substring(0, 8)
+                + "@example.com";
     }
 
     private void createUser(
@@ -316,7 +322,7 @@ public class UserIntegrationTest extends IntegrationTest {
         mockMvc
                 .perform(get(USER_ME_URL))
                 .andExpect(status()
-                        .isUnauthorized());
+                        .isForbidden());
     }
 
     @Test
@@ -326,7 +332,7 @@ public class UserIntegrationTest extends IntegrationTest {
         mockMvc
                 .perform(delete(DELETE_USER_URL))
                 .andExpect(status()
-                        .isUnauthorized());
+                        .isForbidden());
     }
 
     private LoginResult login(
@@ -390,6 +396,112 @@ public class UserIntegrationTest extends IntegrationTest {
                 refreshTokenCookie
         );
 
+    }
+
+    @Test
+    @DisplayName("존재하는 username(email) 중복 조회 시, true 반환")
+    void checkUsernameDuplicationExists() throws Exception {
+
+        // given
+        String username = createUniqueUsername();
+
+        createUser(username, NICKNAME, PASSWORD);
+
+        String requestBody = """
+            {
+              "username": "%s"
+            }
+            """.formatted(username);
+
+        // when & then
+        mockMvc.perform(get(CHECK_USERNAME_DUPLICATION_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.duplicate").value(true))
+                .andExpect(jsonPath("$.data.message")
+                        .value("이미 존재하는 이메일 입니다."))
+                .andExpect(jsonPath("$.error").isEmpty());
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 username(email) 중복 조회 시, false 반환")
+    void checkUsernameDuplicationNotExists() throws Exception {
+
+        // given
+        String username = createUniqueUsername();
+
+        String requestBody = """
+            {
+              "username": "%s"
+            }
+            """.formatted(username);
+
+        // when & then
+        mockMvc.perform(get(CHECK_USERNAME_DUPLICATION_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.duplicate").value(false))
+                .andExpect(jsonPath("$.data.message")
+                        .value("사용 가능한 이메일 입니다."))
+                .andExpect(jsonPath("$.error").isEmpty());
+    }
+
+    @Test
+    @DisplayName("존재하는 nickname 중복 조회 시, true 반환")
+    void checkNicknameDuplicationExists() throws Exception {
+
+        // given
+        String username = createUniqueUsername();
+
+        createUser(username, NICKNAME, PASSWORD);
+
+        String requestBody = """
+            {
+              "nickname": "%s"
+            }
+            """.formatted(NICKNAME);
+
+        // when & then
+        mockMvc.perform(get(CHECK_NICKNAME_DUPLICATION_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.duplicate").value(true))
+                .andExpect(jsonPath("$.data.message")
+                        .value("이미 존재하는 닉네임 입니다."))
+                .andExpect(jsonPath("$.error").isEmpty());
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 nickname 중복 조회 시, false 반환")
+    void checkNicknameDuplicationNotExists() throws Exception {
+
+        // given
+        String nickname = "available-" + UUID.randomUUID()
+                .toString()
+                .substring(0, 8);
+
+        String requestBody = """
+            {
+              "nickname": "%s"
+            }
+            """.formatted(nickname);
+
+        // when & then
+        mockMvc.perform(get(CHECK_NICKNAME_DUPLICATION_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.duplicate").value(false))
+                .andExpect(jsonPath("$.data.message")
+                        .value("사용 가능한 닉네임 입니다."))
+                .andExpect(jsonPath("$.error").isEmpty());
     }
 
 
