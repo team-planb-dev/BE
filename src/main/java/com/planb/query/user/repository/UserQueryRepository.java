@@ -53,4 +53,18 @@ public class UserQueryRepository {
         return result != null;
     }
 
+    // username(email) 중복 체크하기
+    public boolean existsByUsername(String username){
+
+        Integer result = jpaQueryFactory
+                .selectOne()
+                .from(user)
+                .where(user
+                        .username
+                        .eq(username))
+                .fetchFirst();
+
+        return result != null;
+    }
+
 }

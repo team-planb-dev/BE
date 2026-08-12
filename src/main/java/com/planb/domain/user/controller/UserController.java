@@ -1,7 +1,12 @@
 package com.planb.domain.user.controller;
 
+import com.planb.domain.user.dto.request.CheckNicknameDuplicationRequest;
+import com.planb.domain.user.dto.request.CheckUsernameDuplicationRequest;
+import com.planb.domain.user.dto.response.CheckNicknameDuplicationResponse;
+import com.planb.domain.user.dto.response.CheckUsernameDuplicationResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +31,7 @@ public class UserController {
     @Operation(summary = "유저 생성",description = "유저를 생성합니다.")
     @PostMapping("/create")
     public ResponseEntity<ApiResult<UserCreateResponse>> create
-            (@RequestBody UserCreateRequest userCreateRequest){
+            (@Valid @RequestBody UserCreateRequest userCreateRequest){
 
         return ResponseEntity
                 .status(HttpStatus
@@ -64,6 +69,32 @@ public class UserController {
                                 .delete(userDetails
                                         .getUsername())));
 
+    }
+
+    @Operation(summary = "username(email) 중복 조회",description = "id로 사용되는 email의 중복을 체크합니다.")
+    @GetMapping("/check/duplication/username")
+    public ResponseEntity<ApiResult<CheckUsernameDuplicationResponse>> checkUsernameDuplication
+            (@RequestBody CheckUsernameDuplicationRequest checkUsernameDuplicationRequest){
+
+        return ResponseEntity
+                .status(HttpStatus
+                        .OK)
+                .body(ApiResult
+                        .success(userFacade
+                                .checkUsernameDuplication(checkUsernameDuplicationRequest)));
+    }
+
+    @Operation(summary = "nickname 중복 조회",description = "기존 nickname과의 중복 여부를 검사합니다.")
+    @GetMapping("/check/duplication/nickname")
+    public ResponseEntity<ApiResult<CheckNicknameDuplicationResponse>> checkNicknameDuplication
+            (@RequestBody CheckNicknameDuplicationRequest checkNicknameDuplicationRequest){
+
+        return ResponseEntity
+                .status(HttpStatus
+                        .OK)
+                .body(ApiResult
+                        .success(userFacade
+                                .checkNicknameDuplication(checkNicknameDuplicationRequest)));
     }
 
 

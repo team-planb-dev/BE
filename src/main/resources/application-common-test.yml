@@ -38,12 +38,7 @@ spring:
     mcp:
       server:
         protocol: streamable
-      client:
-        streamable-http:
-          connections:
-            planb:
-              url: http://localhost:8080
-              endpoint: /mcp
+
 
 springdoc:
   api-docs:

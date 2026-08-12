@@ -35,7 +35,7 @@ class UserQueryRepositoryTest {
 
         // given
         User user = User.builder()
-                .username("testUser")
+                .username("testUser@example.com")
                 .password("1234")
                 .deleted(false)
                 .role("ROLE_USER")
@@ -46,7 +46,7 @@ class UserQueryRepositoryTest {
 
         // when
         Optional<User> result = userQueryRepository
-                .findByUsername("testUser");
+                .findByUsername("testUser@example.com");
 
         // then
         assertThat(result
@@ -80,6 +80,77 @@ class UserQueryRepositoryTest {
                 .isEmpty();
     }
 
+    @Test
+    @DisplayName("존재하는 username 중복 체크 시, true 반환")
+    void existsByUsername_true() {
 
+        // given
+        User user = User.builder()
+                .username("test@example.com")
+                .password("1234")
+                .deleted(false)
+                .role("ROLE_USER")
+                .nickname("testNickname")
+                .build();
 
+        userRepository.save(user);
+
+        // when
+        boolean result = userQueryRepository
+                .existsByUsername("test@example.com");
+
+        // then
+        assertThat(result)
+                .isTrue();
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 username 중복 체크 시, false 반환")
+    void existsByUsername_false() {
+
+        // when
+        boolean result = userQueryRepository
+                .existsByUsername("unknown@example.com");
+
+        // then
+        assertThat(result)
+                .isFalse();
+    }
+
+    @Test
+    @DisplayName("존재하는 nickname 중복 체크 시, true 반환")
+    void existsByNickname_true() {
+
+        // given
+        User user = User.builder()
+                .username("nickname-test@example.com")
+                .password("1234")
+                .deleted(false)
+                .role("ROLE_USER")
+                .nickname("testNickname")
+                .build();
+
+        userRepository.save(user);
+
+        // when
+        boolean result = userQueryRepository
+                .existsByNickname("testNickname");
+
+        // then
+        assertThat(result)
+                .isTrue();
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 nickname 중복 체크 시, false 반환")
+    void existsByNickname_false() {
+
+        // when
+        boolean result = userQueryRepository
+                .existsByNickname("unknownNickname");
+
+        // then
+        assertThat(result)
+                .isFalse();
+    }
 }
