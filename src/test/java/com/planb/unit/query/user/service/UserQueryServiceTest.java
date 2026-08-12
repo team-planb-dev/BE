@@ -72,5 +72,79 @@ class UserQueryServiceTest {
 
     }
 
+    @Test
+    @DisplayName("username 중복 여부 조회 시, 중복된 username이면 true 반환")
+    void checkDuplicateUsername_duplicate() {
+
+        // given
+        String username = "wooju";
+
+        when(userQueryRepository.existsByUsername(username))
+                .thenReturn(true);
+
+        // when
+        boolean result = userQueryService.checkDuplicateUsername(username);
+
+        // then
+        assertThat(result).isTrue();
+        verify(userQueryRepository).existsByUsername(username);
+    }
+
+    @Test
+    @DisplayName("username 중복 여부 조회 시, 중복되지 않은 username이면 false 반환")
+    void checkDuplicateUsername_notDuplicate() {
+
+        // given
+        String username = "wooju";
+
+        when(userQueryRepository.existsByUsername(username))
+                .thenReturn(false);
+
+        // when
+        boolean result = userQueryService.checkDuplicateUsername(username);
+
+        // then
+        assertThat(result).isFalse();
+        verify(userQueryRepository).existsByUsername(username);
+    }
+
+    @Test
+    @DisplayName("nickname 중복 여부 조회 시, 중복된 nickname이면 true 반환")
+    void checkDuplicateNickname_duplicate() {
+
+        // given
+        String nickname = "우주";
+
+        when(userQueryRepository.existsByNickname(nickname))
+                .thenReturn(true);
+
+        // when
+        boolean result = userQueryService.checkDuplicateNickname(nickname);
+
+        // then
+        assertThat(result).isTrue();
+        verify(userQueryRepository).existsByNickname(nickname);
+    }
+
+    @Test
+    @DisplayName("nickname 중복 여부 조회 시, 중복되지 않은 nickname이면 false 반환")
+    void checkDuplicateNickname_notDuplicate() {
+
+        // given
+        String nickname = "우주";
+
+        when(userQueryRepository.existsByNickname(nickname))
+                .thenReturn(false);
+
+        // when
+        boolean result = userQueryService.checkDuplicateNickname(nickname);
+
+        // then
+        assertThat(result).isFalse();
+        verify(userQueryRepository).existsByNickname(nickname);
+    }
+
+
+
 
 }

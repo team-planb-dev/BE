@@ -149,7 +149,9 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         httpSecurity
                 .authorizeHttpRequests((auth)->auth
-                        .requestMatchers("/login","/api/v1/user/create").permitAll()
+                        .requestMatchers("/login",
+                                "/api/v1/user/create",
+                                "/api/v1/user/check/duplication/**").permitAll()
                         .anyRequest().authenticated()
                 );
 

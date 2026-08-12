@@ -16,7 +16,11 @@ public class UserQueryService {
     private final UserQueryRepository userQueryRepository;
     private final UserAuthCacheRepository userAuthCacheRepository;
 
-    // RDB에서 조회
+    /*
+     RDB에서 조회
+     */
+
+    // username으로 객체 조회
     public User findByUsername(String username){
 
         return userQueryRepository
@@ -26,6 +30,7 @@ public class UserQueryService {
 
     }
 
+    // id로 객체 조회
     public User findById(Long id){
 
         return userQueryRepository
@@ -34,7 +39,24 @@ public class UserQueryService {
                         .USER_NOT_FOUND));
     }
 
-    // Redis에서 조회
+    // username으로 중복 여부 조회하기
+    public boolean checkDuplicateUsername(String username){
+
+        return userQueryRepository
+                .existsByUsername(username);
+    }
+
+    // nickname으로 중복 여부 조회하기
+    public boolean checkDuplicateNickname(String nickname){
+
+        return userQueryRepository
+                .existsByNickname(nickname);
+    }
+
+
+    /*
+     Redis에서 조회
+     */
     public UserAuthCache findByUsernameInCache(String username){
 
         return userAuthCacheRepository

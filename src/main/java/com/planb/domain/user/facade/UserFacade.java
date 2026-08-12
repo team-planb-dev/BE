@@ -1,6 +1,10 @@
 package com.planb.domain.user.facade;
 
 
+import com.planb.domain.user.dto.request.CheckNicknameDuplicationRequest;
+import com.planb.domain.user.dto.request.CheckUsernameDuplicationRequest;
+import com.planb.domain.user.dto.response.CheckNicknameDuplicationResponse;
+import com.planb.domain.user.dto.response.CheckUsernameDuplicationResponse;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -22,6 +26,9 @@ public class UserFacade {
     private final UserQueryService userQueryService;
 
 
+    /**
+     * User 객체 생성
+     */
     @Transactional
     public UserCreateResponse create(UserCreateRequest userCreateRequest){
 
@@ -37,6 +44,9 @@ public class UserFacade {
     }
 
 
+    /**
+     * User 객체 soft delete
+     */
     @Transactional
     public UserDeleteResponse delete(String username){
 
@@ -52,11 +62,40 @@ public class UserFacade {
                 user.getDeletedAt());
     }
 
+    /**
+     * Redis 에서 user정보 조회
+     */
     @Transactional(readOnly = true)
     public UserAuthCache findByUsername(String username){
 
         return userQueryService
                 .findByUsernameInCache(username);
+    }
+
+    /**
+     * Username 중복 체크
+     */
+    @Transactional(readOnly = true)
+    public CheckUsernameDuplicationResponse checkUsernameDuplication
+            (CheckUsernameDuplicationRequest checkUsernameDuplicationRequest){
+
+        return CheckUsernameDuplicationResponse
+                .result(userQueryService
+                        .checkDuplicateUsername(checkUsernameDuplicationRequest
+                                .username()));
+    }
+
+    /**
+     * Nickname 중복 체크
+     */
+    @Transactional(readOnly = true)
+    public CheckNicknameDuplicationResponse checkNicknameDuplication
+            (CheckNicknameDuplicationRequest checkNicknameDuplicationRequest){
+
+        return CheckNicknameDuplicationResponse
+                .result(userQueryService
+                        .checkDuplicateNickname(checkNicknameDuplicationRequest
+                                .nickname()));
     }
 
 
