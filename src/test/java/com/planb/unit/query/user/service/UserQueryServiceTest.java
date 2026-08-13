@@ -32,7 +32,7 @@ class UserQueryServiceTest {
     public void findByUsername_success() {
 
         // given
-        String username = "wooju";
+        String username = "wooju@example.com";
         User user = mock(User.class);
 
         when(userQueryRepository
@@ -53,7 +53,7 @@ class UserQueryServiceTest {
     void findByUsername_fail_userNotFound() {
 
         // given
-        String username = "unknown";
+        String username = "unknown@example.com";
         when(userQueryRepository.findByUsername(username))
                 .thenReturn(Optional.empty());
 
@@ -77,7 +77,7 @@ class UserQueryServiceTest {
     void checkDuplicateUsername_duplicate() {
 
         // given
-        String username = "wooju";
+        String username = "wooju@example.com";
 
         when(userQueryRepository.existsByUsername(username))
                 .thenReturn(true);
@@ -95,7 +95,7 @@ class UserQueryServiceTest {
     void checkDuplicateUsername_notDuplicate() {
 
         // given
-        String username = "wooju";
+        String username = "wooju@example.com";
 
         when(userQueryRepository.existsByUsername(username))
                 .thenReturn(false);

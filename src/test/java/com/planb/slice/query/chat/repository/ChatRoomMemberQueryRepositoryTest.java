@@ -54,24 +54,24 @@ class ChatRoomMemberQueryRepositoryTest {
 
         // given
         User user1 = helper.createUser(
-                "user1",
-                "password1",
+                "user1@example.com",
+                "test1234!",
                 "ROLE_USER",
                 "nickname1",
                 false
         );
 
         User user2 = helper.createUser(
-                "user2",
-                "password2",
+                "user2@exmaple.com",
+                "test1234!",
                 "ROLE_USER",
                 "nickname2",
                 false
         );
 
         User user3 = helper.createUser(
-                "user3",
-                "password3",
+                "user3@example.com",
+                "test1234!",
                 "ROLE_USER",
                 "nickname3",
                 false
@@ -152,24 +152,24 @@ class ChatRoomMemberQueryRepositoryTest {
 
         // given
         User user1 = helper.createUser(
-                "user1",
-                "password1",
+                "user1@example.com",
+                "test1234!",
                 "ROLE_USER",
                 "nickname1",
                 false
         );
 
         User user2 = helper.createUser(
-                "user2",
-                "password2",
+                "user2@exmaple.com",
+                "test1234!",
                 "ROLE_USER",
                 "nickname2",
                 false
         );
 
         User otherRoomUser = helper.createUser(
-                "user3",
-                "password3",
+                "user3@exmaple.ecom",
+                "test1234!",
                 "ROLE_USER",
                 "nickname3",
                 false
@@ -261,16 +261,16 @@ class ChatRoomMemberQueryRepositoryTest {
 
         // given
         User targetUser = helper.createUser(
-                "targetUser",
-                "password1",
+                "targetUser@example.com",
+                "test1234!",
                 "ROLE_USER",
                 "targetNickname",
                 false
         );
 
         User otherUser = helper.createUser(
-                "otherUser",
-                "password2",
+                "otherUser@example.com",
+                "test1234!",
                 "ROLE_USER",
                 "otherNickname",
                 false
@@ -335,8 +335,8 @@ class ChatRoomMemberQueryRepositoryTest {
 
         // given
         User user = helper.createUser(
-                "user1",
-                "password1",
+                "user1@example.com",
+                "test1234!",
                 "ROLE_USER",
                 "nickname1",
                 false
@@ -382,8 +382,8 @@ class ChatRoomMemberQueryRepositoryTest {
 
         // given
         User user = helper.createUser(
-                "user1",
-                "password1",
+                "user1@example.com",
+                "test1234!",
                 "ROLE_USER",
                 "nickname1",
                 false
@@ -423,16 +423,16 @@ class ChatRoomMemberQueryRepositoryTest {
 
         // given
         User member = helper.createUser(
-                "member",
-                "password1",
+                "member@example.com",
+                "test1234!",
                 "ROLE_USER",
                 "memberNickname",
                 false
         );
 
         User nonMember = helper.createUser(
-                "nonMember",
-                "password2",
+                "nonMember@example.com",
+                "test1234!",
                 "ROLE_USER",
                 "nonMemberNickname",
                 false
@@ -472,8 +472,8 @@ class ChatRoomMemberQueryRepositoryTest {
 
         // given
         User user = helper.createUser(
-                "user1",
-                "password1",
+                "user1@example.com",
+                "test1234!",
                 "ROLE_USER",
                 "nickname1",
                 false

@@ -41,7 +41,7 @@ class JwtAuthenticationProviderTest {
         // given
         String authorizationHeader = "Bearer access-token";
         String parsedToken = "access-token";
-        String username = "testUser";
+        String username = "testUser@example.com";
 
         UserAuthCache userAuthCache = new UserAuthCache(
                 1L,
@@ -231,7 +231,7 @@ class JwtAuthenticationProviderTest {
         // given
         String authorizationHeader = "Bearer access-token";
         String parsedToken = "access-token";
-        String username = "unknownUser";
+        String username = "unknownUser@example.com";
 
         when(jwtUtil
                 .isExpired(parsedToken))

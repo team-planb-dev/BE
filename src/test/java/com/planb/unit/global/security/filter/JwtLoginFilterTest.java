@@ -73,8 +73,8 @@ class JwtLoginFilterTest {
 
         // given
 
-        String username = "testUser";
-        String password = "1234";
+        String username = "testUser@example.com";
+        String password = "test1234!";
 
         LoginRequest loginRequest =
                 new LoginRequest(username,password);
@@ -137,7 +137,7 @@ class JwtLoginFilterTest {
 
         // given
         Long userId = 1L;
-        String username = "testUser";
+        String username = "testUser@example.com";
         String role = "ROLE_USER";
 
         MockHttpServletRequest request =

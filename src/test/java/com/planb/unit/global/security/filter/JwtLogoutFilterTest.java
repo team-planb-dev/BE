@@ -137,7 +137,7 @@ class JwtLogoutFilterTest {
 
         // given
         String refresh = "refreshToken";
-        String username = "testUser";
+        String username = "testUser@example.com";
 
         MockHttpServletRequest request =
                 new MockHttpServletRequest();

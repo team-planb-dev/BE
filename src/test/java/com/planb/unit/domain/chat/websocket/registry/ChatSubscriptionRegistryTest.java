@@ -30,7 +30,7 @@ class ChatSubscriptionRegistryTest {
 
         Long roomId = 1L;
 
-        String username = "testUser";
+        String username = "testUser@example.com";
 
         // when
         boolean result = chatSubscriptionRegistry.subscribe(
@@ -56,7 +56,7 @@ class ChatSubscriptionRegistryTest {
                 sessionId,
                 subscriptionId,
                 1L,
-                "testUser"
+                "testUser@example.com"
         );
 
         // when
@@ -64,7 +64,7 @@ class ChatSubscriptionRegistryTest {
                 sessionId,
                 subscriptionId,
                 2L,
-                "anotherUser"
+                "anotherUser@example.com"
         );
 
         // then
@@ -83,14 +83,14 @@ class ChatSubscriptionRegistryTest {
                 sessionId,
                 "subscription-1",
                 1L,
-                "testUser"
+                "testUser@example.com"
         );
 
         boolean secondResult = chatSubscriptionRegistry.subscribe(
                 sessionId,
                 "subscription-2",
                 2L,
-                "testUser"
+                "testUser@example.com"
         );
 
         // then
@@ -110,14 +110,14 @@ class ChatSubscriptionRegistryTest {
                 "session-1",
                 subscriptionId,
                 1L,
-                "userA"
+                "userA@example.com"
         );
 
         boolean secondResult = chatSubscriptionRegistry.subscribe(
                 "session-2",
                 subscriptionId,
                 2L,
-                "userB"
+                "userB@example.com"
         );
 
         // then
@@ -136,7 +136,7 @@ class ChatSubscriptionRegistryTest {
 
         Long roomId = 1L;
 
-        String username = "testUser";
+        String username = "testUser@example.com";
 
         chatSubscriptionRegistry.subscribe(
                 sessionId,
@@ -190,7 +190,7 @@ class ChatSubscriptionRegistryTest {
                 sessionId,
                 "subscription-1",
                 1L,
-                "testUser"
+                "testUser@example.com"
         );
 
         // when
@@ -215,14 +215,14 @@ class ChatSubscriptionRegistryTest {
                 sessionId,
                 "subscription-1",
                 1L,
-                "testUser"
+                "testUser@example.com"
         );
 
         chatSubscriptionRegistry.subscribe(
                 sessionId,
                 "subscription-2",
                 2L,
-                "testUser"
+                "testUser@example.com"
         );
 
         // when
@@ -264,7 +264,7 @@ class ChatSubscriptionRegistryTest {
                 sessionId,
                 subscriptionId,
                 1L,
-                "testUser"
+                "testUser@example.com"
         );
 
         chatSubscriptionRegistry.unsubscribe(
@@ -277,7 +277,7 @@ class ChatSubscriptionRegistryTest {
                 sessionId,
                 subscriptionId,
                 2L,
-                "anotherUser"
+                "anotherUser@example.com"
         );
 
         // then
@@ -295,14 +295,14 @@ class ChatSubscriptionRegistryTest {
                 sessionId,
                 "subscription-1",
                 1L,
-                "testUser"
+                "testUser@example.com"
         );
 
         chatSubscriptionRegistry.subscribe(
                 sessionId,
                 "subscription-2",
                 2L,
-                "testUser"
+                "testUser@example.com"
         );
 
         // when
@@ -332,7 +332,7 @@ class ChatSubscriptionRegistryTest {
                 sessionId,
                 "subscription-1",
                 1L,
-                "testUser"
+                "testUser@example.com"
         );
 
         chatSubscriptionRegistry.disconnect(sessionId);
@@ -359,7 +359,7 @@ class ChatSubscriptionRegistryTest {
                 sessionId,
                 "subscription-1",
                 1L,
-                "testUser"
+                "testUser@example.com"
         );
 
         chatSubscriptionRegistry.disconnect(sessionId);
@@ -393,14 +393,14 @@ class ChatSubscriptionRegistryTest {
                 "session-1",
                 "subscription-1",
                 1L,
-                "userA"
+                "userA@example.com"
         );
 
         chatSubscriptionRegistry.subscribe(
                 "session-2",
                 "subscription-1",
                 2L,
-                "userB"
+                "userB@example.com"
         );
 
         // when
@@ -424,7 +424,7 @@ class ChatSubscriptionRegistryTest {
         assertThat(disconnected
                 .get(0)
                 .username())
-                .isEqualTo("userA");
+                .isEqualTo("userA@example.com");
 
         assertThat(remaining).isNotNull();
 
@@ -434,6 +434,6 @@ class ChatSubscriptionRegistryTest {
 
         assertThat(remaining
                 .username())
-                .isEqualTo("userB");
+                .isEqualTo("userB@example.com");
     }
 }

@@ -26,7 +26,7 @@ class JwtUtilTest {
 
         // given
         String category = "access";
-        String username = "wooju";
+        String username = "wooju@example.com";
         String role = "ROLE_USER";
         Long expiredMs = 1000L * 60;
 
@@ -51,7 +51,7 @@ class JwtUtilTest {
         // given
         String token = jwtUtil.createJwt(
                 "access",
-                "wooju",
+                "wooju@example.com",
                 "ROLE_USER",
                 1000L * 60
         );
@@ -74,7 +74,7 @@ class JwtUtilTest {
         // given
         String token = jwtUtil.createJwt(
                 "access",
-                "wooju",
+                "wooju@example.com",
                 "ROLE_USER",
                 1000L * 60
         );
@@ -95,7 +95,7 @@ class JwtUtilTest {
         // given
         String token = jwtUtil.createJwt(
                 "refresh",
-                "wooju",
+                "wooju@example.com",
                 "ROLE_USER",
                 1000L * 60
         );
@@ -117,7 +117,7 @@ class JwtUtilTest {
         // given
         String token = jwtUtil.createJwt(
                 "access",
-                "wooju",
+                "wooju@example.com",
                 "ROLE_USER",
                 1000L * 60
         );
@@ -140,7 +140,7 @@ class JwtUtilTest {
         // given
         String token = jwtUtil.createJwt(
                 "access",
-                "wooju",
+                "wooju@example.com",
                 "ROLE_USER",
                 1L
 

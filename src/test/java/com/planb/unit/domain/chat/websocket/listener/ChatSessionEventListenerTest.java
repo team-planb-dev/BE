@@ -69,7 +69,7 @@ class ChatSessionEventListenerTest {
         String sessionId = "session-1";
         String subscriptionId = "subscription-1";
         String destination = "/sub/api/v1/chat/1";
-        String username = "testUser";
+        String username = "testUser@exmaple.com";
         Long roomId = 1L;
 
         Message<byte[]> message = createSubscribeMessage(
@@ -129,7 +129,7 @@ class ChatSessionEventListenerTest {
 
         String destination = "/sub/api/v1/chat/1";
 
-        String username = "testUser";
+        String username = "testUser@exmaple.com";
 
         Long roomId = 1L;
 
@@ -344,7 +344,7 @@ class ChatSessionEventListenerTest {
 
         String subscriptionId = "subscription-1";
 
-        String username = "testUser";
+        String username = "testUser@example.com";
 
         Long roomId = 1L;
 
@@ -493,13 +493,13 @@ class ChatSessionEventListenerTest {
         ChatSubscriptionInfo firstSubscription =
                 new ChatSubscriptionInfo(
                         1L,
-                        "testUser"
+                        "testUser@example.com"
                 );
 
         ChatSubscriptionInfo secondSubscription =
                 new ChatSubscriptionInfo(
                         2L,
-                        "testUser"
+                        "testUser2@example.com"
                 );
 
         when(disconnectEvent
@@ -521,13 +521,13 @@ class ChatSessionEventListenerTest {
 
         verify(chatFacade).publishSystemMessage(
                 1L,
-                "testUser",
+                "testUser@example.com",
                 MessageType.LEAVE
         );
 
         verify(chatFacade).publishSystemMessage(
                 2L,
-                "testUser",
+                "testUser2@example.com",
                 MessageType.LEAVE
         );
     }

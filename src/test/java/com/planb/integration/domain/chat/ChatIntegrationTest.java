@@ -658,7 +658,7 @@ public class ChatIntegrationTest extends IntegrationTest {
                 createUniqueValue();
 
         String username =
-                "chat-user-" + uniqueValue;
+                "chat-user-" + uniqueValue + "@exmaple.com";
 
         String nickname =
                 NICKNAME_PREFIX + uniqueValue;
@@ -698,7 +698,10 @@ public class ChatIntegrationTest extends IntegrationTest {
                 new UserCreateRequest(
                         username,
                         nickname,
-                        password
+                        password,
+                        true,
+                        true,
+                        true
                 );
 
         mockMvc.perform(
