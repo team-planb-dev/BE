@@ -64,7 +64,7 @@ public class QChatMessage extends EntityPathBase<ChatMessage> {
     public QChatMessage(Class<? extends ChatMessage> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
         this.chatRoom = inits.isInitialized("chatRoom") ? new QChatRoom(forProperty("chatRoom")) : null;
-        this.sender = inits.isInitialized("sender") ? new com.planb.domain.user.entity.QUser(forProperty("sender")) : null;
+        this.sender = inits.isInitialized("sender") ? new com.planb.domain.user.entity.QUser(forProperty("sender"), inits.get("sender")) : null;
     }
 
 }

@@ -4,8 +4,14 @@ import com.planb.global.converter.BooleanToYNConverter;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Embeddable;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+
 
 @Embeddable
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class TermsAgreement {
 
     // 만 14세 이상 확인

@@ -1,5 +1,6 @@
 package com.planb.domain.user.service;
 
+import com.planb.domain.user.entity.TermsAgreement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,14 @@ public class UserService {
                         .encode(userCreateRequest
                                 .password()))
                 .nickname(userCreateRequest.nickname())
+                .termsAgreement(
+                        new TermsAgreement(
+                                userCreateRequest
+                                        .ageRequirementAgreed(),
+                                userCreateRequest
+                                        .serviceTermsAgreed(),
+                                userCreateRequest
+                                        .privacyCollectionAgreed()))
                 .role("USER")
                 .deleted(false)
                 .build();
