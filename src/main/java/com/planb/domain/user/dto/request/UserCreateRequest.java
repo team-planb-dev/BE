@@ -15,5 +15,9 @@ public record UserCreateRequest(
 
         @NotBlank(message = "비밀번호는 필수 입니다.")
         @ValidPassword
-        String password) {
+        String password,
+
+        boolean ageRequirementAgreed,
+        boolean serviceTermsAgreed,
+        boolean privacyCollectionAgreed) {
 }

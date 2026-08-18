@@ -412,7 +412,7 @@ class StompChannelInterceptorTest {
     private Authentication createAuthentication() {
         UserAuthCache userAuthCache = new UserAuthCache(
                 1L,
-                "testUser",
+                "testUser@example.com",
                 "ROLE_USER"
         );
 

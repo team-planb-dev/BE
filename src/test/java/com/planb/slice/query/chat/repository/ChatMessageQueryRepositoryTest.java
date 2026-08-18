@@ -49,8 +49,8 @@ class ChatMessageQueryRepositoryTest {
     void softDeleteAllMessageInChatRoom() {
 
         User sender = helper.createUser(
-                "user1",
-                "password",
+                "user1@example.com",
+                "test1234!",
                 "ROLE_USER",
                 "nickname1",
                 false
@@ -105,8 +105,8 @@ class ChatMessageQueryRepositoryTest {
     void softDeleteAllMessageInChatRoomDoesNotDeleteOtherRoomMessage() {
 
         User sender = helper.createUser(
-                "user1",
-                "password",
+                "user1@example.com",
+                "test1234!",
                 "ROLE_USER",
                 "nickname1",
                 false
@@ -166,8 +166,8 @@ class ChatMessageQueryRepositoryTest {
     void softDeleteAllMessageInChatRoomExcludesDeletedMessage() {
 
         User sender = helper.createUser(
-                "user1",
-                "password",
+                "user1@example.com",
+                "test1234!",
                 "ROLE_USER",
                 "nickname1",
                 false

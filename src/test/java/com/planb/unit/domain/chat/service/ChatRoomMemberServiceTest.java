@@ -37,7 +37,7 @@ class ChatRoomMemberServiceTest {
 
         // given
         Long chatRoomId = 1L;
-        String username = "woojuice";
+        String username = "woojuice@example.com";
 
         ChatRoom chatRoom = mock(ChatRoom.class);
         User user = mock(User.class);
@@ -81,7 +81,7 @@ class ChatRoomMemberServiceTest {
                 .isEqualTo(chatRoomId);
 
         assertThat(result.message())
-                .isEqualTo("woojuice님이 채팅방에 입장하셨습니다.");
+                .isEqualTo("woojuice@example.com님이 채팅방에 입장하셨습니다.");
     }
 
     @Test
@@ -90,7 +90,7 @@ class ChatRoomMemberServiceTest {
 
         // given
         Long chatRoomId = 1L;
-        String username = "woojuice";
+        String username = "woojuice@example.com";
 
         ChatRoomMember chatRoomMember =
                 mock(ChatRoomMember.class);
@@ -129,6 +129,6 @@ class ChatRoomMemberServiceTest {
                 .isEqualTo(username);
 
         assertThat(result.message())
-                .isEqualTo("woojuice님이 퇴장하셨습니다.");
+                .isEqualTo("woojuice@example.com님이 퇴장하셨습니다.");
     }
 }

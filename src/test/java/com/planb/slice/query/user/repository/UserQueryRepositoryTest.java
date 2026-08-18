@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest
 @Import({QueryDslConfig.class, UserQueryRepository.class})
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@ActiveProfiles("test")
+@ActiveProfiles("local")
 class UserQueryRepositoryTest {
 
     @Autowired
@@ -73,7 +73,7 @@ class UserQueryRepositoryTest {
 
         // when
         Optional<User> result = userQueryRepository
-                .findByUsername("unknown");
+                .findByUsername("unknown@example.com");
 
         // then
         assertThat(result)
@@ -124,7 +124,7 @@ class UserQueryRepositoryTest {
         // given
         User user = User.builder()
                 .username("nickname-test@example.com")
-                .password("1234")
+                .password("test1234!")
                 .deleted(false)
                 .role("ROLE_USER")
                 .nickname("testNickname")

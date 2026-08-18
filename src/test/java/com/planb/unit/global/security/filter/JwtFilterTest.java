@@ -176,7 +176,7 @@ class JwtFilterTest {
         // given
 
         String accessToken = "accessToken";
-        String username = "testUser";
+        String username = "testUser@example.com";
 
         MockHttpServletRequest request =
                 new MockHttpServletRequest();
@@ -225,7 +225,7 @@ class JwtFilterTest {
         // given
 
         String accessToken = "accessToken";
-        String username = "testUser";
+        String username = "testUser@example.com";
         String role = "ROLE_USER";
 
         UserAuthCache userAuthCache =

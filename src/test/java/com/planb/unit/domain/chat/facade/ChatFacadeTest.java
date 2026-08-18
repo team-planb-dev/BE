@@ -441,7 +441,7 @@ class ChatFacadeTest {
 
         // given
         Long roomId = 1L;
-        String username = "testUser";
+        String username = "testUser@example.com";
         String messageContent = "안녕하세요";
 
         SendChatMessageRequest request =
@@ -545,7 +545,7 @@ class ChatFacadeTest {
         // given
         Long roomId = 1L;
         Long userId = 10L;
-        String username = "testUser";
+        String username = "testUser@example.com";
         String nickname = "테스트유저";
         String systemMessage =
                 nickname + "님이 입장했습니다.";
@@ -643,7 +643,7 @@ class ChatFacadeTest {
         // given
         Long roomId = 1L;
         Long userId = 10L;
-        String username = "testUser";
+        String username = "testUser@example.com";
         String nickname = "테스트유저";
         String systemMessage =
                 nickname + "님이 퇴장했습니다.";
@@ -740,7 +740,7 @@ class ChatFacadeTest {
 
         // given
         Long roomId = 1L;
-        String username = "testUser";
+        String username = "testUser@example.com";
         String nickname = "테스트유저";
 
         User participant =

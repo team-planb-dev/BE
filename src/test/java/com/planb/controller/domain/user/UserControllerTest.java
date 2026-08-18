@@ -60,7 +60,10 @@ class UserControllerTest {
                 new UserCreateRequest(
                         "testUser@example.com",
                         "testNickname",
-                        "test1234"
+                        "test1234",
+                        true,
+                        true,
+                        true
                 );
 
         UserCreateResponse response =
@@ -91,7 +94,7 @@ class UserControllerTest {
 
     @Test
     @WithMockUser(
-            username = "testUser",
+            username = "testUser@example.com",
             roles = "USER"
     )
     @DisplayName("회원 조회 성공")
