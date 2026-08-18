@@ -47,7 +47,7 @@ public class QChatRoomMember extends EntityPathBase<ChatRoomMember> {
     public QChatRoomMember(Class<? extends ChatRoomMember> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
         this.chatRoom = inits.isInitialized("chatRoom") ? new QChatRoom(forProperty("chatRoom")) : null;
-        this.user = inits.isInitialized("user") ? new com.planb.domain.user.entity.QUser(forProperty("user")) : null;
+        this.user = inits.isInitialized("user") ? new com.planb.domain.user.entity.QUser(forProperty("user"), inits.get("user")) : null;
     }
 
 }

@@ -1,6 +1,7 @@
 package com.planb.slice.query.chat.repository.helper;
 
 
+import com.planb.domain.user.entity.TermsAgreement;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
@@ -28,6 +29,11 @@ public class ChatDomainRepositoryTestHelper {
                 .username(username)
                 .password(password)
                 .role(role)
+                .termsAgreement(
+                        new TermsAgreement(
+                                true,
+                                true,
+                                true))
                 .nickname(nickname)
                 .deleted(deleted)
                 .build();

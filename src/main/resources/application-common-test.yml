@@ -2,33 +2,28 @@ spring:
   config:
     activate:
       on-profile: common-test
-
   datasource:
-    url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: ${DATABASE_URL}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
 
   servlet:
     multipart:
       max-file-size: 25GB
       max-request-size: 25GB
-
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate
     properties:
       hibernate:
         default_batch_fetch_size: 500
-        format_sql: true
     open-in-view: false
-    show-sql: true
 
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
 
   ai:
     openai:
@@ -38,6 +33,23 @@ spring:
     mcp:
       server:
         protocol: streamable
+
+
+jwt:
+  secret: ${JWT_SECRET}
+
+external:
+  food-ntr-cpnt:
+    base-url: ${FOOD_NTR_CPNT_URL}
+    service-key: ${FOOD_NTR_CPNT_KEY}
+
+  kor2-service:
+    base-url: ${KOR2_SERVICE_URL}
+    service-key: ${KOR2_SERVICE_KEY}
+
+  tar-rlte-tar-service:
+    base-url: ${TAR_RLTE_TAR_SERVICE_URL}
+    service-key: ${TAR_RLTE_TAR_SERVICE_KEY}
 
 
 springdoc:
@@ -52,8 +64,3 @@ springdoc:
   packages-to-scan: com.planb
   default-consumes-media-type: application/json
   default-produces-media-type: application/json
-
-  h2:
-    console:
-      enabled: true
-

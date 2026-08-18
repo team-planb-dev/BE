@@ -37,7 +37,7 @@ class ChatControllerTest {
         SendChatMessageRequest request =
                 new SendChatMessageRequest("안녕하세요.");
 
-        Principal principal = () -> "testUser";
+        Principal principal = () -> "testUser@exmaple.com";
 
         // when
         chatController.sendMessage(
@@ -50,6 +50,6 @@ class ChatControllerTest {
                 .publishMessage(
                         roomId,
                         request,
-                        "testUser");
+                        "testUser@example.com");
     }
 }

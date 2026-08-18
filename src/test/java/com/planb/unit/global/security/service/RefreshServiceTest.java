@@ -119,7 +119,7 @@ class RefreshServiceTest {
         String newAccess = "new-access-token";
         String newRefresh = "new-refresh-token";
 
-        String username = "wooju";
+        String username = "wooju@example.com";
         String role = "ROLE_USER";
 
         when(cookieUtil
@@ -190,7 +190,7 @@ class RefreshServiceTest {
     void validateAlreadyLogin_alreadyLogin() {
 
         // given
-        String username = "wooju";
+        String username = "wooju@example.com";
 
         when(userTokenCacheRepository.exists("refresh:user:" + username))
                 .thenReturn(true);

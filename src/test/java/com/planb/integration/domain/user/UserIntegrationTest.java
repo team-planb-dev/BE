@@ -64,7 +64,7 @@ public class UserIntegrationTest extends IntegrationTest {
     private static final String NICKNAME =
             "testNickname";
     private static final String PASSWORD =
-            "password123!";
+            "test1234!";
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -80,7 +80,10 @@ public class UserIntegrationTest extends IntegrationTest {
         UserCreateRequest request =
                 new UserCreateRequest(username,
                         NICKNAME,
-                        PASSWORD);
+                        PASSWORD,
+                        true,
+                        true,
+                        true);
 
         // when & then
         mockMvc.perform(post(CREATE_USER_URL)
@@ -240,7 +243,13 @@ public class UserIntegrationTest extends IntegrationTest {
     ) throws Exception {
 
         UserCreateRequest request =
-                new UserCreateRequest(username,nickname,password);
+                new UserCreateRequest(
+                        username,
+                        nickname,
+                        password,
+                        true,
+                        true,
+                        true);
 
         mockMvc.perform(post(CREATE_USER_URL)
                         .contentType(MediaType

@@ -35,7 +35,10 @@ class UserServiceTest {
         UserCreateRequest request = new UserCreateRequest(
                 "testUser",
                 "testNickname",
-                "1234"
+                "1234",
+                true,
+                true,
+                true
         );
 
         when(bCryptPasswordEncoder

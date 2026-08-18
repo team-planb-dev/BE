@@ -72,7 +72,7 @@ class UserAuthCacheRepositoryTest {
     void saveAndFindByUsername() {
 
         // given
-        String username = "testUser";
+        String username = "testUser@example.com";
         UserAuthCache userAuthCache = createUserAuthCache();
 
         // when
@@ -95,7 +95,7 @@ class UserAuthCacheRepositoryTest {
     void findByUsernameReturnsEmptyWhenUserDoesNotExist() {
 
         // given
-        String username = "unknownUser";
+        String username = "unknownUser@example.com";
 
         // when
         Optional<UserAuthCache> result =
@@ -111,7 +111,7 @@ class UserAuthCacheRepositoryTest {
     void saveSetsExpirationTime() {
 
         // given
-        String username = "testUser";
+        String username = "testUser@example.com";
 
         long expiredMs = Duration.ofMinutes(10).toMillis();
         UserAuthCache userAuthCache = createUserAuthCache();
@@ -139,7 +139,7 @@ class UserAuthCacheRepositoryTest {
     void cachedUserExpires() throws InterruptedException {
 
         // given
-        String username = "testUser";
+        String username = "testUser@example.com";
 
         UserAuthCache userAuthCache = createUserAuthCache();
 
@@ -168,7 +168,7 @@ class UserAuthCacheRepositoryTest {
 
         return new UserAuthCache(
                 1L,
-                "testUser",
+                "testUser@example.com",
                 "ROLE_USER"
         );
     }

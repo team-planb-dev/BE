@@ -54,7 +54,7 @@ public abstract class ChatIntegrationTestSupport
             "/api/v1/chat/member/delete";
 
     protected static final String PASSWORD =
-            "password123!";
+            "test1234!";
 
     protected static final String NICKNAME_PREFIX =
             "chatNickname-";
@@ -69,7 +69,7 @@ public abstract class ChatIntegrationTestSupport
                 createUniqueValue();
 
         String username =
-                "chat-user-" + uniqueValue;
+                "chat-user-" + uniqueValue + "@example.com";
 
         String nickname =
                 NICKNAME_PREFIX + uniqueValue;
@@ -109,7 +109,10 @@ public abstract class ChatIntegrationTestSupport
                 new UserCreateRequest(
                         username,
                         nickname,
-                        password
+                        password,
+                        true,
+                        true,
+                        true
                 );
 
         mockMvc.perform(

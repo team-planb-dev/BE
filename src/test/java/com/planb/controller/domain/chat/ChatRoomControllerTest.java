@@ -2,12 +2,14 @@ package com.planb.controller.domain.chat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.planb.global.config.app.AppConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -32,6 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(ChatRoomController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@Import(AppConfig.class)
 class ChatRoomControllerTest {
 
     @Autowired
@@ -45,7 +48,7 @@ class ChatRoomControllerTest {
 
     @Test
     @WithMockUser(
-            username = "testUser",
+            username = "testUser@example.com",
             roles = "USER"
     )
     @DisplayName("채팅방 생성 성공")
@@ -81,7 +84,7 @@ class ChatRoomControllerTest {
 
     @Test
     @WithMockUser(
-            username = "testUser",
+            username = "testUser@example.com",
             roles = "USER"
     )
     @DisplayName("채팅방 삭제 성공")
