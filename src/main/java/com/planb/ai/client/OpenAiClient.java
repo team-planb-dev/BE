@@ -13,9 +13,23 @@ public class OpenAiClient {
     private final ChatClient chatClient;
 
     // 기본 호출
+    public <T> T call(
+            AiPrompt prompt,
+            Class<T> responseType) {
+
+        return chatClient
+                .prompt()
+                .system(prompt.system())
+                .user(prompt.user())
+                .call()
+                .entity(responseType);
+    }
+
+    // 기본 호출 (Tool 포함)
     public <T> T call
-            (AiPrompt prompt,
-             Class<T> responseType ){
+    (AiPrompt prompt,
+     Class<T> responseType,
+     Object... tools){
 
         return chatClient
                 .prompt()
@@ -23,6 +37,7 @@ public class OpenAiClient {
                         .system())
                 .user(prompt
                         .user())
+                .tools(tools)
                 .call()
                 .entity(responseType);
     }
