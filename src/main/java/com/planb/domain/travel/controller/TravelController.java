@@ -7,11 +7,13 @@ import com.planb.domain.travel.dto.response.MakeRecommendFoodResponse;
 import com.planb.domain.travel.dto.response.SearchPlannedPlaceResponse;
 import com.planb.domain.travel.facade.TravelFacade;
 import com.planb.global.config.exception.dto.ApiResult;
+import com.planb.global.security.auth.UserDetailsImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
@@ -57,12 +59,17 @@ public class TravelController {
             description = "사용자의 입력에 기반하여 여행조건을 등록합니다." +
                     "그 후,해당 정보에 기반하여 일정을 생성합니다.")
     public ResponseEntity<ApiResult<?>> addTravelOptionsAndRecommend
-            (@RequestBody CreateTravelRequest createTravelRequest){
+            (@RequestBody CreateTravelRequest createTravelRequest,
+             @AuthenticationPrincipal UserDetailsImpl userDetails){
 
-
-
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(ApiResult
+                        .success(travelFacade
+                                .makeTravelOptionsAndRecommend(
+                                        createTravelRequest,
+                                        userDetails
+                                                .getUserId())));
     }
-
-
 
 }
