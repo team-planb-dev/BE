@@ -22,4 +22,8 @@ public class KakaoMobilityServiceClient
     public String serviceKey() {
         return properties.apiKey();
     }
+
+    public String baseUrl(){
+        return properties.baseUrl();
+    }
 }
