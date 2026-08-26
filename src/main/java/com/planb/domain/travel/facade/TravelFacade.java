@@ -11,9 +11,7 @@ import com.planb.domain.travel.dto.request.*;
 
 import com.planb.domain.travel.dto.response.MakeRecommendFoodResponse;
 import com.planb.domain.travel.dto.response.SearchPlannedPlaceResponse;
-import com.planb.domain.travel.entity.Plan;
-import com.planb.domain.travel.entity.PlanDay;
-import com.planb.domain.travel.entity.Travel;
+import com.planb.domain.travel.entity.*;
 import com.planb.domain.travel.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -42,6 +40,7 @@ public class TravelFacade {
     private final PlanService planService;
     private final PlanDayService planDayService;
     private final PlanScheduleService planScheduleService;
+    private final RestaurantDetailService restaurantDetailService;
 
 
     /**
@@ -77,6 +76,14 @@ public class TravelFacade {
 
         // Travel 객체 생성 후 , 저장
         travelService.saveTravel(travel);
+
+        // PlannedPlan 객체 생성 후 , 저장하기
+        plannedPlaceService
+                .savePlannedPlaceList(plannedPlaceService
+                        .makePlannedPlace(CreatePlannedPlaceRequest
+                                .from(
+                                        travel,
+                                        createTravelRequest)));
 
         // Travel과 연결된 Plan객체 생성
         Plan plan = planService.createPlan(
@@ -133,12 +140,28 @@ public class TravelFacade {
                     // PlanDay 객체 저장
                     planDayService.savePlanDay(planDay);
 
-                    // PlanDay와 연결된 PlanSchedule 객체 리스트 생성 후 저장
-                    planScheduleService.savePlanScheduleAll(
+                    // PlanDay와 연결된 PlanSchedule 객체 리스트 생성
+                    List<PlanSchedule> planSchedules =
                             planScheduleService.makePlanScheduleList(
                                     planDay,
                                     planDayDetail.schedules()
-                            )
+                            );
+
+                    // PlanSchedule 객체 리스트 일괄 저장
+                    planScheduleService.savePlanScheduleAll(
+                            planSchedules
+                    );
+
+                    // RestaurantDetail 객체 리스트 생성
+                    List<RestaurantDetail> restaurantDetails =
+                            restaurantDetailService.makeRestaurantDetailList(
+                                    planSchedules,
+                                    planDayDetail.schedules()
+                            );
+
+                    // RestaurantDetail 객체 리스트 일괄 저장
+                    restaurantDetailService.saveRestaurantDetailAll(
+                            restaurantDetails
                     );
                 });
 
