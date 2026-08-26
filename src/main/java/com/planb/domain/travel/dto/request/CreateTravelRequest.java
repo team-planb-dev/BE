@@ -15,8 +15,15 @@ public record CreateTravelRequest(String travelName, // 여행이름
                                   DateType dateType, // 날짜 타입
                                   Transportation transportation, // 교통수단
                                   String decidedLocation, // 정해진 위치
+                                  List<PlannedPlaceDetail> plannedPlaces, // 사용자가 미리 선택한 장소
                                   TravelStyle travelStyle, // 여행 스타일
                                   TravelTheme travelTheme, // 여행 테마
                                   String localFood, // 기입받은 지역 음식
                                   List<String> recommendFoods){ // AI 추천 지역음식
+
+    public record PlannedPlaceDetail
+            (String locationName,
+             String location) {
+
+    }
 }
