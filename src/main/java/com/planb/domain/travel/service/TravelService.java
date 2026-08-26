@@ -41,6 +41,8 @@ public class TravelService {
                         .locationSigungu())
                 .startDate(createTravelRequest
                         .startDate())
+                .dateType(createTravelRequest
+                        .dateType())
                 .endDate(calculateEndDate(
                         createTravelRequest
                                 .startDate(),
