@@ -1,7 +1,5 @@
 package com.planb.domain.travel.entity;
 
-import com.planb.domain.travel.converter.PlaceTypeConverter;
-import com.planb.domain.travel.entity.constant.PlaceType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,9 +20,6 @@ public class PlannedPlace {
     @Column(name = "location")
     private String location;
 
-    @Convert(converter = PlaceTypeConverter.class)
-    @Column(name = "place_type")
-    private PlaceType placeType;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "travel_id",nullable = false)

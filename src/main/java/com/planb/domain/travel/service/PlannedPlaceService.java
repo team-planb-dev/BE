@@ -4,7 +4,6 @@ import com.planb.domain.travel.dto.request.CreatePlannedPlaceRequest;
 import com.planb.domain.travel.dto.request.SearchPlannedPlaceRequest;
 import com.planb.domain.travel.dto.response.SearchPlannedPlaceResponse;
 import com.planb.domain.travel.entity.PlannedPlace;
-import com.planb.domain.travel.entity.constant.PlaceType;
 import com.planb.domain.travel.repository.PlannedPlaceRepository;
 import com.planb.global.client.kor2Service.handler.Kor2ServiceHandler;
 import lombok.RequiredArgsConstructor;
@@ -45,13 +44,7 @@ public class PlannedPlaceService {
                                     .map(item ->
                                             new SearchPlannedPlaceResponse.PlannedPlaceDetail(
                                                     item.title(),
-                                                    item.addr1(),
-                                                    PlaceType
-                                                            .fromContentTypeId(
-                                                                    item
-                                                                            .contenttypeid()
-                                                    )
-                                            )
+                                                    item.addr1())
                                     )
                                     .toList();
 
