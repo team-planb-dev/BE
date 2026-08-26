@@ -12,7 +12,7 @@ public class Plan {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "plan_name")
+    @Column(name = "plan_id")
     private Long id;
 
     @OneToOne(fetch = FetchType.LAZY)
@@ -23,7 +23,7 @@ public class Plan {
     )
     private Travel travel;
 
-    @Column(name = "travel_name")
+    @Column(name = "plan_name")
     private String planName;
 
 }

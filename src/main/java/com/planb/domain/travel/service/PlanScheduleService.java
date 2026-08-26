@@ -28,6 +28,9 @@ public class PlanScheduleService {
                                 .scheduleType(
                                         schedule.scheduleType()
                                 )
+                                .courseType(
+                                        schedule.courseType()
+                                )
                                 .startTime(
                                         schedule.startTime()
                                 )
@@ -37,11 +40,14 @@ public class PlanScheduleService {
                                 .locationName(
                                         schedule.locationName()
                                 )
+                                .imageUrl(
+                                        schedule.imageUrl()
+                                )
+                                .thumbNailImageUrl(
+                                        schedule.thumbNailImageUrl()
+                                )
                                 .location(
                                         schedule.location()
-                                )
-                                .placeType(
-                                        schedule.placeType()
                                 )
                                 .stayMinutes(
                                         schedule.stayMinutes()
@@ -49,8 +55,8 @@ public class PlanScheduleService {
                                 .travelMinutes(
                                         schedule.travelMinutes()
                                 )
-                                .cautions(
-                                        schedule.cautions()
+                                .tags(
+                                        schedule.tags()
                                 )
                                 .medicationIntervalMinutes(
                                         schedule.medication() != null
@@ -74,7 +80,9 @@ public class PlanScheduleService {
      */
 
     // PlanSchedule 객체 리스트 일괄 저장
-    public void savePlanScheduleAll(List<PlanSchedule> planScheduleList) {
+    public void savePlanScheduleAll(
+            List<PlanSchedule> planScheduleList
+    ) {
 
         planScheduleRepository.saveAll(planScheduleList);
     }
