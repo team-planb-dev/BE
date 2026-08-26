@@ -2,6 +2,7 @@ package com.planb.global.client.foodNtrCpnt.dto.request;
 
 public record FoodNtrCpntSearchRequest
         (String foodName,
+         String dbClassName,
          Integer pageNo,
          Integer numOfRows) {
 
@@ -9,8 +10,9 @@ public record FoodNtrCpntSearchRequest
 
         return new FoodNtrCpntSearchRequest(
                 foodName,
+                "품목대표",
                 1,
-                10
+                100
         );
     }
 }

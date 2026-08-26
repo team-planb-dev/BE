@@ -22,5 +22,9 @@ public class Kor2ServiceClient
         return properties.serviceKey();
     }
 
+    public String baseUrl(){
+        return properties.baseUrl();
+    }
+
 
 }

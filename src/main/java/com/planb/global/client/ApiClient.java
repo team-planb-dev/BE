@@ -53,4 +53,16 @@ public abstract class ApiClient<P extends ApiProperties> {
                 .retrieve()
                 .bodyToMono(responseType);
     }
+
+    // 완성된 URI 기반 GET API 호출
+    public <R> Mono<R> get
+    (URI uri,
+     Class<R> responseType) {
+
+        return webClient
+                .get()
+                .uri(uri)
+                .retrieve()
+                .bodyToMono(responseType);
+    }
 }
