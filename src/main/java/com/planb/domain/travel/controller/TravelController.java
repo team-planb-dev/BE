@@ -1,8 +1,11 @@
 package com.planb.domain.travel.controller;
 
+import com.planb.ai.dto.response.CreatePlanAiResponse;
 import com.planb.domain.travel.dto.request.CreateTravelRequest;
+import com.planb.domain.travel.dto.request.GetAiPlanRequest;
 import com.planb.domain.travel.dto.request.MakeRecommendFoodsRequest;
 import com.planb.domain.travel.dto.request.SearchPlannedPlaceRequest;
+import com.planb.domain.travel.dto.response.GetAiPlanResponse;
 import com.planb.domain.travel.dto.response.MakeRecommendFoodResponse;
 import com.planb.domain.travel.dto.response.SearchPlannedPlaceResponse;
 import com.planb.domain.travel.facade.TravelFacade;
@@ -58,7 +61,7 @@ public class TravelController {
     @Operation(summary = "여행조건 등록 및 생성 API",
             description = "사용자의 입력에 기반하여 여행조건을 등록합니다." +
                     "그 후,해당 정보에 기반하여 일정을 생성합니다.")
-    public ResponseEntity<ApiResult<?>> addTravelOptionsAndRecommend
+    public ResponseEntity<ApiResult<CreatePlanAiResponse>> addTravelOptionsAndRecommend
             (@RequestBody CreateTravelRequest createTravelRequest,
              @AuthenticationPrincipal UserDetailsImpl userDetails){
 
@@ -70,6 +73,20 @@ public class TravelController {
                                         createTravelRequest,
                                         userDetails
                                                 .getUserId())));
+    }
+
+    @GetMapping("/get-ai-travel-plan")
+    @Operation(summary = "여행 계획 전체 조회 API",
+            description = "AI가 생성한 여행 세부,전체 정보를 조회합니다.")
+    public ResponseEntity<ApiResult<GetAiPlanResponse>> getAiPlanDetailAll
+            (@RequestBody GetAiPlanRequest getAiPlanRequest){
+
+        return ResponseEntity
+                .status(HttpStatus
+                        .OK)
+                .body(ApiResult
+                        .success(travelFacade
+                                .getAiPlan(getAiPlanRequest)));
     }
 
 }

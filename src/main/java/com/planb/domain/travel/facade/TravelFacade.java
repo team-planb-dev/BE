@@ -9,10 +9,18 @@ import com.planb.domain.health.service.HealthService;
 import com.planb.domain.health.service.MedicationInfoService;
 import com.planb.domain.travel.dto.request.*;
 
+import com.planb.domain.travel.dto.response.GetAiPlanResponse;
 import com.planb.domain.travel.dto.response.MakeRecommendFoodResponse;
 import com.planb.domain.travel.dto.response.SearchPlannedPlaceResponse;
 import com.planb.domain.travel.entity.*;
 import com.planb.domain.travel.service.*;
+import com.planb.query.travel.dto.response.PlanDayQueryResponse;
+import com.planb.query.travel.dto.response.PlanQueryResponse;
+import com.planb.query.travel.dto.response.RestaurantDetailQueryResponse;
+import com.planb.query.travel.service.PlanDayQueryService;
+import com.planb.query.travel.service.PlanQueryService;
+import com.planb.query.travel.service.PlanScheduleQueryService;
+import com.planb.query.travel.service.RestaurantDetailQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +49,14 @@ public class TravelFacade {
     private final PlanDayService planDayService;
     private final PlanScheduleService planScheduleService;
     private final RestaurantDetailService restaurantDetailService;
+
+    /*
+    Travel Query Service
+     */
+    private final PlanQueryService planQueryService;
+    private final PlanScheduleQueryService planScheduleQueryService;
+    private final PlanDayQueryService planDayQueryService;
+    private final RestaurantDetailQueryService restaurantDetailQueryService;
 
 
     /**
@@ -167,6 +183,51 @@ public class TravelFacade {
 
         // 생성된 AI 여행일정 응답 반환
         return createPlanAiResponse;
+    }
+
+    /**
+     * Travel ID를 기반으로 Plan, PlanDay, PlanSchedule, RestaurantDetail 조회 후
+     * AI 여행일정 전체 응답 생성하기
+     */
+    @Transactional(readOnly = true)
+    public GetAiPlanResponse getAiPlan(GetAiPlanRequest getAiPlanRequest) {
+
+        PlanQueryResponse plan =
+                planQueryService.getPlanByTravelId(
+                        getAiPlanRequest.travelId()
+                );
+
+        List<PlanDayQueryResponse> planDays =
+                planDayQueryService.getPlanDaysByPlanId(
+                        plan.planId()
+                );
+
+        List<PlanSchedule> planSchedules =
+                planScheduleQueryService
+                        .getPlanSchedulesByPlanDayIds(
+                                planDays.stream()
+                                        .map(
+                                                PlanDayQueryResponse::planDayId
+                                        )
+                                        .toList()
+                        );
+
+        List<RestaurantDetailQueryResponse> restaurantDetails =
+                restaurantDetailQueryService
+                        .getRestaurantDetailsByPlanScheduleIds(
+                                planSchedules.stream()
+                                        .map(
+                                                PlanSchedule::getId
+                                        )
+                                        .toList()
+                        );
+
+        return GetAiPlanResponse.from(
+                plan,
+                planDays,
+                planSchedules,
+                restaurantDetails
+        );
     }
 
 }
