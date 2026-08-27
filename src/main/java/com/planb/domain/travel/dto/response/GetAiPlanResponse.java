@@ -1,28 +1,41 @@
 package com.planb.domain.travel.dto.response;
 
+import com.planb.domain.health.dto.response.HealthSummaryQueryResponse;
+import com.planb.domain.health.entity.constant.DiseaseType;
 import com.planb.domain.travel.entity.PlanSchedule;
 import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.RecommendationTag;
 import com.planb.domain.travel.entity.constant.ScheduleType;
+import com.planb.domain.travel.entity.constant.TravelStyle;
+import com.planb.domain.travel.entity.constant.TravelTheme;
 import com.planb.query.travel.dto.response.PlanDayQueryResponse;
 import com.planb.query.travel.dto.response.PlanQueryResponse;
 import com.planb.query.travel.dto.response.RestaurantDetailQueryResponse;
+import com.planb.query.travel.dto.response.TravelConditionQueryResponse;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public record GetAiPlanResponse(
         String planName,
+        TravelStyle travelStyle,
+        TravelTheme travelTheme,
+        List<DiseaseType> diseaseTypes,
+        List<LocalTime> medicationTimes,
         List<PlanDayDetail> planDays
 ) {
 
     public static GetAiPlanResponse from(
             PlanQueryResponse plan,
+            TravelConditionQueryResponse travelCondition,
+            List<HealthSummaryQueryResponse> healthSummaries,
+            List<LocalTime> medicationTimes,
             List<PlanDayQueryResponse> planDays,
             List<PlanSchedule> planSchedules,
             List<RestaurantDetailQueryResponse> restaurantDetails
@@ -47,6 +60,17 @@ public record GetAiPlanResponse(
                                 )
                         );
 
+        List<DiseaseType> diseaseTypes =
+                healthSummaries.stream()
+                        .map(
+                                HealthSummaryQueryResponse::diseaseType
+                        )
+                        .filter(
+                                Objects::nonNull
+                        )
+                        .distinct()
+                        .toList();
+
         List<PlanDayDetail> planDayDetails =
                 planDays.stream()
                         .map(planDay ->
@@ -63,6 +87,10 @@ public record GetAiPlanResponse(
 
         return new GetAiPlanResponse(
                 plan.planName(),
+                travelCondition.travelStyle(),
+                travelCondition.travelTheme(),
+                diseaseTypes,
+                medicationTimes,
                 planDayDetails
         );
     }
@@ -153,6 +181,7 @@ public record GetAiPlanResponse(
 
             if (planSchedule.getMedicationIntervalMinutes() == null
                     && planSchedule.getMedicationDescription() == null) {
+
                 return null;
             }
 
