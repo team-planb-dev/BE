@@ -59,8 +59,6 @@ public record TravelPlanPrompt
                 - AVOID 음식은 가능한 한 식사 후보에서 제외합니다.
                 - 음식점의 메뉴를 건강 조건과 비교할 때는 음식점 상세정보 Tool로 확인한
                   firstmenu 또는 treatmenu를 실제 메뉴 근거로 사용합니다.
-                - DIABETES, HIGH_BLOOD_PRESSURE, DYSLIPIDEMIA 관련 음식 판단에
-                  영양정보가 필요하면 식품/영양정보 Tool을 사용합니다.
                 - 식품/영양정보 Tool이 여러 음식 후보를 반환하면,
                   조회를 요청한 메뉴명과 의미적으로 가장 가까운 후보의 영양정보를 우선 사용합니다.
                 - 이름이 유사하다는 이유만으로 다른 음식의 영양정보를 사용하지 않으며,
