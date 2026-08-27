@@ -10,13 +10,13 @@ import com.planb.domain.travel.dto.response.MakeRecommendFoodResponse;
 import com.planb.domain.travel.dto.response.SearchPlannedPlaceResponse;
 import com.planb.domain.travel.facade.TravelFacade;
 import com.planb.global.config.exception.dto.ApiResult;
-import com.planb.global.security.auth.UserDetailsImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
@@ -63,7 +63,7 @@ public class TravelController {
                     "그 후,해당 정보에 기반하여 일정을 생성합니다.")
     public ResponseEntity<ApiResult<CreatePlanAiResponse>> addTravelOptionsAndRecommend
             (@RequestBody CreateTravelRequest createTravelRequest,
-             @AuthenticationPrincipal UserDetailsImpl userDetails){
+             @AuthenticationPrincipal UserDetails userDetails){
 
         return ResponseEntity
                 .status(HttpStatus.OK)
@@ -72,7 +72,7 @@ public class TravelController {
                                 .makeTravelOptionsAndRecommend(
                                         createTravelRequest,
                                         userDetails
-                                                .getUserId())));
+                                                .getUsername())));
     }
 
     @GetMapping("/get-ai-travel-plan")
@@ -80,7 +80,7 @@ public class TravelController {
             description = "AI가 생성한 여행 세부,전체 정보를 조회합니다.")
     public ResponseEntity<ApiResult<GetAiPlanResponse>> getAiPlanDetailAll
             (@RequestBody GetAiPlanRequest getAiPlanRequest,
-             @AuthenticationPrincipal UserDetailsImpl userDetails){
+             @AuthenticationPrincipal UserDetails userDetails){
 
         return ResponseEntity
                 .status(HttpStatus
@@ -90,7 +90,7 @@ public class TravelController {
                                 .getAiPlan(
                                         getAiPlanRequest,
                                         userDetails
-                                                .getUserId())));
+                                                .getUsername())));
     }
 
 }

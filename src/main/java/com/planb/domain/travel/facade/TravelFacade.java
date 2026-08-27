@@ -22,6 +22,7 @@ import com.planb.query.travel.dto.response.PlanQueryResponse;
 import com.planb.query.travel.dto.response.RestaurantDetailQueryResponse;
 import com.planb.query.travel.dto.response.TravelConditionQueryResponse;
 import com.planb.query.travel.service.*;
+import com.planb.query.user.service.UserQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +34,11 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 public class TravelFacade {
+
+    /*
+    User Domain Service
+     */
+    private final UserQueryService userQueryService;
 
     /*
     Health Domain Service
@@ -92,8 +98,13 @@ public class TravelFacade {
     @Transactional
     public CreatePlanAiResponse makeTravelOptionsAndRecommend(
             CreateTravelRequest createTravelRequest,
-            Long userId
+            String username
     ) {
+
+        // Redis 캐시에서 userId 조회
+        Long userId = userQueryService
+                .findByUsernameInCache(username)
+                .userId();
 
         // Travel 객체 생성하기
         Travel travel = travelService
@@ -200,8 +211,12 @@ public class TravelFacade {
     @Transactional(readOnly = true)
     public GetAiPlanResponse getAiPlan(
             GetAiPlanRequest getAiPlanRequest,
-            Long userId
+            String username
     ) {
+
+        Long userId = userQueryService
+                .findByUsernameInCache(username)
+                .userId();
 
         Long travelId =
                 getAiPlanRequest.travelId();
