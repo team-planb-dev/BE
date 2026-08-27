@@ -4,6 +4,7 @@ package com.planb.domain.travel.facade;
 import com.planb.ai.context.TravelHealthContext;
 import com.planb.ai.context.TravelPlanContext;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
+import com.planb.domain.health.dto.response.HealthSummaryQueryResponse;
 import com.planb.domain.health.service.FoodInfoService;
 import com.planb.domain.health.service.HealthService;
 import com.planb.domain.health.service.MedicationInfoService;
@@ -14,18 +15,19 @@ import com.planb.domain.travel.dto.response.MakeRecommendFoodResponse;
 import com.planb.domain.travel.dto.response.SearchPlannedPlaceResponse;
 import com.planb.domain.travel.entity.*;
 import com.planb.domain.travel.service.*;
+import com.planb.query.health.service.HealthQueryService;
+import com.planb.query.health.service.MedicationInfoQueryService;
 import com.planb.query.travel.dto.response.PlanDayQueryResponse;
 import com.planb.query.travel.dto.response.PlanQueryResponse;
 import com.planb.query.travel.dto.response.RestaurantDetailQueryResponse;
-import com.planb.query.travel.service.PlanDayQueryService;
-import com.planb.query.travel.service.PlanQueryService;
-import com.planb.query.travel.service.PlanScheduleQueryService;
-import com.planb.query.travel.service.RestaurantDetailQueryService;
+import com.planb.query.travel.dto.response.TravelConditionQueryResponse;
+import com.planb.query.travel.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 
+import java.time.LocalTime;
 import java.util.List;
 
 @Component
@@ -38,6 +40,12 @@ public class TravelFacade {
     private final HealthService healthService;
     private final FoodInfoService foodInfoService;
     private final MedicationInfoService medicationInfoService;
+
+    /*
+    Health Query Service
+     */
+    private final HealthQueryService healthQueryService;
+    private final MedicationInfoQueryService medicationInfoQueryService;
 
 
     /*
@@ -53,6 +61,7 @@ public class TravelFacade {
     /*
     Travel Query Service
      */
+    private final TravelQueryService travelQueryService;
     private final PlanQueryService planQueryService;
     private final PlanScheduleQueryService planScheduleQueryService;
     private final PlanDayQueryService planDayQueryService;
@@ -186,21 +195,46 @@ public class TravelFacade {
     }
 
     /**
-     * Travel ID를 기반으로 Plan, PlanDay, PlanSchedule, RestaurantDetail 조회 후
-     * AI 여행일정 전체 응답 생성하기
+     * Travel ID를 기반으로 생성된 AI 여행일정 전체 조회하기
      */
     @Transactional(readOnly = true)
-    public GetAiPlanResponse getAiPlan(GetAiPlanRequest getAiPlanRequest) {
+    public GetAiPlanResponse getAiPlan(
+            GetAiPlanRequest getAiPlanRequest,
+            Long userId
+    ) {
+
+        Long travelId =
+                getAiPlanRequest.travelId();
+
+        TravelConditionQueryResponse travelCondition =
+                travelQueryService
+                        .getTravelConditionQueryResponse(
+                                travelId
+                        );
+
+        List<HealthSummaryQueryResponse> healthSummaries =
+                healthQueryService
+                        .getHealthSummaryList(
+                                userId
+                        );
+
+        List<LocalTime> medicationTimes =
+                medicationInfoQueryService
+                        .getMedicationTimes(
+                                userId
+                        );
 
         PlanQueryResponse plan =
-                planQueryService.getPlanByTravelId(
-                        getAiPlanRequest.travelId()
-                );
+                planQueryService
+                        .getPlanByTravelId(
+                                travelId
+                        );
 
         List<PlanDayQueryResponse> planDays =
-                planDayQueryService.getPlanDaysByPlanId(
-                        plan.planId()
-                );
+                planDayQueryService
+                        .getPlanDaysByPlanId(
+                                plan.planId()
+                        );
 
         List<PlanSchedule> planSchedules =
                 planScheduleQueryService
@@ -224,6 +258,9 @@ public class TravelFacade {
 
         return GetAiPlanResponse.from(
                 plan,
+                travelCondition,
+                healthSummaries,
+                medicationTimes,
                 planDays,
                 planSchedules,
                 restaurantDetails

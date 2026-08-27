@@ -79,14 +79,18 @@ public class TravelController {
     @Operation(summary = "여행 계획 전체 조회 API",
             description = "AI가 생성한 여행 세부,전체 정보를 조회합니다.")
     public ResponseEntity<ApiResult<GetAiPlanResponse>> getAiPlanDetailAll
-            (@RequestBody GetAiPlanRequest getAiPlanRequest){
+            (@RequestBody GetAiPlanRequest getAiPlanRequest,
+             @AuthenticationPrincipal UserDetailsImpl userDetails){
 
         return ResponseEntity
                 .status(HttpStatus
                         .OK)
                 .body(ApiResult
                         .success(travelFacade
-                                .getAiPlan(getAiPlanRequest)));
+                                .getAiPlan(
+                                        getAiPlanRequest,
+                                        userDetails
+                                                .getUserId())));
     }
 
 }
