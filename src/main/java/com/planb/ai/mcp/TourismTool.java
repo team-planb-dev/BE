@@ -1,10 +1,10 @@
 package com.planb.ai.mcp;
 
 import com.planb.ai.dto.response.KakaoRouteResult;
+import com.planb.domain.health.entity.constant.DiseaseType;
+import com.planb.domain.travel.dto.nutrition.NutritionEvaluationResult;
 import com.planb.domain.travel.entity.constant.Transportation;
-import com.planb.global.client.foodNtrCpnt.dto.request.FoodNtrCpntSearchRequest;
-import com.planb.global.client.foodNtrCpnt.dto.response.FoodNtrCpntResponse;
-import com.planb.global.client.foodNtrCpnt.handler.FoodNtrCpntHandler;
+import com.planb.domain.travel.service.NutritionService;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
 import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
@@ -14,7 +14,6 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
-import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -22,7 +21,7 @@ public class TourismTool {
 
     private final Kor2ServiceHandler kor2ServiceHandler;
     private final KakaoMapServiceHandler kakaoMapServiceHandler;
-    private final FoodNtrCpntHandler foodNtrCpntHandler;
+    private final NutritionService nutritionService;
 
     @Tool(description = """
             한국관광공사의 실제 관광지 데이터를 키워드로 검색합니다.
@@ -68,20 +67,27 @@ public class TourismTool {
                 .getRestaurantDetail(contentId);
     }
 
-    @Tool(
-            description = """
-                음식 이름을 기준으로 식품 영양성분 정보를 조회합니다.
-                반환된 후보 중 입력한 음식 이름과 의미적으로 가장 가까운
-                음식의 영양정보를 우선적으로 사용하세요.
-                """
-    )
-    public Mono<List<FoodNtrCpntResponse.Item>> getFoodNutrition
-            (String foodName) {
+    @Tool(description = """
+        음식 이름을 기준으로 식품 영양정보를 조회하고,
+        여행자의 질환에 필요한 영양성분을 평가합니다.
 
-        return foodNtrCpntHandler
-                .getFoodNutrition(
-                        FoodNtrCpntSearchRequest
-                                .of(foodName)
-                );
+        영양정보가 존재하는 경우 질환별 기준에 따라
+        각 영양성분을 LOW, CHECK, HIGH로 평가합니다.
+
+        영양정보를 조회할 수 없거나 평가에 필요한 영양성분이 부족한 경우
+        반환되는 평가 상태를 확인하고 영양정보를 임의로 추정하지 마세요.
+
+        음식 추천 시 사용자의 질환에 적합한 메뉴인지 판단하는
+        근거가 필요한 경우 사용합니다.
+        """)
+    public Mono<NutritionEvaluationResult> evaluateFoodNutrition(
+            String foodName,
+            DiseaseType diseaseType
+    ) {
+
+        return nutritionService.evaluateFoodNutrition(
+                foodName,
+                diseaseType
+        );
     }
 }
