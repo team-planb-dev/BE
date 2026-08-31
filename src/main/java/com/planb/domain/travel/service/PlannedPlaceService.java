@@ -32,7 +32,7 @@ public class PlannedPlaceService {
     (SearchPlannedPlaceRequest searchPlannedPlaceRequest) {
 
         return kor2ServiceHandler
-                .searchKeyword(searchPlannedPlaceRequest.searchText())
+                .searchKeywordOnly(searchPlannedPlaceRequest.searchText())
                 .map(response -> {
 
                     List<SearchPlannedPlaceResponse.PlannedPlaceDetail> plannedPlaces =

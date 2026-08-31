@@ -1,5 +1,8 @@
 package com.planb.global.client.kor2Service.dto.response;
 
+import com.planb.global.constant.serializer.external.Kor2KeywordSearchItemsDeserializer;
+import tools.jackson.databind.annotation.JsonDeserialize;
+
 import java.util.List;
 
 public record Kor2KeywordSearchResponse(
@@ -19,6 +22,7 @@ public record Kor2KeywordSearchResponse(
     }
 
     public record Body(
+            @JsonDeserialize(using = Kor2KeywordSearchItemsDeserializer.class)
             Items items,
             Integer numOfRows,
             Integer pageNo,

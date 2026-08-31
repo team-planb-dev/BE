@@ -1,11 +1,11 @@
 package com.planb.global.client.kor2Service.dto.response;
 
-import com.planb.global.constant.serializer.external.Kor2RestaurantIntroItemsDeserializer;
+import com.planb.global.constant.serializer.external.Kor2AreaCodeItemsDeserializer;
 import tools.jackson.databind.annotation.JsonDeserialize;
 
 import java.util.List;
 
-public record Kor2RestaurantIntroResponse(
+public record Kor2AreaCodeResponse(
         Response response
 ) {
 
@@ -22,7 +22,7 @@ public record Kor2RestaurantIntroResponse(
     }
 
     public record Body(
-            @JsonDeserialize(using = Kor2RestaurantIntroItemsDeserializer.class)
+            @JsonDeserialize(using = Kor2AreaCodeItemsDeserializer.class)
             Items items,
             Integer numOfRows,
             Integer pageNo,
@@ -36,10 +36,9 @@ public record Kor2RestaurantIntroResponse(
     }
 
     public record Item(
-            String contentid,
-            String contenttypeid,
-            String firstmenu,
-            String treatmenu
+            String rnum,
+            String code,
+            String name
     ) {
     }
 }
