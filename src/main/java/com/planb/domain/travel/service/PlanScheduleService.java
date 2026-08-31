@@ -49,6 +49,12 @@ public class PlanScheduleService {
                                 .location(
                                         schedule.location()
                                 )
+                                .longitude(
+                                        schedule.longitude()
+                                )
+                                .latitude(
+                                        schedule.latitude()
+                                )
                                 .stayMinutes(
                                         schedule.stayMinutes()
                                 )

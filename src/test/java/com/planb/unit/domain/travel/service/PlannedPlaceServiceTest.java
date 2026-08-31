@@ -89,7 +89,7 @@ class PlannedPlaceServiceTest {
                 );
 
         when(
-                kor2ServiceHandler.searchKeyword(
+                kor2ServiceHandler.searchKeywordOnly(
                         request.searchText()
                 )
         ).thenReturn(
@@ -123,7 +123,7 @@ class PlannedPlaceServiceTest {
         );
 
         verify(kor2ServiceHandler)
-                .searchKeyword("경복궁");
+                .searchKeywordOnly("경복궁");
     }
 
     @Test

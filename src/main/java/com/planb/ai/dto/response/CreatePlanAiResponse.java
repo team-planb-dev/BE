@@ -29,6 +29,8 @@ public record CreatePlanAiResponse(
             LocalTime endTime,
             String locationName,
             String location,
+            String longitude,
+            String latitude,
             String imageUrl,
             String thumbNailImageUrl,
             Integer stayMinutes,

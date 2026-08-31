@@ -66,6 +66,14 @@ public class PlanSchedule {
     @Column(name = "location")
     private String location;
 
+    // 장소 경도 (findPlaceWithRoute로 확인된 CAFE_REST/ATTRACTION 일정만 값이 채워짐)
+    @Column(name = "longitude")
+    private String longitude;
+
+    // 장소 위도 (findPlaceWithRoute로 확인된 CAFE_REST/ATTRACTION 일정만 값이 채워짐)
+    @Column(name = "latitude")
+    private String latitude;
+
     // 여행 시간
     @Column(name = "stay_minutes")
     private Integer stayMinutes;
