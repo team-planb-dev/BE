@@ -11,6 +11,7 @@ import com.planb.ai.prompt.FoodRecommendPrompt;
 import com.planb.ai.prompt.TravelPlanPrompt;
 import com.planb.domain.travel.dto.response.MakeRecommendFoodResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -26,6 +27,7 @@ public class TravelRecommendHandler {
     Helper
      */
     private final ObjectMapper objectMapper;
+    private final BeanOutputConverter<CreatePlanAiResponse> createPlanAiResponseConverter;
 
     /*
     Tool
@@ -56,9 +58,9 @@ public class TravelRecommendHandler {
                                 travelPlanContext,
                                 objectMapper
                         ),
-                        CreatePlanAiResponse.class,
+                        createPlanAiResponseConverter,
                         tourismTool
-        );
+                );
     }
 
 
