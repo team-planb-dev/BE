@@ -64,11 +64,8 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
 
     /* JSON */
-
-    /*
-    implementation 'com.fasterxml.jackson.module:jackson-module-jsonSchema:2.14.2'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
-     */
+
 
     /* RDBMS */
     runtimeOnly 'com.mysql:mysql-connector-j'
