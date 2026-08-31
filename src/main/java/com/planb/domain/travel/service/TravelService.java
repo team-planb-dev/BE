@@ -56,8 +56,8 @@ public class TravelService {
                         .travelStyle())
                 .travelTheme(createTravelRequest
                         .travelTheme())
-                .localFood(createTravelRequest
-                        .localFood())
+                .localFoods(createTravelRequest
+                        .localFoods())
                 .recommendFoods(createTravelRequest
                         .recommendFoods())
                 .build();

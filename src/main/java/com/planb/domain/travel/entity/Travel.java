@@ -69,8 +69,16 @@ public class Travel {
     private TravelTheme travelTheme;
 
     // 지역 음식
-    @Column(name = "local_food")
-    private String localFood;
+    @ElementCollection
+    @CollectionTable(
+            name = "travel_local_food",
+            joinColumns = @JoinColumn(name = "travel_id")
+    )
+    @Column(
+            name = "local_food",
+            nullable = false
+    )
+    private List<String> localFoods;
 
     // AI 키워드 추천
     @ElementCollection
