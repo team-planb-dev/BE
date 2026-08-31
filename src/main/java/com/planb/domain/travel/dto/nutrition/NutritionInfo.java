@@ -7,6 +7,7 @@ public record NutritionInfo(
         Double sodium,
         Double saturatedFat,
         Double transFat,
-        Double cholesterol
+        Double cholesterol,
+        Double fat
 ) {
 }

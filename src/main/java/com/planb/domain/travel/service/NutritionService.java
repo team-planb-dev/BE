@@ -37,7 +37,10 @@ public class NutritionService {
                         return new NutritionEvaluationResult(
                                 diseaseType,
                                 NutritionEvaluationStatus.UNAVAILABLE,
-                                List.of()
+                                List.of(),
+                                null,
+                                null,
+                                null
                         );
                     }
 
@@ -88,7 +91,8 @@ public class NutritionService {
                 parseNutritionValue(item.sodium()),
                 parseNutritionValue(item.saturatedFat()),
                 parseNutritionValue(item.transFat()),
-                parseNutritionValue(item.cholesterol())
+                parseNutritionValue(item.cholesterol()),
+                parseNutritionValue(item.fat())
         );
     }
 

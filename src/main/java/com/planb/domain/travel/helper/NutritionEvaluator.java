@@ -43,7 +43,8 @@ public class NutritionEvaluator {
                 || nutritionInfo.dietaryFiber() == null) {
 
             return notEvaluable(
-                    DiseaseType.DIABETES
+                    DiseaseType.DIABETES,
+                    nutritionInfo
             );
         }
 
@@ -72,7 +73,10 @@ public class NutritionEvaluator {
                                         NutritionThreshold.DIABETES_DIETARY_FIBER
                                 )
                         )
-                )
+                ),
+                nutritionInfo.carbohydrate(),
+                nutritionInfo.sodium(),
+                nutritionInfo.fat()
         );
     }
 
@@ -83,7 +87,8 @@ public class NutritionEvaluator {
 
         if (nutritionInfo.sodium() == null) {
             return notEvaluable(
-                    DiseaseType.HIGH_BLOOD_PRESSURE
+                    DiseaseType.HIGH_BLOOD_PRESSURE,
+                    nutritionInfo
             );
         }
 
@@ -98,7 +103,10 @@ public class NutritionEvaluator {
                                         NutritionThreshold.HYPERTENSION_SODIUM
                                 )
                         )
-                )
+                ),
+                nutritionInfo.carbohydrate(),
+                nutritionInfo.sodium(),
+                nutritionInfo.fat()
         );
     }
 
@@ -113,7 +121,8 @@ public class NutritionEvaluator {
                 || nutritionInfo.cholesterol() == null) {
 
             return notEvaluable(
-                    DiseaseType.DYSLIPIDEMIA
+                    DiseaseType.DYSLIPIDEMIA,
+                    nutritionInfo
             );
         }
 
@@ -149,19 +158,26 @@ public class NutritionEvaluator {
                                         NutritionThreshold.DYSLIPIDEMIA_CHOLESTEROL
                                 )
                         )
-                )
+                ),
+                nutritionInfo.carbohydrate(),
+                nutritionInfo.sodium(),
+                nutritionInfo.fat()
         );
     }
 
     // 영양성분 누락으로 평가할 수 없는 결과 생성
     private NutritionEvaluationResult notEvaluable(
-            DiseaseType diseaseType
+            DiseaseType diseaseType,
+            NutritionInfo nutritionInfo
     ) {
 
         return new NutritionEvaluationResult(
                 diseaseType,
                 NutritionEvaluationStatus.NOT_EVALUABLE,
-                List.of()
+                List.of(),
+                nutritionInfo.carbohydrate(),
+                nutritionInfo.sodium(),
+                nutritionInfo.fat()
         );
     }
 

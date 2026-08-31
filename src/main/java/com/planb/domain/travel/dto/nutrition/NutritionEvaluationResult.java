@@ -8,6 +8,9 @@ import java.util.List;
 public record NutritionEvaluationResult(
         DiseaseType diseaseType,
         NutritionEvaluationStatus status,
-        List<NutritionEvaluationDetail> evaluations
+        List<NutritionEvaluationDetail> evaluations,
+        Double carbohydrate,
+        Double sodium,
+        Double fat
 ) {
 }
