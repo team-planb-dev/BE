@@ -30,7 +30,8 @@ class NutritionEvaluatorTest {
                 800.0,
                 6.0,
                 0.7,
-                150.0
+                150.0,
+                10.0
         );
 
         // when
@@ -81,7 +82,8 @@ class NutritionEvaluatorTest {
                 1000.0,
                 6.0,
                 0.7,
-                150.0
+                150.0,
+                10.0
         );
 
         // when
@@ -124,7 +126,8 @@ class NutritionEvaluatorTest {
                 800.0,
                 5.0,
                 0.4,
-                150.0
+                150.0,
+                10.0
         );
 
         // when
@@ -179,7 +182,8 @@ class NutritionEvaluatorTest {
                 800.0,
                 6.0,
                 0.7,
-                150.0
+                150.0,
+                10.0
         );
 
         // when
@@ -212,7 +216,8 @@ class NutritionEvaluatorTest {
                 null,
                 6.0,
                 0.7,
-                150.0
+                150.0,
+                10.0
         );
 
         // when
@@ -245,7 +250,8 @@ class NutritionEvaluatorTest {
                 800.0,
                 null,
                 0.4,
-                150.0
+                150.0,
+                10.0
         );
 
         // when
@@ -421,7 +427,8 @@ class NutritionEvaluatorTest {
                 600.0,
                 5.0,
                 0.5,
-                100.0
+                100.0,
+                10.0
         );
     }
 
@@ -436,7 +443,8 @@ class NutritionEvaluatorTest {
                 600.0,
                 5.0,
                 0.5,
-                100.0
+                100.0,
+                10.0
         );
     }
 

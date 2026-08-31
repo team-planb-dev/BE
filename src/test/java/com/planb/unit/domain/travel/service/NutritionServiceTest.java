@@ -77,14 +77,18 @@ class NutritionServiceTest {
                         600.0,
                         3.0,
                         0.1,
-                        70.0
+                        70.0,
+                        3.0
                 );
 
         NutritionEvaluationResult expectedResult =
                 new NutritionEvaluationResult(
                         diseaseType,
                         NutritionEvaluationStatus.AVAILABLE,
-                        List.of()
+                        List.of(),
+                        50.0,
+                        600.0,
+                        3.0
                 );
 
         when(foodNtrCpntHandler.getFoodNutrition(
@@ -160,14 +164,18 @@ class NutritionServiceTest {
                         650.0,
                         4.0,
                         0.2,
-                        75.0
+                        75.0,
+                        3.0
                 );
 
         NutritionEvaluationResult expectedResult =
                 new NutritionEvaluationResult(
                         diseaseType,
                         NutritionEvaluationStatus.AVAILABLE,
-                        List.of()
+                        List.of(),
+                        55.0,
+                        650.0,
+                        3.0
                 );
 
         when(foodNtrCpntHandler.getFoodNutrition(
@@ -229,6 +237,9 @@ class NutritionServiceTest {
                                 && result.status()
                                 == NutritionEvaluationStatus.UNAVAILABLE
                                 && result.evaluations().isEmpty()
+                                && result.carbohydrate() == null
+                                && result.sodium() == null
+                                && result.fat() == null
                 )
                 .verifyComplete();
 
@@ -267,14 +278,18 @@ class NutritionServiceTest {
                         600.0,
                         3.0,
                         0.1,
-                        70.0
+                        70.0,
+                        3.0
                 );
 
         NutritionEvaluationResult expectedResult =
                 new NutritionEvaluationResult(
                         diseaseType,
                         NutritionEvaluationStatus.NOT_EVALUABLE,
-                        List.of()
+                        List.of(),
+                        null,
+                        600.0,
+                        3.0
                 );
 
         when(foodNtrCpntHandler.getFoodNutrition(
