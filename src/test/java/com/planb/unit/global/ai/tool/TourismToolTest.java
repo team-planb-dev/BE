@@ -18,10 +18,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -41,29 +41,46 @@ class TourismToolTest {
     private TourismTool tourismTool;
 
     @Test
-    @DisplayName("관광지 키워드 검색 위임")
-    void searchTourism() {
+    @DisplayName("지역 기반 관광정보 검색 위임")
+    void searchTourismByLocation() {
 
         // given
-        String keyword = "해운대";
+        String keyword = "돼지국밥";
+        String locationDo = "부산광역시";
+        String locationSigungu = "해운대구";
+        Integer contentTypeId = 39;
 
         Kor2KeywordSearchResponse response =
                 org.mockito.Mockito.mock(
                         Kor2KeywordSearchResponse.class
                 );
 
-        when(kor2ServiceHandler.searchKeyword(keyword))
-                .thenReturn(Mono.just(response));
+        when(kor2ServiceHandler.searchKeyword(
+                keyword,
+                locationDo,
+                locationSigungu,
+                contentTypeId
+        )).thenReturn(Mono.just(response));
 
-        // when & then
-        StepVerifier.create(
-                        tourismTool.searchTourism(keyword)
-                )
-                .expectNext(response)
-                .verifyComplete();
+        // when
+        Kor2KeywordSearchResponse result =
+                tourismTool.searchTourismByLocation(
+                        keyword,
+                        locationDo,
+                        locationSigungu,
+                        contentTypeId
+                );
+
+        // then
+        assertEquals(response, result);
 
         verify(kor2ServiceHandler)
-                .searchKeyword(keyword);
+                .searchKeyword(
+                        keyword,
+                        locationDo,
+                        locationSigungu,
+                        contentTypeId
+                );
     }
 
     @Test
@@ -86,16 +103,16 @@ class TourismToolTest {
                 transportation
         )).thenReturn(Mono.just(response));
 
-        // when & then
-        StepVerifier.create(
-                        tourismTool.getRoute(
-                                origin,
-                                destination,
-                                transportation
-                        )
-                )
-                .expectNext(response)
-                .verifyComplete();
+        // when
+        KakaoRouteResult result =
+                tourismTool.getRoute(
+                        origin,
+                        destination,
+                        transportation
+                );
+
+        // then
+        assertEquals(response, result);
 
         verify(kakaoMapServiceHandler)
                 .getRoute(
@@ -120,12 +137,12 @@ class TourismToolTest {
         when(kor2ServiceHandler.getRestaurantDetail(contentId))
                 .thenReturn(Mono.just(response));
 
-        // when & then
-        StepVerifier.create(
-                        tourismTool.getRestaurantDetail(contentId)
-                )
-                .expectNext(response)
-                .verifyComplete();
+        // when
+        Kor2RestaurantIntroResponse result =
+                tourismTool.getRestaurantDetail(contentId);
+
+        // then
+        assertEquals(response, result);
 
         verify(kor2ServiceHandler)
                 .getRestaurantDetail(contentId);
@@ -143,7 +160,10 @@ class TourismToolTest {
                 new NutritionEvaluationResult(
                         diseaseType,
                         NutritionEvaluationStatus.AVAILABLE,
-                        List.of()
+                        List.of(),
+                        50.0,
+                        500.0,
+                        10.0
                 );
 
         when(nutritionService.evaluateFoodNutrition(
@@ -151,15 +171,15 @@ class TourismToolTest {
                 diseaseType
         )).thenReturn(Mono.just(response));
 
-        // when & then
-        StepVerifier.create(
-                        tourismTool.evaluateFoodNutrition(
-                                foodName,
-                                diseaseType
-                        )
-                )
-                .expectNext(response)
-                .verifyComplete();
+        // when
+        NutritionEvaluationResult result =
+                tourismTool.evaluateFoodNutrition(
+                        foodName,
+                        diseaseType
+                );
+
+        // then
+        assertEquals(response, result);
 
         verify(nutritionService)
                 .evaluateFoodNutrition(
