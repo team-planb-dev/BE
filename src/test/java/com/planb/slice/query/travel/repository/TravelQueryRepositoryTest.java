@@ -155,7 +155,7 @@ class TravelQueryRepositoryTest {
                 .travelTheme(
                         travelTheme
                 )
-                .localFood("돼지국밥")
+                .localFoods(List.of("돼지국밥"))
                 .recommendFoods(
                         List.of("돼지국밥")
                 )

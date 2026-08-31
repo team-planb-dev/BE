@@ -77,7 +77,7 @@ class TravelServiceTest {
                         plannedPlaces,
                         TravelStyle.MATCH_MEAL_TIME,
                         TravelTheme.TASTE,
-                        "돼지국밥",
+                        List.of("돼지국밥"),
                         recommendFoods
                 );
 
@@ -137,8 +137,8 @@ class TravelServiceTest {
         );
 
         assertEquals(
-                "돼지국밥",
-                travel.getLocalFood()
+                List.of("돼지국밥"),
+                travel.getLocalFoods()
         );
 
         assertEquals(
