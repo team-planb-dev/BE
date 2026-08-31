@@ -52,22 +52,13 @@ public class KakaoMapRouteHelper {
     }
 
     // 대중교통 경로 첫 번째 값 조회
-    private KakaoPublicTrafficRouteResponse.Route
-    getFirstPublicTrafficRoute(
-            KakaoPublicTrafficRouteResponse response
-    ) {
-
-        if (!"OK".equals(response.status())
-                || response.routes() == null
-                || response.routes().isEmpty()) {
-
-            throw new IllegalStateException(
-                    "카카오맵 대중교통 경로 조회 결과 없음"
-            );
+    private KakaoPublicTrafficRouteResponse.Route getFirstPublicTrafficRoute(KakaoPublicTrafficRouteResponse response) {
+        if (!"OK".equals(response.status()) ||
+                response.routes() == null ||
+                response.routes().isEmpty()) {
+            throw new IllegalStateException("카카오맵 대중교통 경로 조회 결과 없음: " + response);
         }
-
-        return response.routes()
-                .getFirst();
+        return response.routes().getFirst();
     }
 
     // 초 단위 이동시간을 분 단위로 변환
