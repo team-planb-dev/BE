@@ -63,6 +63,8 @@ class PlanScheduleServiceTest {
                         LocalTime.of(13, 0),
                         "부산돼지국밥",
                         "부산광역시 부산진구",
+                        "129.0756",
+                        "35.1795",
                         "image-url",
                         "thumbnail-url",
                         60,
@@ -122,6 +124,16 @@ class PlanScheduleServiceTest {
         );
 
         assertEquals(
+                "129.0756",
+                planSchedule.getLongitude()
+        );
+
+        assertEquals(
+                "35.1795",
+                planSchedule.getLatitude()
+        );
+
+        assertEquals(
                 "image-url",
                 planSchedule.getImageUrl()
         );
@@ -174,6 +186,8 @@ class PlanScheduleServiceTest {
                         LocalTime.of(16, 0),
                         "해운대해수욕장",
                         "부산광역시 해운대구",
+                        null,
+                        null,
                         "image-url",
                         "thumbnail-url",
                         120,
@@ -198,6 +212,14 @@ class PlanScheduleServiceTest {
 
         PlanSchedule planSchedule =
                 result.get(0);
+
+        assertNull(
+                planSchedule.getLongitude()
+        );
+
+        assertNull(
+                planSchedule.getLatitude()
+        );
 
         assertNull(
                 planSchedule.getMedicationIntervalMinutes()
