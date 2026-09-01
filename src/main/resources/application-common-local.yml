@@ -51,6 +51,14 @@ external:
     base-url: ${TAR_RLTE_TAR_SERVICE_URL}
     service-key: ${TAR_RLTE_TAR_SERVICE_KEY}
 
+  kakao-map:
+    base-url: ${KAKAO_MAP_API_BASE_URL}
+    api-key: ${KAKAO_REST_API_KEY}
+
+  kakao-mobility:
+    base-url: ${KAKAO_MOBILITY_API_BASE_URL}
+    api-key: ${KAKAO_REST_API_KEY}
+
 
 springdoc:
   api-docs:

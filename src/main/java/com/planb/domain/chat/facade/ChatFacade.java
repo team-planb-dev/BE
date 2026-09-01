@@ -34,10 +34,10 @@ public class ChatFacade {
     private final ChatRoomMemberService chatRoomMemberService;
     private final ChatMessageService chatMessageService;
 
-    // 나의 채팅방 리스트 띄우기
 
-
-    // 채팅방 생성하기
+    /**
+     *채팅방 생성하기
+     */
     @Transactional
     public CreateChatRoomResponse createChatRoom
     (CreateChatRoomRequest request){
@@ -45,6 +45,9 @@ public class ChatFacade {
         return chatRoomService.createChatRoom(request);
     }
 
+    /**
+     * 채팅방에 User 등록하기
+     */
     @Transactional
     public AddChatUserResponse addChatUser(AddChatRoomMemberRequest addChatRoomMemberRequest){
 
@@ -73,6 +76,9 @@ public class ChatFacade {
                         user));
     }
 
+    /**
+     * 채팅방 User 삭제하기
+     */
     @Transactional
     public DeleteChatUserResponse deleteChatUser(DeleteChatRoomMemberRequest deleteChatRoomMemberRequest){
 
@@ -102,8 +108,9 @@ public class ChatFacade {
     }
 
 
-
-    // 채팅방 삭제하기
+    /**
+     * 채팅방 삭제하기
+     */
     @Transactional
     public DeleteChatRoomResponse deleteChatRoom
     (DeleteChatRoomRequest request){
@@ -134,7 +141,10 @@ public class ChatFacade {
 
     }
 
-    // 채팅방 메시지 전달하기
+
+    /**
+     * 채팅방 메시지 전달하기
+     */
     @Transactional
     public void publishMessage(Long roomId,
                                SendChatMessageRequest request,
@@ -170,6 +180,9 @@ public class ChatFacade {
                                         chatMessage));
     }
 
+    /**
+     * 시스템 메시지 생성하기
+     */
     public void publishSystemMessage(Long roomId,
                                      String username,
                                      MessageType messageType){

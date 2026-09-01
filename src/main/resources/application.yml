@@ -15,4 +15,6 @@ decorator:
 
 Logging:
   level:
+    org.springframework.ai: DEBUG
+    com.planb.global.client: DEBUG
     org.springframework.core.LocalVariableTableParameterNameDiscoverer: error # 에러 까지만 로깅
