@@ -15,6 +15,7 @@ import com.planb.domain.travel.dto.response.MakeRecommendFoodResponse;
 import com.planb.domain.travel.dto.response.SearchPlannedPlaceResponse;
 import com.planb.domain.travel.entity.*;
 import com.planb.domain.travel.service.*;
+import com.planb.global.config.exception.domain.ForbiddenException;
 import com.planb.query.health.service.HealthQueryService;
 import com.planb.query.health.service.MedicationInfoQueryService;
 import com.planb.query.travel.dto.response.PlanDayQueryResponse;
@@ -78,7 +79,7 @@ public class TravelFacade {
      * AI로 해당 지역 추천음식 키워드 받기
      */
     public MakeRecommendFoodResponse showRecommendFoods
-            (MakeRecommendFoodsRequest request){
+    (MakeRecommendFoodsRequest request){
         return travelService.makeRecommendFoodResponse(request);
     }
 
@@ -108,7 +109,7 @@ public class TravelFacade {
 
         // Travel 객체 생성하기
         Travel travel = travelService
-                .createTravel(createTravelRequest);
+                .createTravel(createTravelRequest, userId);
 
         // Travel 객체 생성 후 , 저장
         travelService.saveTravel(travel);
@@ -220,6 +221,13 @@ public class TravelFacade {
 
         Long travelId =
                 getAiPlanRequest.travelId();
+
+        // travelId가 이 userId 소유인지 검증
+        if (!travelQueryService.existsByIdAndUserId(travelId, userId)) {
+            throw new ForbiddenException(
+                    new Object[]{"해당 여행에 대한 접근 권한이 없습니다."}
+            );
+        }
 
         TravelConditionQueryResponse travelCondition =
                 travelQueryService

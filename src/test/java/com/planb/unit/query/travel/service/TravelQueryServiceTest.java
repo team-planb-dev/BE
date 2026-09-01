@@ -70,4 +70,40 @@ class TravelQueryServiceTest {
                         travelId
                 );
     }
+
+    @Test
+    @DisplayName("travelId가 해당 userId 소유인지 위임 확인")
+    void existsByIdAndUserId() {
+
+        // given
+        Long travelId = 1L;
+        Long userId = 1L;
+
+        when(
+                travelQueryRepository
+                        .existsByIdAndUserId(
+                                travelId,
+                                userId
+                        )
+        ).thenReturn(
+                true
+        );
+
+        // when
+        boolean result =
+                travelQueryService
+                        .existsByIdAndUserId(
+                                travelId,
+                                userId
+                        );
+
+        // then
+        assertThat(result).isTrue();
+
+        verify(travelQueryRepository)
+                .existsByIdAndUserId(
+                        travelId,
+                        userId
+                );
+    }
 }

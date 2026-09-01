@@ -3,6 +3,8 @@ package com.planb.slice.query.travel.repository;
 import com.planb.domain.travel.entity.Plan;
 import com.planb.domain.travel.entity.PlanDay;
 import com.planb.domain.travel.entity.Travel;
+import com.planb.domain.user.entity.TermsAgreement;
+import com.planb.domain.user.entity.User;
 import com.planb.global.config.persistence.QueryDslConfig;
 import com.planb.query.travel.dto.response.PlanDayQueryResponse;
 import com.planb.query.travel.repository.PlanDayQueryRepository;
@@ -202,9 +204,31 @@ class PlanDayQueryRepositoryTest {
         );
     }
 
+    private User createUser() {
+
+        User user = User.builder()
+                .username("test" + System.nanoTime() + "@example.com")
+                .password("password")
+                .role("ROLE_USER")
+                .nickname("테스트유저")
+                .termsAgreement(
+                        new TermsAgreement(
+                                true,
+                                true,
+                                true
+                        )
+                )
+                .build();
+
+        entityManager.persist(user);
+
+        return user;
+    }
+
     private Travel createTravel(String travelName) {
 
         Travel travel = Travel.builder()
+                .user(createUser())
                 .travelName(travelName)
                 .build();
 

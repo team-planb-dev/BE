@@ -8,6 +8,7 @@ import com.planb.domain.travel.entity.constant.DateType;
 import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.domain.travel.entity.constant.TravelStyle;
 import com.planb.domain.travel.entity.constant.TravelTheme;
+import com.planb.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -26,6 +27,11 @@ public class Travel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "travel_id")
     private Long id;
+
+    // 여행 소유자
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "users_id", nullable = false)
+    private User user;
 
     // 여행 이름
     @Column(name = "travel_name")

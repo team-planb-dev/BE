@@ -16,4 +16,10 @@ public class TravelQueryService {
 
         return travelQueryRepository.findTravelConditionById(travelId);
     }
+
+    // travelId가 해당 userId 소유인지 확인
+    public boolean existsByIdAndUserId(Long travelId, Long userId){
+
+        return travelQueryRepository.existsByIdAndUserId(travelId, userId);
+    }
 }

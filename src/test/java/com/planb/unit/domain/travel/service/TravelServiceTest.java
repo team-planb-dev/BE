@@ -12,6 +12,8 @@ import com.planb.domain.travel.entity.constant.TravelStyle;
 import com.planb.domain.travel.entity.constant.TravelTheme;
 import com.planb.domain.travel.repository.TravelRepository;
 import com.planb.domain.travel.service.TravelService;
+import com.planb.domain.user.entity.User;
+import com.planb.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,6 +37,9 @@ class TravelServiceTest {
     private TravelRepository travelRepository;
 
     @Mock
+    private UserRepository userRepository;
+
+    @Mock
     private TravelRecommendHandler travelRecommendHandler;
 
     @InjectMocks
@@ -43,6 +48,17 @@ class TravelServiceTest {
     @Test
     @DisplayName("Travel 객체 생성")
     void createTravel() {
+
+        Long userId = 1L;
+
+        User user =
+                User.builder()
+                        .id(userId)
+                        .build();
+
+        when(
+                userRepository.getReferenceById(userId)
+        ).thenReturn(user);
 
         LocalDate startDate =
                 LocalDate.of(
@@ -83,8 +99,14 @@ class TravelServiceTest {
 
         Travel travel =
                 travelService.createTravel(
-                        request
+                        request,
+                        userId
                 );
+
+        assertSame(
+                user,
+                travel.getUser()
+        );
 
         assertEquals(
                 "부산 여행",

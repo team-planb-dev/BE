@@ -8,6 +8,8 @@ import com.planb.domain.travel.dto.response.MakeRecommendFoodResponse;
 import com.planb.domain.travel.entity.Travel;
 import com.planb.domain.travel.entity.constant.DateType;
 import com.planb.domain.travel.repository.TravelRepository;
+import com.planb.domain.user.entity.User;
+import com.planb.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +23,7 @@ public class TravelService {
      repository
      */
     private final TravelRepository travelRepository;
+    private final UserRepository userRepository;
 
     /*
      handler
@@ -29,10 +32,13 @@ public class TravelService {
 
 
     // Travel 객체 생성
-    public Travel createTravel(CreateTravelRequest createTravelRequest){
+    public Travel createTravel(CreateTravelRequest createTravelRequest, Long userId){
+
+        User user = userRepository.getReferenceById(userId);
 
         return Travel
                 .builder()
+                .user(user)
                 .travelName(createTravelRequest
                         .travelName())
                 .locationDo(createTravelRequest

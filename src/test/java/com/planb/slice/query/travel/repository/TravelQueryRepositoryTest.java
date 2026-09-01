@@ -5,6 +5,8 @@ import com.planb.domain.travel.entity.constant.DateType;
 import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.domain.travel.entity.constant.TravelStyle;
 import com.planb.domain.travel.entity.constant.TravelTheme;
+import com.planb.domain.user.entity.TermsAgreement;
+import com.planb.domain.user.entity.User;
 import com.planb.global.config.persistence.QueryDslConfig;
 import com.planb.query.travel.dto.response.TravelConditionQueryResponse;
 import com.planb.query.travel.repository.TravelQueryRepository;
@@ -119,13 +121,109 @@ class TravelQueryRepositoryTest {
         );
     }
 
+    @Test
+    @DisplayName("Travel 소유자가 맞으면 true")
+    void existsByIdAndUserIdReturnsTrueForOwner() {
+
+        // given
+        User owner = createUser();
+
+        Travel travel = createTravel(
+                "부산 여행",
+                TravelStyle.LESS_WALK,
+                TravelTheme.TASTE,
+                owner
+        );
+
+        entityManager.flush();
+        entityManager.clear();
+
+        // when
+        boolean result =
+                travelQueryRepository
+                        .existsByIdAndUserId(
+                                travel.getId(),
+                                owner.getId()
+                        );
+
+        // then
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    @DisplayName("Travel 소유자가 다르면 false")
+    void existsByIdAndUserIdReturnsFalseForNonOwner() {
+
+        // given
+        User owner = createUser();
+        User stranger = createUser();
+
+        Travel travel = createTravel(
+                "부산 여행",
+                TravelStyle.LESS_WALK,
+                TravelTheme.TASTE,
+                owner
+        );
+
+        entityManager.flush();
+        entityManager.clear();
+
+        // when
+        boolean result =
+                travelQueryRepository
+                        .existsByIdAndUserId(
+                                travel.getId(),
+                                stranger.getId()
+                        );
+
+        // then
+        assertThat(result).isFalse();
+    }
+
+    private User createUser() {
+
+        User user = User.builder()
+                .username("test" + System.nanoTime() + "@example.com")
+                .password("password")
+                .role("ROLE_USER")
+                .nickname("테스트유저")
+                .termsAgreement(
+                        new TermsAgreement(
+                                true,
+                                true,
+                                true
+                        )
+                )
+                .build();
+
+        entityManager.persist(user);
+
+        return user;
+    }
+
     private Travel createTravel(
             String travelName,
             TravelStyle travelStyle,
             TravelTheme travelTheme
     ) {
 
+        return createTravel(
+                travelName,
+                travelStyle,
+                travelTheme,
+                createUser()
+        );
+    }
+
+    private Travel createTravel(
+            String travelName,
+            TravelStyle travelStyle,
+            TravelTheme travelTheme,
+            User user
+    ) {
+
         Travel travel = Travel.builder()
+                .user(user)
                 .travelName(travelName)
                 .locationDo("부산광역시")
                 .locationSigungu("해운대구")
