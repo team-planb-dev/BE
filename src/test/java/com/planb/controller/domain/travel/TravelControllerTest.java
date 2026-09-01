@@ -1,6 +1,5 @@
 package com.planb.controller.domain.travel;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
 import com.planb.domain.travel.controller.TravelController;
 import com.planb.domain.travel.dto.request.CreateTravelRequest;
@@ -48,9 +47,6 @@ class TravelControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
     @MockitoBean
     private TravelFacade travelFacade;
 
@@ -59,12 +55,6 @@ class TravelControllerTest {
     void recommendLocalFoodSuccess() throws Exception {
 
         // given
-        MakeRecommendFoodsRequest request =
-                new MakeRecommendFoodsRequest(
-                        "부산광역시",
-                        "해운대구"
-                );
-
         MakeRecommendFoodResponse response =
                 new MakeRecommendFoodResponse(
                         List.of(
@@ -80,12 +70,8 @@ class TravelControllerTest {
         // when & then
         mockMvc.perform(
                         get("/api/v1/travel/recommend-local-food")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(
-                                        objectMapper.writeValueAsString(
-                                                request
-                                        )
-                                )
+                                .param("locationDo", "부산광역시")
+                                .param("locationSigungu", "해운대구")
                 )
                 .andExpect(status().isOk())
                 .andExpect(
@@ -104,11 +90,6 @@ class TravelControllerTest {
     void searchPlannedPlaceSuccess() throws Exception {
 
         // given
-        SearchPlannedPlaceRequest request =
-                new SearchPlannedPlaceRequest(
-                        "해운대"
-                );
-
         SearchPlannedPlaceResponse response =
                 new SearchPlannedPlaceResponse(
                         List.of(
@@ -130,14 +111,7 @@ class TravelControllerTest {
         MvcResult mvcResult =
                 mockMvc.perform(
                                 get("/api/v1/travel/search-planned-place")
-                                        .contentType(
-                                                MediaType.APPLICATION_JSON
-                                        )
-                                        .content(
-                                                objectMapper.writeValueAsString(
-                                                        request
-                                                )
-                                        )
+                                        .param("searchText", "해운대")
                         )
                         .andExpect(
                                 request().asyncStarted()
@@ -234,11 +208,6 @@ class TravelControllerTest {
     void getAiPlanDetailAllSuccess() throws Exception {
 
         // given
-        GetAiPlanRequest request =
-                new GetAiPlanRequest(
-                        1L
-                );
-
         GetAiPlanResponse response =
                 new GetAiPlanResponse(
                         "부산 여행",
@@ -257,12 +226,7 @@ class TravelControllerTest {
         // when & then
         mockMvc.perform(
                         get("/api/v1/travel/get-ai-travel-plan")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(
-                                        objectMapper.writeValueAsString(
-                                                request
-                                        )
-                                )
+                                .param("travelId", "1")
                 )
                 .andExpect(status().isOk())
                 .andExpect(

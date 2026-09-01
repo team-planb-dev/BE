@@ -32,7 +32,14 @@ public class TravelController {
     @Operation(summary = "여행지 음식 추천 API",
             description = "입력 받은 지역의 음식을 추천받습니다.")
     public ResponseEntity<ApiResult<MakeRecommendFoodResponse>> recommendLocalFood
-            (@RequestBody MakeRecommendFoodsRequest makeRecommendFoodsRequest){
+            (@RequestParam String locationDo,
+             @RequestParam String locationSigungu){
+
+        MakeRecommendFoodsRequest makeRecommendFoodsRequest =
+                new MakeRecommendFoodsRequest(
+                        locationDo,
+                        locationSigungu
+                );
 
         return ResponseEntity
                 .status(HttpStatus
@@ -46,7 +53,12 @@ public class TravelController {
     @Operation(summary = "장소 찾기 API",
             description = "기존에 계획한 장소(숙박,관광지)를 찾습니다.")
     public Mono<ResponseEntity<ApiResult<SearchPlannedPlaceResponse>>> searchPlannedPlace
-            (@RequestBody SearchPlannedPlaceRequest searchPlannedPlaceRequest){
+            (@RequestParam String searchText){
+
+        SearchPlannedPlaceRequest searchPlannedPlaceRequest =
+                new SearchPlannedPlaceRequest(
+                        searchText
+                );
 
         return travelFacade
                 .searchPlannedPlaceByText(searchPlannedPlaceRequest)
@@ -79,7 +91,7 @@ public class TravelController {
     @Operation(summary = "여행 계획 전체 조회 API",
             description = "AI가 생성한 여행 세부,전체 정보를 조회합니다.")
     public ResponseEntity<ApiResult<GetAiPlanResponse>> getAiPlanDetailAll
-            (@RequestBody GetAiPlanRequest getAiPlanRequest,
+            (@RequestParam Long travelId,
              @AuthenticationPrincipal UserDetails userDetails){
 
         return ResponseEntity
@@ -88,7 +100,9 @@ public class TravelController {
                 .body(ApiResult
                         .success(travelFacade
                                 .getAiPlan(
-                                        getAiPlanRequest,
+                                        new GetAiPlanRequest(
+                                                travelId
+                                        ),
                                         userDetails
                                                 .getUsername())));
     }
