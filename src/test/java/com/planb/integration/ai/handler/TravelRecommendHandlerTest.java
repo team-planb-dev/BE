@@ -15,6 +15,7 @@ import com.planb.domain.health.entity.constant.WalkType;
 import com.planb.domain.travel.dto.request.CreateTravelRequest;
 import com.planb.domain.travel.dto.request.MakeRecommendFoodsRequest;
 import com.planb.domain.travel.dto.response.MakeRecommendFoodResponse;
+import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.DateType;
 import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.domain.travel.entity.constant.TravelStyle;
@@ -220,5 +221,16 @@ class TravelRecommendHandlerTest extends IntegrationTest {
                             .isNotNull()
                             .isNotEmpty();
                 });
+
+        // 카페(CAFE_REST) 장소가 날짜(day)를 넘어 중복 배치되지 않는지 검증
+        List<String> cafeLocationNames =
+                response.planDays().stream()
+                        .flatMap(planDay -> planDay.schedules().stream())
+                        .filter(schedule -> schedule.courseType() == CourseType.CAFE_REST)
+                        .map(CreatePlanAiResponse.PlanScheduleDetail::locationName)
+                        .toList();
+
+        assertThat(cafeLocationNames)
+                .doesNotHaveDuplicates();
     }
 }

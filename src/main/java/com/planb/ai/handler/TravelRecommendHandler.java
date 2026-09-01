@@ -6,7 +6,9 @@ import com.planb.ai.client.OpenAiClient;
 import com.planb.ai.context.TravelPlanContext;
 import com.planb.ai.dto.request.MakeFoodRecommendCallRequest;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
+import com.planb.ai.dto.response.PlaceWithRouteResult;
 import com.planb.ai.mcp.TourismTool;
+import com.planb.ai.prompt.CafeRecommendPrompt;
 import com.planb.ai.prompt.FoodRecommendPrompt;
 import com.planb.ai.prompt.TravelPlanPrompt;
 import com.planb.domain.travel.dto.response.MakeRecommendFoodResponse;
@@ -64,6 +66,17 @@ public class TravelRecommendHandler {
     }
 
 
+    // CAFE_REST 슬롯 재추천 (여행 전체 기간 카페 중복 보정용)
+    // excludeNames는 PlanService가 추적한 값 그대로 사용
+    public PlaceWithRouteResult recommendCafe(CafeRecommendPrompt cafeRecommendPrompt){
+
+        return openAiClient
+                .call(
+                        cafeRecommendPrompt,
+                        PlaceWithRouteResult.class,
+                        tourismTool
+                );
+    }
 
 
 }

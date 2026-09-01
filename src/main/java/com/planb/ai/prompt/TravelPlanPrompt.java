@@ -332,8 +332,10 @@ public record TravelPlanPrompt(
                 - restaurantDetail은 CourseType이 RESTAURANT인 일정에만 생성하고,
                   그 외의 일정은 restaurantDetail을 null로 반환합니다.
                   - menuName: getRestaurantDetail 결과(firstmenu 우선, 없으면 treatmenu)
-                  - openTime, address, longitude, latitude, imageUrl:
-                    getRestaurantDetail 및 관광정보 Tool 결과
+                  - openTime: getRestaurantDetail 결과에 값이 있으면 사용하고, 없으면 null로 둡니다.
+                  - address, imageUrl: STEP 4 관광정보 검색(searchTourismByLocation) 결과의 addr1, firstimage를 사용합니다.
+                  - longitude, latitude: STEP 4 관광정보 검색(searchTourismByLocation) 결과의 mapx는 longitude, mapy는 latitude로 사용합니다. 
+                  - getRestaurantDetail(detailIntro2)에는 좌표 정보가 없으므로 반드시 이 검색 결과에서 가져옵니다. 값이 없으면 null로 둡니다.
                   - carbohydrate, sodium, fat: evaluateFoodNutrition 결과의
                     동일한 이름의 필드를 그대로 사용합니다.
                     Tool에서 값이 없으면 null로 두고,
