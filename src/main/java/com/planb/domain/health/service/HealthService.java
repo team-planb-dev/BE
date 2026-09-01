@@ -7,8 +7,12 @@ import com.planb.domain.health.entity.vo.HealthInfo;
 import com.planb.domain.health.entity.vo.MealInfo;
 import com.planb.domain.health.repository.HealthRepository;
 import com.planb.domain.user.entity.User;
+import com.planb.global.config.exception.HealthExceptionEnum;
+import com.planb.global.config.exception.domain.BaseException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -103,6 +107,20 @@ public class HealthService {
     // Health 객체 삭제하기
     public void deleteHealthById(Long id){
         healthRepository.deleteById(id);
+    }
+
+    // Health 객체 조회하기
+    public Health getHealthById(Long id){
+        return healthRepository
+                .findById(id)
+                .orElseThrow(()->
+                        new BaseException(HealthExceptionEnum
+                                .HEALTH_NOT_FOUND));
+    }
+
+    public List<Health> getHealthListByUserId(Long userId){
+        return healthRepository.findAllByUserId(userId);
+
     }
 
 

@@ -39,6 +39,12 @@ public class FoodInfoService {
         foodInfoRepository.saveAll(foodInfos);
     }
 
+    // HealthId로 FoodInfo 전체 조회하기
+    public List<FoodInfo> getFoodInfoList(Long healthId){
+
+        return foodInfoRepository.findAllByHealthId(healthId);
+    }
+
 
 
 

@@ -6,6 +6,7 @@ import jakarta.persistence.Convert;
 import jakarta.persistence.Embeddable;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 
@@ -14,6 +15,7 @@ import java.time.LocalTime;
 @Embeddable
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+@Getter
 public class MealInfo {
 
     // 평소 식사시간을 여행 일정에 반영할지 여부

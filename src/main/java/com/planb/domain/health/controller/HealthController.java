@@ -81,4 +81,7 @@ public class HealthController {
                                         userDetails
                                                 .getUsername())));
     }
+
+    // TODO : 구성원 여행일정 수정 시 , 세부 정보 조회기능
+    // TODO : 구성원 세부 정보 조회 후 , 여행일정 수정 기능
 }

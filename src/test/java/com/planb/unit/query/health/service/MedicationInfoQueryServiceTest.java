@@ -9,7 +9,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalTime;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class MedicationInfoQueryServiceTest {
@@ -36,10 +41,54 @@ class MedicationInfoQueryServiceTest {
 
         // when
         medicationInfoQueryService
-                .deleteAllMedicationInfoByHealthId(healthId);
+                .deleteAllMedicationInfoByHealthId(
+                        healthId
+                );
 
         // then
         verify(medicationInfoQueryRepository)
-                .deleteAllByHealthId(healthId);
+                .deleteAllByHealthId(
+                        healthId
+                );
+    }
+
+    @Test
+    @DisplayName("User ID를 기준으로 모든 동행인의 복약 시간 조회")
+    void getMedicationTimes() {
+
+        // given
+        Long userId = 1L;
+
+        List<LocalTime> expected =
+                List.of(
+                        LocalTime.of(8, 0),
+                        LocalTime.of(13, 0),
+                        LocalTime.of(20, 0)
+                );
+
+        when(
+                medicationInfoQueryRepository
+                        .findMedicationTimesByUserId(
+                                userId
+                        )
+        ).thenReturn(
+                expected
+        );
+
+        // when
+        List<LocalTime> result =
+                medicationInfoQueryService
+                        .getMedicationTimes(
+                                userId
+                        );
+
+        // then
+        assertThat(result)
+                .isEqualTo(expected);
+
+        verify(medicationInfoQueryRepository)
+                .findMedicationTimesByUserId(
+                        userId
+                );
     }
 }

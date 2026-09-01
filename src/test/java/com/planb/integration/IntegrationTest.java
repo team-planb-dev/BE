@@ -71,43 +71,6 @@ public abstract class IntegrationTest {
                 "jwt.secret",
                 ()->"test-secret-key-must-be-at-least-32-bytes-long"
         );
-
-        registry.add(
-                "spring.ai.openai.api-key",
-                () -> "test-openai-api-key"
-        );
-
-        registry.add(
-                "spring.ai.openai.chat.model",
-                () -> "gpt-4.1-mini"
-        );
-
-        registry.add(
-                "external.food-ntr-cpnt.base-url",
-                () -> "http://localhost"
-        );
-        registry.add(
-                "external.food-ntr-cpnt.service-key",
-                () -> "test-service-key"
-        );
-
-        registry.add(
-                "external.kor2-service.base-url",
-                () -> "http://localhost"
-        );
-        registry.add(
-                "external.kor2-service.service-key",
-                () -> "test-service-key"
-        );
-
-        registry.add(
-                "external.tar-rlte-tar-service.base-url",
-                () -> "http://localhost"
-        );
-        registry.add(
-                "external.tar-rlte-tar-service.service-key",
-                () -> "test-service-key"
-        );
     }
 
     @BeforeEach
