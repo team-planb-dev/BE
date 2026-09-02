@@ -5,7 +5,7 @@ import com.planb.domain.travel.entity.Travel;
 import com.planb.domain.user.entity.TermsAgreement;
 import com.planb.domain.user.entity.User;
 import com.planb.global.config.persistence.QueryDslConfig;
-import com.planb.query.travel.dto.response.PlanQueryResponse;
+import com.planb.query.travel.dto.response.PlanBasicQueryResponse;
 import com.planb.query.travel.repository.PlanQueryRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,7 +37,7 @@ class PlanQueryRepositoryTest {
 
     @Test
     @DisplayName("Travel ID를 기준으로 Plan 조회")
-    void findPlanByTravelId() {
+    void findPlanBasicByTravelId() {
 
         // given
         Travel travel = createTravel(
@@ -53,8 +53,8 @@ class PlanQueryRepositoryTest {
         entityManager.clear();
 
         // when
-        PlanQueryResponse result =
-                planQueryRepository.findPlanByTravelId(
+        PlanBasicQueryResponse result =
+                planQueryRepository.findPlanBasicByTravelId(
                         travel.getId()
                 );
 
@@ -76,7 +76,7 @@ class PlanQueryRepositoryTest {
 
     @Test
     @DisplayName("다른 Travel의 Plan 조회 제외")
-    void findPlanByTravelIdExcludesOtherTravel() {
+    void findPlanBasicByTravelIdExcludesOtherTravel() {
 
         // given
         Travel travel1 = createTravel(
@@ -101,8 +101,8 @@ class PlanQueryRepositoryTest {
         entityManager.clear();
 
         // when
-        PlanQueryResponse result =
-                planQueryRepository.findPlanByTravelId(
+        PlanBasicQueryResponse result =
+                planQueryRepository.findPlanBasicByTravelId(
                         travel1.getId()
                 );
 

@@ -33,7 +33,6 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Tag("external")
 class TravelRecommendHandlerTest extends IntegrationTest {
 
     @Autowired
@@ -97,26 +96,26 @@ class TravelRecommendHandlerTest extends IntegrationTest {
 
         CreateTravelRequest createTravelRequest =
                 new CreateTravelRequest(
-                        "부산 건강 여행",
-                        "부산",
-                        "해운대구",
+                        "경주 건강 여행",
+                        "경상북도",
+                        "경주시",
                         startDate,
                         DateType.ONE_NIGHT_TWO_DAYS,
                         Transportation.TRANSIT,
-                        "해운대",
+                        "경주",
                         List.of(
                                 new CreateTravelRequest.PlannedPlaceDetail(
-                                        "해운대해수욕장",
-                                        "부산광역시 해운대구"
+                                        "불국사",
+                                        "경상북도 경주시"
                                 )
                         ),
                         TravelStyle.MATCH_MEAL_TIME,
                         TravelTheme.TASTE,
-                        List.of("돼지국밥"),
+                        List.of("황남빵"),
                         List.of(
-                                "돼지국밥",
-                                "밀면",
-                                "회"
+                                "황남빵",
+                                "쌈밥",
+                                "연잎밥"
                         )
                 );
 
@@ -195,14 +194,6 @@ class TravelRecommendHandlerTest extends IntegrationTest {
 
         assertThat(response)
                 .isNotNull();
-
-        assertThat(response.planName())
-                .isNotNull()
-                .isNotBlank();
-
-        assertThat(response.description())
-                .isNotNull()
-                .isNotBlank();
 
         assertThat(response.planDays())
                 .isNotNull()

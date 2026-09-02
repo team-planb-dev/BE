@@ -79,6 +79,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -409,10 +410,11 @@ class TravelFacadeTest {
 
         CreatePlanAiResponse createPlanAiResponse =
                 new CreatePlanAiResponse(
-                        "부산 여행 일정",
-                        "부산 2일 여행 일정입니다",
                         List.of(planDayDetail)
                 );
+
+        Set<RecommendationTag> aggregatedTags =
+                Set.of(RecommendationTag.LOCAL_FOOD);
 
         PlanDay planDay =
                 PlanDay.builder()
@@ -527,6 +529,15 @@ class TravelFacadeTest {
         );
 
         when(
+                planService
+                        .aggregateTags(
+                                createPlanAiResponse.planDays()
+                        )
+        ).thenReturn(
+                aggregatedTags
+        );
+
+        when(
                 planDayService
                         .createPlanDay(
                                 new CreatePlanDayRequest(
@@ -586,7 +597,8 @@ class TravelFacadeTest {
         );
 
         verify(
-                planService
+                planService,
+                times(2)
         ).savePlan(
                 plan
         );
@@ -667,7 +679,11 @@ class TravelFacadeTest {
         PlanQueryResponse plan =
                 new PlanQueryResponse(
                         planId,
-                        "부산 여행"
+                        "부산 여행",
+                        Set.of(
+                                RecommendationTag.MEAL_TIME_APPLIED,
+                                RecommendationTag.LOCAL_FOOD
+                        )
                 );
 
         PlanDayQueryResponse planDay =
@@ -886,6 +902,13 @@ class TravelFacadeTest {
         ).containsExactly(
                 LocalTime.of(8, 0),
                 LocalTime.of(20, 0)
+        );
+
+        assertThat(
+                result.tags()
+        ).containsExactlyInAnyOrder(
+                RecommendationTag.MEAL_TIME_APPLIED,
+                RecommendationTag.LOCAL_FOOD
         );
 
         assertThat(

@@ -18,7 +18,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -29,6 +28,7 @@ public class TourismTool {
     private final Kor2ServiceHandler kor2ServiceHandler;
     private final KakaoMapServiceHandler kakaoMapServiceHandler;
     private final NutritionService nutritionService;
+    private final NutritionEvaluationCollector nutritionEvaluationCollector;
 
     @Tool(description = """
         여행 일정 생성 중 실제 관광지 또는 음식점을 지역 조건과 함께 검색합니다.
@@ -110,8 +110,6 @@ public class TourismTool {
                 && ZONE_TITLE_KEYWORDS.stream().anyMatch(title::contains);
     }
 
-
-
     @Tool(description = """
             두 장소 사이의 실제 이동거리와 예상 이동시간을 조회합니다.
             출발지와 도착지의 장소명을 기준으로 좌표를 검색한 뒤,
@@ -140,7 +138,6 @@ public class TourismTool {
         ).block();
     }
 
-
     @Tool(description = """
         음식점의 실제 대표메뉴, 취급메뉴, 영업정보를 조회합니다.
         RESTAURANT 일정을 생성할 때는 반드시
@@ -159,7 +156,6 @@ public class TourismTool {
                 .getRestaurantDetail(contentId)
                 .block();
     }
-
 
     @Tool(description = """
         음식 이름을 기준으로 식품 영양정보를 조회하고,
@@ -185,12 +181,17 @@ public class TourismTool {
                 diseaseType
         );
 
-        return nutritionService.evaluateFoodNutrition(
-                foodName,
-                diseaseType
-        ).block();
-    }
+        NutritionEvaluationResult result =
+                nutritionService.evaluateFoodNutrition(
+                        foodName,
+                        diseaseType
+                ).block();
 
+        // 결정 가능한 RecommendationTag 계산에 재사용하기 위해 요청 단위로 기록
+        nutritionEvaluationCollector.record(foodName, result);
+
+        return result;
+    }
 
     @Tool(description = """
         실제 장소(카페 또는 TourAPI에서 검색되지 않는 관광지)의 존재 여부를

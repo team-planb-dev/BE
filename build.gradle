@@ -138,5 +138,15 @@ dependencyManagement {
 }
 
 tasks.named('test') {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags 'external'
+    }
+}
+
+tasks.register('externalTest', Test) {
+    useJUnitPlatform {
+        includeTags 'external'
+    }
+    group = 'verification'
+    description = '실제 외부 API(OpenAI 등)를 호출하는 통합테스트만 실행'
 }

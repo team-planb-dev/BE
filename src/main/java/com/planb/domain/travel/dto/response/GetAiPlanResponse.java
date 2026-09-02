@@ -28,6 +28,7 @@ public record GetAiPlanResponse(
         TravelTheme travelTheme,
         List<DiseaseType> diseaseTypes,
         List<LocalTime> medicationTimes,
+        Set<RecommendationTag> tags,
         List<PlanDayDetail> planDays
 ) {
 
@@ -91,6 +92,7 @@ public record GetAiPlanResponse(
                 travelCondition.travelTheme(),
                 diseaseTypes,
                 medicationTimes,
+                plan.tags(),
                 planDayDetails
         );
     }

@@ -9,9 +9,8 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Set;
 
+// planName 필드 없음: Plan.planName은 생성 시점 travelName 기반 확정, AI 재생성 불필요
 public record CreatePlanAiResponse(
-        String planName,
-        String description,
         List<PlanDayDetail> planDays
 ) {
 

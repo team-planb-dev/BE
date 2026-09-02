@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -145,8 +146,6 @@ class TravelControllerTest {
         // given
         CreatePlanAiResponse response =
                 new CreatePlanAiResponse(
-                        "부산 여행",
-                        "부산 여행 일정",
                         List.of()
                 );
 
@@ -215,6 +214,7 @@ class TravelControllerTest {
                         TravelTheme.values()[0],
                         List.of(),
                         List.of(),
+                        Set.of(),
                         List.of()
                 );
 

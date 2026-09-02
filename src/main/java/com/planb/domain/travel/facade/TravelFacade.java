@@ -160,6 +160,14 @@ public class TravelFacade {
                         )
                 );
 
+        // AI 응답의 PlanSchedule 태그를 모두 모아 Plan에 반영
+        plan.updateTags(
+                planService.aggregateTags(
+                        createPlanAiResponse.planDays()
+                )
+        );
+        planService.savePlan(plan);
+
         // AI 응답 기반으로 PlanDay, PlanSchedule 객체 생성 후 저장
         createPlanAiResponse.planDays()
                 .forEach(planDayDetail -> {

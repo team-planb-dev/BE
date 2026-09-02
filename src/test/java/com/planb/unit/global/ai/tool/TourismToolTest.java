@@ -1,6 +1,7 @@
 package com.planb.unit.global.ai.tool;
 
 import com.planb.ai.dto.response.KakaoRouteResult;
+import com.planb.ai.mcp.NutritionEvaluationCollector;
 import com.planb.ai.mcp.TourismTool;
 import com.planb.domain.health.entity.constant.DiseaseType;
 import com.planb.domain.travel.dto.nutrition.NutritionEvaluationResult;
@@ -36,6 +37,9 @@ class TourismToolTest {
 
     @Mock
     private NutritionService nutritionService;
+
+    @Mock
+    private NutritionEvaluationCollector nutritionEvaluationCollector;
 
     @InjectMocks
     private TourismTool tourismTool;
@@ -149,7 +153,7 @@ class TourismToolTest {
     }
 
     @Test
-    @DisplayName("음식 영양정보 평가 위임")
+    @DisplayName("음식 영양정보 평가 위임 및 결정 가능한 태그 계산용 기록")
     void evaluateFoodNutrition() {
 
         // given
@@ -186,5 +190,9 @@ class TourismToolTest {
                         foodName,
                         diseaseType
                 );
+
+        // 결정 가능한 RecommendationTag 계산에 재사용하기 위해 요청 단위로 기록되어야 한다
+        verify(nutritionEvaluationCollector)
+                .record(foodName, response);
     }
 }

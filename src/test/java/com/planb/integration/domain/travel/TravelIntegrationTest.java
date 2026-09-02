@@ -32,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * TravelRecommendHandlerTest는 travelRecommendHandler.createPlanByAi(...)를 직접 호출하므로
- * PlanService.makePlanByAi의 카페 중복 보정 로직(ensureUniqueCafes)을 거치지 않는다.
+ * PlanService.makePlanByAi의 카페/음식점 중복 보정 로직(ensureUniquePlaces)을 거치지 않는다.
  * 이 테스트는 실제 PlanService.makePlanByAi를 통해 그 보정 로직까지 포함한
  * 최종 응답 기준으로 카페 중복이 없는지 검증한다.
   */

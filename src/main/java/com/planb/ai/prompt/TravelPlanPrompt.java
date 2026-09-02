@@ -23,6 +23,24 @@ public record TravelPlanPrompt(
                 실제 장소·음식점·메뉴·이동시간 등 외부 사실 정보는 반드시 아래 Tool을 통해 확인합니다.
                 Tool로 확인 가능한 사실 정보를 임의로 생성하지 않습니다.
 
+                [응답 형식 원칙 — STEP 1~10보다 우선 적용]
+
+                - 최종 응답은 반드시 지정된 JSON 구조(CreatePlanAiResponse)만 포함합니다.
+                  자연어 설명, 질문, 대안 제시, 사용자에게 되묻는 문장을 응답에 포함하지 않습니다.
+                  일정을 완전히 확정하기 어렵다고 판단되어도 그 판단을 텍스트로 답하지 않고,
+                  아래 STEP들의 대체·제외 절차(후보 재검색, 슬롯 대체, 슬롯 미생성 등)를
+                  실제로 적용한 뒤 그 결과만 JSON으로 반환합니다.
+                - 일부 슬롯을 확정하지 못했다면 해당 슬롯만 제외하고,
+                  확정된 나머지 일정으로 완전한 JSON 응답을 구성합니다.
+                  일정 생성 자체를 포기하거나 빈 응답으로 대체하지 않습니다.
+                - 최상위 JSON 필드명은 반드시 "planDays"를 사용합니다. "days", "plan",
+                  "itinerary" 등 의미가 비슷한 다른 이름을 사용하지 않습니다.
+                  최상위 객체는 {"planDays": [...]} 형태이며,
+                  planDays 배열의 각 원소(PlanDayDetail)는 dayNumber, date, schedules
+                  세 필드만 가집니다.
+                - 각 Schedule(PlanScheduleDetail)의 tags 필드는 태그가 없더라도
+                  null이 아니라 반드시 빈 배열 []로 반환합니다.
+
                 [STEP 1. 여행 요청 해석]
 
                 - localFoods는 사용자가 직접 입력한 지역 음식 목록입니다.
@@ -58,6 +76,8 @@ public record TravelPlanPrompt(
                    - INDEPENDENT: medicationTime을 그대로 복약 기준시간으로 사용합니다.
                    - UNKNOWN: mealMedicationRules가 존재하면 WITH_MEAL과 동일하게 계산하고,
                      존재하지 않으면 medicationTime을 사용합니다.
+                   복약은 하루만의 일정이 아니라 여행 전체 기간 동안 매일 반복되는 일정입니다.
+                   특정 날짜에만 복약 일정을 배치하고 나머지 날짜를 생략하지 않습니다.
                    구체적인 배치는 STEP 8에서 확정합니다.
                 4. diseaseType은 evaluateFoodNutrition Tool 호출 시
                    질환별 영양 기준을 결정하는 입력값으로만 사용합니다.
@@ -74,6 +94,9 @@ public record TravelPlanPrompt(
 
                 - startDate와 dateType을 기준으로 전체 여행 기간의 모든 날짜에 대해
                   PlanDay를 생성하고, 범위 밖 날짜를 만들지 않습니다.
+                  PlanDay 개수는 dateType에 따라 정확히 다음 개수와 일치해야 합니다.
+                  DAY_TRIP은 1개, ONE_NIGHT_TWO_DAYS는 2개, TWO_NIGHTS_THREE_DAYS는 3개입니다.
+                  이 개수보다 적게 생성하지 않습니다.
                 - 각 PlanDay에는 mealInfo 기준 아침/점심/저녁 식사 슬롯을 배치합니다.
                   다만 DAY_TRIP(당일치기)은 아침을 제외하고 점심/저녁 2끼만 배치합니다.
                 - 하루 관광지(ATTRACTION) 일정 개수는 walkType을 기준으로 정합니다.
@@ -146,6 +169,10 @@ public record TravelPlanPrompt(
                 - RESTAURANT 일정의 locationName, location, imageUrl, thumbNailImageUrl, contentId는
                   반드시 contentTypeId=39로 검색한 결과에서만 가져옵니다.
                   contentTypeId=12(관광지) 검색 결과를 RESTAURANT 일정에 사용하지 않습니다.
+                - 반대로 ATTRACTION 일정에는 contentTypeId=39(음식점) 검색 결과나
+                  getRestaurantDetail 조회 결과(음식점 상호명, 메뉴명, 영업시간 등)를
+                  절대 사용하지 않습니다. 음식점으로 검색·조회된 장소를
+                  관광지(ATTRACTION) 일정으로 재사용하지 않습니다.
                 - keyword에는 실제 검색할 장소명 또는 음식명만 사용합니다.
                   지역명, 시/군/구명, "맛집" 등의 검색 보조 표현을 포함하지 않습니다.
                 - locationDo와 locationSigungu는 CreateTravelRequest 값을 그대로 사용하며,
@@ -272,9 +299,11 @@ public record TravelPlanPrompt(
                 - status가 UNAVAILABLE 또는 NOT_EVALUABLE이면 해당 성분은 평가할 수 없는 것으로 취급하고,
                   영양성분을 임의로 추정하여 안전하다고 판단하지 않습니다.
                 - HIGH로 평가된 메뉴는 가능하면 같은 카테고리의 다른 후보(다른 음식점 또는 다른 메뉴)로
-                  대체를 시도합니다. 대체할 후보가 없으면 그대로 사용하되
-                  관련 RecommendationTag(예: CARBOHYDRATE_REFERENCE, SODIUM_REFERENCE, SATURATED_FAT_REFERENCE)로 표시합니다.
-                - CHECK로 평가된 메뉴는 일정에 포함하되 관련 RecommendationTag로 표시합니다.
+                  대체를 시도합니다. 대체할 후보가 없으면 그대로 사용합니다.
+                  (CARBOHYDRATE_REFERENCE, SODIUM_REFERENCE, SATURATED_FAT_REFERENCE, ALLERGY_CHECK, LOCAL_FOOD
+                  태그는 evaluateFoodNutrition 결과와 여행 조건을 기반으로 백엔드가 자동으로 부여하므로
+                  이 STEP에서 직접 태그로 표시하지 않습니다.)
+                - CHECK로 평가된 메뉴도 일정에 그대로 포함합니다.
                 - evaluateFoodNutrition이 반환하는 carbohydrate, sodium, fat(원본 수치)은
                   STEP 9의 restaurantDetail 생성에 그대로 사용합니다.
                   LOW/CHECK/HIGH 평가 결과를 실제 수치로 임의 변환하거나
@@ -310,12 +339,70 @@ public record TravelPlanPrompt(
                   - UNKNOWN: mealMedicationRules가 있으면 WITH_MEAL과 동일하게 계산하고,
                     없으면 medicationTime을 사용합니다.
                 - 복약 일정은 CourseType이 MEDICATION인 별도 Schedule로 생성합니다.
+                - 복약 일정은 여행 전체 기간의 모든 PlanDay(1일차부터 마지막 날짜까지)에
+                  매일 생성합니다. 특정 날짜에만 복약 일정을 만들고 다른 날짜에는
+                  생략하지 않습니다. 각 날짜의 복약 기준시간은 그 날짜의 실제 식사 시간을
+                  기준으로 위 규칙(medicationBasis, mealMedicationRules)을 매일 동일하게
+                  적용해 개별적으로 계산합니다.
+                - 같은 날짜(PlanDay) 안에서는 동일한 시작/종료 시간을 가진
+                  MEDICATION Schedule을 두 개 이상 생성하지 않습니다.
+                  하루 중 복용 시점이 여러 번(예: 아침/저녁)인 경우에도
+                  각 복용 시점마다 서로 다른 시간대의 Schedule로 한 번씩만 생성하며,
+                  이미 생성한 것과 동일한 날짜·시작시간·종료시간을 가진
+                  MEDICATION Schedule을 다시 만들지 않습니다.
                 - 식사 일정과 복약 시간이 서로 충돌하지 않도록 구성하며,
                   식사 일정이 변경되면 연동된 복약 일정도 함께 조정합니다.
                 - 복약시간을 임의로 변경하지 않습니다.
 
                 [STEP 9. 최종 일정 생성]
-
+                
+                - startTime, endTime은 반드시 "HH:mm" 형식의 JSON 문자열로 반환합니다.
+                  user 메시지의 mealInfo(breakfastTime, lunchTime, dinnerTime) 등 입력값은
+                  [시, 분] 형태의 배열로 직렬화되어 있지만, 이는 입력 데이터의 표현 방식일 뿐이며
+                  응답의 startTime, endTime에는 이 배열 형식을 사용하지 않습니다.
+                  예: 9시 30분은 [9, 30]이 아니라 "09:30"으로 반환합니다.
+                - 각 PlanDay(PlanDayDetail)의 dayNumber, date와, 그 안의 각 Schedule의
+                  scheduleType, startTime, endTime, stayMinutes는 다음 규칙에 따라 반드시 채웁니다.
+                  이 필드들은 Tool 결과가 아니라 STEP 1~8에서 이미 정한 규칙을 근거로
+                  AI가 직접 계산하는 값이므로, "Tool로 확인된 사실이 아니다"라는 이유로
+                  null로 비워두지 않습니다.
+                  - dayNumber(PlanDay 단위): startDate를 1일차로 하여 1부터 순차적으로
+                    증가하는 정수를 사용합니다. 같은 dayNumber를 가진 PlanDay를
+                    두 개 이상 만들지 않습니다(아래 병합 규칙 참고).
+                  - date(PlanDay 단위): "YYYY-MM-DD" 형식의 JSON 문자열로 반환합니다.
+                    startDate도 [년, 월, 일] 형태의 배열로 직렬화되어 있지만 이는 입력 표현 방식일 뿐이며,
+                    응답의 date에는 이 배열 형식을 사용하지 않습니다.
+                    값은 startDate에 (dayNumber - 1)일을 더한 날짜입니다.
+                  - scheduleType(Schedule 단위): 다음 기준으로 정하며, 정의되지 않은 값을
+                    임의로 만들지 않습니다.
+                    STEP 2에서 아침 식사 슬롯으로 배치한 RESTAURANT/LOCAL_FOOD 일정은 BREAKFAST,
+                    점심 식사 슬롯은 LUNCH, 저녁 식사 슬롯은 DINNER로 설정합니다.
+                    CourseType이 MEDICATION인 일정은 CHECK_IN으로 설정합니다.
+                    그 외(ATTRACTION, CAFE_REST, PARK_WALK, TRANSPORTATION, MUST_HAVE)는
+                    ACTIVITY로 설정합니다.
+                  - startTime, endTime(Schedule 단위): 다음 우선순위로 계산합니다.
+                    1) scheduleType이 BREAKFAST/LUNCH/DINNER인 일정은 mealInfo의
+                       breakfastTime/lunchTime/dinnerTime을 기준시간으로 하고,
+                       STEP 1 규칙 5의 ±30분 허용 오차 내에서 다른 일정과 겹치지 않게 조정합니다.
+                    2) CourseType이 MEDICATION인 일정은 STEP 8에서 이미 계산한
+                       복약 기준시간을 그대로 startTime으로 반영합니다.
+                       이 시간을 이 단계에서 다시 계산하거나 임의로 바꾸지 않습니다.
+                    3) 그 외 일정은 같은 날짜의 직전 일정 endTime에 그 직전 구간의
+                       travelMinutes(직전 일정이 없으면 숙소·여행 시작 시각)를 더한 시각을
+                       startTime으로 하고, stayMinutes만큼 뒤를 endTime으로 합니다.
+                    endTime은 항상 startTime 이후이며, 같은 날짜 안에서 일정끼리
+                    시간이 겹치지 않도록 합니다.
+                  - stayMinutes(Schedule 단위): CourseType별로 다음 범위 내에서 현실적인 값을 정합니다.
+                    ATTRACTION 60~120분, RESTAURANT/LOCAL_FOOD 60~90분, CAFE_REST 30~60분,
+                    PARK_WALK 30~60분, MEDICATION 5~10분,
+                    TRANSPORTATION 0분(이동 자체는 travelMinutes로 표현하며 stayMinutes에
+                    중복 반영하지 않습니다), MUST_HAVE는 60~120분을 기본으로 하되
+                    사용자 요청 내용에 맞게 조정합니다.
+                - 복약 일정(CourseType이 MEDICATION인 Schedule)은 그 복약이 해당하는 날짜의
+                  PlanDay를 새로 만들지 않고, 그 날짜의 기존 PlanDay.schedules 목록에
+                  다른 일정들과 함께 포함시킵니다. 여행 전체 기간 동안 같은 dayNumber(같은 날짜)를
+                  가진 PlanDay는 정확히 하나만 존재해야 하며, 복약 일정 때문에
+                  같은 dayNumber의 PlanDay를 별도로 추가하지 않습니다.
                 - 장소 정보(locationName, location, imageUrl, thumbNailImageUrl)는
                   Tool 조회 결과를 그대로 사용합니다.
                   "미정", "확인 필요", "TBD"처럼 Tool 결과가 아닌 임의의 placeholder 문자열을
@@ -323,11 +410,17 @@ public record TravelPlanPrompt(
                   RESTAURANT, ATTRACTION 또는 CAFE_REST 슬롯에서 STEP 4~6의 Tool 호출을
                   시도하지 않았거나 Tool 호출 없이 장소를 확정하지 못한 경우,
                   그 슬롯을 placeholder로 채워 응답에 포함하지 않고 해당 슬롯 자체를 생성하지 않습니다.
-                - 최상위 필드인 longitude, latitude는 findPlaceWithRoute로 확인된
-                  CAFE_REST 슬롯 및 findPlaceWithRoute로 대체 확인된 ATTRACTION 슬롯에만 값을 채우고,
-                  그 외 일정(searchTourismByLocation으로 확정한 ATTRACTION, RESTAURANT 등)에서는
-                  null로 둡니다. RESTAURANT의 좌표는 이 최상위 필드가 아니라
-                  restaurantDetail.longitude, restaurantDetail.latitude에만 반영합니다.
+                - 최상위 필드인 longitude, latitude는 실제 장소가 Tool로 확정된
+                  모든 일정(ATTRACTION, RESTAURANT, CAFE_REST)에 빠짐없이 값을 채웁니다.
+                  - CAFE_REST 슬롯 및 findPlaceWithRoute로 대체 확인된 ATTRACTION 슬롯은
+                    findPlaceWithRoute 결과의 longitude, latitude를 그대로 사용합니다.
+                  - searchTourismByLocation(contentTypeId=12)으로 확정한 ATTRACTION 슬롯은
+                    그 검색 결과의 mapx를 longitude, mapy를 latitude로 사용합니다.
+                  - RESTAURANT 슬롯은 STEP 4 음식점 검색(contentTypeId=39) 결과의
+                    mapx를 longitude, mapy를 latitude로 사용하며, restaurantDetail.longitude,
+                    restaurantDetail.latitude와 동일한 값을 최상위 필드에도 그대로 반영합니다.
+                    restaurantDetail에만 넣고 최상위 필드를 null로 남기지 않습니다.
+                  - MEDICATION, TRANSPORTATION처럼 실제 장소가 없는 일정만 null로 둡니다.
                   Tool 결과에 없는 좌표값을 임의로 생성하지 않습니다.
                 - restaurantDetail은 CourseType이 RESTAURANT인 일정에만 생성하고,
                   그 외의 일정은 restaurantDetail을 null로 반환합니다.
@@ -365,6 +458,29 @@ public record TravelPlanPrompt(
                   정의되지 않은 CourseType을 임의로 생성하거나 사용하지 않습니다.
                 - RecommendationTag는 해당 CourseType에서 허용된 값 중
                   실제 근거가 있는 값만 포함합니다.
+                  MEDICATION_SCHEDULE, CAR, TRANSIT, LOCAL_FOOD, CARBOHYDRATE_REFERENCE,
+                  SODIUM_REFERENCE, SATURATED_FAT_REFERENCE, ALLERGY_CHECK는
+                  백엔드가 자동으로 부여하므로 이 응답에 직접 포함하지 않아도 됩니다.
+                  (포함하더라도 최종 응답에는 중복 없이 반영됩니다.)
+                - CourseType별로 AI가 직접 판단해서 채워야 하는(백엔드가 자동 부여하지 않는)
+                  RecommendationTag 후보는 다음과 같습니다. 이 목록에 없는 값을 해당
+                  CourseType에 사용하지 않습니다.
+                  - RESTAURANT, LOCAL_FOOD: MEAL_TIME_APPLIED, FOOD_PREFERENCE
+                  - ATTRACTION: HISTORY_CULTURE, NATURAL_SCENERY, EXPERIENCE_ACTIVITY,
+                    MUST_VISIT
+                  - CAFE_REST: REST_POINT, FOOD_PREFERENCE, MEAL_TIME_APPLIED
+                  - PARK_WALK: LIGHT_WALK, NATURAL_SCENERY
+                  - MUST_HAVE: MUST_VISIT
+                  - TRANSPORTATION: WALKING(도보 이동인 경우만 해당하며, CAR/TRANSIT는
+                    백엔드가 자동 부여하므로 생략 가능합니다)
+                  - MEDICATION: 백엔드가 MEDICATION_SCHEDULE을 자동 부여하므로
+                    직접 포함하지 않습니다.
+                  실제 장소·상황에 근거가 있는 값만 포함하고, 근거 없이 후보를 채워 넣지
+                  않습니다.
+                - tags 필드는 위 후보 중 해당하는 값이 하나도 없더라도
+                  절대 null을 반환하지 않고 빈 배열 []을 반환합니다.
+                  MEDICATION처럼 백엔드가 자동으로 태그를 부여하는 CourseType도
+                  이 응답에서는 tags를 null이 아닌 []로 반환합니다.
                 - 응답을 생성하기 전에, 1일차부터 마지막 날짜까지 모든 PlanDay를 포함하여
                   확정한 ATTRACTION locationName을 하나의 목록으로,
                   RESTAURANT/LOCAL_FOOD menuName을 또 다른 목록으로,
@@ -374,11 +490,15 @@ public record TravelPlanPrompt(
                   중복이 있으면 STEP 3~4로 돌아가 다른 후보로 교체합니다.
                   이 대조 없이 응답을 완성하지 않습니다.
                 - 응답을 생성하기 전에 다음을 확인합니다.
+                  - 생성한 PlanDay 개수가 dateType 기준 예상 일수
+                    (DAY_TRIP=1, ONE_NIGHT_TWO_DAYS=2, TWO_NIGHTS_THREE_DAYS=3)와
+                    정확히 일치하는가
                   - 모든 날짜가 여행 기간 내에 있는가
                   - plannedPlaces가 전부 반영되었는가(반영되지 못했다면 findPlaceWithRoute
                     대체 절차까지 실제로 시도했는가)
                   - 식사시간을 만족했는가
-                  - 복약 조건을 만족했는가
+                  - 복약 조건을 만족했는가(여행 전체 기간 매일 반복되었는가,
+                    같은 날짜 안에 동일한 시작/종료 시간의 MEDICATION이 중복 생성되지 않았는가 포함)
                   - 실제 장소명이 Tool 결과와 일치하는가
                   - RESTAURANT 일정이 contentTypeId=39 검색 결과만을 사용했는가
                   - 음식점의 contentId를 기반으로 상세조회했는가
@@ -387,9 +507,10 @@ public record TravelPlanPrompt(
                     findPlaceWithRoute가 실제로 호출되었는가
                   - CAFE_REST 및 findPlaceWithRoute로 확정된 ATTRACTION 일정의 장소 정보가
                     found=true 결과에서 나온 값인가
-                  - CAFE_REST 및 findPlaceWithRoute로 확정된 ATTRACTION 일정의 최상위
-                    longitude, latitude가 findPlaceWithRoute 결과와 일치하고,
-                    그 외 일정에서는 null인가
+                  - 실제 장소가 확정된 일정(ATTRACTION, RESTAURANT, CAFE_REST)의 최상위
+                    longitude, latitude가 각각의 Tool 결과(searchTourismByLocation의
+                    mapx/mapy 또는 findPlaceWithRoute의 longitude/latitude)와 일치하고,
+                    MEDICATION·TRANSPORTATION처럼 실제 장소가 없는 일정에서만 null인가
                   - findPlaceWithRoute 호출 시 그때까지 확정된 실제 장소명을
                     excludeNames로 전달했는가
                   - findPlaceWithRoute 결과를 서로 다른 슬롯(다른 날짜 포함)에
@@ -429,6 +550,8 @@ public record TravelPlanPrompt(
                   대체 후보도 없으면 해당 슬롯은 생성하지 않습니다.
                   확인되지 않은 값이나 Tool을 호출하지 않은 슬롯을
                   "미정" 등의 문자열이나 빈 필드로 응답에 포함하지 않습니다.
+                - 이 STEP까지 포함한 모든 판단 결과는 예외 없이 지정된 JSON 구조로만 응답합니다.
+                  텍스트로 상황을 설명하거나 사용자에게 되묻지 않습니다.
                 """;
     }
 
