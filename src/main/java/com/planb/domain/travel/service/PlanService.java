@@ -1,8 +1,10 @@
 package com.planb.domain.travel.service;
 
+import com.planb.ai.context.PlanEditContext;
 import com.planb.ai.context.TravelHealthContext;
 import com.planb.ai.context.TravelPlanContext;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
+import com.planb.ai.dto.response.EditPlanAiResponse;
 import com.planb.ai.dto.response.KakaoRouteResult;
 import com.planb.ai.dto.response.PlaceWithRouteResult;
 import com.planb.ai.dto.response.RestaurantRecommendResult;
@@ -112,6 +114,60 @@ public class PlanService {
                 taggedResponse,
                 travelPlanContext.createTravelRequest()
         );
+    }
+
+    // AI로 기존 일정을 자연어 수정 요청에 맞춰 부분 수정하기
+    // 후처리(중복 보정/태그 부여/travelMinutes 보정)는 makePlanByAi가 쓰는 기존 private 메서드를
+    // CreatePlanAiResponse로 감쌌다가 다시 풀어내는 방식으로 그대로 재사용한다
+    public EditPlanAiResponse makeEditPlanByAi(PlanEditContext planEditContext){
+
+        nutritionEvaluationCollector.start();
+
+        EditPlanAiResponse response =
+                travelRecommendHandler.editPlanByAi(planEditContext);
+
+        CreatePlanAiResponse wrapped =
+                new CreatePlanAiResponse(response.planDays());
+
+        CreatePlanAiResponse uniqueResponse =
+                ensureUniquePlaces(
+                        wrapped,
+                        planEditContext.createTravelRequest(),
+                        planEditContext.healthContexts()
+                );
+
+        List<NutritionEvaluationCollector.FoodNutritionEvaluation> nutritionEvaluations =
+                nutritionEvaluationCollector.finish();
+
+        TravelPlanContext travelPlanContext =
+                new TravelPlanContext(
+                        planEditContext.createTravelRequest(),
+                        planEditContext.healthContexts()
+                );
+
+        CreatePlanAiResponse taggedResponse =
+                applyDeterministicTags(
+                        uniqueResponse,
+                        travelPlanContext,
+                        nutritionEvaluations
+                );
+
+        CreatePlanAiResponse finalResponse =
+                fillMissingTravelMinutes(
+                        taggedResponse,
+                        planEditContext.createTravelRequest()
+                );
+
+        return new EditPlanAiResponse(
+                response.planName(),
+                finalResponse.planDays(),
+                response.changes()
+        );
+    }
+
+    // Plan 객체 단건 조회하기 (존재 검증은 호출부에서 이미 끝난 상태를 전제)
+    public Plan findPlanById(Long planId){
+        return planRepository.getReferenceById(planId);
     }
 
     // planDays에 붙은 모든 RecommendationTag를 모아 Plan 전체 태그로 집계하기

@@ -92,4 +92,16 @@ public class PlanScheduleService {
 
         planScheduleRepository.saveAll(planScheduleList);
     }
+
+    // 특정 PlanDay 목록에 속한 PlanSchedule 리스트 조회하기
+    public List<PlanSchedule> findAllByPlanDayIn(List<PlanDay> planDays){
+
+        return planScheduleRepository.findAllByPlanDayIn(planDays);
+    }
+
+    // 특정 PlanDay 목록에 속한 PlanSchedule 리스트 일괄 삭제하기
+    public void deleteAllByPlanDayIn(List<PlanDay> planDays){
+
+        planScheduleRepository.deleteAllByPlanDayIn(planDays);
+    }
 }
