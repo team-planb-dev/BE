@@ -3,6 +3,7 @@ package com.planb.unit.domain.travel.facade;
 import com.planb.ai.context.TravelHealthContext;
 import com.planb.ai.context.TravelPlanContext;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
+import com.planb.ai.dto.response.EditPlanAiResponse;
 import com.planb.domain.health.dto.response.HealthSummaryQueryResponse;
 import com.planb.domain.health.entity.FoodInfo;
 import com.planb.domain.health.entity.Health;
@@ -46,10 +47,13 @@ import com.planb.domain.travel.entity.constant.TravelTheme;
 import com.planb.domain.travel.facade.TravelFacade;
 import com.planb.domain.travel.service.PlannedPlaceService;
 import com.planb.domain.travel.service.PlanDayService;
+import com.planb.domain.travel.service.PlanEditCacheService;
 import com.planb.domain.travel.service.PlanScheduleService;
 import com.planb.domain.travel.service.PlanService;
 import com.planb.domain.travel.service.RestaurantDetailService;
 import com.planb.domain.travel.service.TravelService;
+import com.planb.global.config.exception.PlanEditExceptionEnum;
+import com.planb.global.config.exception.domain.BaseException;
 import com.planb.global.config.exception.domain.ForbiddenException;
 import com.planb.global.security.dto.UserAuthCache;
 import com.planb.query.health.service.HealthQueryService;
@@ -75,6 +79,7 @@ import reactor.core.publisher.Mono;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -122,6 +127,9 @@ class TravelFacadeTest {
 
     @Mock
     private RestaurantDetailService restaurantDetailService;
+
+    @Mock
+    private PlanEditCacheService planEditCacheService;
 
     @Mock
     private TravelQueryService travelQueryService;
@@ -1137,6 +1145,505 @@ class TravelFacadeTest {
                 travelQueryService,
                 never()
         ).getTravelConditionQueryResponse(
+                travelId
+        );
+    }
+
+    @Test
+    @DisplayName("수정안을 저장 확정하면 기존 PlanDay를 지우고 수정안으로 다시 생성한다")
+    void confirmEditPlan() {
+
+        // given
+        Long travelId = 1L;
+        Long userId = 1L;
+        String username = "testUser@example.com";
+        Long planId = 10L;
+
+        GetAiPlanRequest request =
+                new GetAiPlanRequest(
+                        travelId
+                );
+
+        UserAuthCache userAuthCache =
+                new UserAuthCache(
+                        userId,
+                        username,
+                        "ROLE_USER"
+                );
+
+        Plan plan =
+                Plan.builder()
+                        .id(planId)
+                        .planName("부산 여행")
+                        .build();
+
+        PlanDay existingPlanDay =
+                PlanDay.builder()
+                        .id(100L)
+                        .plan(plan)
+                        .dayNumber(1)
+                        .build();
+
+        PlanSchedule existingPlanSchedule =
+                PlanSchedule.builder()
+                        .id(1000L)
+                        .planDay(existingPlanDay)
+                        .scheduleType(ScheduleType.LUNCH)
+                        .courseType(CourseType.RESTAURANT)
+                        .build();
+
+        CreatePlanAiResponse.PlanScheduleDetail scheduleDetail =
+                new CreatePlanAiResponse.PlanScheduleDetail(
+                        ScheduleType.LUNCH,
+                        CourseType.RESTAURANT,
+                        LocalTime.of(12, 0),
+                        LocalTime.of(13, 0),
+                        "수정된 식당",
+                        "부산광역시 부산진구",
+                        "129.0756",
+                        "35.1795",
+                        "image-url",
+                        "thumbnail-url",
+                        60,
+                        20,
+                        Set.of(RecommendationTag.LOCAL_FOOD),
+                        null,
+                        null
+                );
+
+        CreatePlanAiResponse.PlanDayDetail planDayDetail =
+                new CreatePlanAiResponse.PlanDayDetail(
+                        1,
+                        LocalDate.of(2026, 9, 1),
+                        List.of(scheduleDetail)
+                );
+
+        EditPlanAiResponse editPlanAiResponse =
+                new EditPlanAiResponse(
+                        "부산 여행",
+                        List.of(planDayDetail),
+                        List.of("점심 식당을 변경했습니다")
+                );
+
+        PlanQueryResponse planQueryResponse =
+                new PlanQueryResponse(
+                        planId,
+                        "부산 여행",
+                        Set.of(RecommendationTag.LOCAL_FOOD)
+                );
+
+        Set<RecommendationTag> aggregatedTags =
+                Set.of(RecommendationTag.LOCAL_FOOD);
+
+        PlanDay newPlanDay =
+                PlanDay.builder()
+                        .id(200L)
+                        .plan(plan)
+                        .dayNumber(1)
+                        .planDate(LocalDate.of(2026, 9, 1))
+                        .build();
+
+        List<PlanSchedule> newPlanSchedules =
+                List.of(
+                        PlanSchedule.builder()
+                                .id(2000L)
+                                .planDay(newPlanDay)
+                                .scheduleType(ScheduleType.LUNCH)
+                                .courseType(CourseType.RESTAURANT)
+                                .locationName("수정된 식당")
+                                .build()
+                );
+
+        List<RestaurantDetail> newRestaurantDetails = List.of();
+
+        when(
+                userQueryService
+                        .findByUsernameInCache(username)
+        ).thenReturn(
+                userAuthCache
+        );
+
+        when(
+                travelQueryService
+                        .existsByIdAndUserId(travelId, userId)
+        ).thenReturn(
+                true
+        );
+
+        when(
+                planEditCacheService
+                        .findEditResult(travelId)
+        ).thenReturn(
+                Optional.of(editPlanAiResponse)
+        );
+
+        when(
+                planQueryService
+                        .getPlanByTravelId(travelId)
+        ).thenReturn(
+                planQueryResponse
+        );
+
+        when(
+                planService
+                        .findPlanById(planId)
+        ).thenReturn(
+                plan
+        );
+
+        when(
+                planDayService
+                        .findAllByPlan(plan)
+        ).thenReturn(
+                List.of(existingPlanDay)
+        );
+
+        when(
+                planScheduleService
+                        .findAllByPlanDayIn(
+                                List.of(existingPlanDay)
+                        )
+        ).thenReturn(
+                List.of(existingPlanSchedule)
+        );
+
+        when(
+                planService
+                        .aggregateTags(
+                                editPlanAiResponse.planDays()
+                        )
+        ).thenReturn(
+                aggregatedTags
+        );
+
+        when(
+                planDayService
+                        .createPlanDay(
+                                new CreatePlanDayRequest(
+                                        plan,
+                                        planDayDetail.dayNumber(),
+                                        planDayDetail.date()
+                                )
+                        )
+        ).thenReturn(
+                newPlanDay
+        );
+
+        when(
+                planScheduleService
+                        .makePlanScheduleList(
+                                newPlanDay,
+                                planDayDetail.schedules()
+                        )
+        ).thenReturn(
+                newPlanSchedules
+        );
+
+        when(
+                restaurantDetailService
+                        .makeRestaurantDetailList(
+                                newPlanSchedules,
+                                planDayDetail.schedules()
+                        )
+        ).thenReturn(
+                newRestaurantDetails
+        );
+
+        // when
+        CreatePlanResponse result =
+                travelFacade.confirmEditPlan(
+                        request,
+                        username
+                );
+
+        // then
+        assertThat(
+                result.tags()
+        ).isEqualTo(
+                aggregatedTags
+        );
+
+        assertThat(
+                result.planDays()
+        ).isSameAs(
+                editPlanAiResponse.planDays()
+        );
+
+        assertThat(
+                plan.getTags()
+        ).isEqualTo(
+                aggregatedTags
+        );
+
+        verify(
+                restaurantDetailService
+        ).deleteAllByPlanScheduleIn(
+                List.of(existingPlanSchedule)
+        );
+
+        verify(
+                planScheduleService
+        ).deleteAllByPlanDayIn(
+                List.of(existingPlanDay)
+        );
+
+        verify(
+                planDayService
+        ).deleteAllByPlan(
+                plan
+        );
+
+        verify(
+                planService
+        ).savePlan(
+                plan
+        );
+
+        verify(
+                planDayService
+        ).savePlanDay(
+                newPlanDay
+        );
+
+        verify(
+                planScheduleService
+        ).savePlanScheduleAll(
+                newPlanSchedules
+        );
+
+        verify(
+                restaurantDetailService
+        ).saveRestaurantDetailAll(
+                newRestaurantDetails
+        );
+
+        verify(
+                planEditCacheService
+        ).deleteEditResult(
+                travelId
+        );
+    }
+
+    @Test
+    @DisplayName("Redis에 저장된 수정안이 없거나 만료되었으면 예외가 발생한다")
+    void confirmEditPlanThrowsWhenEditResultNotFound() {
+
+        // given
+        Long travelId = 1L;
+        Long userId = 1L;
+        String username = "testUser@example.com";
+
+        GetAiPlanRequest request =
+                new GetAiPlanRequest(
+                        travelId
+                );
+
+        UserAuthCache userAuthCache =
+                new UserAuthCache(
+                        userId,
+                        username,
+                        "ROLE_USER"
+                );
+
+        when(
+                userQueryService
+                        .findByUsernameInCache(username)
+        ).thenReturn(
+                userAuthCache
+        );
+
+        when(
+                travelQueryService
+                        .existsByIdAndUserId(travelId, userId)
+        ).thenReturn(
+                true
+        );
+
+        when(
+                planEditCacheService
+                        .findEditResult(travelId)
+        ).thenReturn(
+                Optional.empty()
+        );
+
+        // when & then
+        assertThatThrownBy(
+                () -> travelFacade.confirmEditPlan(
+                        request,
+                        username
+                )
+        ).isInstanceOf(
+                BaseException.class
+        ).satisfies(exception -> {
+
+            BaseException baseException = (BaseException) exception;
+
+            assertThat(
+                    baseException.getMessage()
+            ).isEqualTo(
+                    PlanEditExceptionEnum.EDIT_RESULT_NOT_FOUND.getMessage()
+            );
+        });
+
+        verify(
+                planQueryService,
+                never()
+        ).getPlanByTravelId(
+                travelId
+        );
+    }
+
+    @Test
+    @DisplayName("Travel 소유자가 아니면 저장 확정 시 접근이 거부된다")
+    void confirmEditPlanThrowsForbiddenWhenNotOwner() {
+
+        // given
+        Long travelId = 1L;
+        Long userId = 1L;
+        String username = "testUser@example.com";
+
+        GetAiPlanRequest request =
+                new GetAiPlanRequest(
+                        travelId
+                );
+
+        UserAuthCache userAuthCache =
+                new UserAuthCache(
+                        userId,
+                        username,
+                        "ROLE_USER"
+                );
+
+        when(
+                userQueryService
+                        .findByUsernameInCache(username)
+        ).thenReturn(
+                userAuthCache
+        );
+
+        when(
+                travelQueryService
+                        .existsByIdAndUserId(travelId, userId)
+        ).thenReturn(
+                false
+        );
+
+        // when & then
+        assertThatThrownBy(
+                () -> travelFacade.confirmEditPlan(
+                        request,
+                        username
+                )
+        ).isInstanceOf(
+                ForbiddenException.class
+        );
+
+        verify(
+                planEditCacheService,
+                never()
+        ).findEditResult(
+                travelId
+        );
+    }
+
+    @Test
+    @DisplayName("수정 미리보기를 취소하면 Redis 캐시만 삭제한다")
+    void cancelEditPlan() {
+
+        // given
+        Long travelId = 1L;
+        Long userId = 1L;
+        String username = "testUser@example.com";
+
+        GetAiPlanRequest request =
+                new GetAiPlanRequest(
+                        travelId
+                );
+
+        UserAuthCache userAuthCache =
+                new UserAuthCache(
+                        userId,
+                        username,
+                        "ROLE_USER"
+                );
+
+        when(
+                userQueryService
+                        .findByUsernameInCache(username)
+        ).thenReturn(
+                userAuthCache
+        );
+
+        when(
+                travelQueryService
+                        .existsByIdAndUserId(travelId, userId)
+        ).thenReturn(
+                true
+        );
+
+        // when
+        travelFacade.cancelEditPlan(
+                request,
+                username
+        );
+
+        // then
+        verify(
+                planEditCacheService
+        ).deleteEditResult(
+                travelId
+        );
+    }
+
+    @Test
+    @DisplayName("Travel 소유자가 아니면 취소 시 접근이 거부된다")
+    void cancelEditPlanThrowsForbiddenWhenNotOwner() {
+
+        // given
+        Long travelId = 1L;
+        Long userId = 1L;
+        String username = "testUser@example.com";
+
+        GetAiPlanRequest request =
+                new GetAiPlanRequest(
+                        travelId
+                );
+
+        UserAuthCache userAuthCache =
+                new UserAuthCache(
+                        userId,
+                        username,
+                        "ROLE_USER"
+                );
+
+        when(
+                userQueryService
+                        .findByUsernameInCache(username)
+        ).thenReturn(
+                userAuthCache
+        );
+
+        when(
+                travelQueryService
+                        .existsByIdAndUserId(travelId, userId)
+        ).thenReturn(
+                false
+        );
+
+        // when & then
+        assertThatThrownBy(
+                () -> travelFacade.cancelEditPlan(
+                        request,
+                        username
+                )
+        ).isInstanceOf(
+                ForbiddenException.class
+        );
+
+        verify(
+                planEditCacheService,
+                never()
+        ).deleteEditResult(
                 travelId
         );
     }

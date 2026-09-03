@@ -13,10 +13,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PlanDayServiceTest {
@@ -92,5 +94,57 @@ class PlanDayServiceTest {
 
         verify(planDayRepository)
                 .save(planDay);
+    }
+
+    @Test
+    @DisplayName("특정 Plan에 속한 PlanDay 리스트 조회")
+    void findAllByPlan() {
+
+        Plan plan =
+                Plan.builder()
+                        .planName("부산 여행")
+                        .build();
+
+        List<PlanDay> planDays =
+                List.of(
+                        PlanDay.builder()
+                                .plan(plan)
+                                .dayNumber(1)
+                                .build()
+                );
+
+        when(
+                planDayRepository
+                        .findAllByPlan(plan)
+        ).thenReturn(
+                planDays
+        );
+
+        List<PlanDay> result =
+                planDayService.findAllByPlan(
+                        plan
+                );
+
+        assertEquals(
+                planDays,
+                result
+        );
+    }
+
+    @Test
+    @DisplayName("특정 Plan에 속한 PlanDay 리스트 일괄 삭제")
+    void deleteAllByPlan() {
+
+        Plan plan =
+                Plan.builder()
+                        .planName("부산 여행")
+                        .build();
+
+        planDayService.deleteAllByPlan(
+                plan
+        );
+
+        verify(planDayRepository)
+                .deleteAllByPlan(plan);
     }
 }

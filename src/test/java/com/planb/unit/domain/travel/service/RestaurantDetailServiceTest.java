@@ -18,6 +18,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class RestaurantDetailServiceTest {
@@ -202,5 +203,22 @@ class RestaurantDetailServiceTest {
 
         verify(restaurantDetailRepository)
                 .saveAll(restaurantDetails);
+    }
+
+    @Test
+    @DisplayName("특정 PlanSchedule 목록에 속한 RestaurantDetail 리스트 일괄 삭제")
+    void deleteAllByPlanScheduleIn() {
+
+        PlanSchedule planSchedule =
+                PlanSchedule.builder()
+                        .locationName("막국수집")
+                        .build();
+
+        restaurantDetailService.deleteAllByPlanScheduleIn(
+                List.of(planSchedule)
+        );
+
+        verify(restaurantDetailRepository)
+                .deleteAllByPlanScheduleIn(List.of(planSchedule));
     }
 }
