@@ -12,6 +12,7 @@ import org.springframework.data.redis.repository.configuration.EnableRedisReposi
 import org.springframework.data.redis.serializer.JacksonJsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import com.planb.global.security.dto.UserAuthCache;
+import com.planb.ai.dto.response.EditPlanAiResponse;
 
 @Configuration
 @EnableRedisRepositories
@@ -68,6 +69,30 @@ public class RedisConfig {
 
         JacksonJsonRedisSerializer<UserAuthCache> jsonSerializer =
                 new JacksonJsonRedisSerializer<>(UserAuthCache.class);
+
+        redisTemplate.setKeySerializer(stringSerializer);
+        redisTemplate.setValueSerializer(jsonSerializer);
+
+        redisTemplate.setHashKeySerializer(stringSerializer);
+        redisTemplate.setHashValueSerializer(jsonSerializer);
+
+        redisTemplate.afterPropertiesSet();
+
+        return redisTemplate;
+
+    }
+
+    @Bean
+    public RedisTemplate<String, EditPlanAiResponse> planEditRedisTemplate() {
+
+        RedisTemplate<String, EditPlanAiResponse> redisTemplate = new RedisTemplate<>();
+
+        redisTemplate.setConnectionFactory(redisConnectionFactory());
+
+        StringRedisSerializer stringSerializer = new StringRedisSerializer();
+
+        JacksonJsonRedisSerializer<EditPlanAiResponse> jsonSerializer =
+                new JacksonJsonRedisSerializer<>(EditPlanAiResponse.class);
 
         redisTemplate.setKeySerializer(stringSerializer);
         redisTemplate.setValueSerializer(jsonSerializer);
