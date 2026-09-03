@@ -31,6 +31,13 @@ public class JwtFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final UserAuthCacheRepository userAuthCacheRepository;
 
+    // async 재진입(asyncDispatch) 시에도 JWT를 다시 검증해야 STATELESS 세션 정책에서
+    // SecurityContext가 끊기지 않는다 (OncePerRequestFilter 기본값은 async dispatch를 건너뜀)
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        return false;
+    }
+
     @Override
     protected void doFilterInternal
             (HttpServletRequest request,
