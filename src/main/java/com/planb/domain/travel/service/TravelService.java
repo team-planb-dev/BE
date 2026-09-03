@@ -83,6 +83,11 @@ public class TravelService {
     기본 CRUD 모음
      */
 
+    // Travel 객체 단건 조회하기 (존재 검증은 호출부에서 이미 끝난 상태를 전제)
+    public Travel findTravelById(Long travelId){
+        return travelRepository.getReferenceById(travelId);
+    }
+
     // Travel 객체 저장하기
     public void saveTravel(Travel travel){
         travelRepository.save(travel);

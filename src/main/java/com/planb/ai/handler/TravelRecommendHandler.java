@@ -3,14 +3,17 @@ package com.planb.ai.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.planb.ai.client.OpenAiClient;
+import com.planb.ai.context.PlanEditContext;
 import com.planb.ai.context.TravelPlanContext;
 import com.planb.ai.dto.request.MakeFoodRecommendCallRequest;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
+import com.planb.ai.dto.response.EditPlanAiResponse;
 import com.planb.ai.dto.response.PlaceWithRouteResult;
 import com.planb.ai.dto.response.RestaurantRecommendResult;
 import com.planb.ai.mcp.TourismTool;
 import com.planb.ai.prompt.AttractionRecommendPrompt;
 import com.planb.ai.prompt.CafeRecommendPrompt;
+import com.planb.ai.prompt.EditPlanPrompt;
 import com.planb.ai.prompt.FoodRecommendPrompt;
 import com.planb.ai.prompt.RestaurantRecommendPrompt;
 import com.planb.ai.prompt.TravelPlanPrompt;
@@ -36,6 +39,7 @@ public class TravelRecommendHandler {
      */
     private final ObjectMapper objectMapper;
     private final BeanOutputConverter<CreatePlanAiResponse> createPlanAiResponseConverter;
+    private final BeanOutputConverter<EditPlanAiResponse> editPlanAiResponseConverter;
 
     /*
     Tool
@@ -77,9 +81,39 @@ public class TravelRecommendHandler {
                 );
     }
 
+    // AI로 기존 일정을 자연어 수정 요청에 맞춰 부분 수정
+    // planDays가 비어있거나 dateType 기준 예상 일수와 다르면 무효 응답으로 간주하고 재시도 대상에 포함
+    public EditPlanAiResponse editPlanByAi(PlanEditContext planEditContext){
+
+        return openAiClient
+                .call(
+                        new EditPlanPrompt(
+                                planEditContext,
+                                objectMapper
+                        ),
+                        editPlanAiResponseConverter,
+                        hasEditPlanDays(
+                                planEditContext
+                                        .createTravelRequest()
+                                        .dateType()
+                        ),
+                        tourismTool
+                );
+    }
+
     // planDays가 null이거나 비어있으면 무효, dateType 기준 예상 일수와 다르면 무효
     // (조립을 완료하지 못했거나 일부 날짜를 누락한 응답)
     private static Predicate<CreatePlanAiResponse> hasPlanDays(DateType dateType) {
+
+        int expectedDayCount = dateType.getPlusDays() + 1;
+
+        return response -> response != null
+                && response.planDays() != null
+                && response.planDays().size() == expectedDayCount;
+    }
+
+    // editPlanByAi 응답 검증용 (EditPlanAiResponse는 CreatePlanAiResponse와 별개 타입이라 동일 로직 재정의)
+    private static Predicate<EditPlanAiResponse> hasEditPlanDays(DateType dateType) {
 
         int expectedDayCount = dateType.getPlusDays() + 1;
 

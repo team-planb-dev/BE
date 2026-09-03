@@ -1,6 +1,7 @@
 package com.planb.global.config.ai;
 
 import com.planb.ai.dto.response.CreatePlanAiResponse;
+import com.planb.ai.dto.response.EditPlanAiResponse;
 import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.RecommendationTag;
 import com.planb.domain.travel.entity.constant.ScheduleType;
@@ -35,5 +36,22 @@ public class AiOutputConverterConfig {
                 .build();
 
         return new BeanOutputConverter<>(CreatePlanAiResponse.class, jsonMapper);
+    }
+
+    @Bean
+    public BeanOutputConverter<EditPlanAiResponse> editPlanAiResponseConverter() {
+        SimpleModule module = new SimpleModule();
+        module.addSerializer(CodeCommInterface.class, new CodeCommEnumSerializer());
+        module.addDeserializer(ScheduleType.class, new CodeCommEnumDeserializer<>(ScheduleType.class));
+        module.addDeserializer(CourseType.class, new CodeCommEnumDeserializer<>(CourseType.class));
+        module.addDeserializer(RecommendationTag.class, new CodeCommEnumDeserializer<>(RecommendationTag.class));
+        module.addDeserializer(LocalTime.class, new LenientLocalTimeDeserializer());
+        module.addDeserializer(CreatePlanAiResponse.RestaurantDetail.class, new RestaurantDetailDeserializer());
+
+        JsonMapper jsonMapper = JsonMapper.builder()
+                .addModule(module)
+                .build();
+
+        return new BeanOutputConverter<>(EditPlanAiResponse.class, jsonMapper);
     }
 }

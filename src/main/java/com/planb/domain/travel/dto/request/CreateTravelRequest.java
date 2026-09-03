@@ -1,5 +1,6 @@
 package com.planb.domain.travel.dto.request;
 
+import com.planb.domain.travel.entity.Travel;
 import com.planb.domain.travel.entity.constant.DateType;
 import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.domain.travel.entity.constant.TravelStyle;
@@ -20,6 +21,25 @@ public record CreateTravelRequest(String travelName, // 여행이름
                                   TravelTheme travelTheme, // 여행 테마
                                   List<String> localFoods, // 기입받은 지역 음식
                                   List<String> recommendFoods){ // AI 추천 지역음식
+
+    // Travel 엔티티와 PlannedPlace 목록으로 원본 CreateTravelRequest 복원 (AI 편집 컨텍스트 재구성용)
+    public static CreateTravelRequest from(Travel travel, List<PlannedPlaceDetail> plannedPlaceDetails) {
+
+        return new CreateTravelRequest(
+                travel.getTravelName(),
+                travel.getLocationDo(),
+                travel.getLocationSigungu(),
+                travel.getStartDate(),
+                travel.getDateType(),
+                travel.getTransportation(),
+                travel.getDecidedLocation(),
+                plannedPlaceDetails,
+                travel.getTravelStyle(),
+                travel.getTravelTheme(),
+                travel.getLocalFoods(),
+                travel.getRecommendFoods()
+        );
+    }
 
     public record PlannedPlaceDetail
             (String locationName,
