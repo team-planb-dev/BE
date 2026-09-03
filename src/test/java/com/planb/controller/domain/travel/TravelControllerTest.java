@@ -1,11 +1,11 @@
 package com.planb.controller.domain.travel;
 
-import com.planb.ai.dto.response.CreatePlanAiResponse;
 import com.planb.domain.travel.controller.TravelController;
 import com.planb.domain.travel.dto.request.CreateTravelRequest;
 import com.planb.domain.travel.dto.request.GetAiPlanRequest;
 import com.planb.domain.travel.dto.request.MakeRecommendFoodsRequest;
 import com.planb.domain.travel.dto.request.SearchPlannedPlaceRequest;
+import com.planb.domain.travel.dto.response.CreatePlanResponse;
 import com.planb.domain.travel.dto.response.GetAiPlanResponse;
 import com.planb.domain.travel.dto.response.MakeRecommendFoodResponse;
 import com.planb.domain.travel.dto.response.SearchPlannedPlaceResponse;
@@ -144,8 +144,9 @@ class TravelControllerTest {
     void addTravelOptionsAndRecommendSuccess() throws Exception {
 
         // given
-        CreatePlanAiResponse response =
-                new CreatePlanAiResponse(
+        CreatePlanResponse response =
+                new CreatePlanResponse(
+                        Set.of(),
                         List.of()
                 );
 

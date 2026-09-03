@@ -10,10 +10,12 @@ import com.planb.domain.health.service.HealthService;
 import com.planb.domain.health.service.MedicationInfoService;
 import com.planb.domain.travel.dto.request.*;
 
+import com.planb.domain.travel.dto.response.CreatePlanResponse;
 import com.planb.domain.travel.dto.response.GetAiPlanResponse;
 import com.planb.domain.travel.dto.response.MakeRecommendFoodResponse;
 import com.planb.domain.travel.dto.response.SearchPlannedPlaceResponse;
 import com.planb.domain.travel.entity.*;
+import com.planb.domain.travel.entity.constant.RecommendationTag;
 import com.planb.domain.travel.service.*;
 import com.planb.global.config.exception.domain.ForbiddenException;
 import com.planb.query.health.service.HealthQueryService;
@@ -31,6 +33,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -97,7 +100,7 @@ public class TravelFacade {
      * 사용자 입력 받은 후, 해당 데이터 기반으로 여행일정 생성하기
      */
     @Transactional
-    public CreatePlanAiResponse makeTravelOptionsAndRecommend(
+    public CreatePlanResponse makeTravelOptionsAndRecommend(
             CreateTravelRequest createTravelRequest,
             String username
     ) {
@@ -161,11 +164,11 @@ public class TravelFacade {
                 );
 
         // AI 응답의 PlanSchedule 태그를 모두 모아 Plan에 반영
-        plan.updateTags(
+        Set<RecommendationTag> aggregatedTags =
                 planService.aggregateTags(
                         createPlanAiResponse.planDays()
-                )
-        );
+                );
+        plan.updateTags(aggregatedTags);
         planService.savePlan(plan);
 
         // AI 응답 기반으로 PlanDay, PlanSchedule 객체 생성 후 저장
@@ -211,7 +214,10 @@ public class TravelFacade {
                 });
 
         // 생성된 AI 여행일정 응답 반환
-        return createPlanAiResponse;
+        return CreatePlanResponse.of(
+                aggregatedTags,
+                createPlanAiResponse
+        );
     }
 
     /**

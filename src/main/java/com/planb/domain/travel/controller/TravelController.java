@@ -1,10 +1,10 @@
 package com.planb.domain.travel.controller;
 
-import com.planb.ai.dto.response.CreatePlanAiResponse;
 import com.planb.domain.travel.dto.request.CreateTravelRequest;
 import com.planb.domain.travel.dto.request.GetAiPlanRequest;
 import com.planb.domain.travel.dto.request.MakeRecommendFoodsRequest;
 import com.planb.domain.travel.dto.request.SearchPlannedPlaceRequest;
+import com.planb.domain.travel.dto.response.CreatePlanResponse;
 import com.planb.domain.travel.dto.response.GetAiPlanResponse;
 import com.planb.domain.travel.dto.response.MakeRecommendFoodResponse;
 import com.planb.domain.travel.dto.response.SearchPlannedPlaceResponse;
@@ -73,7 +73,7 @@ public class TravelController {
     @Operation(summary = "여행조건 등록 및 생성 API",
             description = "사용자의 입력에 기반하여 여행조건을 등록합니다." +
                     "그 후,해당 정보에 기반하여 일정을 생성합니다.")
-    public ResponseEntity<ApiResult<CreatePlanAiResponse>> addTravelOptionsAndRecommend
+    public ResponseEntity<ApiResult<CreatePlanResponse>> addTravelOptionsAndRecommend
             (@RequestBody CreateTravelRequest createTravelRequest,
              @AuthenticationPrincipal UserDetails userDetails){
 

@@ -6,6 +6,7 @@ import com.planb.ai.dto.response.CreatePlanAiResponse;
 import com.planb.ai.dto.response.PlaceWithRouteResult;
 import com.planb.ai.handler.TravelRecommendHandler;
 import com.planb.ai.mcp.NutritionEvaluationCollector;
+import com.planb.ai.prompt.AttractionRecommendPrompt;
 import com.planb.ai.prompt.CafeRecommendPrompt;
 import com.planb.domain.health.entity.constant.DiseaseType;
 import com.planb.domain.health.entity.constant.FoodType;
@@ -355,6 +356,220 @@ class PlanServiceTest {
 
         assertEquals(
                 "이기대",
+                day2Schedules.get(0).locationName()
+        );
+    }
+
+    @Test
+    @DisplayName("AI 기반 여행 일정 생성 - 여행 전체 기간 중복된 관광지 슬롯을 재추천 결과로 교체")
+    void makePlanByAiReplacesDuplicateAttraction() {
+
+        TravelPlanContext context =
+                travelPlanContext();
+
+        CreatePlanAiResponse.PlanScheduleDetail day1Attraction =
+                attraction("해운대해수욕장");
+
+        CreatePlanAiResponse.PlanDayDetail day1 =
+                planDay(
+                        1,
+                        List.of(
+                                cafe("스타벅스 하버타운점"),
+                                day1Attraction
+                        )
+                );
+
+        // day2: 카페 -> 복약(실제 장소 아님) -> 1일차와 같은 이름의 관광지(중복)
+        CreatePlanAiResponse.PlanDayDetail day2 =
+                planDay(
+                        2,
+                        List.of(
+                                cafe("이기대카페"),
+                                medication(),
+                                attraction("해운대해수욕장")
+                        )
+                );
+
+        CreatePlanAiResponse response =
+                new CreatePlanAiResponse(
+                        List.of(day1, day2)
+                );
+
+        when(
+                travelRecommendHandler.createPlanByAi(context)
+        ).thenReturn(response);
+
+        PlaceWithRouteResult replacement =
+                new PlaceWithRouteResult(
+                        true,
+                        "동백섬",
+                        "부산 해운대구 동백로",
+                        "129.150",
+                        "35.153",
+                        15
+                );
+
+        when(
+                travelRecommendHandler.recommendAttraction(any(AttractionRecommendPrompt.class))
+        ).thenReturn(replacement);
+
+        CreatePlanAiResponse result =
+                planService.makePlanByAi(context);
+
+        // recommendAttraction은 중복된 슬롯 하나에 대해서만 정확히 1회 호출된다
+        ArgumentCaptor<AttractionRecommendPrompt> captor =
+                ArgumentCaptor.forClass(AttractionRecommendPrompt.class);
+
+        verify(travelRecommendHandler)
+                .recommendAttraction(captor.capture());
+
+        AttractionRecommendPrompt usedPrompt = captor.getValue();
+
+        assertEquals(
+                "부산",
+                usedPrompt.locationDo()
+        );
+
+        assertEquals(
+                "해운대구",
+                usedPrompt.locationSigungu()
+        );
+
+        assertEquals(
+                "해운대",
+                usedPrompt.decidedLocation()
+        );
+
+        assertEquals(
+                Transportation.TRANSIT,
+                usedPrompt.transportation()
+        );
+
+        // 복약 일정은 실제 장소가 아니므로 건너뛰고, 바로 앞의 실제 장소(이기대카페)가 previousLocation이어야 한다
+        assertEquals(
+                "이기대카페",
+                usedPrompt.previousLocation()
+        );
+
+        // 지금까지 확정된 ATTRACTION/CAFE_REST 이름이 모두 excludeNames로 전달되어야 한다
+        assertEquals(
+                Set.of(
+                        "스타벅스 하버타운점",
+                        "해운대해수욕장",
+                        "이기대카페"
+                ),
+                new HashSet<>(usedPrompt.excludeNames())
+        );
+
+        // 1일차는 변경되지 않는다
+        assertEquals(
+                day1,
+                result.planDays().get(0)
+        );
+
+        // 2일차의 중복 관광지 슬롯만 재추천 결과로 교체된다
+        CreatePlanAiResponse.PlanScheduleDetail fixedAttraction =
+                result.planDays().get(1).schedules().get(2);
+
+        assertEquals(
+                CourseType.ATTRACTION,
+                fixedAttraction.courseType()
+        );
+
+        assertEquals(
+                "동백섬",
+                fixedAttraction.locationName()
+        );
+
+        assertEquals(
+                "부산 해운대구 동백로",
+                fixedAttraction.location()
+        );
+
+        assertEquals(
+                "129.150",
+                fixedAttraction.longitude()
+        );
+
+        assertEquals(
+                "35.153",
+                fixedAttraction.latitude()
+        );
+
+        assertEquals(
+                15,
+                fixedAttraction.travelMinutes()
+        );
+
+        assertNull(
+                fixedAttraction.imageUrl()
+        );
+
+        assertNull(
+                fixedAttraction.thumbNailImageUrl()
+        );
+    }
+
+    @Test
+    @DisplayName("AI 기반 여행 일정 생성 - 재추천 실패 시 해당 관광지 슬롯 제거")
+    void makePlanByAiDropsAttractionSlotWhenReplacementNotFound() {
+
+        TravelPlanContext context =
+                travelPlanContext();
+
+        CreatePlanAiResponse.PlanDayDetail day1 =
+                planDay(
+                        1,
+                        List.of(
+                                cafe("스타벅스 하버타운점"),
+                                attraction("해운대해수욕장")
+                        )
+                );
+
+        CreatePlanAiResponse.PlanDayDetail day2 =
+                planDay(
+                        2,
+                        List.of(
+                                cafe("이기대카페"),
+                                attraction("해운대해수욕장")
+                        )
+                );
+
+        CreatePlanAiResponse response =
+                new CreatePlanAiResponse(
+                        List.of(day1, day2)
+                );
+
+        when(
+                travelRecommendHandler.createPlanByAi(context)
+        ).thenReturn(response);
+
+        when(
+                travelRecommendHandler.recommendAttraction(any(AttractionRecommendPrompt.class))
+        ).thenReturn(
+                new PlaceWithRouteResult(
+                        false,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                )
+        );
+
+        CreatePlanAiResponse result =
+                planService.makePlanByAi(context);
+
+        List<CreatePlanAiResponse.PlanScheduleDetail> day2Schedules =
+                result.planDays().get(1).schedules();
+
+        assertEquals(
+                1,
+                day2Schedules.size()
+        );
+
+        assertEquals(
+                "이기대카페",
                 day2Schedules.get(0).locationName()
         );
     }

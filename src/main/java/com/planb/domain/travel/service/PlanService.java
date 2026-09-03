@@ -3,6 +3,7 @@ package com.planb.domain.travel.service;
 import com.planb.ai.context.TravelHealthContext;
 import com.planb.ai.context.TravelPlanContext;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
+import com.planb.ai.dto.response.KakaoRouteResult;
 import com.planb.ai.dto.response.PlaceWithRouteResult;
 import com.planb.ai.dto.response.RestaurantRecommendResult;
 import com.planb.ai.handler.TravelRecommendHandler;
@@ -23,6 +24,7 @@ import com.planb.domain.travel.entity.constant.NutritionType;
 import com.planb.domain.travel.entity.constant.RecommendationTag;
 import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.domain.travel.repository.PlanRepository;
+import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -56,6 +58,10 @@ public class PlanService {
     Handler
      */
     private final TravelRecommendHandler travelRecommendHandler;
+
+    // STEP 7에서 AI가 getRoute Tool 호출을 빠뜨려 travelMinutes가 비어 있는 슬롯을
+    // Java에서 직접 채우기 위한 route 조회 (AI Tool인 TourismTool.getRoute와 동일한 호출)
+    private final KakaoMapServiceHandler kakaoMapServiceHandler;
 
     /*
     Tool 호출 결과 수집기
@@ -93,10 +99,18 @@ public class PlanService {
         List<NutritionEvaluationCollector.FoodNutritionEvaluation> nutritionEvaluations =
                 nutritionEvaluationCollector.finish();
 
-        return applyDeterministicTags(
-                uniqueResponse,
-                travelPlanContext,
-                nutritionEvaluations
+        CreatePlanAiResponse taggedResponse =
+                applyDeterministicTags(
+                        uniqueResponse,
+                        travelPlanContext,
+                        nutritionEvaluations
+                );
+
+        // AI가 STEP 7의 getRoute 호출을 일부 구간에서 빠뜨리는 경우를 대비한 Java 레벨 강제 보정
+        // (카페/음식점 중복 보정과 동일하게, 프롬프트 지시만으로는 100% 보장되지 않아 여기서 확정한다)
+        return fillMissingTravelMinutes(
+                taggedResponse,
+                travelPlanContext.createTravelRequest()
         );
     }
 
@@ -714,6 +728,137 @@ public class PlanService {
                             : firstNonBlank(schedule.locationName(), previousLocation);
 
             return new DayFixAccumulator(schedules, nextPreviousLocation);
+        }
+    }
+
+    // 여행 전체 기간에 걸쳐 travelMinutes가 비어 있는 슬롯(약복용 슬롯 등 장소가 없는 슬롯 제외)을
+    // 직전 확정 장소 기준으로 실제 getRoute를 호출해 채움
+    private CreatePlanAiResponse fillMissingTravelMinutes(
+            CreatePlanAiResponse response,
+            CreateTravelRequest createTravelRequest
+    ) {
+
+        List<CreatePlanAiResponse.PlanDayDetail> filledPlanDays =
+                response.planDays()
+                        .stream()
+                        .map(planDay ->
+                                fillPlanDayTravelMinutes(
+                                        planDay,
+                                        createTravelRequest
+                                )
+                        )
+                        .toList();
+
+        return new CreatePlanAiResponse(filledPlanDays);
+    }
+
+    // 하루치 일정 순회, 직전 확정 장소(previousLocation)를 이어가며 빈 travelMinutes를 채움
+    // 하루의 첫 장소는 decidedLocation(사용자가 정한 기준 위치)을 직전 장소로 사용
+    private CreatePlanAiResponse.PlanDayDetail fillPlanDayTravelMinutes(
+            CreatePlanAiResponse.PlanDayDetail planDay,
+            CreateTravelRequest createTravelRequest
+    ) {
+
+        TravelMinutesFillAccumulator result =
+                planDay.schedules()
+                        .stream()
+                        .reduce(
+                                TravelMinutesFillAccumulator.startingFrom(
+                                        createTravelRequest.decidedLocation()
+                                ),
+                                (accumulator, schedule) ->
+                                        accumulator.append(
+                                                fillScheduleTravelMinutes(
+                                                        schedule,
+                                                        accumulator.previousLocation(),
+                                                        createTravelRequest.transportation()
+                                                )
+                                        ),
+                                // 순차 스트림 전용 reduce, 병렬 병합 로직 미사용
+                                (a, b) -> a
+                        );
+
+        return new CreatePlanAiResponse.PlanDayDetail(
+                planDay.dayNumber(),
+                planDay.date(),
+                result.schedules()
+        );
+    }
+
+    // travelMinutes가 비어 있고 실제 장소(locationName)와 직전 장소가 모두 있는 슬롯만 대상
+    // (MEDICATION처럼 장소가 없는 슬롯, 이미 값이 채워진 슬롯은 자동으로 제외됨)
+    private CreatePlanAiResponse.PlanScheduleDetail fillScheduleTravelMinutes(
+            CreatePlanAiResponse.PlanScheduleDetail schedule,
+            String previousLocation,
+            Transportation transportation
+    ) {
+
+        boolean needsTravelMinutes =
+                schedule.travelMinutes() == null
+                        && !isBlank(schedule.locationName())
+                        && !isBlank(previousLocation);
+
+        if (!needsTravelMinutes) {
+            return schedule;
+        }
+
+        KakaoRouteResult route =
+                kakaoMapServiceHandler
+                        .getRoute(
+                                previousLocation,
+                                schedule.locationName(),
+                                transportation
+                        )
+                        .block();
+
+        Integer travelMinutes =
+                route == null ? null : route.travelMinutes();
+
+        return new CreatePlanAiResponse.PlanScheduleDetail(
+                schedule.scheduleType(),
+                schedule.courseType(),
+                schedule.startTime(),
+                schedule.endTime(),
+                schedule.locationName(),
+                schedule.location(),
+                schedule.longitude(),
+                schedule.latitude(),
+                schedule.imageUrl(),
+                schedule.thumbNailImageUrl(),
+                schedule.stayMinutes(),
+                travelMinutes,
+                schedule.tags(),
+                schedule.medication(),
+                schedule.restaurantDetail()
+        );
+    }
+
+    // fillPlanDayTravelMinutes의 reduce 누적값: 확정된 슬롯 목록 + 직전 확정 장소
+    private record TravelMinutesFillAccumulator(
+            List<CreatePlanAiResponse.PlanScheduleDetail> schedules,
+            String previousLocation
+    ) {
+
+        static TravelMinutesFillAccumulator startingFrom(String decidedLocation) {
+            return new TravelMinutesFillAccumulator(
+                    new ArrayList<>(),
+                    firstNonBlank(decidedLocation, "")
+            );
+        }
+
+        TravelMinutesFillAccumulator append(
+                CreatePlanAiResponse.PlanScheduleDetail schedule
+        ) {
+
+            schedules.add(schedule);
+
+            // MEDICATION은 실제 이동 지점 아님, previousLocation 갱신 제외
+            String nextPreviousLocation =
+                    schedule.courseType() == CourseType.MEDICATION
+                            ? previousLocation
+                            : firstNonBlank(schedule.locationName(), previousLocation);
+
+            return new TravelMinutesFillAccumulator(schedules, nextPreviousLocation);
         }
     }
 

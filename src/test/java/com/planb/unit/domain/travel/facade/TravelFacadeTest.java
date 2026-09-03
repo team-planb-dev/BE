@@ -26,6 +26,7 @@ import com.planb.domain.travel.dto.request.CreateTravelRequest;
 import com.planb.domain.travel.dto.request.GetAiPlanRequest;
 import com.planb.domain.travel.dto.request.MakeRecommendFoodsRequest;
 import com.planb.domain.travel.dto.request.SearchPlannedPlaceRequest;
+import com.planb.domain.travel.dto.response.CreatePlanResponse;
 import com.planb.domain.travel.dto.response.GetAiPlanResponse;
 import com.planb.domain.travel.dto.response.MakeRecommendFoodResponse;
 import com.planb.domain.travel.dto.response.SearchPlannedPlaceResponse;
@@ -571,7 +572,7 @@ class TravelFacadeTest {
         );
 
         // when
-        CreatePlanAiResponse result =
+        CreatePlanResponse result =
                 travelFacade.makeTravelOptionsAndRecommend(
                         createTravelRequest,
                         username
@@ -579,9 +580,21 @@ class TravelFacadeTest {
 
         // then
         assertThat(
-                result
+                result.tags()
+        ).isEqualTo(
+                aggregatedTags
+        );
+
+        assertThat(
+                result.planDays()
         ).isSameAs(
-                createPlanAiResponse
+                createPlanAiResponse.planDays()
+        );
+
+        assertThat(
+                plan.getTags()
+        ).isEqualTo(
+                aggregatedTags
         );
 
         verify(
