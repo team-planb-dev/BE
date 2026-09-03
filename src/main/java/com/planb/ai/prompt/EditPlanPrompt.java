@@ -101,6 +101,21 @@ public record EditPlanPrompt(
                   travelMinutes도 유지 대상으로 취급하고 다시 조회하지 않습니다.
                 - Tool 결과에 없는 사실 정보(장소명, 주소, 메뉴, 좌표, 이동시간, 영양정보)를
                   임의로 생성하지 않습니다.
+                - 변경 대상 슬롯의 RecommendationTag(tags)는 CourseType별로 AI가 직접 판단해서
+                  채워야 하는 후보 중 실제 근거가 있는 값만 포함합니다. 이 후보는 최초 일정 생성
+                  프롬프트와 동일합니다.
+                  - RESTAURANT, LOCAL_FOOD: MEAL_TIME_APPLIED, FOOD_PREFERENCE
+                  - ATTRACTION: HISTORY_CULTURE, NATURAL_SCENERY, EXPERIENCE_ACTIVITY, MUST_VISIT
+                  - CAFE_REST: REST_POINT, FOOD_PREFERENCE, MEAL_TIME_APPLIED
+                  - PARK_WALK: LIGHT_WALK, NATURAL_SCENERY
+                  - MUST_HAVE: MUST_VISIT
+                  - TRANSPORTATION: WALKING(도보 이동인 경우만 해당)
+                  - MEDICATION: 백엔드가 MEDICATION_SCHEDULE을 자동 부여하므로 직접 포함하지 않습니다.
+                  MEDICATION_SCHEDULE, CAR, TRANSIT, LOCAL_FOOD, CARBOHYDRATE_REFERENCE,
+                  SODIUM_REFERENCE, SATURATED_FAT_REFERENCE, ALLERGY_CHECK는 백엔드가 자동으로
+                  부여하므로 이 응답에 직접 포함하지 않아도 됩니다.
+                - 변경 대상 슬롯의 tags는 위 후보 중 해당하는 값이 하나도 없더라도 절대 null을
+                  반환하지 않고 빈 배열 []을 반환합니다.
 
                 [STEP 4. 밀도/이동 조정 요청 처리]
 
@@ -149,6 +164,7 @@ public record EditPlanPrompt(
                 - 응답을 생성하기 전에 다음을 확인합니다.
                   - editRequest와 무관한 슬롯의 모든 필드가 currentPlan과 완전히 동일한가
                   - 변경 대상 슬롯이 Tool 조회 결과에서만 값을 가져왔는가
+                  - 변경 대상 슬롯의 tags가 null이 아니라 빈 배열([]) 이상으로 채워졌는가
                   - 여행 전체 기간(유지 대상 포함) 동안 관광지·카페·메뉴가 중복되지
                     않는가
                   - 시간대가 같은 날의 다른 슬롯과 겹치지 않는가
