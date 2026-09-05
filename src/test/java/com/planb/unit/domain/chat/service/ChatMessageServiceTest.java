@@ -16,9 +16,14 @@ import com.planb.domain.chat.entity.ChatMessage;
 import com.planb.domain.chat.entity.ChatRoom;
 import com.planb.domain.chat.repository.ChatMessageRepository;
 import com.planb.domain.chat.service.ChatMessageService;
+import com.planb.domain.chat.dto.response.AiReplyContent;
+import com.planb.domain.chat.helper.ChatAiReplyMessageHelper;
+import com.planb.domain.travel.dto.response.EditPlanPreviewResponse;
+import com.planb.ai.dto.response.EditPlanAiResponse;
 import com.planb.domain.user.entity.User;
 
 import java.time.Instant;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -34,6 +39,9 @@ class ChatMessageServiceTest {
 
     @Mock
     private SimpMessagingTemplate messagingTemplate;
+
+    @Mock
+    private ChatAiReplyMessageHelper chatAiReplyMessageHelper;
 
     @InjectMocks
     private ChatMessageService chatMessageService;
@@ -52,6 +60,7 @@ class ChatMessageServiceTest {
                         10L,
                         "우주",
                         "테스트 메시지",
+                        null,
                         Instant.now()
                 );
 
@@ -245,5 +254,67 @@ class ChatMessageServiceTest {
                 .hasMessage(
                         "지원하지 않는 시스템 메시지 타입입니다."
                 );
+    }
+
+    @Test
+    @DisplayName("처리 가능한 수정 요청이면 미리보기를 포함한 응답 컨텐츠 반환")
+    void resolveAiReplyContentWhenProcessable() {
+
+        // given
+        EditPlanAiResponse editPlanAiResponse =
+                new EditPlanAiResponse(
+                        "부산 여행",
+                        List.of(),
+                        List.of("변경 사항 없음"),
+                        true
+                );
+
+        EditPlanPreviewResponse preview =
+                new EditPlanPreviewResponse(null, editPlanAiResponse);
+
+        when(chatAiReplyMessageHelper.makeReplyMessage(preview))
+                .thenReturn("변경 사항 없음");
+
+        // when
+        AiReplyContent result =
+                chatMessageService.resolveAiReplyContent(preview);
+
+        // then
+        assertThat(result.message())
+                .isEqualTo("변경 사항 없음");
+
+        assertThat(result.editPreview())
+                .isSameAs(preview);
+    }
+
+    @Test
+    @DisplayName("처리 불가능한 요청이면 미리보기 없이 거절 메시지만 반환")
+    void resolveAiReplyContentWhenNotProcessable() {
+
+        // given
+        EditPlanAiResponse editPlanAiResponse =
+                new EditPlanAiResponse(
+                        "부산 여행",
+                        List.of(),
+                        List.of(),
+                        false
+                );
+
+        EditPlanPreviewResponse preview =
+                new EditPlanPreviewResponse(null, editPlanAiResponse);
+
+        when(chatAiReplyMessageHelper.makeReplyMessage(preview))
+                .thenReturn("해당 요청은 처리하기 어렵습니다! 다른 요청 부탁드려요.");
+
+        // when
+        AiReplyContent result =
+                chatMessageService.resolveAiReplyContent(preview);
+
+        // then
+        assertThat(result.message())
+                .isEqualTo("해당 요청은 처리하기 어렵습니다! 다른 요청 부탁드려요.");
+
+        assertThat(result.editPreview())
+                .isNull();
     }
 }

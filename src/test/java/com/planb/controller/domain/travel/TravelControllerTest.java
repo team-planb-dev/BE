@@ -1,11 +1,14 @@
 package com.planb.controller.domain.travel;
 
+import com.planb.ai.dto.response.EditPlanAiResponse;
 import com.planb.domain.travel.controller.TravelController;
 import com.planb.domain.travel.dto.request.CreateTravelRequest;
+import com.planb.domain.travel.dto.request.EditPlanRequest;
 import com.planb.domain.travel.dto.request.GetAiPlanRequest;
 import com.planb.domain.travel.dto.request.MakeRecommendFoodsRequest;
 import com.planb.domain.travel.dto.request.SearchPlannedPlaceRequest;
 import com.planb.domain.travel.dto.response.CreatePlanResponse;
+import com.planb.domain.travel.dto.response.EditPlanPreviewResponse;
 import com.planb.domain.travel.dto.response.GetAiPlanResponse;
 import com.planb.domain.travel.dto.response.MakeRecommendFoodResponse;
 import com.planb.domain.travel.dto.response.SearchPlannedPlaceResponse;
@@ -237,6 +240,139 @@ class TravelControllerTest {
 
         verify(travelFacade)
                 .getAiPlan(
+                        any(GetAiPlanRequest.class),
+                        eq("testUser@example.com")
+                );
+    }
+
+    @Test
+    @WithMockUser(
+            username = "testUser@example.com",
+            roles = "USER"
+    )
+    @DisplayName("AI 일정 수정 미리보기 생성 성공")
+    void previewEditPlanSuccess() throws Exception {
+
+        // given
+        EditPlanAiResponse editPlanAiResponse =
+                new EditPlanAiResponse(
+                        "부산 여행",
+                        List.of(),
+                        List.of("1일차 카페를 스타벅스로 변경"),
+                        true
+                );
+
+        EditPlanPreviewResponse response =
+                new EditPlanPreviewResponse(
+                        null,
+                        editPlanAiResponse
+                );
+
+        when(travelFacade.makeEditPlanPreview(
+                any(EditPlanRequest.class),
+                eq("testUser@example.com")
+        )).thenReturn(response);
+
+        String request = """
+                {
+                  "travelId": 1,
+                  "editRequest": "1일차 카페를 스타벅스로 바꿔줘"
+                }
+                """;
+
+        // when & then
+        mockMvc.perform(
+                        post("/api/v1/travel/edit-plan/preview")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(request)
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.success")
+                                .value(true)
+                );
+
+        verify(travelFacade)
+                .makeEditPlanPreview(
+                        any(EditPlanRequest.class),
+                        eq("testUser@example.com")
+                );
+    }
+
+    @Test
+    @WithMockUser(
+            username = "testUser@example.com",
+            roles = "USER"
+    )
+    @DisplayName("AI 일정 수정 확정 성공")
+    void confirmEditPlanSuccess() throws Exception {
+
+        // given
+        CreatePlanResponse response =
+                new CreatePlanResponse(
+                        Set.of(),
+                        List.of()
+                );
+
+        when(travelFacade.confirmEditPlan(
+                any(GetAiPlanRequest.class),
+                eq("testUser@example.com")
+        )).thenReturn(response);
+
+        String request = """
+                {
+                  "travelId": 1
+                }
+                """;
+
+        // when & then
+        mockMvc.perform(
+                        post("/api/v1/travel/edit-plan/confirm")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(request)
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.success")
+                                .value(true)
+                );
+
+        verify(travelFacade)
+                .confirmEditPlan(
+                        any(GetAiPlanRequest.class),
+                        eq("testUser@example.com")
+                );
+    }
+
+    @Test
+    @WithMockUser(
+            username = "testUser@example.com",
+            roles = "USER"
+    )
+    @DisplayName("AI 일정 수정 취소 성공")
+    void cancelEditPlanSuccess() throws Exception {
+
+        // given
+        String request = """
+                {
+                  "travelId": 1
+                }
+                """;
+
+        // when & then
+        mockMvc.perform(
+                        post("/api/v1/travel/edit-plan/cancel")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(request)
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.success")
+                                .value(true)
+                );
+
+        verify(travelFacade)
+                .cancelEditPlan(
                         any(GetAiPlanRequest.class),
                         eq("testUser@example.com")
                 );
