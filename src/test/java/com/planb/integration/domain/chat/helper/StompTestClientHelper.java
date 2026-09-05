@@ -14,11 +14,12 @@ import com.planb.domain.chat.dto.response.SendChatMessageResponse;
 import java.lang.reflect.Type;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 /**
  * STOMP 기반 WebSocket 통합 테스트 지원 클래스.
  * STOMP 클라이언트 생성, 연결, 구독 및
- * 특정 메시지 타입을 기다리는 기능을 제공한다.
+ * 특정 메시지 타입 대기 기능 제공
  */
 public class StompTestClientHelper {
 
@@ -39,6 +40,7 @@ public class StompTestClientHelper {
         this.port = port;
     }
 
+    // STOMP 클라이언트 생성
     public WebSocketStompClient createStompClient() {
 
         WebSocketStompClient stompClient =
@@ -53,6 +55,7 @@ public class StompTestClientHelper {
         return stompClient;
     }
 
+    // WebSocket 연결 및 STOMP 세션 생성
     public StompSession connect(
             WebSocketStompClient stompClient,
             String accessToken
@@ -85,6 +88,7 @@ public class StompTestClientHelper {
                 );
     }
 
+    // 채팅방 구독 및 수신 메시지 큐 등록
     public void subscribe(
             StompSession session,
             Long roomId,
@@ -116,9 +120,24 @@ public class StompTestClientHelper {
         );
     }
 
+    // 지정 타입 메시지 수신 대기
     public SendChatMessageResponse awaitMessageType(
             BlockingQueue<SendChatMessageResponse> messages,
             MessageType expectedType
+    ) throws InterruptedException {
+
+        return awaitMessage(
+                messages,
+                message -> message.type() == expectedType
+        );
+    }
+
+    // 조건(Predicate) 기반 메시지 수신 대기
+    // TALK 타입은 본인 echo와 AI 봇 응답이 모두 같은 타입으로 오므로,
+    // 타입만으로 구분이 안 되는 경우 이 메소드로 발신자 등 추가 조건 지정
+    public SendChatMessageResponse awaitMessage(
+            BlockingQueue<SendChatMessageResponse> messages,
+            Predicate<SendChatMessageResponse> condition
     ) throws InterruptedException {
 
         long timeoutAt =
@@ -139,7 +158,7 @@ public class StompTestClientHelper {
                 continue;
             }
 
-            if (response.type() == expectedType) {
+            if (condition.test(response)) {
                 return response;
             }
         }
@@ -147,6 +166,7 @@ public class StompTestClientHelper {
         return null;
     }
 
+    // 구독 시 발생하는 ENTER 메시지 소진
     public void drainPresenceMessages(
             BlockingQueue<SendChatMessageResponse> messages
     ) throws InterruptedException {
@@ -174,6 +194,7 @@ public class StompTestClientHelper {
         }
     }
 
+    // STOMP 세션 연결 종료
     public void disconnect(
             StompSession session
     ) {
@@ -183,6 +204,7 @@ public class StompTestClientHelper {
         }
     }
 
+    // STOMP 클라이언트 종료
     public void stop(
             WebSocketStompClient stompClient
     ) {
