@@ -5,6 +5,7 @@ import com.planb.domain.user.dto.request.CheckUsernameDuplicationRequest;
 import com.planb.domain.user.dto.response.CheckNicknameDuplicationResponse;
 import com.planb.domain.user.dto.response.CheckUsernameDuplicationResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +43,7 @@ public class UserController {
     }
 
     @Operation(summary = "유저 조회",description = "해당 유저를 조회합니다.이때 , RDB가 아닌 Redis Cache에서 조회를 진행합니다.")
+    @SecurityRequirement(name = "JWT")
     @GetMapping("/me")
     public ResponseEntity<ApiResult<UserAuthCache>> read
             (@AuthenticationPrincipal UserDetails userDetails){
@@ -57,6 +59,7 @@ public class UserController {
     }
 
     @Operation(summary = "유저 삭제",description = "해당 유저를 삭제합니다.")
+    @SecurityRequirement(name = "JWT")
     @DeleteMapping("/delete")
     public ResponseEntity<ApiResult<UserDeleteResponse>> delete
             (@AuthenticationPrincipal UserDetails userDetails){
