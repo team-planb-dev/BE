@@ -28,6 +28,20 @@ public record EditPlanPrompt(
                 editRequest와 무관한 일정은 currentPlan에 있는 값 그대로 응답에 포함해야 하며,
                 이유 없이 임의로 다른 값으로 바꾸지 않습니다.
 
+                [STEP 0. 요청 처리 가능 여부 판단]
+
+                - editRequest가 이 여행 일정의 수정 또는 삭제(STEP 1의 5가지
+                  유형 중 하나 이상)에 해당하는 요청인지 먼저 판단합니다.
+                - editRequest가 일정 수정/삭제와 무관한 요청(예: 일정과 상관없는
+                  잡담, 이 프롬프트가 다루지 않는 새로운 기능 요청, 일반적인 질문 등)이면
+                  processable을 false로 설정하고, planDays는 currentPlan의 값을 그대로
+                  복사하며, changes는 빈 배열 []로 응답합니다. 이 경우 STEP 1 이후
+                  절차는 수행하지 않습니다.
+                - editRequest가 일정 수정/삭제에 해당하면 processable을 true로
+                  설정하고, STEP 1부터 이어서 진행합니다. STEP 2의 규칙에 따라 일부만
+                  반영이 어려운 경우(날짜/기간 변경 등)는 processable=false가 아니라
+                  STEP 7에서 changes에 한 줄로 기록하는 기존 방식을 그대로 따릅니다.
+
                 [STEP 1. 수정 요청 해석]
 
                 - editRequest 원문을 읽고, 사용자가 요구하는 변경이 무엇인지 판단합니다.
@@ -170,6 +184,7 @@ public record EditPlanPrompt(
                   - 시간대가 같은 날의 다른 슬롯과 겹치지 않는가
                   - changes 목록이 실제로 값이 달라진 슬롯과 정확히 대응하는가
                   - Tool에서 확인하지 못한 사실 정보를 임의로 채운 슬롯이 없는가
+                  - processable 값이 STEP 0의 판단과 일치하는가
                 - 하나라도 실패하면 해당 슬롯만 다시 확인합니다(재검색 등). 그래도
                   실패하면 STEP 3의 정책대로 그 슬롯을 currentPlan의 기존 값으로
                   되돌립니다.

@@ -5,6 +5,7 @@ import java.util.List;
 public record EditPlanAiResponse(
         String planName,
         List<CreatePlanAiResponse.PlanDayDetail> planDays,
-        List<String> changes
+        List<String> changes,
+        boolean processable
 ) {
 }

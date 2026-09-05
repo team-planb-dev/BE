@@ -396,7 +396,7 @@ public class TravelFacade {
         // Redis 캐시 정리
         planEditCacheService.deleteEditResult(travelId);
 
-        // CreatePlanResponse 재사용을 위해 잠깐 CreatePlanAiResponse로 감싼다
+        // CreatePlanResponse 재사용을 위한 CreatePlanAiResponse 임시 래핑
         CreatePlanAiResponse wrapped =
                 new CreatePlanAiResponse(editPlanAiResponse.planDays());
 

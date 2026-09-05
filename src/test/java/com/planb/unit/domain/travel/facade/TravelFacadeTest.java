@@ -1222,7 +1222,8 @@ class TravelFacadeTest {
                 new EditPlanAiResponse(
                         "부산 여행",
                         List.of(planDayDetail),
-                        List.of("점심 식당을 변경했습니다")
+                        List.of("점심 식당을 변경했습니다"),
+                        true
                 );
 
         PlanQueryResponse planQueryResponse =

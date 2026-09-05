@@ -118,7 +118,7 @@ public class PlanService {
 
     // AI로 기존 일정을 자연어 수정 요청에 맞춰 부분 수정하기
     // 후처리(중복 보정/태그 부여/travelMinutes 보정)는 makePlanByAi가 쓰는 기존 private 메서드를
-    // CreatePlanAiResponse로 감쌌다가 다시 풀어내는 방식으로 그대로 재사용한다
+    // CreatePlanAiResponse로 감쌌다가 다시 풀어내는 방식 그대로 재사용
     public EditPlanAiResponse makeEditPlanByAi(PlanEditContext planEditContext){
 
         nutritionEvaluationCollector.start();
@@ -161,7 +161,8 @@ public class PlanService {
         return new EditPlanAiResponse(
                 response.planName(),
                 finalResponse.planDays(),
-                response.changes()
+                response.changes(),
+                response.processable()
         );
     }
 
