@@ -17,7 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Chat REST API 통합 테스트.
  * 채팅방 생성, 채팅방 멤버 등록 및 삭제,
- * 채팅방 삭제 기능을 검증한다.
+ * 채팅방 삭제 기능 검증
  */
 public class ChatRestIntegrationTest
         extends ChatIntegrationTestSupport {
@@ -216,7 +216,7 @@ public class ChatRestIntegrationTest
                 )
                 /*
                  * 현재 ApiExceptionHandler의 BaseException 처리 메소드에
-                 * @ResponseStatus가 없어서 HTTP 상태는 200으로 반환된다.
+                 * @ResponseStatus가 없어서 HTTP 상태 200으로 반환
                  */
                 .andExpect(status().isOk())
                 .andExpect(

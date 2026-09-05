@@ -35,7 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * User API 통합 테스트
- * 회원 생성, 조회, 삭제 기능과 예외 상황을 검증한다.
+ * 회원 생성, 조회, 삭제 기능과 예외 상황 검증
  */
 public class UserIntegrationTest extends IntegrationTest {
 

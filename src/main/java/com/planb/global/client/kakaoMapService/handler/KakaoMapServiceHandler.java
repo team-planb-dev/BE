@@ -144,7 +144,7 @@ public class KakaoMapServiceHandler {
 
     // 실제 장소(카페 또는 TourAPI에서 검색되지 않는 관광지) 존재 확인
     // + 이전 장소로부터의 이동시간 조회.
-    // excludeNames와 일치하는 장소는 이미 사용된 것으로 간주해 found=false로 처리합니다.
+    // excludeNames와 일치하는 장소는 이미 사용된 것으로 간주, found=false로 처리
     public Mono<PlaceWithRouteResult> findPlaceWithRoute(
             String keyword,
             String previousLocation,

@@ -45,7 +45,7 @@ public class KakaoPlaceSearchHelper {
 
     // 검색 결과(+선택적으로 조회한 이동시간)를 PlaceWithRouteResult로 변환.
     // 도로명주소(road_address_name)가 있으면 우선 사용하고, 없으면 지번주소(address_name)로 대체.
-    // 카카오 로컬 검색 결과의 x(경도)/y(위도)를 좌표값으로 함께 반환한다.
+    // 카카오 로컬 검색 결과의 x(경도)/y(위도)를 좌표값으로 함께 반환
     public PlaceWithRouteResult toResult(
             KakaoPlaceSearchResponse response,
             Integer travelMinutes

@@ -55,7 +55,7 @@ class NutritionEvaluationCollectorTest {
         collector.start();
         collector.record("돼지국밥", result("A"));
 
-        // finish 없이 start를 다시 호출하면 이전 기록은 버려진다
+        // finish 없이 start 재호출 시 이전 기록 폐기
         collector.start();
         collector.record("밀면", result("B"));
 
@@ -74,7 +74,7 @@ class NutritionEvaluationCollectorTest {
         collector.record("돼지국밥", result("A"));
         collector.finish();
 
-        // start 없이 다시 finish를 호출하면 ThreadLocal이 정리되어 빈 리스트를 반환한다
+        // start 없이 finish 재호출 시 ThreadLocal 정리 및 빈 리스트 반환
         List<NutritionEvaluationCollector.FoodNutritionEvaluation> secondFinish =
                 collector.finish();
 
@@ -85,7 +85,7 @@ class NutritionEvaluationCollectorTest {
     @DisplayName("start 없이도 지연 초기화로 기록 가능")
     void recordWithoutStartStillAccumulatesViaLazyInit() {
 
-        // start를 호출하지 않아도 ThreadLocal.withInitial 덕분에 바로 기록 가능하다
+        // start 미호출 시에도 ThreadLocal.withInitial 덕분에 즉시 기록 가능
         collector.record("돼지국밥", result("A"));
 
         List<NutritionEvaluationCollector.FoodNutritionEvaluation> collected =
@@ -105,7 +105,7 @@ class NutritionEvaluationCollectorTest {
         AtomicReference<Integer> otherThreadCollectedSize = new AtomicReference<>();
 
         Thread other = new Thread(() -> {
-            // start를 호출하지 않은 별도 스레드에서는 메인 스레드의 기록이 보이지 않아야 한다
+            // start 미호출 별도 스레드에서는 메인 스레드 기록 비노출 검증
             List<NutritionEvaluationCollector.FoodNutritionEvaluation> collected =
                     collector.finish();
             otherThreadCollectedSize.set(collected.size());
@@ -117,7 +117,7 @@ class NutritionEvaluationCollectorTest {
 
         assertEquals(0, otherThreadCollectedSize.get());
 
-        // 메인 스레드의 기록은 그대로 유지된다
+        // 메인 스레드 기록 유지
         List<NutritionEvaluationCollector.FoodNutritionEvaluation> mainCollected =
                 collector.finish();
 

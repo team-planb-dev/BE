@@ -245,7 +245,7 @@ class PlanServiceTest {
         CreatePlanAiResponse result =
                 planService.makePlanByAi(context);
 
-        // recommendCafe는 중복된 슬롯 하나에 대해서만 정확히 1회 호출된다
+        // recommendCafe는 중복된 슬롯 하나에 대해서만 정확히 1회 호출
         ArgumentCaptor<CafeRecommendPrompt> captor =
                 ArgumentCaptor.forClass(CafeRecommendPrompt.class);
 
@@ -274,13 +274,13 @@ class PlanServiceTest {
                 usedPrompt.transportation()
         );
 
-        // 복약 일정은 실제 장소가 아니므로 건너뛰고, 바로 앞의 실제 장소(이기대)가 previousLocation이어야 한다
+        // 복약 일정을 건너뛴 직전 실제 장소(이기대) 기준 previousLocation 검증
         assertEquals(
                 "이기대",
                 usedPrompt.previousLocation()
         );
 
-        // 지금까지 확정된 ATTRACTION/CAFE_REST 이름이 모두 excludeNames로 전달되어야 한다
+        // 지금까지 확정된 ATTRACTION/CAFE_REST 이름의 excludeNames 전달 검증
         assertEquals(
                 Set.of(
                         "해운대해수욕장",
@@ -290,13 +290,13 @@ class PlanServiceTest {
                 new HashSet<>(usedPrompt.excludeNames())
         );
 
-        // 1일차는 변경되지 않는다
+        // 1일차 변경 없음
         assertEquals(
                 day1,
                 result.planDays().get(0)
         );
 
-        // 2일차의 중복 카페 슬롯만 재추천 결과로 교체된다
+        // 2일차 중복 카페 슬롯만 재추천 결과로 교체
         CreatePlanAiResponse.PlanScheduleDetail fixedCafe =
                 result.planDays().get(1).schedules().get(2);
 
@@ -495,7 +495,7 @@ class PlanServiceTest {
         CreatePlanAiResponse result =
                 planService.makePlanByAi(context);
 
-        // recommendAttraction은 중복된 슬롯 하나에 대해서만 정확히 1회 호출된다
+        // recommendAttraction은 중복된 슬롯 하나에 대해서만 정확히 1회 호출
         ArgumentCaptor<AttractionRecommendPrompt> captor =
                 ArgumentCaptor.forClass(AttractionRecommendPrompt.class);
 
@@ -524,13 +524,13 @@ class PlanServiceTest {
                 usedPrompt.transportation()
         );
 
-        // 복약 일정은 실제 장소가 아니므로 건너뛰고, 바로 앞의 실제 장소(이기대카페)가 previousLocation이어야 한다
+        // 복약 일정을 건너뛴 직전 실제 장소(이기대카페) 기준 previousLocation 검증
         assertEquals(
                 "이기대카페",
                 usedPrompt.previousLocation()
         );
 
-        // 지금까지 확정된 ATTRACTION/CAFE_REST 이름이 모두 excludeNames로 전달되어야 한다
+        // 지금까지 확정된 ATTRACTION/CAFE_REST 이름의 excludeNames 전달 검증
         assertEquals(
                 Set.of(
                         "스타벅스 하버타운점",
@@ -540,13 +540,13 @@ class PlanServiceTest {
                 new HashSet<>(usedPrompt.excludeNames())
         );
 
-        // 1일차는 변경되지 않는다
+        // 1일차 변경 없음
         assertEquals(
                 day1,
                 result.planDays().get(0)
         );
 
-        // 2일차의 중복 관광지 슬롯만 재추천 결과로 교체된다
+        // 2일차 중복 관광지 슬롯만 재추천 결과로 교체
         CreatePlanAiResponse.PlanScheduleDetail fixedAttraction =
                 result.planDays().get(1).schedules().get(2);
 
@@ -719,7 +719,7 @@ class PlanServiceTest {
                         .contains(RecommendationTag.MEDICATION_SCHEDULE)
         );
 
-        // 요청 시작 시 수집을 초기화하고, AI 호출 이후 결과를 회수한다
+        // 요청 시작 시 수집 초기화, AI 호출 이후 결과 회수
         verify(nutritionEvaluationCollector).start();
         verify(nutritionEvaluationCollector).finish();
     }
@@ -899,7 +899,7 @@ class PlanServiceTest {
 
         assertTrue(tags.contains(RecommendationTag.ALLERGY_CHECK));
 
-        // 메뉴가 지역음식 후보와 일치하지 않으므로 LOCAL_FOOD는 부여되지 않는다
+        // 메뉴가 지역음식 후보와 불일치하여 LOCAL_FOOD 미부여
         assertFalse(tags.contains(RecommendationTag.LOCAL_FOOD));
     }
 

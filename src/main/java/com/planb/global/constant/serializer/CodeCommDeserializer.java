@@ -16,7 +16,7 @@ public class CodeCommDeserializer<T extends CodeCommInterface>
 
     // CodeCommDeserializer 클래스에 대해 로그 찍기
     private static final Logger log = LoggerFactory.getLogger(CodeCommDeserializer.class);
-    private Class<T> targetClass; // 런타입에 createContextual()메소드를 통해 채워진다.
+    private Class<T> targetClass; // 런타입에 createContextual()메소드를 통해 채워지는 필드
 
     // 역직력화 메소드
     public T deserialize

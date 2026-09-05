@@ -330,7 +330,7 @@ class TravelIntegrationTest extends IntegrationTest {
                         .findFirst()
                         .orElseThrow();
 
-        // then : 방금 생성한 일정을 다시 조회했을 때 최상위 tags가 생성 시점과 동일하게 저장/재조회된다
+        // then : 방금 생성한 일정 재조회 시 최상위 tags 생성 시점과 동일하게 저장/재조회 확인
         mockMvc.perform(
                         get(GET_AI_PLAN_URL)
                                 .param(
@@ -373,8 +373,8 @@ class TravelIntegrationTest extends IntegrationTest {
 
     // AI가 간헐적으로 깨진(중복 키) JSON을 반환해 파싱이 실패하는 경우를 흡수하기 위한 재시도
     // makeTravelOptionsAndRecommend는 @Transactional이라 실패 시 저장분이 모두 롤백되므로
-    // 같은 요청을 그대로 재시도해도 중복 데이터가 남지 않는다
-    // 파싱 실패는 ApiExceptionHandler에서 success:false로만 응답하고 HTTP status는 200이라 status가 아닌 success로 판단한다
+    // 같은 요청 재시도해도 중복 데이터 미잔존
+    // 파싱 실패 시 ApiExceptionHandler가 success:false로만 응답(HTTP status는 200) → status 아닌 success 기준 판단
     private CreatePlanResponse createPlanWithRetry(
             CreateTravelRequest createTravelRequest,
             LoginResult loginResult) throws Exception {

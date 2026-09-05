@@ -191,7 +191,7 @@ class TourismToolTest {
                         diseaseType
                 );
 
-        // 결정 가능한 RecommendationTag 계산에 재사용하기 위해 요청 단위로 기록되어야 한다
+        // 결정 가능한 RecommendationTag 계산 재사용을 위한 요청 단위 기록
         verify(nutritionEvaluationCollector)
                 .record(foodName, response);
     }
