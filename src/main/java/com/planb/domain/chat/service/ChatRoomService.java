@@ -6,6 +6,7 @@ import com.planb.domain.chat.dto.request.CreateChatRoomRequest;
 import com.planb.domain.chat.dto.response.CreateChatRoomResponse;
 import com.planb.domain.chat.entity.ChatRoom;
 import com.planb.domain.chat.repository.ChatRoomRepository;
+import com.planb.domain.travel.entity.Travel;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +40,21 @@ public class ChatRoomService {
                 chatRoom
                         .getCreatedAt(),
                 "채팅방이 생성되었습니다.");
+    }
+
+    // travel 기준으로 채팅방 만들기
+    public ChatRoom createChatRoomForTravel(Travel travel){
+
+        ChatRoom chatRoom = ChatRoom
+                .builder()
+                .chatRoomName(travel.getTravelName())
+                .travel(travel)
+                .deleted(false)
+                .build();
+
+        chatRoomRepository.save(chatRoom);
+
+        return chatRoom;
     }
     // 채팅방 유저 이름 중복 확인 ( QueryDSL )
 }

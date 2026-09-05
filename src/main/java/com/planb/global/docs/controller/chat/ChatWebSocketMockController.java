@@ -77,6 +77,7 @@ public class ChatWebSocketMockController {
                                       "senderId": 1,
                                       "senderNickname": "wooju",
                                       "message": "안녕하세요.",
+                                      "editPreview": null,
                                       "sendTime": "2026-07-31T09:00:00Z"
                                     }
                                     """
@@ -95,6 +96,7 @@ public class ChatWebSocketMockController {
                 1L,
                 "wooju",
                 "테스트 메시지",
+                null,
                 Instant.now()
         );
 

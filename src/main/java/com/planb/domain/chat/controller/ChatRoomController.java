@@ -42,6 +42,25 @@ public class ChatRoomController {
     }
 
 
+    // travel 기준으로 채팅방 조회/생성하기
+    @Operation(summary = "여행별 채팅방 조회/생성",
+            description = "AccessToken을 검증한 뒤, travelId에 연결된 채팅방을 조회하거나 없으면 생성합니다.")
+    @SecurityRequirement(name = "JWT")
+    @GetMapping("/travel/{travelId}")
+    public ResponseEntity<ApiResult<CreateChatRoomResponse>> findOrCreateTravelChatRoom
+    (@AuthenticationPrincipal UserDetails userDetails,
+     @PathVariable Long travelId){
+
+        return ResponseEntity
+                .status(HttpStatus
+                        .OK)
+                .body(ApiResult
+                        .success(chatFacade
+                                .findOrCreateTravelChatRoom(
+                                        travelId,
+                                        userDetails.getUsername())));
+    }
+
 
     // 채팅방 삭제하기
     @Operation(summary = "채팅방 삭제",description = "AccessToken을 검증한 뒤, 채팅방을 삭제합니다.")

@@ -12,13 +12,22 @@ import com.planb.domain.chat.entity.ChatRoomMember;
 import com.planb.domain.chat.service.ChatMessageService;
 import com.planb.domain.chat.service.ChatRoomMemberService;
 import com.planb.domain.chat.service.ChatRoomService;
+import com.planb.domain.travel.dto.response.EditPlanPreviewResponse;
+import com.planb.domain.travel.entity.Travel;
+import com.planb.domain.travel.service.TravelService;
+import com.planb.domain.user.constant.SystemAccountConstants;
 import com.planb.domain.user.entity.User;
+import com.planb.global.config.exception.WebSocketExceptionEnum;
+import com.planb.global.config.exception.domain.BaseException;
+import com.planb.global.config.exception.domain.ForbiddenException;
 import com.planb.query.chat.service.ChatMessageQueryService;
 import com.planb.query.chat.service.ChatRoomMemberQueryService;
 import com.planb.query.chat.service.ChatRoomQueryService;
+import com.planb.query.travel.service.TravelQueryService;
 import com.planb.query.user.service.UserQueryService;
 
 import java.time.Instant;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -27,12 +36,14 @@ public class ChatFacade {
     private final ChatRoomQueryService chatRoomQueryService;
     private final ChatRoomMemberQueryService chatRoomMemberQueryService;
     private final ChatMessageQueryService chatMessageQueryService;
+    private final TravelQueryService travelQueryService;
 
     private final UserQueryService userQueryService;
 
     private final ChatRoomService chatRoomService;
     private final ChatRoomMemberService chatRoomMemberService;
     private final ChatMessageService chatMessageService;
+    private final TravelService travelService;
 
 
     /**
@@ -43,6 +54,133 @@ public class ChatFacade {
     (CreateChatRoomRequest request){
 
         return chatRoomService.createChatRoom(request);
+    }
+
+    /**
+     * travelId 기준으로 채팅방 조회, 없으면 생성
+     */
+    @Transactional
+    public CreateChatRoomResponse findOrCreateTravelChatRoom
+    (Long travelId, String username){
+
+        Long userId = userQueryService
+                .findByUsername(username)
+                .getId();
+
+        // travelId가 이 userId 소유인지 검증
+        if (!travelQueryService.existsByIdAndUserId(travelId, userId)) {
+            throw new ForbiddenException(
+                    new Object[]{"해당 여행에 대한 접근 권한이 없습니다."}
+            );
+        }
+
+        return chatRoomQueryService
+                .findChatRoomByTravelId(travelId)
+                .map(chatRoom -> new CreateChatRoomResponse(
+                        chatRoom.getId(),
+                        chatRoom.getChatRoomName(),
+                        chatRoom.getCreatedAt(),
+                        "채팅방이 조회되었습니다."))
+                .orElseGet(() -> {
+
+                    Travel travel = travelService
+                            .findTravelById(travelId);
+
+                    ChatRoom chatRoom = chatRoomService
+                            .createChatRoomForTravel(travel);
+
+                    return new CreateChatRoomResponse(
+                            chatRoom.getId(),
+                            chatRoom.getChatRoomName(),
+                            chatRoom.getCreatedAt(),
+                            "채팅방이 생성되었습니다.");
+                });
+    }
+
+    /**
+     * roomId 기준으로 travelId 조회
+     */
+    public Long getTravelIdByRoomId(Long roomId){
+
+        ChatRoom chatRoom =
+                chatRoomQueryService.findChatRoomByRoomId(roomId);
+
+        if (chatRoom.getTravel() == null) {
+            throw new BaseException(
+                    WebSocketExceptionEnum.TRAVEL_NOT_LINKED
+            );
+        }
+
+        return chatRoom.getTravel().getId();
+    }
+
+    /**
+     * roomId 기준으로 travelId 조회 (travel 미연결 시 빈 값)
+     */
+    public Optional<Long> findTravelIdByRoomId(Long roomId){
+
+        ChatRoom chatRoom =
+                chatRoomQueryService.findChatRoomByRoomId(roomId);
+
+        return Optional.ofNullable(chatRoom.getTravel())
+                .map(Travel::getId);
+    }
+
+    /**
+     * AI 봇 명의 메시지 저장 및 전달하기
+     */
+    @Transactional
+    public void publishAiReply(Long roomId,
+                               String message,
+                               EditPlanPreviewResponse editPreview,
+                               MessageType type){
+
+        // AI 봇 계정 조회
+        User aiUser = userQueryService
+                .findByUsername(SystemAccountConstants.AI_BOT_USERNAME);
+
+        // ChatRoom 조회
+        ChatRoom chatRoom =
+                chatRoomQueryService.findChatRoomByRoomId(roomId);
+
+        // ChatMessage 객체 생성 및 저장
+        ChatMessage chatMessage =
+                chatMessageService.createChatMessage(
+                        chatRoom,
+                        aiUser,
+                        message);
+
+        chatMessageService.saveMessage(chatMessage);
+
+        // publish 메소드 호출
+        chatMessageService
+                .publishMessage(
+                        roomId,
+                        chatMessageService
+                                .makeAiChatResponse(
+                                        roomId,
+                                        aiUser,
+                                        chatMessage,
+                                        editPreview,
+                                        type));
+    }
+
+    /**
+     * TALK 메시지에 대한 AI 응답 발행
+     */
+    @Transactional
+    public void publishTalkReply(Long roomId,
+                                 EditPlanPreviewResponse preview){
+
+        AiReplyContent content =
+                chatMessageService.resolveAiReplyContent(preview);
+
+        publishAiReply(
+                roomId,
+                content.message(),
+                content.editPreview(),
+                MessageType.TALK
+        );
     }
 
     /**
@@ -202,6 +340,7 @@ public class ChatFacade {
                 participant.getId(),
                 participant.getNickname(),
                 systemMessage,
+                null,
                 Instant.now()
         );
 
