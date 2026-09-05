@@ -2,5 +2,5 @@ package com.planb.domain.chat.dto;
 
 public enum MessageType {
 
-    ENTER,TALK,LEAVE
+    ENTER,TALK,CONFIRM,CANCEL,LEAVE
 }

@@ -1,4 +1,6 @@
 package com.planb.domain.chat.dto.request;
 
-public record SendChatMessageRequest(String message) {
+import com.planb.domain.chat.dto.MessageType;
+
+public record SendChatMessageRequest(MessageType type, String message) {
 }
