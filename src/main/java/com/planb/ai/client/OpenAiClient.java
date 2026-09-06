@@ -4,10 +4,17 @@ import com.planb.ai.prompt.AiPrompt;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.converter.StructuredOutputConverter;
+import org.springframework.ai.converter.BeanOutputConverter;
+import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 
+import java.util.Set;
 import java.util.function.Predicate;
 
 @Slf4j
@@ -16,6 +23,24 @@ import java.util.function.Predicate;
 public class OpenAiClient {
 
     private final ChatClient chatClient;
+
+    // JSON Schema 후처리 전용 매퍼, 도메인 커스텀 모듈 불필요
+    private static final JsonMapper SCHEMA_MAPPER = JsonMapper.builder().build();
+
+    // courseType에 따라 값이 없어야 정상인, strict 스키마에서도 null을 허용해야 하는 필드
+    private static final Set<String> NULLABLE_SCHEDULE_FIELDS = Set.of(
+            "locationName",
+            "location",
+            "longitude",
+            "latitude",
+            "imageUrl",
+            "thumbNailImageUrl",
+            "medication",
+            "restaurantDetail"
+    );
+
+    // strict schema에서 제거할 format 값, RFC3339 해석(타임존·밀리초 포함) 강제 방지
+    private static final Set<String> STRICT_UNSAFE_FORMATS = Set.of("date", "time");
 
     // 기본 호출
     public <T> T call(
@@ -61,7 +86,7 @@ public class OpenAiClient {
     // 결과 유효성 검증이 필요 없는 호출부는 항상 통과하는 검증을 적용
     public <T> T call(
             AiPrompt prompt,
-            StructuredOutputConverter<T> outputConverter,
+            BeanOutputConverter<T> outputConverter,
             Object... tools) {
 
         return call(prompt, outputConverter, result -> true, tools);
@@ -71,7 +96,7 @@ public class OpenAiClient {
     // 파싱 예외뿐 아니라 파싱은 성공했지만 isValid를 통과하지 못한 빈 응답도 재시도 대상으로 취급
     public <T> T call(
             AiPrompt prompt,
-            StructuredOutputConverter<T> outputConverter,
+            BeanOutputConverter<T> outputConverter,
             Predicate<T> isValid,
             Object... tools) {
 
@@ -89,11 +114,11 @@ public class OpenAiClient {
 
     private <T> T callAndConvertValid(
             AiPrompt prompt,
-            StructuredOutputConverter<T> outputConverter,
+            BeanOutputConverter<T> outputConverter,
             Predicate<T> isValid,
             Object... tools) {
 
-        String content = fetchContent(prompt, tools);
+        String content = fetchContent(prompt, outputConverter, tools);
         T result = convert(outputConverter, content);
 
         // TODO(diagnostic): planDays가 왜 계속 null로 오는지 원인 조사용 임시 로그.
@@ -112,21 +137,104 @@ public class OpenAiClient {
         return result;
     }
 
-    private String fetchContent(
+    // OpenAI Structured Outputs(response_format=json_schema, strict) 강제 적용
+    // BeanOutputConverter가 만든 스키마에 정규화 보정을 거쳐 사용, 모델이 스키마를 벗어난
+    // 토큰(괄호 누락·중복 등 문법 오류 포함)을 아예 생성하지 못하도록 API 레벨에서 강제
+    private <T> String fetchContent(
             AiPrompt prompt,
+            BeanOutputConverter<T> outputConverter,
             Object... tools) {
+
+        String schema = normalizeSchema(outputConverter.getJsonSchema());
 
         return chatClient
                 .prompt()
                 .system(prompt.system())
                 .user(prompt.user())
                 .tools(tools)
+                .options(
+                        OpenAiChatOptions.builder()
+                                .responseFormat(
+                                        OpenAiChatModel.ResponseFormat.builder()
+                                                .type(OpenAiChatModel.ResponseFormat.Type.JSON_SCHEMA)
+                                                .jsonSchema(schema)
+                                                .build()
+                                )
+                )
                 .call()
                 .content();
     }
 
+    // NULLABLE_SCHEDULE_FIELDS null 허용 처리 + date/time format 제거된 스키마 문자열 반환
+    // required는 유지하되 타입 유니언으로 null을 허용해, strict 모드에서도
+    // 값이 없어야 하는 슬롯에 AI가 억지로 값을 채우지 않도록 함
+    private String normalizeSchema(String schemaJson) {
+
+        JsonNode root = SCHEMA_MAPPER.readTree(schemaJson);
+        normalizeNode(root);
+
+        return root.toString();
+    }
+
+    private void normalizeNode(JsonNode node) {
+
+        if (node == null || !node.isObject()) {
+            return;
+        }
+
+        removeUnsafeFormat((ObjectNode) node);
+
+        JsonNode properties = node.get("properties");
+        if (properties != null && properties.isObject()) {
+            properties.properties().forEach(entry -> {
+                if (NULLABLE_SCHEDULE_FIELDS.contains(entry.getKey())
+                        && entry.getValue().isObject()) {
+
+                    addNullType((ObjectNode) entry.getValue());
+                }
+            });
+        }
+
+        node.forEach(this::normalizeNode);
+    }
+
+    // format:"date"/"time" 제거, RFC3339 해석(타임존·밀리초 포함) 방지
+    // 애플리케이션은 항상 자체 lenient 파서로 시간·날짜를 다루므로
+    // 모델이 표준 포맷을 강제로 따르게 둘 필요가 없음
+    private void removeUnsafeFormat(ObjectNode node) {
+
+        JsonNode format = node.get("format");
+        if (format != null && STRICT_UNSAFE_FORMATS.contains(format.asText())) {
+            node.remove("format");
+        }
+    }
+
+    private void addNullType(ObjectNode fieldSchema) {
+
+        JsonNode type = fieldSchema.get("type");
+        ArrayNode nullableType = SCHEMA_MAPPER.createArrayNode();
+        boolean alreadyNullable = false;
+
+        if (type != null && type.isArray()) {
+            for (JsonNode t : type) {
+                nullableType.add(t);
+                if ("null".equals(t.asText())) {
+                    alreadyNullable = true;
+                }
+            }
+        } else if (type != null) {
+            nullableType.add(type);
+        }
+
+        if (!alreadyNullable) {
+            nullableType.add("null");
+        }
+
+        fieldSchema.set("type", nullableType);
+    }
+
     private <T> T convert(
-            StructuredOutputConverter<T> outputConverter,
+            BeanOutputConverter<T> outputConverter,
             String content) {
 
         try {

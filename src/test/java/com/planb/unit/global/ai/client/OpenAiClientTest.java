@@ -10,7 +10,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.converter.StructuredOutputConverter;
+import org.springframework.ai.converter.BeanOutputConverter;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -31,7 +31,7 @@ class OpenAiClientTest {
     private ChatClient chatClient;
 
     @Mock
-    private StructuredOutputConverter<TestDto> outputConverter;
+    private BeanOutputConverter<TestDto> outputConverter;
 
     @InjectMocks
     private OpenAiClient openAiClient;
@@ -123,6 +123,7 @@ class OpenAiClientTest {
                         .system(prompt.system())
                         .user(prompt.user())
                         .tools()
+                        .options(any())
                         .call()
                         .content()
         ).thenReturn(
@@ -166,6 +167,7 @@ class OpenAiClientTest {
                         .system(prompt.system())
                         .user(prompt.user())
                         .tools()
+                        .options(any())
                         .call()
                         .content()
         ).thenReturn(
@@ -199,6 +201,7 @@ class OpenAiClientTest {
                         .system(prompt.system())
                         .user(prompt.user())
                         .tools()
+                        .options(any())
                         .call()
                         .content()
         ).thenReturn(
