@@ -127,6 +127,10 @@ public record TravelPlanPrompt(
                   후보가 부족해 서로 다른 장소를 채울 수 없는 경우,
                   같은 장소를 반복하는 대신 해당 슬롯을 CAFE_REST 등 다른 유형으로 대체하거나
                   대체할 수 없으면 해당 슬롯을 생성하지 않습니다.
+                - 이 중복 금지 규칙은 courseType이 ATTRACTION인 슬롯뿐 아니라,
+                  plannedPlaces를 반영한 MUST_HAVE 슬롯에도 동일하게 적용됩니다.
+                  courseType이 다르다는 이유로 예외가 되지 않으며, ATTRACTION 슬롯과
+                  MUST_HAVE 슬롯이 가리키는 실제 장소(locationName)가 같으면 이미 중복입니다.
                 - CAFE_REST 슬롯의 후보는 지역명(또는 구역명)을 포함한 실제 카페 상호명으로 정합니다
                   (예: "해운대 스타벅스", "성산일출봉 근처 카페"처럼 최소한 지역/구역명을 함께 포함합니다).
                   "카페", "휴식"처럼 특정할 수 없는 일반명사만으로 후보를 정하지 않습니다.
@@ -153,6 +157,10 @@ public record TravelPlanPrompt(
                 - 이 단계에서는 "점심은 돼지국밥" 같은 음식 후보 결정까지만 가능합니다.
                   "해운대 원조 돼지국밥"처럼 실제 음식점 이름을 생성하지 않습니다.
                   실제 장소명은 STEP 4에서 Tool 결과로 결정합니다.
+                  이 규칙은 최종 courseType이 LOCAL_FOOD로 분류될 후보에도 동일하게 적용됩니다.
+                  LOCAL_FOOD 슬롯도 RESTAURANT와 마찬가지로 STEP 4~5의 Tool 호출을 거쳐
+                  실제 음식점 정보로 확정한 뒤에만 최종 응답에 포함하며, 음식 후보명
+                  (예: "돼지국밥") 자체를 검증 없이 locationName으로 사용하지 않습니다.
                 - 이 단계에서 결정한 관광/식사/CAFE_REST 후보는 슬롯 개수만큼 전부
                   STEP 4~6의 Tool 호출 대상이 됩니다. 후보로 정해놓고
                   Tool 호출을 생략한 채 다음 단계로 넘어가지 않습니다.
@@ -261,7 +269,7 @@ public record TravelPlanPrompt(
 
                 [STEP 5. 음식점 상세정보 조회]
 
-                - CourseType이 RESTAURANT로 판단된 일정은 예외 없이
+                - CourseType이 RESTAURANT 또는 LOCAL_FOOD로 판단된 일정은 예외 없이
                   getRestaurantDetail(contentId)를 호출합니다.
                   STEP 4에서 음식점을 검색해놓고 상세조회를 생략하지 않습니다.
                   contentId는 STEP 4의 searchTourismByLocation 결과에서 얻은 값만 사용합니다.
@@ -496,9 +504,14 @@ public record TravelPlanPrompt(
                   - 모든 날짜가 여행 기간 내에 있는가
                   - plannedPlaces가 전부 반영되었는가(반영되지 못했다면 findPlaceWithRoute
                     대체 절차까지 실제로 시도했는가)
-                  - 식사시간을 만족했는가
+                  - 식사시간을 만족했는가(BREAKFAST/LUNCH/DINNER의 startTime이
+                    mealInfo 기준시간에서 ±30분을 초과해 벗어나지 않았는가)
                   - 복약 조건을 만족했는가(여행 전체 기간 매일 반복되었는가,
                     같은 날짜 안에 동일한 시작/종료 시간의 MEDICATION이 중복 생성되지 않았는가 포함)
+                  - 각 PlanDay마다 그 날짜의 모든 여행자 medicationInfos 개수만큼
+                    MEDICATION 슬롯이 실제로 존재하는가(하루라도 누락되지 않았는가),
+                    그리고 각 MEDICATION 슬롯의 medication 필드(intervalMinutes, description)가
+                    비어있지 않은가
                   - 실제 장소명이 Tool 결과와 일치하는가
                   - RESTAURANT 일정이 contentTypeId=39 검색 결과만을 사용했는가
                   - 음식점의 contentId를 기반으로 상세조회했는가
@@ -511,6 +524,10 @@ public record TravelPlanPrompt(
                     longitude, latitude가 각각의 Tool 결과(searchTourismByLocation의
                     mapx/mapy 또는 findPlaceWithRoute의 longitude/latitude)와 일치하고,
                     MEDICATION·TRANSPORTATION처럼 실제 장소가 없는 일정에서만 null인가
+                  - ATTRACTION, CAFE_REST, RESTAURANT, LOCAL_FOOD, MUST_HAVE 슬롯 중
+                    locationName은 채워져 있지만 location·longitude·latitude가 비어있는
+                    슬롯이 있는가(Tool 검증을 끝내지 못한 채 응답에 남은 것이므로, 있다면
+                    STEP 4~7을 다시 시도하거나 해당 슬롯을 생성하지 않아야 한다)
                   - findPlaceWithRoute 호출 시 그때까지 확정된 실제 장소명을
                     excludeNames로 전달했는가
                   - findPlaceWithRoute 결과를 서로 다른 슬롯(다른 날짜 포함)에
@@ -520,6 +537,8 @@ public record TravelPlanPrompt(
                   - 여행 전체 메뉴 개수와 중복 여부가 STEP 3, STEP 6 규칙을 만족했는가
                   - 여행 전체 기간(1일차~마지막 날짜) 동안 관광지와 CAFE_REST 카페가
                     중복되지 않았는가 (STEP 3 규칙)
+                  - MUST_HAVE 슬롯이 가리키는 실제 장소가 같은 여행 기간의 다른
+                    ATTRACTION·MUST_HAVE 슬롯과 동일한 장소를 가리키지 않는가 (STEP 3 규칙)
                   - 하루 관광지 개수가 STEP 2의 walkType 기준을 만족했는가
                   - Tool에서 얻지 못한 사실정보를 임의로 생성하지 않았는가
                   - STEP 3에서 정한 모든 관광/식사/CAFE_REST 후보에 대해 STEP 4~6의 Tool 호출을
@@ -552,6 +571,10 @@ public record TravelPlanPrompt(
                   "미정" 등의 문자열이나 빈 필드로 응답에 포함하지 않습니다.
                 - 이 STEP까지 포함한 모든 판단 결과는 예외 없이 지정된 JSON 구조로만 응답합니다.
                   텍스트로 상황을 설명하거나 사용자에게 되묻지 않습니다.
+                - 응답은 반드시 문법적으로 완전한 JSON 하나여야 합니다. 배열과 객체의 여는
+                  괄호와 닫는 괄호 개수를 정확히 맞추고, 마지막 요소 뒤에 불필요한 쉼표나
+                  여분의 닫는 중괄호·대괄호를 붙이지 않습니다. 응답을 완성하기 전에 최상위
+                  객체부터 각 배열·객체가 정확히 하나씩 짝지어 닫혔는지 직접 확인합니다.
                 """;
     }
 

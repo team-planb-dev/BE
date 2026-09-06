@@ -30,17 +30,28 @@ public record EditPlanPrompt(
 
                 [STEP 0. 요청 처리 가능 여부 판단]
 
-                - editRequest가 이 여행 일정의 수정 또는 삭제(STEP 1의 5가지
-                  유형 중 하나 이상)에 해당하는 요청인지 먼저 판단합니다.
-                - editRequest가 일정 수정/삭제와 무관한 요청(예: 일정과 상관없는
-                  잡담, 이 프롬프트가 다루지 않는 새로운 기능 요청, 일반적인 질문 등)이면
-                  processable을 false로 설정하고, planDays는 currentPlan의 값을 그대로
-                  복사하며, changes는 빈 배열 []로 응답합니다. 이 경우 STEP 1 이후
-                  절차는 수행하지 않습니다.
-                - editRequest가 일정 수정/삭제에 해당하면 processable을 true로
-                  설정하고, STEP 1부터 이어서 진행합니다. STEP 2의 규칙에 따라 일부만
-                  반영이 어려운 경우(날짜/기간 변경 등)는 processable=false가 아니라
-                  STEP 7에서 changes에 한 줄로 기록하는 기존 방식을 그대로 따릅니다.
+                - editRequest를 아래 세 가지 중 하나로 먼저 분류합니다.
+                  1. STEP 1의 5가지 유형 중 하나 이상에 해당하며, 이 프롬프트가 실제로
+                     반영할 수 있는 요청
+                  2. 이 여행 일정 자체를 대상으로 하지만 이 프롬프트가 반영할 수 없는
+                     요청 (예: 여행 기간/일수 자체를 늘리거나 줄여달라는 요청, 여행
+                     지역 자체를 바꿔달라는 요청 등)
+                  3. 이 여행 일정과 무관한 요청 (예: 일정과 상관없는 잡담, 날씨 등
+                     이 프롬프트가 다루는 기능과 무관한 질문, 이 프롬프트가 다루지
+                     않는 새로운 기능 요청 등)
+                - 1번과 2번은 모두 processable을 true로 설정합니다. 이 여행 일정
+                  자체를 언급하며 무언가를 바꿔달라는 요청이면, 실제로 반영 가능한지
+                  여부와 무관하게 우선 processable=true로 판단합니다.
+                  - 1번이면 STEP 1부터 이어서 진행합니다.
+                  - 2번이면 STEP 2의 규칙에 따라 반영 가능한 나머지 부분(있다면)만
+                    반영하고, planDays는 원칙적으로 currentPlan의 값을 그대로
+                    유지하며, 반영할 수 없다는 사실을 STEP 7에서 changes에 한 줄로
+                    기록합니다. processable=false로 처리하지 않습니다.
+                - 3번인 경우에만 processable을 false로 설정하고, planDays는
+                  currentPlan의 값을 그대로 복사하며, changes는 빈 배열 []로
+                  응답합니다. 이 경우 STEP 1 이후 절차는 수행하지 않습니다.
+                - 1번과 2번, 3번 중 어느 것에 해당하는지 애매하면 3번(무관한 요청)이
+                  아니라 2번(반영 불가한 일정 관련 요청)으로 판단합니다.
 
                 [STEP 1. 수정 요청 해석]
 
@@ -92,6 +103,22 @@ public record EditPlanPrompt(
                   실제 관광지 정보를 확인합니다. TourAPI 검색이 재검색까지 모두 실패하면
                   findPlaceWithRoute(keyword, previousLocation, transportation, excludeNames)를
                   대체 수단으로 사용합니다.
+                - 이미 사용 중이던 슬롯을 교체하거나(STEP 1 유형 3), 특정 날짜 전체를
+                  다시 구성하는 경우(STEP 1 유형 5)에는, 새로 확정하는 슬롯이 교체
+                  대상이 되기 전 슬롯 또는 이 여행 전체 기간의 다른 유지 대상 슬롯과
+                  실제로 다른 장소가 되도록 적극적으로 시도합니다.
+                  - ATTRACTION: keyword를 교체 전과 다르게 선택하거나(더 구체적인
+                    스팟명, 다른 테마의 관광지 등), searchTourismByLocation 검색
+                    결과의 첫 번째 item이 이미 사용 중인 장소와 같으면 그다음 순위의
+                    item을 대신 사용합니다.
+                  - RESTAURANT, LOCAL_FOOD: localFoods·recommendFoods 중 아직
+                    사용하지 않은 다른 음식으로 keyword를 바꿔 검색합니다.
+                  - CAFE_REST: 위 findPlaceWithRoute의 excludeNames 규칙을 그대로
+                    따릅니다.
+                  - 위 방법을 모두 시도했음에도 실제로 다른 후보가 존재하지 않는
+                    경우(예: 검색 결과 자체가 1~2개뿐이고 전부 이미 사용 중인 경우)에만
+                    동일한 장소를 그대로 유지할 수 있으며, 이 경우 changes에
+                    "다른 실제 후보가 없어 기존 장소를 유지했다"는 취지를 명시합니다.
                 - 음식점(RESTAURANT) 슬롯을 새로 정하는 경우
                   searchTourismByLocation(keyword, locationDo, locationSigungu, contentTypeId=39)로
                   음식점을 확인한 뒤, 반드시 getRestaurantDetail(contentId)로 상세정보를
@@ -199,6 +226,10 @@ public record EditPlanPrompt(
                   기존 값을 그대로 되돌립니다. 최초 생성 프롬프트와 달리 이 경우 슬롯을
                   아예 없애지 않습니다. 이미 유효했던 기존 일정을 보존하는 것이
                   이 수정 시나리오에서의 안전한 기본값입니다.
+                - 응답은 반드시 문법적으로 완전한 JSON 하나여야 합니다. 배열과 객체의 여는
+                  괄호와 닫는 괄호 개수를 정확히 맞추고, 마지막 요소 뒤에 불필요한 쉼표나
+                  여분의 닫는 중괄호·대괄호를 붙이지 않습니다. 응답을 완성하기 전에 최상위
+                  객체부터 각 배열·객체가 정확히 하나씩 짝지어 닫혔는지 직접 확인합니다.
                 """;
     }
 
