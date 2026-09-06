@@ -14,6 +14,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import com.planb.domain.user.entity.User;
 
 import java.time.Instant;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -109,6 +110,32 @@ public class ChatMessageService {
         }
 
         return new AiReplyContent(message, preview);
+    }
+
+    // 채팅방 내 메시지 존재 여부 확인
+    public boolean existsAnyMessage(Long roomId){
+
+        return chatMessageRepository
+                .existsByChatRoom_IdAndDeletedFalse(roomId);
+    }
+
+    // 수정 확정(CONFIRM) 완료 메시지 조회
+    public String resolveConfirmMessage(){
+
+        return chatAiReplyMessageHelper.makeConfirmMessage();
+    }
+
+    // 수정 취소(CANCEL) 완료 메시지 조회
+    public String resolveCancelMessage(){
+
+        return chatAiReplyMessageHelper.makeCancelMessage();
+    }
+
+    // 채팅방 입장 AI 인사 메시지 목록 조회
+    public List<String> resolveGreetingMessages(String userNickname, String aiNickname){
+
+        return chatAiReplyMessageHelper
+                .makeGreetingMessages(userNickname, aiNickname);
     }
 
 }

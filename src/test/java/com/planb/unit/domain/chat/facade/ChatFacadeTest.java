@@ -58,6 +58,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -1188,6 +1189,218 @@ class ChatFacadeTest {
         // then
         verify(chatMessageService)
                 .resolveAiReplyContent(preview);
+
+        verify(chatMessageService)
+                .publishMessage(roomId, response);
+    }
+
+    @Test
+    @DisplayName("travel과 연결되지 않은 채팅방이면 인사 메시지를 발행하지 않는다")
+    void publishAiGreetingIfNeededSkipsWhenNotTravelLinked() {
+
+        // given
+        Long roomId = 1L;
+        String username = "testUser@example.com";
+
+        ChatRoom chatRoom = mock(ChatRoom.class);
+
+        when(chatRoomQueryService.findChatRoomByRoomId(roomId))
+                .thenReturn(chatRoom);
+
+        when(chatRoom.getTravel())
+                .thenReturn(null);
+
+        // when
+        chatFacade.publishAiGreetingIfNeeded(roomId, username);
+
+        // then
+        verifyNoInteractions(
+                userQueryService,
+                chatMessageService
+        );
+    }
+
+    @Test
+    @DisplayName("이미 메시지가 존재하는 채팅방이면 인사 메시지를 발행하지 않는다")
+    void publishAiGreetingIfNeededSkipsWhenMessageExists() {
+
+        // given
+        Long roomId = 1L;
+        Long travelId = 50L;
+        String username = "testUser@example.com";
+
+        Travel travel = mock(Travel.class);
+        ChatRoom chatRoom = mock(ChatRoom.class);
+
+        when(chatRoomQueryService.findChatRoomByRoomId(roomId))
+                .thenReturn(chatRoom);
+
+        when(chatRoom.getTravel())
+                .thenReturn(travel);
+
+        when(travel.getId())
+                .thenReturn(travelId);
+
+        when(chatMessageService.existsAnyMessage(roomId))
+                .thenReturn(true);
+
+        // when
+        chatFacade.publishAiGreetingIfNeeded(roomId, username);
+
+        // then
+        verify(chatMessageService)
+                .existsAnyMessage(roomId);
+
+        verifyNoInteractions(userQueryService);
+
+        verify(chatMessageService, never())
+                .resolveGreetingMessages(any(), any());
+    }
+
+    @Test
+    @DisplayName("최초 입장이면 사용자와 AI 닉네임 기준 인사 메시지 2건을 발행한다")
+    void publishAiGreetingIfNeededPublishesGreetings() {
+
+        // given
+        Long roomId = 1L;
+        Long travelId = 50L;
+        String username = "testUser@example.com";
+        String userNickname = "우주";
+        String aiNickname = "AI 비서";
+
+        List<String> greetingMessages =
+                List.of(
+                        "안녕하세요. " + userNickname + "님의 여행 일정을 계획해줄 " + aiNickname + "예요.",
+                        "일정을 어떻게 수정하고 싶나요?"
+                );
+
+        Travel travel = mock(Travel.class);
+        ChatRoom chatRoom = mock(ChatRoom.class);
+        User participant = mock(User.class);
+        User aiUser = mock(User.class);
+        ChatMessage chatMessage = mock(ChatMessage.class);
+        SendChatMessageResponse response = mock(SendChatMessageResponse.class);
+
+        when(chatRoomQueryService.findChatRoomByRoomId(roomId))
+                .thenReturn(chatRoom);
+
+        when(chatRoom.getTravel())
+                .thenReturn(travel);
+
+        when(travel.getId())
+                .thenReturn(travelId);
+
+        when(chatMessageService.existsAnyMessage(roomId))
+                .thenReturn(false);
+
+        when(userQueryService.findByUsername(username))
+                .thenReturn(participant);
+
+        when(userQueryService.findByUsername(SystemAccountConstants.AI_BOT_USERNAME))
+                .thenReturn(aiUser);
+
+        when(participant.getNickname())
+                .thenReturn(userNickname);
+
+        when(aiUser.getNickname())
+                .thenReturn(aiNickname);
+
+        when(chatMessageService.resolveGreetingMessages(userNickname, aiNickname))
+                .thenReturn(greetingMessages);
+
+        when(chatMessageService.createChatMessage(eq(chatRoom), eq(aiUser), any()))
+                .thenReturn(chatMessage);
+
+        when(chatMessageService.makeAiChatResponse(
+                eq(roomId), eq(aiUser), eq(chatMessage), eq(null), eq(MessageType.TALK)))
+                .thenReturn(response);
+
+        // when
+        chatFacade.publishAiGreetingIfNeeded(roomId, username);
+
+        // then
+        verify(chatMessageService)
+                .resolveGreetingMessages(userNickname, aiNickname);
+
+        verify(chatMessageService, times(2))
+                .publishMessage(roomId, response);
+    }
+
+    @Test
+    @DisplayName("CONFIRM 완료 메시지를 조회한 뒤 AI 응답으로 발행한다")
+    void publishConfirmReplySuccess() {
+
+        // given
+        Long roomId = 1L;
+        String confirmMessage = "일정을 저장했어요!";
+
+        User aiUser = mock(User.class);
+        ChatRoom chatRoom = mock(ChatRoom.class);
+        ChatMessage chatMessage = mock(ChatMessage.class);
+        SendChatMessageResponse response = mock(SendChatMessageResponse.class);
+
+        when(chatMessageService.resolveConfirmMessage())
+                .thenReturn(confirmMessage);
+
+        when(userQueryService.findByUsername(SystemAccountConstants.AI_BOT_USERNAME))
+                .thenReturn(aiUser);
+
+        when(chatRoomQueryService.findChatRoomByRoomId(roomId))
+                .thenReturn(chatRoom);
+
+        when(chatMessageService.createChatMessage(chatRoom, aiUser, confirmMessage))
+                .thenReturn(chatMessage);
+
+        when(chatMessageService.makeAiChatResponse(
+                roomId, aiUser, chatMessage, null, MessageType.CONFIRM))
+                .thenReturn(response);
+
+        // when
+        chatFacade.publishConfirmReply(roomId);
+
+        // then
+        verify(chatMessageService)
+                .resolveConfirmMessage();
+
+        verify(chatMessageService)
+                .publishMessage(roomId, response);
+    }
+
+    @Test
+    @DisplayName("CANCEL 완료 메시지를 조회한 뒤 AI 응답으로 발행한다")
+    void publishCancelReplySuccess() {
+
+        // given
+        Long roomId = 1L;
+        String cancelMessage = "기존 일정을 유지했어요!";
+
+        User aiUser = mock(User.class);
+        ChatRoom chatRoom = mock(ChatRoom.class);
+        ChatMessage chatMessage = mock(ChatMessage.class);
+        SendChatMessageResponse response = mock(SendChatMessageResponse.class);
+
+        when(chatMessageService.resolveCancelMessage())
+                .thenReturn(cancelMessage);
+
+        when(userQueryService.findByUsername(SystemAccountConstants.AI_BOT_USERNAME))
+                .thenReturn(aiUser);
+
+        when(chatRoomQueryService.findChatRoomByRoomId(roomId))
+                .thenReturn(chatRoom);
+
+        when(chatMessageService.createChatMessage(chatRoom, aiUser, cancelMessage))
+                .thenReturn(chatMessage);
+
+        when(chatMessageService.makeAiChatResponse(
+                roomId, aiUser, chatMessage, null, MessageType.CANCEL))
+                .thenReturn(response);
+
+        // when
+        chatFacade.publishCancelReply(roomId);
+
+        // then
+        verify(chatMessageService)
+                .resolveCancelMessage();
 
         verify(chatMessageService)
                 .publishMessage(roomId, response);

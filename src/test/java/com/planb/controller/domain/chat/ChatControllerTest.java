@@ -12,6 +12,7 @@ import com.planb.domain.chat.dto.MessageType;
 import com.planb.domain.chat.dto.request.SendChatMessageRequest;
 import com.planb.domain.chat.facade.ChatFacade;
 import com.planb.domain.travel.dto.request.EditPlanRequest;
+import com.planb.domain.travel.dto.request.GetAiPlanRequest;
 import com.planb.domain.travel.dto.response.EditPlanPreviewResponse;
 import com.planb.domain.travel.facade.TravelFacade;
 
@@ -126,5 +127,63 @@ class ChatControllerTest {
 
         verify(chatFacade, never())
                 .publishTalkReply(any(), any());
+    }
+
+    @Test
+    @DisplayName("CONFIRM 메시지면 편집을 확정하고 CONFIRM 완료 메시지 발행에 위임한다")
+    void sendMessageWithConfirmType() {
+
+        // given
+        Long roomId = 1L;
+        Long travelId = 100L;
+
+        SendChatMessageRequest request =
+                new SendChatMessageRequest(MessageType.CONFIRM, null);
+
+        Principal principal = () -> "testUser@example.com";
+
+        when(chatFacade.getTravelIdByRoomId(roomId))
+                .thenReturn(travelId);
+
+        // when
+        chatController.sendMessage(roomId, request, principal);
+
+        // then
+        verify(travelFacade)
+                .confirmEditPlan(
+                        new GetAiPlanRequest(travelId),
+                        "testUser@example.com");
+
+        verify(chatFacade)
+                .publishConfirmReply(roomId);
+    }
+
+    @Test
+    @DisplayName("CANCEL 메시지면 편집을 취소하고 CANCEL 완료 메시지 발행에 위임한다")
+    void sendMessageWithCancelType() {
+
+        // given
+        Long roomId = 1L;
+        Long travelId = 100L;
+
+        SendChatMessageRequest request =
+                new SendChatMessageRequest(MessageType.CANCEL, null);
+
+        Principal principal = () -> "testUser@example.com";
+
+        when(chatFacade.getTravelIdByRoomId(roomId))
+                .thenReturn(travelId);
+
+        // when
+        chatController.sendMessage(roomId, request, principal);
+
+        // then
+        verify(travelFacade)
+                .cancelEditPlan(
+                        new GetAiPlanRequest(travelId),
+                        "testUser@example.com");
+
+        verify(chatFacade)
+                .publishCancelReply(roomId);
     }
 }

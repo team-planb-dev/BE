@@ -49,7 +49,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * Chat 도메인 AI 일정 수정 STOMP 통합 테스트.
- * TALK 발행 시 AI 미리보기 응답 발행, CONFIRM/CANCEL 처리 검증
+ * 최초 입장 인사, TALK 발행 시 AI 미리보기 응답 발행, CONFIRM/CANCEL 처리 검증
  * 실제 AI 호출은 TravelRecommendHandler Mock으로 대체(결정적 검증, 외부 API 미의존)
  */
 public class ChatAiEditPlanIntegrationTest
@@ -94,6 +94,94 @@ public class ChatAiEditPlanIntegrationTest
                 new StompTestClientHelper(
                         port
                 );
+    }
+
+    @Test
+    @DisplayName("여행 연동 채팅방 최초 구독 시 AI 인사 메시지 2건이 발행됨")
+    void firstSubscribeToTravelChatRoomPublishesGreetingMessages() throws Exception {
+
+        // given
+        when(travelRecommendHandler.createPlanByAi(any(TravelPlanContext.class)))
+                .thenReturn(baseCreatePlanAiResponse());
+
+        TestUser testUser =
+                createAuthenticatedUser();
+
+        Long travelId =
+                createTravel(
+                        testUser.accessToken(),
+                        "AI 인사 여행-" + createUniqueValue()
+                );
+
+        Long roomId =
+                findOrCreateTravelChatRoom(
+                        testUser.accessToken(),
+                        travelId
+                );
+
+        addChatRoomMember(
+                testUser.accessToken(),
+                roomId,
+                testUser.userId()
+        );
+
+        WebSocketStompClient stompClient =
+                stompHelper.createStompClient();
+
+        StompSession session = null;
+
+        try {
+            session =
+                    stompHelper.connect(
+                            stompClient,
+                            testUser.accessToken()
+                    );
+
+            BlockingQueue<SendChatMessageResponse> messages =
+                    new LinkedBlockingQueue<>();
+
+            // when
+            stompHelper.subscribe(
+                    session,
+                    roomId,
+                    messages
+            );
+
+            SendChatMessageResponse firstGreeting =
+                    stompHelper.awaitMessage(
+                            messages,
+                            message -> AI_BOT_NICKNAME.equals(message.senderNickname())
+                    );
+
+            SendChatMessageResponse secondGreeting =
+                    stompHelper.awaitMessage(
+                            messages,
+                            message -> AI_BOT_NICKNAME.equals(message.senderNickname())
+                    );
+
+            // then
+            assertThat(firstGreeting)
+                    .isNotNull();
+
+            assertThat(firstGreeting.type())
+                    .isEqualTo(MessageType.TALK);
+
+            assertThat(firstGreeting.message())
+                    .isEqualTo(
+                            "안녕하세요. " + testUser.nickname()
+                                    + "님의 여행 일정을 계획해줄 " + AI_BOT_NICKNAME + "예요."
+                    );
+
+            assertThat(secondGreeting)
+                    .isNotNull();
+
+            assertThat(secondGreeting.message())
+                    .isEqualTo("일정을 어떻게 수정하고 싶나요?");
+
+        } finally {
+            stompHelper.disconnect(session);
+            stompHelper.stop(stompClient);
+        }
     }
 
     @Test
@@ -154,6 +242,12 @@ public class ChatAiEditPlanIntegrationTest
                     messages
             );
 
+            stompHelper.drainMessagesMatching(
+                    messages,
+                    message -> message.type() == MessageType.ENTER
+                            || AI_BOT_NICKNAME.equals(message.senderNickname())
+            );
+
             // when
             session.send(
                     CHAT_SEND_PREFIX
@@ -185,13 +279,16 @@ public class ChatAiEditPlanIntegrationTest
                     .isEqualTo(AI_BOT_NICKNAME);
 
             assertThat(response.message())
-                    .isEqualTo("1일차 카페를 " + EDITED_CAFE_NAME + "으로 변경");
+                    .isEqualTo("일정 수정을 완료했어요!");
 
             assertThat(response.editPreview())
                     .isNotNull();
 
             assertThat(response.editPreview().after().processable())
                     .isTrue();
+
+            assertThat(response.editPreview().after().changes())
+                    .contains("1일차 카페를 " + EDITED_CAFE_NAME + "으로 변경");
 
         } finally {
             stompHelper.disconnect(session);
@@ -255,6 +352,12 @@ public class ChatAiEditPlanIntegrationTest
                     session,
                     roomId,
                     messages
+            );
+
+            stompHelper.drainMessagesMatching(
+                    messages,
+                    message -> message.type() == MessageType.ENTER
+                            || AI_BOT_NICKNAME.equals(message.senderNickname())
             );
 
             // when
@@ -348,6 +451,12 @@ public class ChatAiEditPlanIntegrationTest
                     messages
             );
 
+            stompHelper.drainMessagesMatching(
+                    messages,
+                    message -> message.type() == MessageType.ENTER
+                            || AI_BOT_NICKNAME.equals(message.senderNickname())
+            );
+
             session.send(
                     CHAT_SEND_PREFIX
                             + roomId
@@ -388,7 +497,7 @@ public class ChatAiEditPlanIntegrationTest
                     .isEqualTo(AI_BOT_NICKNAME);
 
             assertThat(response.message())
-                    .isEqualTo("수정된 일정을 저장했습니다.");
+                    .isEqualTo("일정을 저장했어요!");
 
             mockMvc.perform(
                             get(GET_AI_PLAN_URL)
@@ -471,6 +580,12 @@ public class ChatAiEditPlanIntegrationTest
                     messages
             );
 
+            stompHelper.drainMessagesMatching(
+                    messages,
+                    message -> message.type() == MessageType.ENTER
+                            || AI_BOT_NICKNAME.equals(message.senderNickname())
+            );
+
             session.send(
                     CHAT_SEND_PREFIX
                             + roomId
@@ -511,7 +626,7 @@ public class ChatAiEditPlanIntegrationTest
                     .isEqualTo(AI_BOT_NICKNAME);
 
             assertThat(response.message())
-                    .isEqualTo("수정을 취소하고 기존 일정을 유지합니다.");
+                    .isEqualTo("기존 일정을 유지했어요!");
 
             mockMvc.perform(
                             get(GET_AI_PLAN_URL)

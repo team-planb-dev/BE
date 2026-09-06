@@ -166,9 +166,11 @@ public class StompTestClientHelper {
         return null;
     }
 
-    // 구독 시 발생하는 ENTER 메시지 소진
-    public void drainPresenceMessages(
-            BlockingQueue<SendChatMessageResponse> messages
+    // 조건(Predicate)에 해당하는 선두 메시지들 소진
+    // 조건에 맞지 않는 첫 메시지를 만나면 큐에 되돌려두고 종료
+    public void drainMessagesMatching(
+            BlockingQueue<SendChatMessageResponse> messages,
+            Predicate<SendChatMessageResponse> condition
     ) throws InterruptedException {
 
         long timeoutAt =
@@ -187,11 +189,22 @@ public class StompTestClientHelper {
                 continue;
             }
 
-            if (response.type() != MessageType.ENTER) {
+            if (!condition.test(response)) {
                 messages.offer(response);
                 return;
             }
         }
+    }
+
+    // 구독 시 발생하는 ENTER 메시지 소진
+    public void drainPresenceMessages(
+            BlockingQueue<SendChatMessageResponse> messages
+    ) throws InterruptedException {
+
+        drainMessagesMatching(
+                messages,
+                response -> response.type() == MessageType.ENTER
+        );
     }
 
     // STOMP 세션 연결 종료

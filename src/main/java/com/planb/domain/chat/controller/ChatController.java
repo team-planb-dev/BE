@@ -5,7 +5,6 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Controller;
-import com.planb.domain.chat.dto.MessageType;
 import com.planb.domain.chat.dto.request.SendChatMessageRequest;
 import com.planb.domain.chat.facade.ChatFacade;
 import com.planb.domain.travel.dto.request.EditPlanRequest;
@@ -72,12 +71,7 @@ public class ChatController {
                 username
         );
 
-        chatFacade.publishAiReply(
-                roomId,
-                "수정된 일정을 저장했습니다.",
-                null,
-                MessageType.CONFIRM
-        );
+        chatFacade.publishConfirmReply(roomId);
     }
 
     private void handleCancel(Long roomId, String username){
@@ -89,11 +83,6 @@ public class ChatController {
                 username
         );
 
-        chatFacade.publishAiReply(
-                roomId,
-                "수정을 취소하고 기존 일정을 유지합니다.",
-                null,
-                MessageType.CANCEL
-        );
+        chatFacade.publishCancelReply(roomId);
     }
 }

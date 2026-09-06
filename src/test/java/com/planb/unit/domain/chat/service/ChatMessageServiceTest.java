@@ -317,4 +317,90 @@ class ChatMessageServiceTest {
         assertThat(result.editPreview())
                 .isNull();
     }
+
+    @Test
+    @DisplayName("채팅방에 메시지가 존재하면 true 반환")
+    void existsAnyMessageReturnsTrueWhenMessageExists() {
+
+        // given
+        Long roomId = 1L;
+
+        when(chatMessageRepository.existsByChatRoom_IdAndDeletedFalse(roomId))
+                .thenReturn(true);
+
+        // when
+        boolean result = chatMessageService.existsAnyMessage(roomId);
+
+        // then
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    @DisplayName("채팅방에 메시지가 없으면 false 반환")
+    void existsAnyMessageReturnsFalseWhenNoMessage() {
+
+        // given
+        Long roomId = 1L;
+
+        when(chatMessageRepository.existsByChatRoom_IdAndDeletedFalse(roomId))
+                .thenReturn(false);
+
+        // when
+        boolean result = chatMessageService.existsAnyMessage(roomId);
+
+        // then
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("CONFIRM 완료 메시지를 Helper에 위임해 조회")
+    void resolveConfirmMessage() {
+
+        // given
+        when(chatAiReplyMessageHelper.makeConfirmMessage())
+                .thenReturn("일정을 저장했어요!");
+
+        // when
+        String result = chatMessageService.resolveConfirmMessage();
+
+        // then
+        assertThat(result).isEqualTo("일정을 저장했어요!");
+    }
+
+    @Test
+    @DisplayName("CANCEL 완료 메시지를 Helper에 위임해 조회")
+    void resolveCancelMessage() {
+
+        // given
+        when(chatAiReplyMessageHelper.makeCancelMessage())
+                .thenReturn("기존 일정을 유지했어요!");
+
+        // when
+        String result = chatMessageService.resolveCancelMessage();
+
+        // then
+        assertThat(result).isEqualTo("기존 일정을 유지했어요!");
+    }
+
+    @Test
+    @DisplayName("인사 메시지 목록을 Helper에 위임해 조회")
+    void resolveGreetingMessages() {
+
+        // given
+        String userNickname = "우주";
+        String aiNickname = "AI 비서";
+
+        List<String> greetingMessages =
+                List.of("인사1", "인사2");
+
+        when(chatAiReplyMessageHelper.makeGreetingMessages(userNickname, aiNickname))
+                .thenReturn(greetingMessages);
+
+        // when
+        List<String> result =
+                chatMessageService.resolveGreetingMessages(userNickname, aiNickname);
+
+        // then
+        assertThat(result).isEqualTo(greetingMessages);
+    }
 }

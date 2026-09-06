@@ -27,6 +27,7 @@ import com.planb.query.travel.service.TravelQueryService;
 import com.planb.query.user.service.UserQueryService;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -180,6 +181,66 @@ public class ChatFacade {
                 content.message(),
                 content.editPreview(),
                 MessageType.TALK
+        );
+    }
+
+    /**
+     * 여행 연동 채팅방 최초 입장 시 AI 인사 메시지 발행
+     */
+    @Transactional
+    public void publishAiGreetingIfNeeded(Long roomId, String username){
+
+        Optional<Long> travelId = findTravelIdByRoomId(roomId);
+
+        if (travelId.isEmpty()) {
+            return;
+        }
+
+        if (chatMessageService.existsAnyMessage(roomId)) {
+            return;
+        }
+
+        User participant = userQueryService.findByUsername(username);
+
+        User aiUser = userQueryService
+                .findByUsername(SystemAccountConstants.AI_BOT_USERNAME);
+
+        List<String> greetingMessages =
+                chatMessageService.resolveGreetingMessages(
+                        participant.getNickname(),
+                        aiUser.getNickname()
+                );
+
+        greetingMessages.forEach(message ->
+                publishAiReply(roomId, message, null, MessageType.TALK)
+        );
+    }
+
+    /**
+     * 수정 확정(CONFIRM) 완료 메시지 발행
+     */
+    @Transactional
+    public void publishConfirmReply(Long roomId){
+
+        publishAiReply(
+                roomId,
+                chatMessageService.resolveConfirmMessage(),
+                null,
+                MessageType.CONFIRM
+        );
+    }
+
+    /**
+     * 수정 취소(CANCEL) 완료 메시지 발행
+     */
+    @Transactional
+    public void publishCancelReply(Long roomId){
+
+        publishAiReply(
+                roomId,
+                chatMessageService.resolveCancelMessage(),
+                null,
+                MessageType.CANCEL
         );
     }
 
