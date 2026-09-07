@@ -28,6 +28,10 @@ public record EditPlanPrompt(
                 editRequest와 무관한 일정은 currentPlan에 있는 값 그대로 응답에 포함해야 하며,
                 이유 없이 임의로 다른 값으로 바꾸지 않습니다.
 
+                특정 날짜 전체를 다시 구성하라는 명시적 요청은 그 날짜의 최소 변경 원칙보다 우선합니다.
+                기존에 관광지가 있다는 이유만으로 재구성을 생략하지 않습니다.
+                유지 원칙은 요청 범위 밖 날짜에 적용합니다.
+
                 [STEP 0. 요청 처리 가능 여부 판단]
 
                 - editRequest를 아래 세 가지 중 하나로 먼저 분류합니다.
@@ -80,6 +84,11 @@ public record EditPlanPrompt(
 
                 - currentPlan.planDays의 모든 PlanDay, 모든 schedule을 순회하며
                   STEP 1에서 판단한 변경 대상에 해당하는지 하나씩 표시합니다.
+                - editRequest가 특정 dayNumber 하나(또는 일부)만 대상으로 하더라도,
+                  currentPlan.planDays에 있던 모든 PlanDay는 dayNumber 개수와 순서를
+                  그대로 유지한 채 응답에 빠짐없이 포함해야 합니다. 요청과 무관한
+                  날짜의 PlanDay 전체를 응답에서 생략하지 않으며, 그 PlanDay 안의
+                  모든 schedule은 아래 "유지 대상" 규칙에 따라 값 그대로 복사합니다.
                 - 변경 대상으로 표시되지 않은 모든 schedule은 "유지 대상"입니다.
                   유지 대상은 scheduleType, courseType, startTime, endTime, locationName,
                   location, longitude, latitude, imageUrl, thumbNailImageUrl, stayMinutes,
@@ -136,9 +145,11 @@ public record EditPlanPrompt(
                   그래도 실패하면 해당 변경을 포기하고 그 슬롯은 currentPlan의 기존 값을
                   그대로 유지합니다. (최초 생성 프롬프트와 달리, 이미 존재하는 유효한
                   기존 값이 있으므로 슬롯을 아예 없애지 않고 원래 값으로 되돌립니다.)
-                - 변경 대상 슬롯과 그 앞뒤로 새로 이어지는 이동 구간에는
-                  getRoute(origin, destination, transportation)를 호출하여 travelMinutes를
-                  갱신합니다. 이동 구간의 양쪽 슬롯이 모두 유지 대상이라면 이 구간의
+                - 변경 대상 슬롯과 그 앞뒤로 새로 이어지는 이동 구간에는 양쪽 장소를
+                  이번 호출에서 검색한 경우에만
+                  getRoute(originCandidateId, destinationCandidateId, transportation)를 호출하여
+                  travelMinutes를 갱신합니다. 장소명 대신 검색 Tool의 candidateId를 전달합니다.
+                  이동 구간의 양쪽 슬롯이 모두 유지 대상이라면 이 구간의
                   travelMinutes도 유지 대상으로 취급하고 다시 조회하지 않습니다.
                 - Tool 결과에 없는 사실 정보(장소명, 주소, 메뉴, 좌표, 이동시간, 영양정보)를
                   임의로 생성하지 않습니다.
@@ -203,6 +214,9 @@ public record EditPlanPrompt(
                   (STEP 3~5의 결과)을 시간순으로 합쳐 구성합니다.
                 - description은 수정된 일정 전체를 간단히 요약하는 새 문장으로 생성합니다.
                 - 응답을 생성하기 전에 다음을 확인합니다.
+                  - planDays의 dayNumber 목록과 개수가 currentPlan.planDays와 정확히
+                    일치하는가 (editRequest와 무관한 날짜의 PlanDay를 통째로 빠뜨리지
+                    않았는가)
                   - editRequest와 무관한 슬롯의 모든 필드가 currentPlan과 완전히 동일한가
                   - 변경 대상 슬롯이 Tool 조회 결과에서만 값을 가져왔는가
                   - 변경 대상 슬롯의 tags가 null이 아니라 빈 배열([]) 이상으로 채워졌는가
@@ -214,7 +228,8 @@ public record EditPlanPrompt(
                   - processable 값이 STEP 0의 판단과 일치하는가
                 - 하나라도 실패하면 해당 슬롯만 다시 확인합니다(재검색 등). 그래도
                   실패하면 STEP 3의 정책대로 그 슬롯을 currentPlan의 기존 값으로
-                  되돌립니다.
+                  되돌립니다. planDays의 dayNumber 개수가 currentPlan과 다르면, 빠진
+                  PlanDay를 currentPlan의 값 그대로 복원한 뒤에만 응답을 완성합니다.
 
                 [STEP 8. Tool 실패 정책]
 

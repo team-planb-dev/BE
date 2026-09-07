@@ -321,8 +321,10 @@ public record TravelPlanPrompt(
 
                 [STEP 7. 이동정보 조회 및 동선 검증]
 
-                - 실제 장소가 확정된 일정 사이에는 getRoute(origin, destination, transportation)를
-                  예외 없이 호출합니다. 일부 구간만 호출하고 나머지 구간을 생략하지 않습니다.
+                - 이번 호출의 검색 결과로 확정된 일정 사이에는
+                  getRoute(originCandidateId, destinationCandidateId, transportation)를 호출합니다.
+                  장소명 대신 각 검색 Tool이 반환한 candidateId를 그대로 전달합니다.
+                  일부 구간만 호출하고 나머지 구간을 생략하지 않습니다.
                   transportation은 CreateTravelRequest 값을 사용합니다.
                 - travelMinutes는 Tool 결과만 사용하고 임의로 생성하지 않습니다.
                 - 도보 이동은 30분을 초과하면 순서를 조정하거나,
@@ -516,7 +518,7 @@ public record TravelPlanPrompt(
                   - RESTAURANT 일정이 contentTypeId=39 검색 결과만을 사용했는가
                   - 음식점의 contentId를 기반으로 상세조회했는가
                   - 실제 메뉴를 기반으로 영양평가했는가
-                  - 이동시간이 Tool 결과인가, 모든 구간에 대해 getRoute 또는
+                  - 이동시간이 Tool 결과인가, 검색 후보 사이의 모든 구간에 대해 getRoute 또는
                     findPlaceWithRoute가 실제로 호출되었는가
                   - CAFE_REST 및 findPlaceWithRoute로 확정된 ATTRACTION 일정의 장소 정보가
                     found=true 결과에서 나온 값인가

@@ -62,7 +62,10 @@ public class KakaoPlaceSearchHelper {
                 address,
                 place.x(),
                 place.y(),
-                travelMinutes
+                travelMinutes,
+                "kakao:" + place.id(),
+                place.category_group_code(),
+                place.category_name()
         );
     }
 

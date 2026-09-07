@@ -1,7 +1,13 @@
 package com.planb.unit.global.ai.client;
 
 import com.planb.ai.client.OpenAiClient;
+import com.planb.ai.context.PlaceCandidateContext;
+import com.planb.ai.dto.response.PlaceWithRouteResult;
+import com.planb.ai.mcp.PlanTourismTool;
+import com.planb.ai.mcp.TourismTool;
 import com.planb.ai.prompt.AiPrompt;
+import java.util.function.Predicate;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,11 +20,13 @@ import org.springframework.ai.converter.BeanOutputConverter;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-import java.util.function.Predicate;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -50,6 +58,36 @@ class OpenAiClientTest {
             };
 
     private record TestDto(String value) {
+    }
+
+    @BeforeEach
+    void schemaForMockConverter() {
+        lenient().when(outputConverter.getJsonSchema()).thenReturn("{} ");
+    }
+
+    @Test
+    @DisplayName("JSON 파싱 재시도 시 실패한 호출의 검색 후보 제거")
+    void parsingRetryClearsCandidatesFromFailedAttempt() {
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+        PlanTourismTool tool = new PlanTourismTool(mock(TourismTool.class), candidates);
+        when(chatClient.prompt().system(prompt.system()).user(prompt.user()).tools(tool)
+                .options(any()).call().content()).thenAnswer(invocation -> {
+                    assertNull(candidates.find("kakao:first"));
+                    return "raw";
+                });
+        when(outputConverter.convert("raw")).thenAnswer(invocation -> {
+            candidates.record(new PlaceWithRouteResult(true, "카페", "부산", "129.1", "35.1", null,
+                    "kakao:first", "CE7", "카페"));
+            throw new IllegalArgumentException("잘못된 JSON");
+        }).thenAnswer(invocation -> {
+            assertNull(candidates.find("kakao:first"));
+            candidates.record(new PlaceWithRouteResult(true, "두 번째 카페", "부산", "129.1", "35.1", null,
+                    "kakao:second", "CE7", "카페"));
+            return new TestDto("ok");
+        });
+        assertEquals(new TestDto("ok"), openAiClient.call(prompt, outputConverter, tool));
+        assertNotNull(candidates.find("kakao:second"));
+        verify(outputConverter, times(2)).convert("raw");
     }
 
     @Test

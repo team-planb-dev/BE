@@ -1,15 +1,6 @@
 package com.planb.integration.domain.travel;
 
-import tools.jackson.databind.ObjectMapper;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
-import com.planb.domain.health.dto.request.AddCompanionRequest;
-import com.planb.domain.health.dto.request.MealMedicationRuleDetail;
-import com.planb.domain.health.entity.constant.DiseaseType;
-import com.planb.domain.health.entity.constant.FoodType;
-import com.planb.domain.health.entity.constant.MealTiming;
-import com.planb.domain.health.entity.constant.MedicationBasis;
-import com.planb.domain.health.entity.constant.RelatedMeal;
-import com.planb.domain.health.entity.constant.WalkType;
 import com.planb.domain.travel.dto.request.CreateTravelRequest;
 import com.planb.domain.travel.dto.response.CreatePlanResponse;
 import com.planb.domain.travel.entity.Travel;
@@ -19,47 +10,33 @@ import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.domain.travel.entity.constant.TravelStyle;
 import com.planb.domain.travel.entity.constant.TravelTheme;
 import com.planb.domain.travel.repository.TravelRepository;
-import com.planb.domain.user.dto.request.UserCreateRequest;
-import com.planb.global.security.dto.request.LoginRequest;
-import com.planb.integration.IntegrationTest;
-import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
+import tools.jackson.databind.JsonNode;
+import com.planb.domain.travel.dto.request.EditPlanRequest;
+import com.planb.domain.travel.dto.request.GetAiPlanRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-class TravelIntegrationTest extends IntegrationTest {
+class TravelIntegrationTest extends TravelApiTestSupport {
 
     /*
     API 호출 URL 모음
      */
-    private static final String CREATE_USER_URL =
-            "/api/v1/user/create";
-
-    private static final String LOGIN_URL =
-            "/login";
-
-    private static final String ADD_COMPANION_URL =
-            "/api/v1/health/add-traveler";
-
     private static final String RECOMMEND_LOCAL_FOOD_URL =
             "/api/v1/travel/recommend-local-food";
 
@@ -71,18 +48,6 @@ class TravelIntegrationTest extends IntegrationTest {
 
     private static final String GET_AI_PLAN_URL =
             "/api/v1/travel/get-ai-travel-plan";
-
-    /*
-    테스트 User 정보
-     */
-    private static final String NICKNAME =
-            "travelTestNickname";
-
-    private static final String PASSWORD =
-            "test1234!";
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Autowired
     private TravelRepository travelRepository;
@@ -127,7 +92,7 @@ class TravelIntegrationTest extends IntegrationTest {
 
         // when
         CreatePlanResponse response =
-                createPlanWithRetry(createTravelRequest, loginResult);
+                createPlanOnce(createTravelRequest, loginResult);
 
         // then
         System.out.println(
@@ -331,7 +296,7 @@ class TravelIntegrationTest extends IntegrationTest {
                         .orElseThrow();
 
         // then : 방금 생성한 일정 재조회 시 최상위 tags 생성 시점과 동일하게 저장/재조회 확인
-        mockMvc.perform(
+        MvcResult retrieved = mockMvc.perform(
                         get(GET_AI_PLAN_URL)
                                 .param(
                                         "travelId",
@@ -368,63 +333,143 @@ class TravelIntegrationTest extends IntegrationTest {
                 .andExpect(
                         jsonPath("$.data.planDays")
                                 .isNotEmpty()
-                );
+                )
+                .andReturn();
+
+        JsonNode created = objectMapper
+                .readTree(createResponseBody)
+                .path("data");
+
+        JsonNode stored = objectMapper
+                .readTree(retrieved.getResponse()
+                        .getContentAsString())
+                .path("data");
+
+        TravelPlanAssertions.assertPlan(created, createTravelRequest.startDate(), true);
+        TravelPlanAssertions.assertPlan(stored, createTravelRequest.startDate(), false);
+        TravelPlanAssertions.assertMealMedication(stored);
+        TravelPlanAssertions.assertSameDays(created.path("planDays"), stored.path("planDays"));
+        assertThat(TravelPlanAssertions.codes(stored.path("tags")))
+                .isEqualTo(TravelPlanAssertions.codes(created.path("tags")));
+
+        verifyEditLifecycle(travel.getId(), loginResult, stored, createTravelRequest.startDate());
     }
 
-    // AI가 간헐적으로 깨진(중복 키) JSON을 반환해 파싱이 실패하는 경우를 흡수하기 위한 재시도
-    // makeTravelOptionsAndRecommend는 @Transactional이라 실패 시 저장분이 모두 롤백되므로
-    // 같은 요청 재시도해도 중복 데이터 미잔존
-    // 파싱 실패 시 ApiExceptionHandler가 success:false로만 응답(HTTP status는 200) → status 아닌 success 기준 판단
-    private CreatePlanResponse createPlanWithRetry(
+    // 실제 수정 미리보기·확정·재조회 검증
+    private void verifyEditLifecycle(
+            Long travelId,
+            LoginResult login,
+            JsonNode original,
+            LocalDate startDate
+    ) throws Exception {
+
+        JsonNode preview = editRequest(
+                "/edit-plan/preview",
+                new EditPlanRequest(travelId, "1일차 일정을 관광지 위주로 통째로 다시 짜주세요. 2일차는 유지해주세요."),
+                login);
+
+        JsonNode after = preview.path("data")
+                .path("after");
+        assertThat(after.path("processable")
+                .asBoolean())
+                .isTrue();
+        TravelPlanAssertions.assertPlan(after, startDate, true);
+        TravelPlanAssertions.assertMealMedication(after);
+        TravelPlanAssertions.assertSameDays(original.path("planDays"), getStored(travelId, login)
+                .path("planDays"));
+        assertThat(after.path("planDays")
+                .get(1))
+                .isNotNull();
+        TravelPlanAssertions.assertSameDays(
+                objectMapper.valueToTree(List.of(original.path("planDays")
+                        .get(1))),
+                objectMapper.valueToTree(List.of(after.path("planDays")
+                        .get(1))));
+
+        JsonNode confirmed = editRequest(
+                "/edit-plan/confirm",
+                new GetAiPlanRequest(travelId),
+                login)
+                        .path("data");
+
+        TravelPlanAssertions.assertSameDays(after.path("planDays"), confirmed.path("planDays"));
+        TravelPlanAssertions.assertSameDays(after.path("planDays"), getStored(travelId, login)
+                .path("planDays"));
+        TravelPlanAssertions.assertPlan(confirmed, startDate, true);
+
+    }
+
+    private JsonNode editRequest(
+            String path,
+            Object payload,
+            LoginResult login
+    ) throws Exception {
+
+        MvcResult result = mockMvc
+                .perform(
+                        post("/api/v1/travel" + path)
+                                .header("Authorization", login.accessToken())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(true))
+                .andReturn();
+
+        return objectMapper.readTree(result.getResponse()
+                .getContentAsString());
+    }
+
+    private JsonNode getStored(Long travelId, LoginResult login) throws Exception {
+
+        MvcResult result = mockMvc
+                .perform(
+                        get(GET_AI_PLAN_URL)
+                                .param("travelId", travelId.toString())
+                                .header("Authorization", login.accessToken()))
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(true))
+                .andReturn();
+
+        return objectMapper.readTree(result.getResponse()
+                .getContentAsString())
+                .path("data");
+    }
+
+    // 실제 API 실패 응답을 재시도 없이 그대로 검증
+    private CreatePlanResponse createPlanOnce(
             CreateTravelRequest createTravelRequest,
-            LoginResult loginResult) throws Exception {
+            LoginResult loginResult
+    ) throws Exception {
 
-        int maxAttempts = 3;
-        String lastFailureBody = null;
+        MvcResult result = mockMvc
+                .perform(
+                        post(ADD_WITH_RECOMMEND_URL)
+                                .header("Authorization", loginResult.accessToken())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(createTravelRequest)))
+                .andExpect(status()
+                        .isOk())
+                .andReturn();
 
-        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+        String body = result.getResponse()
+                .getContentAsString();
+        ApiResultEnvelope response = objectMapper.readValue(body, ApiResultEnvelope.class);
 
-            MvcResult mvcResult =
-                    mockMvc.perform(
-                                    post(ADD_WITH_RECOMMEND_URL)
-                                            .header(
-                                                    "Authorization",
-                                                    loginResult.accessToken()
-                                            )
-                                            .contentType(
-                                                    MediaType.APPLICATION_JSON
-                                            )
-                                            .content(
-                                                    objectMapper.writeValueAsString(
-                                                            createTravelRequest
-                                                    )
-                                            )
-                            )
-                            .andExpect(
-                                    status().isOk()
-                            )
-                            .andReturn();
+        assertThat(response.success())
+                .withFailMessage(body)
+                .isTrue();
 
-            String responseBody =
-                    mvcResult.getResponse().getContentAsString();
+        TravelPlanAssertions.assertPlan(
+                objectMapper.readTree(body)
+                        .path("data"),
+                createTravelRequest.startDate(),
+                true);
 
-            ApiResultEnvelope result =
-                    objectMapper.readValue(responseBody, ApiResultEnvelope.class);
-
-            if (result.success()) {
-                return result.data();
-            }
-
-            lastFailureBody = responseBody;
-
-            System.out.println(
-                    "AI 응답 파싱 실패로 재시도합니다 (" + attempt + "/" + maxAttempts + "). 원인: " + responseBody
-            );
-        }
-
-        throw new AssertionError(
-                "AI 일정 생성이 " + maxAttempts + "회 모두 실패했습니다: " + lastFailureBody
-        );
+        return response.data();
     }
 
     // /add-with-recommend 응답 바디(ApiResult<CreatePlanResponse>) 역직렬화 전용
@@ -434,209 +479,4 @@ class TravelIntegrationTest extends IntegrationTest {
     ) {
     }
 
-    /*
-    테스트 회원 생성
-     */
-    private void createUser(
-            String username
-    ) throws Exception {
-
-        UserCreateRequest request =
-                new UserCreateRequest(
-                        username,
-                        NICKNAME,
-                        PASSWORD,
-                        true,
-                        true,
-                        true
-                );
-
-        mockMvc.perform(
-                        post(CREATE_USER_URL)
-                                .contentType(
-                                        MediaType.APPLICATION_JSON
-                                )
-                                .content(
-                                        objectMapper.writeValueAsString(
-                                                request
-                                        )
-                                )
-                )
-                .andExpect(
-                        status().isCreated()
-                )
-                .andExpect(
-                        jsonPath("$.success")
-                                .value(true)
-                );
-    }
-
-    /*
-    로그인 후 AccessToken 및 RefreshToken 반환
-     */
-    private LoginResult login(
-            String username
-    ) throws Exception {
-
-        LoginRequest request =
-                new LoginRequest(
-                        username,
-                        PASSWORD
-                );
-
-        MvcResult result =
-                mockMvc.perform(
-                                post(LOGIN_URL)
-                                        .contentType(
-                                                MediaType.APPLICATION_JSON
-                                        )
-                                        .content(
-                                                objectMapper.writeValueAsString(
-                                                        request
-                                                )
-                                        )
-                        )
-                        .andExpect(
-                                status().isOk()
-                        )
-                        .andExpect(
-                                header().string(
-                                        "Authorization",
-                                        startsWith("Bearer ")
-                                )
-                        )
-                        .andExpect(
-                                cookie().exists(
-                                        "refreshToken"
-                                )
-                        )
-                        .andReturn();
-
-        String accessToken =
-                result
-                        .getResponse()
-                        .getHeader(
-                                "Authorization"
-                        );
-
-        Cookie refreshTokenCookie =
-                result
-                        .getResponse()
-                        .getCookie(
-                                "refreshToken"
-                        );
-
-        assertThat(accessToken)
-                .isNotBlank()
-                .startsWith(
-                        "Bearer "
-                );
-
-        return new LoginResult(
-                accessToken,
-                refreshTokenCookie
-        );
-    }
-
-    /*
-    동행인(건강정보) 등록 - AI 일정 생성 시 실제 Health 컨텍스트로 반영됨
-     */
-    private void addCompanion(
-            String accessToken
-    ) throws Exception {
-
-        AddCompanionRequest request =
-                new AddCompanionRequest(
-                        "동행인1",
-                        true,
-                        true,
-
-                        new AddCompanionRequest.HealthInfo(
-                                DiseaseType.DIABETES,
-                                WalkType.MODERATE
-                        ),
-
-                        new AddCompanionRequest.MealInfo(
-                                true,
-
-                                true,
-                                LocalTime.of(8, 0),
-
-                                true,
-                                LocalTime.of(12, 0),
-
-                                true,
-                                LocalTime.of(18, 0)
-                        ),
-
-                        List.of(
-                                new AddCompanionRequest.FoodInfoDetail(
-                                        "새우",
-                                        FoodType.ALLERGY
-                                ),
-
-                                new AddCompanionRequest.FoodInfoDetail(
-                                        "과도하게 단 음식",
-                                        FoodType.AVOID
-                                )
-                        ),
-
-                        List.of(
-                                new AddCompanionRequest.MedicationInfoDetail(
-                                        "테스트 복약",
-                                        MedicationBasis.WITH_MEAL,
-                                        null,
-
-                                        Set.of(
-                                                new MealMedicationRuleDetail(
-                                                        RelatedMeal.LUNCH,
-                                                        MealTiming.AFTER_MEAL,
-                                                        30
-                                                )
-                                        )
-                                )
-                        )
-                );
-
-        mockMvc.perform(
-                        post(ADD_COMPANION_URL)
-                                .header(
-                                        "Authorization",
-                                        accessToken
-                                )
-                                .contentType(
-                                        MediaType.APPLICATION_JSON
-                                )
-                                .content(
-                                        objectMapper.writeValueAsString(
-                                                request
-                                        )
-                                )
-                )
-                .andExpect(
-                        status().isOk()
-                )
-                .andExpect(
-                        jsonPath("$.success")
-                                .value(true)
-                );
-    }
-
-    private String createUniqueUsername() {
-
-        return "travel-test-"
-                + UUID.randomUUID()
-                        .toString()
-                        .substring(0, 8)
-                + "@example.com";
-    }
-
-    /*
-    로그인 결과 내부 DTO
-     */
-    private record LoginResult(
-            String accessToken,
-            Cookie refreshTokenCookie
-    ) {
-    }
 }

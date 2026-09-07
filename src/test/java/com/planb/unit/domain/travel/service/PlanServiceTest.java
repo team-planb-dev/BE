@@ -1,17 +1,17 @@
 package com.planb.unit.domain.travel.service;
 
+import com.planb.ai.context.PlaceCandidateContext;
 import com.planb.ai.context.TravelHealthContext;
 import com.planb.ai.context.TravelPlanContext;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
-import com.planb.ai.dto.response.PlaceWithRouteResult;
 import com.planb.ai.dto.response.KakaoRouteResult;
 import com.planb.ai.handler.TravelRecommendHandler;
 import com.planb.ai.mcp.NutritionEvaluationCollector;
-import com.planb.ai.prompt.AttractionRecommendPrompt;
-import com.planb.ai.prompt.CafeRecommendPrompt;
-import reactor.core.publisher.Mono;
 import com.planb.domain.health.entity.constant.DiseaseType;
 import com.planb.domain.health.entity.constant.FoodType;
+import com.planb.domain.health.entity.constant.MealTiming;
+import com.planb.domain.health.entity.constant.MedicationBasis;
+import com.planb.domain.health.entity.constant.RelatedMeal;
 import com.planb.domain.health.entity.constant.WalkType;
 import com.planb.domain.travel.dto.nutrition.NutritionEvaluationDetail;
 import com.planb.domain.travel.dto.nutrition.NutritionEvaluationResult;
@@ -29,22 +29,23 @@ import com.planb.domain.travel.entity.constant.ScheduleType;
 import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.domain.travel.entity.constant.TravelStyle;
 import com.planb.domain.travel.entity.constant.TravelTheme;
+import com.planb.domain.travel.helper.PlanPlaceHelper;
 import com.planb.domain.travel.repository.PlanRepository;
-import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.domain.travel.service.PlanService;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
+import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Mono;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -52,7 +53,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -72,8 +76,27 @@ class PlanServiceTest {
     @Mock
     private NutritionEvaluationCollector nutritionEvaluationCollector;
 
+    @Mock
+    private PlanPlaceHelper planPlaceHelper;
+
     @InjectMocks
     private PlanService planService;
+
+    @BeforeEach
+    void acceptAlreadyValidatedSlots() {
+
+        org.mockito.Mockito
+                .lenient()
+                .when(kakaoMapServiceHandler.getRoute(any(), any(), any(), any(), any(), any(), any()))
+                .thenAnswer(invocation -> kakaoMapServiceHandler.getRoute(
+                        invocation.<String>getArgument(0),
+                        invocation.<String>getArgument(1),
+                        invocation.<com.planb.domain.travel.entity.constant.Transportation>getArgument(2)));
+
+        // 복약·태그 후처리 단위 테스트의 장소 검증 경계 대역
+        lenient().when(planPlaceHelper.validate(any(), any(), anySet(), anySet()))
+                .thenAnswer(invocation -> new PlanPlaceHelper.Validation(invocation.getArgument(0), null));
+    }
 
     @Test
     @DisplayName("Plan 객체 생성")
@@ -137,7 +160,7 @@ class PlanServiceTest {
                 );
 
         when(
-                travelRecommendHandler.createPlanByAi(context)
+                travelRecommendHandler.createPlanByAi(eq(context), any(PlaceCandidateContext.class))
         ).thenReturn(response);
 
         when(
@@ -168,507 +191,7 @@ class PlanServiceTest {
         );
 
         verify(travelRecommendHandler, never())
-                .recommendCafe(any());
-    }
-
-    @Test
-    @DisplayName("AI 기반 여행 일정 생성 - 여행 전체 기간 중복된 카페 슬롯을 재추천한 결과로 교체한다")
-    void makePlanByAiReplacesDuplicateCafe() {
-
-        TravelPlanContext context =
-                travelPlanContext();
-
-        CreatePlanAiResponse.PlanScheduleDetail day1Cafe =
-                cafe("스타벅스 하버타운점");
-
-        CreatePlanAiResponse.PlanDayDetail day1 =
-                planDay(
-                        1,
-                        List.of(
-                                attraction("해운대해수욕장"),
-                                day1Cafe
-                        )
-                );
-
-        // day2: 관광지 -> 복약(실제 장소 아님) -> 1일차와 같은 이름의 카페(중복)
-        CreatePlanAiResponse.PlanDayDetail day2 =
-                planDay(
-                        2,
-                        List.of(
-                                attraction("이기대"),
-                                medication(),
-                                cafe("스타벅스 하버타운점")
-                        )
-                );
-
-        CreatePlanAiResponse response =
-                new CreatePlanAiResponse(
-                        List.of(day1, day2)
-                );
-
-        when(
-                travelRecommendHandler.createPlanByAi(context)
-        ).thenReturn(response);
-
-        PlaceWithRouteResult replacement =
-                new PlaceWithRouteResult(
-                        true,
-                        "이디야커피 부산달맞이점",
-                        "부산 해운대구 달맞이길 193",
-                        "129.182",
-                        "35.158",
-                        25
-                );
-
-        when(
-                travelRecommendHandler.recommendCafe(any(CafeRecommendPrompt.class))
-        ).thenReturn(replacement);
-
-        when(
-                kakaoMapServiceHandler
-                        .getRoute(
-                                anyString(),
-                                anyString(),
-                                any(Transportation.class)
-                        )
-        ).thenReturn(
-                Mono.just(
-                        new KakaoRouteResult(
-                                null,
-                                null,
-                                null,
-                                null
-                        )
-                )
-        );
-
-        CreatePlanAiResponse result =
-                planService.makePlanByAi(context);
-
-        // recommendCafe는 중복된 슬롯 하나에 대해서만 정확히 1회 호출
-        ArgumentCaptor<CafeRecommendPrompt> captor =
-                ArgumentCaptor.forClass(CafeRecommendPrompt.class);
-
-        verify(travelRecommendHandler)
-                .recommendCafe(captor.capture());
-
-        CafeRecommendPrompt usedPrompt = captor.getValue();
-
-        assertEquals(
-                "부산",
-                usedPrompt.locationDo()
-        );
-
-        assertEquals(
-                "해운대구",
-                usedPrompt.locationSigungu()
-        );
-
-        assertEquals(
-                "해운대",
-                usedPrompt.decidedLocation()
-        );
-
-        assertEquals(
-                Transportation.TRANSIT,
-                usedPrompt.transportation()
-        );
-
-        // 복약 일정을 건너뛴 직전 실제 장소(이기대) 기준 previousLocation 검증
-        assertEquals(
-                "이기대",
-                usedPrompt.previousLocation()
-        );
-
-        // 지금까지 확정된 ATTRACTION/CAFE_REST 이름의 excludeNames 전달 검증
-        assertEquals(
-                Set.of(
-                        "해운대해수욕장",
-                        "스타벅스 하버타운점",
-                        "이기대"
-                ),
-                new HashSet<>(usedPrompt.excludeNames())
-        );
-
-        // 1일차 변경 없음
-        assertEquals(
-                day1,
-                result.planDays().get(0)
-        );
-
-        // 2일차 중복 카페 슬롯만 재추천 결과로 교체
-        CreatePlanAiResponse.PlanScheduleDetail fixedCafe =
-                result.planDays().get(1).schedules().get(2);
-
-        assertEquals(
-                CourseType.CAFE_REST,
-                fixedCafe.courseType()
-        );
-
-        assertEquals(
-                "이디야커피 부산달맞이점",
-                fixedCafe.locationName()
-        );
-
-        assertEquals(
-                "부산 해운대구 달맞이길 193",
-                fixedCafe.location()
-        );
-
-        assertEquals(
-                "129.182",
-                fixedCafe.longitude()
-        );
-
-        assertEquals(
-                "35.158",
-                fixedCafe.latitude()
-        );
-
-        assertEquals(
-                25,
-                fixedCafe.travelMinutes()
-        );
-
-        assertNull(
-                fixedCafe.imageUrl()
-        );
-
-        assertNull(
-                fixedCafe.thumbNailImageUrl()
-        );
-    }
-
-    @Test
-    @DisplayName("AI 기반 여행 일정 생성 - 재추천도 실패하면 해당 카페 슬롯은 제거된다")
-    void makePlanByAiDropsCafeSlotWhenReplacementNotFound() {
-
-        TravelPlanContext context =
-                travelPlanContext();
-
-        CreatePlanAiResponse.PlanDayDetail day1 =
-                planDay(
-                        1,
-                        List.of(
-                                attraction("해운대해수욕장"),
-                                cafe("스타벅스 하버타운점")
-                        )
-                );
-
-        CreatePlanAiResponse.PlanDayDetail day2 =
-                planDay(
-                        2,
-                        List.of(
-                                attraction("이기대"),
-                                cafe("스타벅스 하버타운점")
-                        )
-                );
-
-        CreatePlanAiResponse response =
-                new CreatePlanAiResponse(
-                        List.of(day1, day2)
-                );
-
-        when(
-                travelRecommendHandler.createPlanByAi(context)
-        ).thenReturn(response);
-
-        when(
-                travelRecommendHandler.recommendCafe(any(CafeRecommendPrompt.class))
-        ).thenReturn(
-                new PlaceWithRouteResult(
-                        false,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null
-                )
-        );
-
-        when(
-                kakaoMapServiceHandler
-                        .getRoute(
-                                anyString(),
-                                anyString(),
-                                any(Transportation.class)
-                        )
-        ).thenReturn(
-                Mono.just(
-                        new KakaoRouteResult(
-                                null,
-                                null,
-                                null,
-                                null
-                        )
-                )
-        );
-
-        CreatePlanAiResponse result =
-                planService.makePlanByAi(context);
-
-        List<CreatePlanAiResponse.PlanScheduleDetail> day2Schedules =
-                result.planDays().get(1).schedules();
-
-        assertEquals(
-                1,
-                day2Schedules.size()
-        );
-
-        assertEquals(
-                "이기대",
-                day2Schedules.get(0).locationName()
-        );
-    }
-
-    @Test
-    @DisplayName("AI 기반 여행 일정 생성 - 여행 전체 기간 중복된 관광지 슬롯을 재추천 결과로 교체")
-    void makePlanByAiReplacesDuplicateAttraction() {
-
-        TravelPlanContext context =
-                travelPlanContext();
-
-        CreatePlanAiResponse.PlanScheduleDetail day1Attraction =
-                attraction("해운대해수욕장");
-
-        CreatePlanAiResponse.PlanDayDetail day1 =
-                planDay(
-                        1,
-                        List.of(
-                                cafe("스타벅스 하버타운점"),
-                                day1Attraction
-                        )
-                );
-
-        // day2: 카페 -> 복약(실제 장소 아님) -> 1일차와 같은 이름의 관광지(중복)
-        CreatePlanAiResponse.PlanDayDetail day2 =
-                planDay(
-                        2,
-                        List.of(
-                                cafe("이기대카페"),
-                                medication(),
-                                attraction("해운대해수욕장")
-                        )
-                );
-
-        CreatePlanAiResponse response =
-                new CreatePlanAiResponse(
-                        List.of(day1, day2)
-                );
-
-        when(
-                travelRecommendHandler.createPlanByAi(context)
-        ).thenReturn(response);
-
-        PlaceWithRouteResult replacement =
-                new PlaceWithRouteResult(
-                        true,
-                        "동백섬",
-                        "부산 해운대구 동백로",
-                        "129.150",
-                        "35.153",
-                        15
-                );
-
-        when(
-                travelRecommendHandler.recommendAttraction(any(AttractionRecommendPrompt.class))
-        ).thenReturn(replacement);
-
-        when(
-                kakaoMapServiceHandler
-                        .getRoute(
-                                anyString(),
-                                anyString(),
-                                any(Transportation.class)
-                        )
-        ).thenReturn(
-                Mono.just(
-                        new KakaoRouteResult(
-                                null,
-                                null,
-                                null,
-                                null
-                        )
-                )
-        );
-
-        CreatePlanAiResponse result =
-                planService.makePlanByAi(context);
-
-        // recommendAttraction은 중복된 슬롯 하나에 대해서만 정확히 1회 호출
-        ArgumentCaptor<AttractionRecommendPrompt> captor =
-                ArgumentCaptor.forClass(AttractionRecommendPrompt.class);
-
-        verify(travelRecommendHandler)
-                .recommendAttraction(captor.capture());
-
-        AttractionRecommendPrompt usedPrompt = captor.getValue();
-
-        assertEquals(
-                "부산",
-                usedPrompt.locationDo()
-        );
-
-        assertEquals(
-                "해운대구",
-                usedPrompt.locationSigungu()
-        );
-
-        assertEquals(
-                "해운대",
-                usedPrompt.decidedLocation()
-        );
-
-        assertEquals(
-                Transportation.TRANSIT,
-                usedPrompt.transportation()
-        );
-
-        // 복약 일정을 건너뛴 직전 실제 장소(이기대카페) 기준 previousLocation 검증
-        assertEquals(
-                "이기대카페",
-                usedPrompt.previousLocation()
-        );
-
-        // 지금까지 확정된 ATTRACTION/CAFE_REST 이름의 excludeNames 전달 검증
-        assertEquals(
-                Set.of(
-                        "스타벅스 하버타운점",
-                        "해운대해수욕장",
-                        "이기대카페"
-                ),
-                new HashSet<>(usedPrompt.excludeNames())
-        );
-
-        // 1일차 변경 없음
-        assertEquals(
-                day1,
-                result.planDays().get(0)
-        );
-
-        // 2일차 중복 관광지 슬롯만 재추천 결과로 교체
-        CreatePlanAiResponse.PlanScheduleDetail fixedAttraction =
-                result.planDays().get(1).schedules().get(2);
-
-        assertEquals(
-                CourseType.ATTRACTION,
-                fixedAttraction.courseType()
-        );
-
-        assertEquals(
-                "동백섬",
-                fixedAttraction.locationName()
-        );
-
-        assertEquals(
-                "부산 해운대구 동백로",
-                fixedAttraction.location()
-        );
-
-        assertEquals(
-                "129.150",
-                fixedAttraction.longitude()
-        );
-
-        assertEquals(
-                "35.153",
-                fixedAttraction.latitude()
-        );
-
-        assertEquals(
-                15,
-                fixedAttraction.travelMinutes()
-        );
-
-        assertNull(
-                fixedAttraction.imageUrl()
-        );
-
-        assertNull(
-                fixedAttraction.thumbNailImageUrl()
-        );
-    }
-
-    @Test
-    @DisplayName("AI 기반 여행 일정 생성 - 재추천 실패 시 해당 관광지 슬롯 제거")
-    void makePlanByAiDropsAttractionSlotWhenReplacementNotFound() {
-
-        TravelPlanContext context =
-                travelPlanContext();
-
-        CreatePlanAiResponse.PlanDayDetail day1 =
-                planDay(
-                        1,
-                        List.of(
-                                cafe("스타벅스 하버타운점"),
-                                attraction("해운대해수욕장")
-                        )
-                );
-
-        CreatePlanAiResponse.PlanDayDetail day2 =
-                planDay(
-                        2,
-                        List.of(
-                                cafe("이기대카페"),
-                                attraction("해운대해수욕장")
-                        )
-                );
-
-        CreatePlanAiResponse response =
-                new CreatePlanAiResponse(
-                        List.of(day1, day2)
-                );
-
-        when(
-                travelRecommendHandler.createPlanByAi(context)
-        ).thenReturn(response);
-
-        when(
-                travelRecommendHandler.recommendAttraction(any(AttractionRecommendPrompt.class))
-        ).thenReturn(
-                new PlaceWithRouteResult(
-                        false,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null
-                )
-        );
-
-        when(
-                kakaoMapServiceHandler
-                        .getRoute(
-                                anyString(),
-                                anyString(),
-                                any(Transportation.class)
-                        )
-        ).thenReturn(
-                Mono.just(
-                        new KakaoRouteResult(
-                                null,
-                                null,
-                                null,
-                                null
-                        )
-                )
-        );
-
-        CreatePlanAiResponse result =
-                planService.makePlanByAi(context);
-
-        List<CreatePlanAiResponse.PlanScheduleDetail> day2Schedules =
-                result.planDays().get(1).schedules();
-
-        assertEquals(
-                1,
-                day2Schedules.size()
-        );
-
-        assertEquals(
-                "이기대카페",
-                day2Schedules.get(0).locationName()
-        );
+                .reselectPlace(any(), any());
     }
 
     @Test
@@ -690,7 +213,7 @@ class PlanServiceTest {
                 );
 
         when(
-                travelRecommendHandler.createPlanByAi(context)
+                travelRecommendHandler.createPlanByAi(eq(context), any(PlaceCandidateContext.class))
         ).thenReturn(response);
 
         when(
@@ -725,6 +248,97 @@ class PlanServiceTest {
     }
 
     @Test
+    @DisplayName("AI 기반 여행 일정 생성 - WITH_MEAL/AFTER_MEAL 복약 규칙에 따라 실제 식사시간 기준으로 복약 시각을 재계산한다")
+    void makePlanByAiRecalculatesMedicationTimeByMealRule() {
+
+        TravelHealthContext.MedicationInfoContext.MealMedicationRuleContext rule =
+                new TravelHealthContext.MedicationInfoContext.MealMedicationRuleContext(
+                        RelatedMeal.LUNCH,
+                        MealTiming.AFTER_MEAL,
+                        30
+                );
+
+        TravelHealthContext.MedicationInfoContext medicationInfo =
+                new TravelHealthContext.MedicationInfoContext(
+                        "테스트약",
+                        MedicationBasis.WITH_MEAL,
+                        LocalTime.of(9, 0),
+                        Set.of(rule)
+                );
+
+        TravelHealthContext healthContext =
+                new TravelHealthContext(
+                        "테스트 여행자",
+                        DiseaseType.DIABETES,
+                        WalkType.MODERATE,
+                        new TravelHealthContext.MealInfoContext(
+                                LocalTime.of(8, 0),
+                                LocalTime.of(12, 0),
+                                LocalTime.of(18, 0)
+                        ),
+                        List.of(),
+                        List.of(medicationInfo)
+                );
+
+        TravelPlanContext context =
+                travelPlanContext(Transportation.TRANSIT, List.of(healthContext));
+
+        CreatePlanAiResponse.PlanScheduleDetail lunch =
+                new CreatePlanAiResponse.PlanScheduleDetail(
+                        ScheduleType.LUNCH,
+                        CourseType.RESTAURANT,
+                        LocalTime.of(12, 0),
+                        LocalTime.of(13, 0),
+                        "테스트 식당",
+                        "부산 해운대구",
+                        "129.16",
+                        "35.16",
+                        "image-url",
+                        "thumbnail-url",
+                        60,
+                        null,
+                        Set.of(),
+                        null,
+                        new CreatePlanAiResponse.RestaurantDetail(
+                                "테스트 메뉴",
+                                10.0, 100.0, 5.0,
+                                "", "부산 해운대구", "129.16", "35.16", "image-url"
+                        )
+                );
+
+        CreatePlanAiResponse.PlanDayDetail day1 =
+                planDay(1, List.of(lunch, medicationWithoutTag()));
+
+        CreatePlanAiResponse response = new CreatePlanAiResponse(List.of(day1));
+
+        when(travelRecommendHandler.createPlanByAi(eq(context), any(PlaceCandidateContext.class))).thenReturn(response);
+
+        when(
+                kakaoMapServiceHandler
+                        .getRoute(anyString(), anyString(), any(Transportation.class))
+        ).thenReturn(
+                Mono.just(new KakaoRouteResult(null, null, null, null))
+        );
+
+        CreatePlanAiResponse result = planService.makePlanByAi(context);
+
+        List<CreatePlanAiResponse.PlanScheduleDetail> medicationSchedules =
+                result.planDays().get(0).schedules().stream()
+                        .filter(schedule -> schedule.courseType() == CourseType.MEDICATION)
+                        .toList();
+
+        assertEquals(1, medicationSchedules.size());
+
+        CreatePlanAiResponse.PlanScheduleDetail medicationSchedule = medicationSchedules.get(0);
+
+        assertEquals(LocalTime.of(12, 30), medicationSchedule.startTime());
+        assertEquals(LocalTime.of(12, 40), medicationSchedule.endTime());
+        assertTrue(medicationSchedule.medication().description().contains("점심"));
+        assertTrue(medicationSchedule.medication().description().contains("식후"));
+        assertTrue(medicationSchedule.medication().description().contains("30분"));
+    }
+
+    @Test
     @DisplayName("AI 기반 여행 일정 생성 - TRANSPORTATION 슬롯에 여행 요청의 이동수단(TRANSIT) 태그를 자동으로 부여한다")
     void makePlanByAiAddsTransitTagForTransportationSlot() {
 
@@ -743,7 +357,7 @@ class PlanServiceTest {
                 );
 
         when(
-                travelRecommendHandler.createPlanByAi(context)
+                travelRecommendHandler.createPlanByAi(eq(context), any(PlaceCandidateContext.class))
         ).thenReturn(response);
 
         CreatePlanAiResponse result =
@@ -774,7 +388,7 @@ class PlanServiceTest {
                 );
 
         when(
-                travelRecommendHandler.createPlanByAi(context)
+                travelRecommendHandler.createPlanByAi(eq(context), any(PlaceCandidateContext.class))
         ).thenReturn(response);
 
         CreatePlanAiResponse result =
@@ -805,7 +419,7 @@ class PlanServiceTest {
                 );
 
         when(
-                travelRecommendHandler.createPlanByAi(context)
+                travelRecommendHandler.createPlanByAi(eq(context), any(PlaceCandidateContext.class))
         ).thenReturn(response);
 
         when(
@@ -870,7 +484,7 @@ class PlanServiceTest {
                 );
 
         when(
-                travelRecommendHandler.createPlanByAi(context)
+                travelRecommendHandler.createPlanByAi(eq(context), any(PlaceCandidateContext.class))
         ).thenReturn(response);
 
         when(
@@ -922,7 +536,7 @@ class PlanServiceTest {
                 );
 
         when(
-                travelRecommendHandler.createPlanByAi(context)
+                travelRecommendHandler.createPlanByAi(eq(context), any(PlaceCandidateContext.class))
         ).thenReturn(response);
 
         NutritionEvaluationResult evaluationResult =

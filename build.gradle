@@ -144,6 +144,8 @@ tasks.named('test') {
 }
 
 tasks.register('externalTest', Test) {
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
     useJUnitPlatform {
         includeTags 'external'
     }

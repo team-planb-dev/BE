@@ -138,6 +138,34 @@ public class TourismTool {
         ).block();
     }
 
+    public KakaoRouteResult getRoute(
+            String origin,
+            String destination,
+            Transportation transportation,
+            String originLongitude,
+            String originLatitude,
+            String destinationLongitude,
+            String destinationLatitude
+    ) {
+
+        log.info(
+                "[AI TOOL] 후보 좌표 이동경로 조회 호출 - origin: {}, destination: {}, transportation: {}",
+                origin,
+                destination,
+                transportation);
+
+        return kakaoMapServiceHandler
+                .getRoute(
+                        origin,
+                        destination,
+                        transportation,
+                        originLongitude,
+                        originLatitude,
+                        destinationLongitude,
+                        destinationLatitude)
+                .block();
+    }
+
     @Tool(description = """
         음식점의 실제 대표메뉴, 취급메뉴, 영업정보를 조회합니다.
         RESTAURANT 일정을 생성할 때는 반드시

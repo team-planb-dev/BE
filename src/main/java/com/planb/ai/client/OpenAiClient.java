@@ -29,6 +29,7 @@ public class OpenAiClient {
 
     // courseType에 따라 값이 없어야 정상인, strict 스키마에서도 null을 허용해야 하는 필드
     private static final Set<String> NULLABLE_SCHEDULE_FIELDS = Set.of(
+            "candidateId",
             "locationName",
             "location",
             "longitude",
@@ -118,6 +119,11 @@ public class OpenAiClient {
             Predicate<T> isValid,
             Object... tools) {
 
+        for (Object tool : tools) {
+            if (tool instanceof com.planb.ai.mcp.PlanTourismTool planTool) {
+                planTool.resetCandidates();
+            }
+        }
         String content = fetchContent(prompt, outputConverter, tools);
         T result = convert(outputConverter, content);
 
