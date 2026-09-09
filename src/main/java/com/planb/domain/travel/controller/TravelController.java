@@ -9,7 +9,11 @@ import com.planb.domain.travel.dto.response.CreatePlanResponse;
 import com.planb.domain.travel.dto.response.GetAiPlanResponse;
 import com.planb.domain.travel.dto.response.MakeRecommendFoodResponse;
 import com.planb.domain.travel.dto.response.SearchPlannedPlaceResponse;
+import com.planb.domain.travel.dto.response.SaveTravelResponse;
+import com.planb.domain.travel.dto.response.ShareTravelResponse;
 import com.planb.domain.travel.dto.response.EditPlanPreviewResponse;
+import com.planb.domain.travel.dto.response.TravelListResponse;
+import com.planb.domain.travel.entity.constant.TravelListFilter;
 import com.planb.domain.travel.facade.TravelFacade;
 import com.planb.global.config.exception.dto.ApiResult;
 import io.swagger.v3.oas.annotations.Operation;
@@ -77,7 +81,9 @@ public class TravelController {
     @PostMapping("/add-with-recommend")
     @Operation(summary = "여행조건 등록 및 생성 API",
             description = "사용자의 입력에 기반하여 여행조건을 등록합니다." +
-                    "그 후,해당 정보에 기반하여 일정을 생성합니다.")
+                    "그 후,해당 정보에 기반하여 일정을 생성합니다. " +
+                    "healthIds에는 이번 여행에 참여할 구성원을 한 명 이상 전달해야 합니다. " +
+                    "생성 직후 일정은 저장 확정 전(saved=false) 상태입니다.")
     @SecurityRequirement(name = "JWT")
     public ResponseEntity<ApiResult<CreatePlanResponse>> addTravelOptionsAndRecommend
             (@RequestBody CreateTravelRequest createTravelRequest,
@@ -89,6 +95,27 @@ public class TravelController {
                         .success(travelFacade
                                 .makeTravelOptionsAndRecommend(
                                         createTravelRequest,
+                                        userDetails
+                                                .getUsername())));
+    }
+
+    @GetMapping("/list")
+    @Operation(summary = "여행 목록 조회 API",
+            description = "로그인한 사용자의 여행 목록을 조회합니다. " +
+                    "status가 UPCOMING이면 오늘 이후에 끝나는 여행을, PAST면 이미 끝난 여행을 반환합니다. " +
+                    "각 여행의 status 필드는 조회 시점 기준으로 예정(UPCOMING), 여행 중(ONGOING), 완료(COMPLETED)를 나타냅니다.")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<ApiResult<TravelListResponse>> getTravelList
+            (@RequestParam(defaultValue = "UPCOMING") TravelListFilter status,
+             @AuthenticationPrincipal UserDetails userDetails){
+
+        return ResponseEntity
+                .status(HttpStatus
+                        .OK)
+                .body(ApiResult
+                        .success(travelFacade
+                                .getTravelList(
+                                        status,
                                         userDetails
                                                 .getUsername())));
     }
@@ -114,6 +141,62 @@ public class TravelController {
                                                 .getUsername())));
     }
 
+
+    @PostMapping("/save")
+    @Operation(summary = "여행 일정 저장 확정 API",
+            description = "AI가 생성한 일정을 저장 확정 상태로 바꿉니다. " +
+                    "저장 확정 후에만 공유 링크를 발급할 수 있습니다. 이미 저장된 여행에 다시 요청해도 결과는 같습니다.")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<ApiResult<SaveTravelResponse>> saveTravel
+            (@RequestBody GetAiPlanRequest getAiPlanRequest,
+             @AuthenticationPrincipal UserDetails userDetails){
+
+        return ResponseEntity
+                .status(HttpStatus
+                        .OK)
+                .body(ApiResult
+                        .success(travelFacade
+                                .saveTravel(
+                                        getAiPlanRequest,
+                                        userDetails
+                                                .getUsername())));
+    }
+
+    @PostMapping("/share/issue")
+    @Operation(summary = "여행 일정 공유 링크 발급 API",
+            description = "여행 일정을 읽기 전용으로 공유할 토큰을 발급합니다. " +
+                    "저장 확정(POST /api/v1/travel/save)한 여행만 공유할 수 있습니다. " +
+                    "이미 발급된 여행은 같은 토큰을 반환합니다.")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<ApiResult<ShareTravelResponse>> issueShareLink
+            (@RequestBody GetAiPlanRequest getAiPlanRequest,
+             @AuthenticationPrincipal UserDetails userDetails){
+
+        return ResponseEntity
+                .status(HttpStatus
+                        .OK)
+                .body(ApiResult
+                        .success(travelFacade
+                                .createShareLink(
+                                        getAiPlanRequest,
+                                        userDetails
+                                                .getUsername())));
+    }
+
+    @GetMapping("/shared/{shareToken}")
+    @Operation(summary = "공유된 여행 일정 조회 API",
+            description = "공유 링크 토큰으로 여행 일정을 조회합니다. 로그인이 필요 없으며 읽기 전용입니다. " +
+                    "동행인의 질환과 복약 시간은 포함되지 않습니다.")
+    public ResponseEntity<ApiResult<GetAiPlanResponse>> getSharedPlan
+            (@PathVariable String shareToken){
+
+        return ResponseEntity
+                .status(HttpStatus
+                        .OK)
+                .body(ApiResult
+                        .success(travelFacade
+                                .getSharedPlan(shareToken)));
+    }
 
     @PostMapping("/edit-plan/preview")
     @Operation(summary = "AI 일정 수정 미리보기 생성",

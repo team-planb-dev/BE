@@ -7,6 +7,7 @@ import com.planb.ai.context.TravelPlanContext;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
 import com.planb.ai.dto.response.EditPlanAiResponse;
 import com.planb.domain.health.dto.response.HealthSummaryQueryResponse;
+import com.planb.domain.health.entity.Health;
 import com.planb.domain.health.service.FoodInfoService;
 import com.planb.domain.health.service.HealthService;
 import com.planb.domain.health.service.MedicationInfoService;
@@ -17,10 +18,16 @@ import com.planb.domain.travel.dto.response.EditPlanPreviewResponse;
 import com.planb.domain.travel.dto.response.GetAiPlanResponse;
 import com.planb.domain.travel.dto.response.MakeRecommendFoodResponse;
 import com.planb.domain.travel.dto.response.SearchPlannedPlaceResponse;
+import com.planb.domain.travel.dto.response.SaveTravelResponse;
+import com.planb.domain.travel.dto.response.ShareTravelResponse;
+import com.planb.domain.travel.dto.response.TravelListItemResponse;
+import com.planb.domain.travel.dto.response.TravelListResponse;
 import com.planb.domain.travel.entity.*;
 import com.planb.domain.travel.entity.constant.RecommendationTag;
+import com.planb.domain.travel.entity.constant.TravelListFilter;
 import com.planb.domain.travel.service.*;
 import com.planb.global.config.exception.PlanEditExceptionEnum;
+import com.planb.global.config.exception.TravelExceptionEnum;
 import com.planb.global.config.exception.domain.BaseException;
 import com.planb.global.config.exception.domain.ForbiddenException;
 import com.planb.query.health.service.HealthQueryService;
@@ -29,6 +36,7 @@ import com.planb.query.travel.dto.response.PlanDayQueryResponse;
 import com.planb.query.travel.dto.response.PlanQueryResponse;
 import com.planb.query.travel.dto.response.RestaurantDetailQueryResponse;
 import com.planb.query.travel.dto.response.TravelConditionQueryResponse;
+import com.planb.query.travel.dto.response.TravelListItemQueryResponse;
 import com.planb.query.travel.service.*;
 import com.planb.query.user.service.UserQueryService;
 import lombok.RequiredArgsConstructor;
@@ -36,9 +44,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * 여행 조건, 건강 정보, AI 일정의 생성과 조회 및 편집 흐름을 조합하는 Facade.
@@ -136,12 +147,19 @@ public class TravelFacade {
                 .findByUsernameInCache(username)
                 .userId();
 
+        // 이번 여행에 참여할 구성원을 검증 (소유자 확인 및 중복 제거)
+        List<Health> selectedHealths =
+                findSelectedHealths(createTravelRequest.healthIds(), userId);
+
         // Travel 객체 생성하기
         Travel travel = travelService
                 .createTravel(createTravelRequest, userId);
 
         // Travel 객체 생성 후 , 저장
         travelService.saveTravel(travel);
+
+        // 선택한 구성원을 Travel과 연결해 저장
+        travelService.saveTravelHealths(travel, selectedHealths);
 
         // PlannedPlan 객체 생성 후 , 저장하기
         plannedPlaceService
@@ -163,9 +181,9 @@ public class TravelFacade {
         // Plan 객체 저장
         planService.savePlan(plan);
 
-        // UserId 기반 Health 컨텍스트 생성하기
+        // 선택한 구성원 기반 Health 컨텍스트 생성하기
         List<TravelHealthContext> healthContexts =
-                buildHealthContexts(userId);
+                buildHealthContexts(selectedHealths);
 
         // Travel 정보와 Health 컨텍스트 기반으로 AI 일정 생성하기
         CreatePlanAiResponse createPlanAiResponse =
@@ -189,6 +207,7 @@ public class TravelFacade {
 
         // 생성된 AI 여행일정 응답 반환
         return CreatePlanResponse.of(
+                travel,
                 aggregatedTags,
                 createPlanAiResponse
         );
@@ -222,22 +241,140 @@ public class TravelFacade {
             );
         }
 
+        List<Long> healthIds = travelService
+                .findHealthListByTravelId(travelId)
+                .stream()
+                .map(Health::getId)
+                .toList();
+
+        return findPlanDetail(travelId,
+                healthQueryService
+                        .getHealthSummaryListByHealthIds(healthIds),
+                medicationInfoQueryService
+                        .getMedicationTimesByHealthIds(healthIds));
+    }
+
+
+    /**
+     * AI로 생성한 일정을 저장 확정 상태로 바꾼다.
+     *
+     * 이미 저장된 여행에 다시 요청해도 상태와 데이터가 바뀌지 않는다.
+     *
+     * @param getAiPlanRequest 저장할 여행 ID
+     * @param username 저장을 요청한 사용자의 username
+     * @return 저장 확정 결과
+     * @throws ForbiddenException 사용자가 해당 여행의 소유자가 아닌 경우
+     */
+    @Transactional
+    public SaveTravelResponse saveTravel(
+            GetAiPlanRequest getAiPlanRequest,
+            String username
+    ) {
+
+        Long userId = userQueryService
+                .findByUsernameInCache(username)
+                .userId();
+
+        Long travelId = getAiPlanRequest.travelId();
+
+        if (!travelQueryService.existsByIdAndUserId(travelId, userId)) {
+            throw new ForbiddenException(
+                    new Object[]{"해당 여행에 대한 접근 권한이 없습니다."}
+            );
+        }
+
+        Travel travel = travelService
+                .findTravelById(travelId);
+
+        travel.markSaved();
+
+        return new SaveTravelResponse(travelId,
+                travel.isSaved());
+    }
+
+
+    /**
+     * 여행 소유자가 읽기 전용 공유 링크 토큰을 발급받는다.
+     *
+     * 이미 발급된 토큰이 있으면 같은 토큰을 그대로 돌려주어 기존 링크가 계속 열리도록 한다.
+     *
+     * @param getAiPlanRequest 공유할 여행 ID
+     * @param username 공유를 요청한 사용자의 username
+     * @return 공유 링크 토큰
+     * @throws ForbiddenException 사용자가 해당 여행의 소유자가 아닌 경우
+     */
+    @Transactional
+    public ShareTravelResponse createShareLink(
+            GetAiPlanRequest getAiPlanRequest,
+            String username
+    ) {
+
+        Long userId = userQueryService
+                .findByUsernameInCache(username)
+                .userId();
+
+        Long travelId = getAiPlanRequest.travelId();
+
+        if (!travelQueryService.existsByIdAndUserId(travelId, userId)) {
+            throw new ForbiddenException(
+                    new Object[]{"해당 여행에 대한 접근 권한이 없습니다."}
+            );
+        }
+
+        Travel travel = travelService
+                .findTravelById(travelId);
+
+        // 저장 확정 전 일정은 공유할 수 없다.
+        if (!travel.isSaved()) {
+            throw new BaseException(TravelExceptionEnum.TRAVEL_NOT_SAVED);
+        }
+
+        travel.issueShareToken(UUID
+                .randomUUID()
+                .toString());
+
+        return new ShareTravelResponse(travelId,
+                travel.getShareToken());
+    }
+
+
+    /**
+     * 공유 링크로 여행 일정을 조회한다.
+     *
+     * 링크만 알면 누구나 열 수 있으므로 동행인의 질환과 복약 시간은 포함하지 않는다.
+     *
+     * @param shareToken 공유 링크 토큰
+     * @return 건강 정보를 제외한 일정 조회 결과
+     * @throws BaseException 토큰에 해당하는 여행이 없는 경우
+     */
+    @Transactional(readOnly = true)
+    public GetAiPlanResponse getSharedPlan(String shareToken) {
+
+        return findPlanDetail(travelQueryService
+                        .getTravelIdByShareToken(shareToken),
+                List.of(),
+                List.of());
+    }
+
+
+    /**
+     * 여행 일정과 세부 정보를 조회해 응답으로 조립한다.
+     *
+     * @param travelId 조회할 여행 ID
+     * @param healthSummaries 함께 노출할 동행인 건강 요약, 공유 조회에서는 빈 목록
+     * @param medicationTimes 함께 노출할 복약 시간, 공유 조회에서는 빈 목록
+     * @return 여행 조건과 날짜별 일정의 전체 조회 결과
+     */
+    private GetAiPlanResponse findPlanDetail(
+            Long travelId,
+            List<HealthSummaryQueryResponse> healthSummaries,
+            List<LocalTime> medicationTimes
+    ) {
+
         TravelConditionQueryResponse travelCondition =
                 travelQueryService
                         .getTravelConditionQueryResponse(
                                 travelId
-                        );
-
-        List<HealthSummaryQueryResponse> healthSummaries =
-                healthQueryService
-                        .getHealthSummaryList(
-                                userId
-                        );
-
-        List<LocalTime> medicationTimes =
-                medicationInfoQueryService
-                        .getMedicationTimes(
-                                userId
                         );
 
         PlanQueryResponse plan =
@@ -333,15 +470,23 @@ public class TravelFacade {
                         )
                         .toList();
 
+        // 여행 생성 당시 선택한 구성원 복원
+        List<Health> selectedHealths =
+                travelService.findHealthListByTravelId(travelId);
+
         CreateTravelRequest createTravelRequest =
                 CreateTravelRequest.from(
                         travel,
-                        plannedPlaceDetails
+                        plannedPlaceDetails,
+                        selectedHealths
+                                .stream()
+                                .map(Health::getId)
+                                .toList()
                 );
 
-        // UserId 기반 Health 컨텍스트 생성하기
+        // 선택한 구성원 기반 Health 컨텍스트 생성하기
         List<TravelHealthContext> healthContexts =
-                buildHealthContexts(userId);
+                buildHealthContexts(selectedHealths);
 
         // AI로 수정안 생성
         EditPlanAiResponse editPlanAiResponse =
@@ -442,6 +587,8 @@ public class TravelFacade {
                 new CreatePlanAiResponse(editPlanAiResponse.planDays());
 
         return CreatePlanResponse.of(
+                travelService
+                        .findTravelById(travelId),
                 aggregatedTags,
                 wrapped
         );
@@ -477,14 +624,46 @@ public class TravelFacade {
     }
 
     /**
+     * 요청한 구성원이 모두 로그인 사용자 소유인지 확인하고 중복을 제거해 반환한다.
+     *
+     * @param healthIds 이번 여행에 참여할 구성원 id
+     * @param userId 여행을 생성하는 사용자 ID
+     * @return 검증된 구성원 목록
+     * @throws BaseException 구성원을 선택하지 않았거나 사용자 소유가 아닌 구성원이 포함된 경우
+     */
+    private List<Health> findSelectedHealths(
+            List<Long> healthIds,
+            Long userId
+    ) {
+
+        if (healthIds == null || healthIds.isEmpty()) {
+            throw new BaseException(TravelExceptionEnum.COMPANION_REQUIRED);
+        }
+
+        return healthIds
+                .stream()
+                .distinct()
+                .map(healthId -> {
+
+                    if (!healthQueryService.checkHealthWithUser(healthId, userId)) {
+                        throw new BaseException(TravelExceptionEnum.COMPANION_NOT_OWNED);
+                    }
+
+                    return healthService.getHealthById(healthId);
+                })
+                .toList();
+    }
+
+
+    /**
      * 생성과 편집이 동일한 건강 정보 계약을 사용하도록 AI 컨텍스트를 구성한다.
      *
-     * @param userId 건강 정보를 조회할 사용자 ID
+     * @param healths 이번 여행에 선택된 구성원
      * @return 동행인별 건강, 음식 제한, 복약 정보 컨텍스트
      */
-    private List<TravelHealthContext> buildHealthContexts(Long userId) {
+    private List<TravelHealthContext> buildHealthContexts(List<Health> healths) {
 
-        return healthService.getHealthListByUserId(userId)
+        return healths
                 .stream()
                 .map(health ->
                         TravelHealthContext.from(
@@ -552,4 +731,43 @@ public class TravelFacade {
         });
     }
 
+
+    /**
+     * 사용자의 여행 목록을 탭 기준으로 조회한다.
+     *
+     * 진행 상태는 저장하지 않고 조회 시점의 오늘 날짜로 계산한다.
+     *
+     * @param filter   목록 탭 구분 (UPCOMING, PAST)
+     * @param username 조회하는 사용자의 username
+     * @return 여행 목록
+     */
+    @Transactional(readOnly = true)
+    public TravelListResponse getTravelList(
+            TravelListFilter filter,
+            String username
+    ) {
+
+        Long userId = userQueryService
+                .findByUsernameInCache(username)
+                .userId();
+
+        LocalDate today = LocalDate.now();
+
+        List<TravelListItemQueryResponse> travels = travelQueryService
+                .getTravelList(userId, filter, today);
+
+        Map<Long, String> thumbnailUrls = travelQueryService
+                .getThumbnailUrls(travels
+                        .stream()
+                        .map(TravelListItemQueryResponse::travelId)
+                        .toList());
+
+        return new TravelListResponse(travels
+                .stream()
+                .map(travel -> TravelListItemResponse
+                        .of(travel,
+                                today,
+                                thumbnailUrls.get(travel.travelId())))
+                .toList());
+    }
 }

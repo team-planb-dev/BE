@@ -153,7 +153,9 @@ public class SecurityConfig {
                         .requestMatchers("/login",
                                 "/api/v1/user/create",
                                 "/api/v1/refresh/reissue",
-                                "/api/v1/user/check/duplication/**").permitAll()
+                                "/api/v1/user/check/duplication/**",
+                                "/api/v1/user/recovery/**",
+                                "/api/v1/travel/shared/**").permitAll()
                         .anyRequest().authenticated()
                 );
 
