@@ -16,4 +16,9 @@ public class UserAuthCacheService {
         userAuthCacheRepository
                 .save(userAuthCache.username(), userAuthCache,2_100_000L);
     }
+
+    public void deleteUserAuthCache(String username) {
+
+        userAuthCacheRepository.delete(username);
+    }
 }

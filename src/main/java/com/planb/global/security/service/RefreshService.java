@@ -34,8 +34,16 @@ public class RefreshService {
         try{
             jwtUtil.isExpired(refresh);
 
-         } catch(ExpiredJwtException e) {
+        } catch(ExpiredJwtException e) {
             return handleRefreshTokenExpired();
+        }
+
+        if (!userTokenCacheRepository
+                .exists("refresh:refreshToken:" + refresh)) {
+
+            throw new BaseException(
+                    BaseExceptionEnum.REFRESH_TOKEN_NOT_FOUND
+            );
         }
 
         return new ReissueResponse(ReissueResponse.ReissueStatus.REFRESH_REISSUED,
@@ -130,6 +138,24 @@ public class RefreshService {
 
         userTokenCacheRepository
                 .delete("refresh:user:"+username);
+    }
+
+    public void deleteRefreshByUsername(String username) {
+
+        String userKey = "refresh:user:" + username;
+
+        if (!userTokenCacheRepository.exists(userKey)) {
+            return;
+        }
+
+        String refresh = (String) userTokenCacheRepository
+                .findByKey(userKey);
+
+        userTokenCacheRepository.delete(
+                "refresh:refreshToken:" + refresh
+        );
+
+        userTokenCacheRepository.delete(userKey);
     }
 
 

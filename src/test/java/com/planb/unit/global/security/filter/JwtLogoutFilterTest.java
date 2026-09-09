@@ -12,6 +12,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import com.planb.global.security.filter.JwtLogoutFilter;
 import com.planb.global.security.service.RefreshService;
+import com.planb.global.security.service.UserAuthCacheService;
 import com.planb.global.security.util.JwtUtil;
 import com.planb.global.security.validator.RefreshTokenValidator;
 import com.planb.global.utils.web.CookieUtil;
@@ -27,6 +28,9 @@ class JwtLogoutFilterTest {
 
     @Mock
     private RefreshService refreshService;
+
+    @Mock
+    private UserAuthCacheService userAuthCacheService;
 
     @Mock
     private CookieUtil cookieUtil;
@@ -101,10 +105,6 @@ class JwtLogoutFilterTest {
                 .findCookie(request))
                 .thenReturn(refresh);
 
-        when(jwtUtil
-                .getUsername(refresh))
-                .thenReturn("testUser");
-
         when(refreshTokenValidator
                 .isInvalid(refresh))
                 .thenReturn(true);
@@ -122,6 +122,9 @@ class JwtLogoutFilterTest {
 
         verify(refreshService, never())
                 .deleteRefresh(anyString());
+
+        verify(jwtUtil, never())
+                .getUsername(anyString());
 
         verify(cookieUtil, never())
                 .zeroCookie(any());
@@ -172,6 +175,9 @@ class JwtLogoutFilterTest {
         verify(refreshService,times(1))
                 .deleteRefresh(refresh);
 
+        verify(userAuthCacheService)
+                .deleteUserAuthCache(username);
+
         verify(cookieUtil,times(1))
                 .zeroCookie(response);
 
@@ -195,11 +201,13 @@ class JwtLogoutFilterTest {
 
         public TestJwtLogoutFilter(JwtUtil jwtUtil,
                                    RefreshService refreshService,
+                                   UserAuthCacheService userAuthCacheService,
                                    CookieUtil cookieUtil,
                                    RefreshTokenValidator refreshTokenValidator) {
 
             super(jwtUtil,
                     refreshService,
+                    userAuthCacheService,
                     cookieUtil,
                     refreshTokenValidator);
 

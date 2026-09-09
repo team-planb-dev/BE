@@ -38,4 +38,11 @@ public class UserAuthCacheRepository  {
         return Optional.ofNullable(userAuthCache);
 
     }
+
+    public void delete(String username) {
+
+        userAuthredisTemplate.delete(
+                "security:auth:user:" + username
+        );
+    }
 }

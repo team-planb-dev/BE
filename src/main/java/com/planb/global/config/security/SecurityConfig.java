@@ -72,6 +72,7 @@ public class SecurityConfig {
     public JwtLogoutFilter jwtLogoutFilter(){
         return new JwtLogoutFilter(jwtUtil,
                 refreshService,
+                userAuthCacheService,
                 cookieUtil,
                 refreshTokenValidator);
     }
@@ -151,6 +152,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests((auth)->auth
                         .requestMatchers("/login",
                                 "/api/v1/user/create",
+                                "/api/v1/refresh/reissue",
                                 "/api/v1/user/check/duplication/**").permitAll()
                         .anyRequest().authenticated()
                 );

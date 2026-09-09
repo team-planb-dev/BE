@@ -54,6 +54,12 @@ public class UserIntegrationTest extends IntegrationTest {
     private static final String DELETE_USER_URL =
             "/api/v1/user/delete";
 
+    private static final String REISSUE_URL =
+            "/api/v1/refresh/reissue";
+
+    private static final String LOGOUT_URL =
+            "/logout";
+
     private static final String CHECK_USERNAME_DUPLICATION_URL =
             "/api/v1/user/check/duplication/username";
 
@@ -161,6 +167,92 @@ public class UserIntegrationTest extends IntegrationTest {
                 .isNotBlank();
     }
 
+    @Test
+    @DisplayName("Refresh Token Cookie로 인증 없이 토큰 재발급 성공")
+    void reissueWithoutAccessTokenSuccess() throws Exception {
+
+        // given
+        String username = createUniqueUsername();
+
+        createUser(
+                username,
+                NICKNAME,
+                PASSWORD
+        );
+
+        LoginResult loginResult = login(
+                username,
+                PASSWORD
+        );
+
+        // when & then
+        mockMvc.perform(
+                        post(REISSUE_URL)
+                                .cookie(
+                                        loginResult.refreshTokenCookie()
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.success")
+                                .value(true)
+                )
+                .andExpect(
+                        jsonPath("$.data.status")
+                                .value("REFRESH_REISSUED")
+                )
+                .andExpect(
+                        jsonPath("$.data.accessToken")
+                                .isNotEmpty()
+                )
+                .andExpect(
+                        jsonPath("$.data.refreshToken")
+                                .isNotEmpty()
+                );
+    }
+
+    @Test
+    @DisplayName("로그아웃 후 기존 Access Token 사용 거부")
+    void accessTokenRejectedAfterLogout() throws Exception {
+
+        // given
+        String username = createUniqueUsername();
+
+        createUser(
+                username,
+                NICKNAME,
+                PASSWORD
+        );
+
+        LoginResult loginResult = login(
+                username,
+                PASSWORD
+        );
+
+        // when
+        mockMvc.perform(
+                        post(LOGOUT_URL)
+                                .cookie(
+                                        loginResult.refreshTokenCookie()
+                                )
+                )
+                .andExpect(status().isOk());
+
+        // then
+        mockMvc.perform(
+                        get(USER_ME_URL)
+                                .header(
+                                        "Authorization",
+                                        loginResult.accessToken()
+                                )
+                )
+                .andExpect(status().isUnauthorized())
+                .andExpect(
+                        jsonPath("$.success")
+                                .value(false)
+                );
+    }
+
 
 
     @Test
@@ -226,6 +318,70 @@ public class UserIntegrationTest extends IntegrationTest {
                 .andExpect(jsonPath("$.error")
                         .isEmpty());
 
+    }
+
+    @Test
+    @DisplayName("회원탈퇴 후 기존 Access Token과 Refresh Token 사용 거부")
+    void deletedUserTokensRejected() throws Exception {
+
+        // given
+        String username = createUniqueUsername();
+
+        createUser(
+                username,
+                NICKNAME,
+                PASSWORD
+        );
+
+        LoginResult loginResult = login(
+                username,
+                PASSWORD
+        );
+
+        mockMvc.perform(
+                        delete(DELETE_USER_URL)
+                                .header(
+                                        "Authorization",
+                                        loginResult.accessToken()
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.success")
+                                .value(true)
+                );
+
+        // when & then
+        mockMvc.perform(
+                        get(USER_ME_URL)
+                                .header(
+                                        "Authorization",
+                                        loginResult.accessToken()
+                                )
+                )
+                .andExpect(status().isUnauthorized())
+                .andExpect(
+                        jsonPath("$.success")
+                                .value(false)
+                );
+
+        mockMvc.perform(
+                        post(REISSUE_URL)
+                                .cookie(
+                                        loginResult.refreshTokenCookie()
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.success")
+                                .value(false)
+                )
+                .andExpect(
+                        jsonPath("$.error.errorCode")
+                                .value(
+                                        "BASE.EXCEPTION.REFRESH_TOKEN_NOT_FOUND"
+                                )
+                );
     }
 
 

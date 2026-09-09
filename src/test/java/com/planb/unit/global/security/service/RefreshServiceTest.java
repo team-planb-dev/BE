@@ -130,6 +130,10 @@ class RefreshServiceTest {
                 .isExpired(oldRefresh))
                 .thenReturn(false);
 
+        when(userTokenCacheRepository
+                .exists("refresh:refreshToken:" + oldRefresh))
+                .thenReturn(true);
+
         when(jwtUtil
                 .getUsername(oldRefresh))
                 .thenReturn(username);
