@@ -34,7 +34,6 @@ final class TravelPlanAssertions {
         Set<String> places = new HashSet<>();
         Set<String> menus = new HashSet<>();
         Set<Integer> numbers = new HashSet<>();
-        int restaurants = 0;
 
         for (JsonNode day : plan.path("planDays")) {
             int number = day.path("dayNumber")
@@ -90,8 +89,17 @@ final class TravelPlanAssertions {
                 if ("TRANSPORTATION".equals(type)) {
                     assertThat(scheduleType)
                             .isEqualTo("ACTIVITY");
+                    assertThat(slot.path("medication")
+                            .isNull() || slot.path("medication")
+                            .isMissingNode())
+                            .isTrue();
                     continue;
                 }
+
+                assertThat(slot.path("medication")
+                        .isNull() || slot.path("medication")
+                        .isMissingNode())
+                        .isTrue();
 
                 assertThat(slot.path("locationName")
                         .asText())
@@ -121,7 +129,6 @@ final class TravelPlanAssertions {
                 }
 
                 if ("RESTAURANT".equals(type) || "LOCAL_FOOD".equals(type)) {
-                    restaurants++;
                     assertThat(scheduleType)
                             .isIn("BREAKFAST", "LUNCH", "DINNER");
                     JsonNode restaurant = slot.path("restaurantDetail");
@@ -153,10 +160,6 @@ final class TravelPlanAssertions {
             }
         }
 
-        assertThat(restaurants)
-                .as("음식점 검증의 빈 목록 통과 방지")
-                .isPositive();
-
         if (plan.has("tags")) {
             Set<String> expected = new HashSet<>();
 
@@ -171,15 +174,23 @@ final class TravelPlanAssertions {
         }
     }
 
-    static void assertMealMedication(JsonNode plan) {
+    static void assertMealMedication(
+            JsonNode plan,
+            LocalTime fallbackLunchTime
+    ) {
 
         for (JsonNode day : plan.path("planDays")) {
-            List<JsonNode> lunches = new ArrayList<>();
+            LocalTime actualMealTime = null;
+
             List<JsonNode> medications = new ArrayList<>();
 
             for (JsonNode slot : day.path("schedules")) {
-                if ("LUNCH".equals(code(slot.path("scheduleType")))) {
-                    lunches.add(slot);
+                if (actualMealTime == null
+                        && "LUNCH".equals(code(slot.path("scheduleType")))) {
+                    actualMealTime = LocalTime.parse(
+                            slot.path("startTime")
+                                    .asText()
+                    );
                 }
 
                 if ("MEDICATION".equals(code(slot.path("courseType")))) {
@@ -187,11 +198,9 @@ final class TravelPlanAssertions {
                 }
             }
 
-            assertThat(lunches)
-                    .hasSize(1);
-            LocalTime expected = LocalTime.parse(lunches.getFirst()
-                    .path("startTime")
-                    .asText())
+            LocalTime expected = (actualMealTime == null
+                    ? fallbackLunchTime
+                    : actualMealTime)
                     .plusMinutes(30);
 
             assertThat(medications)

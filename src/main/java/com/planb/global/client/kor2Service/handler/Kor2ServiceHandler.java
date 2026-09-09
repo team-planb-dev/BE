@@ -10,10 +10,22 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 import java.net.URI;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
 public class Kor2ServiceHandler {
+
+    private static final Set<String> METROPOLITAN_AREAS = Set.of(
+            "서울",
+            "인천",
+            "대전",
+            "대구",
+            "광주",
+            "부산",
+            "울산",
+            "세종특별자치시"
+    );
 
     private final Kor2ServiceClient kor2ServiceClient;
 
@@ -62,12 +74,49 @@ public class Kor2ServiceHandler {
     }
 
 
-    // Ko2Service API : 지역 조건을 포함한 키워드 검색
-    public Mono<Kor2KeywordSearchResponse> searchKeyword(
+    // Ko2Service API : 광역 지역은 시/도, 도 지역은 시/군 기준 관광지 후보 조회
+    public Mono<Kor2KeywordSearchResponse> searchAttractions(
+            String locationDo,
+            String locationSigungu
+    ) {
+
+        return getAreaCode()
+                .map(response ->
+                        findCode(
+                                response,
+                                locationDo
+                        )
+                )
+                .flatMap(areaCode -> {
+                    if (METROPOLITAN_AREAS.contains(locationDo)) {
+                        return searchAttractionsByAreaCode(
+                                areaCode,
+                                null
+                        );
+                    }
+
+                    return getSigunguCode(areaCode)
+                            .map(response ->
+                                    findCode(
+                                            response,
+                                            locationSigungu
+                                    )
+                            )
+                            .flatMap(sigunguCode ->
+                                    searchAttractionsByAreaCode(
+                                            areaCode,
+                                            sigunguCode
+                                    )
+                            );
+                });
+    }
+
+
+    // Ko2Service API : 시/군/구 기준 음식점 키워드 검색
+    public Mono<Kor2KeywordSearchResponse> searchRestaurants(
             String keyword,
             String locationDo,
-            String locationSigungu,
-            Integer contentTypeId
+            String locationSigungu
     ) {
 
         return getAreaCode()
@@ -86,11 +135,10 @@ public class Kor2ServiceHandler {
                                         )
                                 )
                                 .flatMap(sigunguCode ->
-                                        searchKeywordByCode(
+                                        searchRestaurantByCode(
                                                 keyword,
                                                 areaCode,
-                                                sigunguCode,
-                                                contentTypeId
+                                                sigunguCode
                                         )
                                 )
                 );
@@ -181,12 +229,65 @@ public class Kor2ServiceHandler {
     }
 
 
-    // Ko2Service API : 지역코드 기반 실제 키워드 검색
-    private Mono<Kor2KeywordSearchResponse> searchKeywordByCode(
+    // Ko2Service API : 지역코드 기반 관광지 후보 조회
+    private Mono<Kor2KeywordSearchResponse> searchAttractionsByAreaCode(
+            String areaCode,
+            String sigunguCode
+    ) {
+
+        URI uri = DataUriBuilder
+                .from(
+                        kor2ServiceClient.baseUrl(),
+                        "/areaBasedList2",
+                        kor2ServiceClient.serviceKey()
+                )
+                .queryParam(
+                        "MobileOS",
+                        "ETC"
+                )
+                .queryParam(
+                        "MobileApp",
+                        "PlanB"
+                )
+                .queryParam(
+                        "_type",
+                        "json"
+                )
+                .queryParam(
+                        "numOfRows",
+                        100
+                )
+                .queryParam(
+                        "pageNo",
+                        1
+                )
+                .queryParam(
+                        "areaCode",
+                        areaCode
+                )
+                .queryParam(
+                        "sigunguCode",
+                        sigunguCode
+                )
+                .queryParam(
+                        "contentTypeId",
+                        12
+                )
+                .build();
+
+        return kor2ServiceClient
+                .get(
+                        uri,
+                        Kor2KeywordSearchResponse.class
+                );
+    }
+
+
+    // Ko2Service API : 시/군/구 코드 기반 음식점 키워드 검색
+    private Mono<Kor2KeywordSearchResponse> searchRestaurantByCode(
             String keyword,
             String areaCode,
-            String sigunguCode,
-            Integer contentTypeId
+            String sigunguCode
     ) {
 
         URI uri = DataUriBuilder
@@ -223,16 +324,13 @@ public class Kor2ServiceHandler {
                         "areaCode",
                         areaCode
                 )
-                /*
                 .queryParam(
                         "sigunguCode",
                         sigunguCode
                 )
-
-                 */
                 .queryParam(
                         "contentTypeId",
-                        contentTypeId
+                        39
                 )
                 .build();
 

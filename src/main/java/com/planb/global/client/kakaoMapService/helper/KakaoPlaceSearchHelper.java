@@ -18,6 +18,30 @@ public class KakaoPlaceSearchHelper {
                 .isPresent();
     }
 
+    public KakaoPlaceSearchResponse filterByCategory(
+            KakaoPlaceSearchResponse response,
+            String categoryCode
+    ) {
+
+        if (!hasResult(response) || categoryCode == null || categoryCode.isBlank()) {
+            return new KakaoPlaceSearchResponse(
+                    response == null
+                            ? null
+                            : response.meta(),
+                    List.of()
+            );
+        }
+
+        return new KakaoPlaceSearchResponse(
+                response.meta(),
+                response
+                        .documents()
+                        .stream()
+                        .filter(place -> categoryCode.equals(place.category_group_code()))
+                        .toList()
+        );
+    }
+
     // 검색 결과의 대표 장소명이 이미 사용된 이름 목록(excludeNames)에 포함되는지 확인.
     // LLM이 excludeNames를 정확히 전달하지 않았더라도, 실제 검색 결과를 기준으로 다시 한번 중복 여부를 검증하는 최종 방어선
     public boolean isExcluded(

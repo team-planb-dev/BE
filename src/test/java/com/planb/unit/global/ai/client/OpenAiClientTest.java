@@ -6,7 +6,10 @@ import com.planb.ai.dto.response.PlaceWithRouteResult;
 import com.planb.ai.mcp.PlanTourismTool;
 import com.planb.ai.mcp.TourismTool;
 import com.planb.ai.prompt.AiPrompt;
-import java.util.function.Predicate;
+
+import java.util.List;
+import java.util.function.Function;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,7 +27,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -149,12 +155,14 @@ class OpenAiClientTest {
     }
 
     @Test
-    @DisplayName("isValid 1차 실패 시 1회 재시도 후 유효한 결과 반환")
-    void call_withIsValid_retriesOnceWhenFirstResultInvalid() {
+    @DisplayName("검증 실패 사유를 correction 요청에 포함하고 1회 재시도")
+    void call_withValidationReason_retriesWithCorrection() {
 
 
         TestDto invalid = new TestDto(null);
         TestDto valid = new TestDto("ok");
+        String reason = "day1 관광지 3개 필요 / 실제 1개";
+        String missingChanges = "changes 필드에 실제 수정 내역 필요";
 
         when(
                 chatClient.prompt()
@@ -164,10 +172,21 @@ class OpenAiClientTest {
                         .options(any())
                         .call()
                         .content()
-        ).thenReturn(
-                "raw-1",
-                "raw-2"
-        );
+        ).thenReturn("raw-1");
+
+        when(
+                chatClient.prompt()
+                        .system(prompt.system())
+                        .user(contains(
+                                "누락 또는 위반 조건:\n- " + reason
+                                        + "\n- " + missingChanges
+                                        + "\n이전 실패 응답:\nraw-1"
+                        ))
+                        .tools()
+                        .options(any())
+                        .call()
+                        .content()
+        ).thenReturn("raw-2");
 
         when(
                 outputConverter.convert("raw-1")
@@ -181,9 +200,18 @@ class OpenAiClientTest {
                 valid
         );
 
-        Predicate<TestDto> isValid = dto -> dto.value() != null;
+        Function<TestDto, List<String>> validation = dto -> dto.value() == null
+                ? List.of(
+                        reason,
+                        missingChanges
+                )
+                : List.of();
 
-        TestDto result = openAiClient.call(prompt, outputConverter, isValid);
+        TestDto result = openAiClient.call(
+                prompt,
+                outputConverter,
+                validation
+        );
 
         assertEquals(valid, result);
 
@@ -194,16 +222,57 @@ class OpenAiClientTest {
     }
 
     @Test
-    @DisplayName("isValid 2회 연속 실패 시 예외 발생")
-    void call_withIsValid_throwsWhenBothAttemptsInvalid() {
-
+    @DisplayName("동일한 무효 구조화 응답 반복 차단")
+    void call_withRepeatedInvalidResponse_throwsRepeatedResponseFailure() {
 
         TestDto invalid = new TestDto(null);
+        String reason = "changes 필드에 실제 수정 내역 필요";
 
         when(
                 chatClient.prompt()
                         .system(prompt.system())
-                        .user(prompt.user())
+                        .user(anyString())
+                        .tools()
+                        .options(any())
+                        .call()
+                        .content()
+        ).thenReturn(
+                "raw-1",
+                "raw-1"
+        );
+
+        when(
+                outputConverter.convert("raw-1")
+        ).thenReturn(
+                invalid
+        );
+
+        Function<TestDto, List<String>> validation = dto -> List.of(reason);
+
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> openAiClient.call(
+                        prompt,
+                        outputConverter,
+                        validation
+                )
+        );
+
+        assertTrue(exception.getMessage().contains("동일한 무효 응답"));
+    }
+
+    @Test
+    @DisplayName("correction 응답도 검증 실패하면 기존 재시도 한도에서 종료")
+    void call_withValidationReason_throwsWhenCorrectionIsInvalid() {
+
+
+        TestDto invalid = new TestDto(null);
+        String reason = "day1 관광지 3개 필요 / 실제 1개";
+
+        when(
+                chatClient.prompt()
+                        .system(prompt.system())
+                        .user(anyString())
                         .tools()
                         .options(any())
                         .call()
@@ -219,12 +288,61 @@ class OpenAiClientTest {
                 invalid
         );
 
-        Predicate<TestDto> isValid = dto -> dto.value() != null;
+        Function<TestDto, List<String>> validation = dto -> List.of(reason);
 
-        assertThrows(
+        IllegalStateException exception = assertThrows(
                 IllegalStateException.class,
-                () -> openAiClient.call(prompt, outputConverter, isValid)
+                () -> openAiClient.call(
+                        prompt,
+                        outputConverter,
+                        validation
+                )
         );
+
+        assertTrue(exception.getMessage().contains(reason));
+        verify(
+                outputConverter,
+                times(2)
+        ).convert(any());
+    }
+
+    @Test
+    @DisplayName("실제 빈 구조화 응답은 validation correction과 구분하여 재시도")
+    void call_withEmptyResponse_retriesWithoutCorrection() {
+
+        TestDto valid = new TestDto("ok");
+
+        when(
+                chatClient.prompt()
+                        .system(prompt.system())
+                        .user(prompt.user())
+                        .tools()
+                        .options(any())
+                        .call()
+                        .content()
+        ).thenReturn(
+                " ",
+                "raw-2"
+        );
+
+        when(outputConverter.convert("raw-2"))
+                .thenReturn(valid);
+
+        Function<TestDto, List<String>> validation = dto -> List.of();
+
+        assertEquals(
+                valid,
+                openAiClient.call(
+                        prompt,
+                        outputConverter,
+                        validation
+                )
+        );
+
+        verify(
+                outputConverter,
+                times(1)
+        ).convert(any());
     }
 
     @Test

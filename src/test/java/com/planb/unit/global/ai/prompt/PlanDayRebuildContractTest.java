@@ -3,7 +3,9 @@ package com.planb.unit.global.ai.prompt;
 import com.planb.ai.context.PlanEditContext;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
 import com.planb.ai.dto.response.RebuildPlanDayResponse;
+import com.planb.ai.prompt.EditPlanPrompt;
 import com.planb.ai.prompt.RebuildPlanDayPrompt;
+import com.planb.ai.prompt.TravelPlanPrompt;
 import com.planb.domain.travel.dto.response.GetAiPlanResponse;
 import com.planb.domain.travel.helper.PlanEditValidationHelper;
 import com.planb.global.config.ai.AiOutputConverterConfig;
@@ -25,6 +27,89 @@ class PlanDayRebuildContractTest {
     private final LocalDate date = LocalDate.of(2026, 9, 14);
 
     private final PlanEditValidationHelper helper = new PlanEditValidationHelper();
+
+    @Test
+    @DisplayName("여행 일정 Prompt는 식사 복약 계산을 Java에 위임")
+    void promptsDelegateMealAndMedicationCalculationToJava() {
+
+        String createPrompt =
+                new TravelPlanPrompt(
+                        null,
+                        null
+                ).system();
+
+        String editPrompt =
+                new EditPlanPrompt(
+                        null,
+                        null
+                ).system();
+
+        String rebuildPrompt =
+                new RebuildPlanDayPrompt(
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                ).system();
+
+        assertFalse(createPrompt.contains("3 × 박"));
+
+        assertFalse(createPrompt.contains("허용 오차는 ±30분"));
+
+        assertFalse(createPrompt.contains("medicationInfos 개수만큼"));
+
+        assertTrue(createPrompt.contains("MEDICATION 슬롯을 생성하지 않습니다"));
+
+        assertTrue(editPrompt.contains("MEDICATION 슬롯을 생성하지 않습니다"));
+
+        assertTrue(rebuildPrompt.contains("MEDICATION 슬롯을 생성하지 않습니다"));
+    }
+
+    @Test
+    @DisplayName("관광지와 음식점 검색 Tool 계약을 분리")
+    void separatesAttractionAndRestaurantSearchContracts() {
+
+        String createPrompt =
+                new TravelPlanPrompt(
+                        null,
+                        null
+                ).system();
+
+        String editPrompt =
+                new EditPlanPrompt(
+                        null,
+                        null
+                ).system();
+
+        String rebuildPrompt =
+                new RebuildPlanDayPrompt(
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                ).system();
+
+        assertTrue(createPrompt.contains("searchAttractionsByRegion(locationDo, locationSigungu)"));
+        assertTrue(createPrompt.contains(
+                "searchRestaurantsByLocation(keyword, locationDo, locationSigungu)"
+        ));
+        assertTrue(createPrompt.contains("candidateId를 Tool 결과 그대로 반환"));
+        assertFalse(createPrompt.contains(
+                "searchTourismByLocation(keyword, locationDo, locationSigungu, contentTypeId=12)"
+        ));
+
+        assertTrue(editPrompt.contains("searchAttractionsByRegion(locationDo, locationSigungu)"));
+        assertTrue(editPrompt.contains(
+                "searchRestaurantsByLocation(keyword, locationDo, locationSigungu)"
+        ));
+
+        assertTrue(rebuildPrompt.contains("searchAttractionsByRegion(locationDo, locationSigungu)"));
+        assertTrue(rebuildPrompt.contains(
+                "searchRestaurantsByLocation(keyword, locationDo, locationSigungu)"
+        ));
+    }
 
     @Test
     @DisplayName("후보 부재 응답을 JSON 파싱 오류와 구분하여 실패 사유 보존")
@@ -146,7 +231,7 @@ class PlanDayRebuildContractTest {
 
         assertTrue(prompt.system().contains("rebuilt=false"));
 
-        assertTrue(prompt.system().contains("구체적인 장소명 또는 음식명만"));
+        assertTrue(prompt.system().contains("searchAttractionsByRegion(locationDo, locationSigungu)"));
 
         assertEquals(
                 1,

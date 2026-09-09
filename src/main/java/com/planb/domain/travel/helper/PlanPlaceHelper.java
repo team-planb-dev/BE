@@ -13,6 +13,7 @@ import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -39,9 +40,22 @@ public class PlanPlaceHelper {
             return Validation.failure("유효하지 않은 일정 시간");
         }
 
+        if (requiresPlace(slot) && Duration
+                .between(
+                        slot.startTime(),
+                        slot.endTime())
+                .toMinutes() != slot.stayMinutes()) {
+            return Validation.failure("일정 시간과 체류시간 불일치");
+        }
+
         if (!requiresPlace(slot)) {
+            boolean validMedication = slot.courseType() == CourseType.MEDICATION
+                    ? slot.medication() != null
+                    : slot.medication() == null;
+
             return blank(slot.locationName()) && blank(slot.location()) && blank(slot.longitude())
                     && blank(slot.latitude()) && slot.restaurantDetail() == null && slot.candidateId() == null
+                    && validMedication
                     ? new Validation(slot, null) : Validation.failure("비장소 슬롯의 장소 정보");
         }
 
@@ -303,7 +317,13 @@ public class PlanPlaceHelper {
             return false;
         }
 
-        Set<String> allowedCategories = Set.of("관광명소", "문화유적", "고궁,궁", "성,성곽", "절,사찰");
+        Set<String> allowedCategories = Set.of(
+                "관광명소",
+                "관광,명소",
+                "문화유적",
+                "고궁,궁",
+                "성,성곽",
+                "절,사찰");
 
         return java.util.Arrays
                 .stream(categoryName.split(">"))

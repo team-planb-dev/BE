@@ -145,7 +145,10 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
 
         TravelPlanAssertions.assertPlan(created, date, true);
         TravelPlanAssertions.assertPlan(stored, date, false);
-        TravelPlanAssertions.assertMealMedication(stored);
+        TravelPlanAssertions.assertMealMedication(
+                stored,
+                LocalTime.of(12, 0)
+        );
         TravelPlanAssertions.assertSameDays(created.path("planDays"), stored.path("planDays"));
         assertThat(TravelPlanAssertions.codes(stored.path("tags")))
                 .isEqualTo(TravelPlanAssertions.codes(created.path("tags")));
@@ -219,7 +222,10 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                 .asBoolean())
                 .isTrue();
         TravelPlanAssertions.assertPlan(after, date, true);
-        TravelPlanAssertions.assertMealMedication(after);
+        TravelPlanAssertions.assertMealMedication(
+                after,
+                LocalTime.of(12, 0)
+        );
         TravelPlanAssertions.assertSameDays(original.path("planDays"), preview.path("before")
                 .path("planDays"));
         TravelPlanAssertions.assertSameDays(original.path("planDays"), stored(id)
@@ -232,7 +238,10 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         JsonNode confirmed = success(postApi("/edit-plan/confirm", new GetAiPlanRequest(id)));
         JsonNode saved = stored(id);
         TravelPlanAssertions.assertPlan(saved, date, false);
-        TravelPlanAssertions.assertMealMedication(saved);
+        TravelPlanAssertions.assertMealMedication(
+                saved,
+                LocalTime.of(12, 0)
+        );
         TravelPlanAssertions.assertSameDays(after.path("planDays"), confirmed.path("planDays"));
         TravelPlanAssertions.assertSameDays(after.path("planDays"), saved.path("planDays"));
         assertThat(counts())
@@ -318,7 +327,10 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                 .path("after");
 
         TravelPlanAssertions.assertPlan(after, date, true);
-        TravelPlanAssertions.assertMealMedication(after);
+        TravelPlanAssertions.assertMealMedication(
+                after,
+                LocalTime.of(12, 0)
+        );
         TravelPlanAssertions.assertSameDays(
                 objectMapper.valueToTree(List.of(original.path("planDays")
                         .get(1))),
@@ -457,9 +469,42 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                 number,
                 date.plusDays(number - 1),
                 List.of(
-                        slot(source * 10 + 1, CourseType.ATTRACTION, 9, candidates, optionalCoordinates),
-                        slot(source * 10 + 2, CourseType.RESTAURANT, 12, candidates, false),
-                        slot(source * 10 + 3, CourseType.CAFE_REST, 14, candidates, optionalCoordinates)));
+                        slot(
+                                source * 10 + 1,
+                                CourseType.ATTRACTION,
+                                9,
+                                candidates,
+                                optionalCoordinates
+                        ),
+                        slot(
+                                source * 10 + 2,
+                                CourseType.RESTAURANT,
+                                12,
+                                candidates,
+                                false
+                        ),
+                        slot(
+                                source * 10 + 3,
+                                CourseType.CAFE_REST,
+                                14,
+                                candidates,
+                                optionalCoordinates
+                        ),
+                        slot(
+                                source * 10 + 4,
+                                CourseType.ATTRACTION,
+                                16,
+                                candidates,
+                                optionalCoordinates
+                        ),
+                        slot(
+                                source * 10 + 5,
+                                CourseType.ATTRACTION,
+                                18,
+                                candidates,
+                                optionalCoordinates
+                        )
+                ));
     }
 
     private PlanScheduleDetail slot(

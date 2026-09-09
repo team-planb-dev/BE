@@ -4,7 +4,6 @@ import com.planb.ai.dto.response.PlaceWithRouteResult;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
 
 import java.util.Map;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class PlaceCandidateContext {
@@ -50,23 +49,6 @@ public class PlaceCandidateContext {
     public Candidate find(String id) {
 
         return id == null ? null : candidates.get(id);
-    }
-
-    public Candidate findUniqueByName(String name) {
-
-        if (name == null || name.isBlank()) {
-            return null;
-        }
-
-        List<Candidate> matches = candidates
-                .values()
-                .stream()
-                .filter(candidate -> candidate.name() != null)
-                .filter(candidate -> candidate.name().strip().equals(name.strip()))
-                .limit(2)
-                .toList();
-
-        return matches.size() == 1 ? matches.getFirst() : null;
     }
 
     public void clear() {

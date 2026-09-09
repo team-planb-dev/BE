@@ -5,6 +5,7 @@ import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroRespo
 import com.planb.global.client.kor2Service.handler.Kor2ServiceHandler;
 import com.planb.integration.IntegrationTest;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -63,11 +64,10 @@ class Kor2ServiceHandlerTest extends IntegrationTest {
     void searchKeywordByLocation() {
 
         Kor2KeywordSearchResponse response = kor2ServiceHandler
-                .searchKeyword(
+                .searchRestaurants(
                         "돼지국밥",
                         "부산",
-                        "해운대구",
-                        39
+                        "해운대구"
                 )
                 .block();
 

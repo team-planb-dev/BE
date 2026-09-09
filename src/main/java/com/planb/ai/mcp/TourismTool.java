@@ -16,6 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -25,79 +27,115 @@ public class TourismTool {
 
     private static final List<String> ZONE_TITLE_KEYWORDS = List.of("관광특구", "지구", "권역");
 
+    private static final int ATTRACTION_CANDIDATE_LIMIT = 12;
+
     private final Kor2ServiceHandler kor2ServiceHandler;
     private final KakaoMapServiceHandler kakaoMapServiceHandler;
     private final NutritionService nutritionService;
     private final NutritionEvaluationCollector nutritionEvaluationCollector;
 
     @Tool(description = """
-        여행 일정 생성 중 실제 관광지 또는 음식점을 지역 조건과 함께 검색합니다.
-
-        keyword에는 지역명이나 '맛집' 같은 표현을 포함하지 않고,
-        실제 검색할 장소명 또는 음식명만 전달합니다.
-
-        locationDo와 locationSigungu에는
-        여행 요청에 포함된 시/도와 시/군/구 값을 그대로 사용합니다.
-
-        contentTypeId에는 검색하려는 관광정보 유형의 코드를 전달합니다.
-        """)
-    public Kor2KeywordSearchResponse searchTourismByLocation(
-            String keyword,
+            여행 요청 지역의 실제 관광지 후보를 조회합니다.
+            locationDo와 locationSigungu에는 여행 요청 값을 그대로 전달합니다.
+            광역 지역은 시/도 전체, 도 지역은 시/군 범위로 Java가 조회합니다.
+            검색 keyword와 contentTypeId는 전달하지 않습니다.
+            반환 후보의 candidateId와 장소 정보를 그대로 사용합니다.
+            """)
+    public Kor2KeywordSearchResponse searchAttractionsByRegion(
             String locationDo,
-            String locationSigungu,
-            Integer contentTypeId
+            String locationSigungu
     ) {
 
         log.info(
-                "[AI TOOL] 지역 기반 관광정보 검색 호출 - keyword: {}, locationDo: {}, locationSigungu: {}, contentTypeId: {}",
-                keyword,
+                "[AI TOOL] 지역 관광지 후보 조회 호출 - locationDo: {}, locationSigungu: {}",
                 locationDo,
-                locationSigungu,
-                contentTypeId
+                locationSigungu
         );
 
         return kor2ServiceHandler
-                .searchKeyword(
-                        keyword,
+                .searchAttractions(
                         locationDo,
-                        locationSigungu,
-                        contentTypeId
+                        locationSigungu
                 )
-                .map(response -> excludeZoneItemsIfPossible(response, contentTypeId))
+                .map(this::selectAttractionCandidates)
                 .doOnNext(response ->
                         log.info(
-                                "[AI TOOL] 지역 기반 관광정보 검색 응답 - {}",
+                                "[AI TOOL] 지역 관광지 후보 조회 응답 - {}",
                                 response
                         )
                 )
                 .block();
     }
 
-    private Kor2KeywordSearchResponse excludeZoneItemsIfPossible(
-            Kor2KeywordSearchResponse response,
-            Integer contentTypeId
+    @Tool(description = """
+            여행 요청의 시/군/구에서 실제 음식점을 검색합니다.
+            keyword에는 실제 음식명만 전달하고 locationDo와 locationSigungu에는
+            여행 요청 값을 그대로 전달합니다.
+            """)
+    public Kor2KeywordSearchResponse searchRestaurantsByLocation(
+            String keyword,
+            String locationDo,
+            String locationSigungu
     ) {
-        if (!Integer.valueOf(12).equals(contentTypeId)) {
-            return response;
-        }
 
-        List<Kor2KeywordSearchResponse.Item> items = response.response().body().items().item();
+        log.info(
+                "[AI TOOL] 지역 음식점 검색 호출 - keyword: {}, locationDo: {}, locationSigungu: {}",
+                keyword,
+                locationDo,
+                locationSigungu
+        );
+
+        return kor2ServiceHandler
+                .searchRestaurants(
+                        keyword,
+                        locationDo,
+                        locationSigungu
+                )
+                .doOnNext(response ->
+                        log.info(
+                                "[AI TOOL] 지역 음식점 검색 응답 - {}",
+                                response
+                        )
+                )
+                .block();
+    }
+
+    private Kor2KeywordSearchResponse selectAttractionCandidates(
+            Kor2KeywordSearchResponse response
+    ) {
+
+        List<Kor2KeywordSearchResponse.Item> items = response
+                .response()
+                .body()
+                .items()
+                .item();
+
         if (items.isEmpty()) {
             return response;
         }
 
-        List<Kor2KeywordSearchResponse.Item> filtered = items.stream()
+        List<Kor2KeywordSearchResponse.Item> filtered = items
+                .stream()
                 .filter(item -> !isZoneTitle(item.title()))
                 .toList();
 
-        List<Kor2KeywordSearchResponse.Item> resultItems = filtered.isEmpty() ? items : filtered;
+        List<Kor2KeywordSearchResponse.Item> candidates = new ArrayList<>(
+                filtered.isEmpty() ? items : filtered
+        );
+
+        Collections.shuffle(candidates);
+
+        List<Kor2KeywordSearchResponse.Item> selected = candidates
+                .stream()
+                .limit(ATTRACTION_CANDIDATE_LIMIT)
+                .toList();
 
         return new Kor2KeywordSearchResponse(
                 new Kor2KeywordSearchResponse.Response(
                         response.response().header(),
                         new Kor2KeywordSearchResponse.Body(
-                                new Kor2KeywordSearchResponse.Items(resultItems),
-                                response.response().body().numOfRows(),
+                                new Kor2KeywordSearchResponse.Items(selected),
+                                selected.size(),
                                 response.response().body().pageNo(),
                                 response.response().body().totalCount()
                         )
@@ -228,7 +266,7 @@ public class TourismTool {
 
         다음 두 가지 경우에 사용합니다.
         1) CAFE_REST(카페·휴식) 일정 후보로 제안한 카페 상호명 확인
-        2) searchTourismByLocation(contentTypeId=12)으로 검색되지 않는
+        2) searchAttractionsByRegion(locationDo, locationSigungu)으로 검색되지 않는
            관광지 후보(plannedPlaces 등)의 최후 대체 확인
 
         keyword에는 지역명을 포함한 실제 장소명 후보를 전달합니다.
@@ -245,24 +283,34 @@ public class TourismTool {
 
         found가 false이면 해당 후보는 존재하지 않거나 이미 사용된 것이므로,
         다른 후보명으로 다시 호출하거나 대체 처리합니다.
+
+        categoryCode에는 관광지 AT4 또는 카페 CE7을 전달합니다.
         """)
     public PlaceWithRouteResult findPlaceWithRoute(
             String keyword,
             String previousLocation,
             Transportation transportation,
-            List<String> excludeNames
+            List<String> excludeNames,
+            String categoryCode
     ) {
 
         log.info(
-                "[AI TOOL] 장소+경로 조회 호출 - keyword: {}, previousLocation: {}, transportation: {}, excludeNames: {}",
+                "[AI TOOL] 장소+경로 조회 호출 - keyword: {}, previousLocation: {}, transportation: {}, excludeNames: {}, categoryCode: {}",
                 keyword,
                 previousLocation,
                 transportation,
-                excludeNames
+                excludeNames,
+                categoryCode
         );
 
         return kakaoMapServiceHandler
-                .findPlaceWithRoute(keyword, previousLocation, transportation, excludeNames)
+                .findPlaceWithRoute(
+                        keyword,
+                        previousLocation,
+                        transportation,
+                        excludeNames,
+                        categoryCode
+                )
                 .block();
     }
 }

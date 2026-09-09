@@ -5,13 +5,19 @@ import com.planb.ai.dto.response.CreatePlanAiResponse.PlanScheduleDetail;
 
 import java.util.Set;
 
-public record PlaceReselectPrompt(TravelPlanContext context, PlanScheduleDetail slot,
-        String reason, Set<String> usedPlaces, Set<String> usedMenus) implements AiPrompt {
+public record PlaceReselectPrompt(
+        TravelPlanContext context,
+        PlanScheduleDetail slot,
+        String reason,
+        Set<String> usedPlaces,
+        Set<String> usedMenus
+) implements AiPrompt {
     @Override
     public String system() {
 
-        return "실패한 일정 슬롯 하나의 장소만 다시 검색해 선택합니다. 일정 유형/시간은 유지합니다. "
-                + "반드시 이번 호출의 Tool 검색 candidateId를 선택하고 음식점은 실제 메뉴와 영양 평가를 조회합니다.";
+        return "실패한 일정 슬롯 하나의 장소만 다시 검색해 선택합니다. 일정 유형/시간은 Java가 유지합니다. "
+                + "selectedCandidateId에는 반드시 이번 호출의 Tool 검색 candidateId를 반환하고 "
+                + "음식점은 실제 메뉴와 영양 평가를 restaurantDetail에 반환합니다.";
     }
 
     @Override

@@ -92,11 +92,11 @@ public record EditPlanPrompt(
                 - 변경 대상으로 표시되지 않은 모든 schedule은 "유지 대상"입니다.
                   유지 대상은 scheduleType, courseType, startTime, endTime, locationName,
                   location, longitude, latitude, imageUrl, thumbNailImageUrl, stayMinutes,
-                  travelMinutes, tags, medication, restaurantDetail을 포함한 모든 필드를
+                  travelMinutes, tags, restaurantDetail을 포함한 모든 필드를
                   currentPlan에 있는 값 그대로 복사해 응답에 포함합니다.
                   이 값들을 다시 Tool로 조회하거나 새로운 값으로 재계산하지 않습니다.
-                - MEDICATION 슬롯은 그 슬롯이 연동된 식사 슬롯(relatedMeal 기준)이
-                  변경 대상이 아닌 이상 유지 대상으로 취급합니다.
+                - currentPlan의 MEDICATION 슬롯은 복사하거나 새로 생성하지 않습니다.
+                  Java가 최종 일정에서 제거한 뒤 등록된 복약정보로 다시 생성합니다.
                 - PlanDay 자체의 dayNumber, date는 변경하지 않습니다.
                   이 프롬프트는 일정의 날짜 범위나 총 일수를 변경하는 요청을 다루지 않습니다.
                   (날짜/기간 자체를 바꾸는 요청이면 STEP 7에서 changes에 "지원되지 않는
@@ -108,18 +108,15 @@ public record EditPlanPrompt(
                 이 규칙들은 최초 일정 생성 시 사용하는 규칙과 동일한 수준으로 엄격하게 적용합니다.
 
                 - 관광(ATTRACTION) 슬롯을 새로 정하는 경우
-                  searchTourismByLocation(keyword, locationDo, locationSigungu, contentTypeId=12)로
-                  실제 관광지 정보를 확인합니다. TourAPI 검색이 재검색까지 모두 실패하면
-                  findPlaceWithRoute(keyword, previousLocation, transportation, excludeNames)를
-                  대체 수단으로 사용합니다.
+                  searchAttractionsByRegion(locationDo, locationSigungu)이 반환한 후보 중에서만 선택하고,
+                  선택한 candidateId를 그대로 반환합니다. plannedPlaces가 지역 후보에 없을 때만
+                  입력 장소명으로 findPlaceWithRoute를 사용합니다.
                 - 이미 사용 중이던 슬롯을 교체하거나(STEP 1 유형 3), 특정 날짜 전체를
                   다시 구성하는 경우(STEP 1 유형 5)에는, 새로 확정하는 슬롯이 교체
                   대상이 되기 전 슬롯 또는 이 여행 전체 기간의 다른 유지 대상 슬롯과
                   실제로 다른 장소가 되도록 적극적으로 시도합니다.
-                  - ATTRACTION: keyword를 교체 전과 다르게 선택하거나(더 구체적인
-                    스팟명, 다른 테마의 관광지 등), searchTourismByLocation 검색
-                    결과의 첫 번째 item이 이미 사용 중인 장소와 같으면 그다음 순위의
-                    item을 대신 사용합니다.
+                  - ATTRACTION: searchAttractionsByRegion(locationDo, locationSigungu) 결과에서 기존 장소와 다른
+                    candidateId를 선택합니다.
                   - RESTAURANT, LOCAL_FOOD: localFoods·recommendFoods 중 아직
                     사용하지 않은 다른 음식으로 keyword를 바꿔 검색합니다.
                   - CAFE_REST: 위 findPlaceWithRoute의 excludeNames 규칙을 그대로
@@ -129,13 +126,13 @@ public record EditPlanPrompt(
                     동일한 장소를 그대로 유지할 수 있으며, 이 경우 changes에
                     "다른 실제 후보가 없어 기존 장소를 유지했다"는 취지를 명시합니다.
                 - 음식점(RESTAURANT) 슬롯을 새로 정하는 경우
-                  searchTourismByLocation(keyword, locationDo, locationSigungu, contentTypeId=39)로
+                  searchRestaurantsByLocation(keyword, locationDo, locationSigungu)로
                   음식점을 확인한 뒤, 반드시 getRestaurantDetail(contentId)로 상세정보를
                   조회하고, evaluateFoodNutrition(실제 메뉴, 여행자의 diseaseType)으로
                   건강 조건을 평가합니다. healthContexts의 ALLERGY/AVOID 음식은 STEP 4의
                   규칙과 동일하게 전체 일행 기준으로 제외합니다.
                 - CAFE_REST 슬롯을 새로 정하는 경우
-                  findPlaceWithRoute(keyword, previousLocation, transportation, excludeNames)로
+                  findPlaceWithRoute(keyword, previousLocation, transportation, excludeNames, courseType)로
                   확인합니다.
                 - 새로 확정하는 모든 슬롯의 장소·메뉴는, 이 여행 전체 기간(currentPlan의
                   유지 대상 슬롯 포함)에서 이미 사용된 관광지명·카페명·메뉴와 중복되지
@@ -162,7 +159,6 @@ public record EditPlanPrompt(
                   - PARK_WALK: LIGHT_WALK, NATURAL_SCENERY
                   - MUST_HAVE: MUST_VISIT
                   - TRANSPORTATION: WALKING(도보 이동인 경우만 해당)
-                  - MEDICATION: 백엔드가 MEDICATION_SCHEDULE을 자동 부여하므로 직접 포함하지 않습니다.
                   MEDICATION_SCHEDULE, CAR, TRANSIT, LOCAL_FOOD, CARBOHYDRATE_REFERENCE,
                   SODIUM_REFERENCE, SATURATED_FAT_REFERENCE, ALLERGY_CHECK는 백엔드가 자동으로
                   부여하므로 이 응답에 직접 포함하지 않아도 됩니다.
@@ -185,13 +181,11 @@ public record EditPlanPrompt(
                   대상 슬롯과 시간이 겹치지 않도록 유지 대상 슬롯의 시간대는 그대로 두고
                   변경 대상 슬롯의 시간대만 조정합니다.
 
-                [STEP 5. 복약 일정 재조정]
+                [STEP 5. 복약 일정 제외]
 
-                - STEP 3~4에 의해 식사 슬롯의 시간이 바뀐 경우에만, 그 식사에 연동된
-                  MEDICATION 슬롯의 시간을 medicationBasis 규칙(WITH_MEAL/INDEPENDENT/
-                  UNKNOWN, TravelPlanPrompt와 동일한 계산 방식)에 따라 다시 계산합니다.
-                - 식사 슬롯 시간이 바뀌지 않았다면 연동된 MEDICATION 슬롯은 유지 대상으로
-                  취급하고 재계산하지 않습니다.
+                - MEDICATION 슬롯을 생성하지 않습니다.
+                - medication 필드는 null로 반환합니다.
+                - Java가 최종 식사시간과 등록된 복약정보를 기준으로 복약 일정을 다시 생성합니다.
 
                 [STEP 6. 수정 사항(changes) 생성]
 

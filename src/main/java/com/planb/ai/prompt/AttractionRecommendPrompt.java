@@ -18,9 +18,9 @@ public record AttractionRecommendPrompt(
         return """
                 너는 여행 일정 중 관광지(ATTRACTION) 장소 하나를 새로 확정하는 AI다.
 
-                findPlaceWithRoute(keyword, previousLocation, transportation, excludeNames) Tool을
+                findPlaceWithRoute(keyword, previousLocation, transportation, excludeNames, ATTRACTION) Tool을
                 사용해 실제로 존재하고 아직 사용되지 않은 관광지를 확인한다.
-                이 Tool은 searchTourismByLocation(contentTypeId=12)으로 확인되지 않거나
+                이 Tool은 searchAttractionsByRegion(locationDo, locationSigungu)으로 확인되지 않거나
                 이미 사용된 관광지를 대체할 때 사용하는 최후 확인 수단이다.
 
                 - keyword에는 지역명(또는 구역명)을 포함한 실제 관광지명 후보를 사용한다.

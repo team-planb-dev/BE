@@ -21,6 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -62,26 +63,26 @@ class TravelIntegrationTest extends TravelApiTestSupport {
 
         CreateTravelRequest createTravelRequest =
                 new CreateTravelRequest(
-                        "부산 건강 여행",
-                        "부산",
-                        "해운대구",
+                        "서울 건강 여행",
+                        "서울",
+                        "종로구",
                         startDate,
                         DateType.ONE_NIGHT_TWO_DAYS,
                         Transportation.TRANSIT,
-                        "해운대",
+                        "서울역",
                         List.of(
                                 new CreateTravelRequest.PlannedPlaceDetail(
-                                        "해운대해수욕장",
-                                        "부산광역시 해운대구"
+                                        "경복궁",
+                                        "서울 종로구"
                                 )
                         ),
                         TravelStyle.MATCH_MEAL_TIME,
                         TravelTheme.TASTE,
-                        List.of("돼지국밥"),
+                        List.of("설렁탕"),
                         List.of(
-                                "돼지국밥",
-                                "밀면",
-                                "회"
+                                "설렁탕",
+                                "불고기",
+                                "비빔밥"
                         )
                 );
 
@@ -135,8 +136,8 @@ class TravelIntegrationTest extends TravelApiTestSupport {
         // when & then
         mockMvc.perform(
                         get(RECOMMEND_LOCAL_FOOD_URL)
-                                .param("locationDo", "부산")
-                                .param("locationSigungu", "해운대구")
+                                .param("locationDo", "제주특별자치도")
+                                .param("locationSigungu", "제주시")
                                 .header(
                                         "Authorization",
                                         loginResult.accessToken()
@@ -172,7 +173,7 @@ class TravelIntegrationTest extends TravelApiTestSupport {
         MvcResult mvcResult =
                 mockMvc.perform(
                                 get(SEARCH_PLANNED_PLACE_URL)
-                                        .param("searchText", "해운대해수욕장")
+                                        .param("searchText", "전주한옥마을")
                                         .header(
                                                 "Authorization",
                                                 loginResult.accessToken()
@@ -211,30 +212,30 @@ class TravelIntegrationTest extends TravelApiTestSupport {
         addCompanion(loginResult.accessToken());
 
         String travelName =
-                "경주 건강 여행 " + UUID.randomUUID();
+                "강릉 건강 여행 " + UUID.randomUUID();
 
         CreateTravelRequest createTravelRequest =
                 new CreateTravelRequest(
                         travelName,
-                        "경상북도",
-                        "경주시",
+                        "강원특별자치도",
+                        "강릉시",
                         LocalDate.now().plusDays(7),
                         DateType.ONE_NIGHT_TWO_DAYS,
                         Transportation.TRANSIT,
-                        "경주",
+                        "강릉역",
                         List.of(
                                 new CreateTravelRequest.PlannedPlaceDetail(
-                                        "불국사",
-                                        "경상북도 경주시"
+                                        "경포대",
+                                        "강원특별자치도 강릉시"
                                 )
                         ),
                         TravelStyle.MATCH_MEAL_TIME,
                         TravelTheme.TASTE,
-                        List.of("황남빵"),
+                        List.of("초당순두부"),
                         List.of(
-                                "황남빵",
-                                "쌈밥",
-                                "연잎밥"
+                                "초당순두부",
+                                "물회",
+                                "장칼국수"
                         )
                 );
 
@@ -347,7 +348,10 @@ class TravelIntegrationTest extends TravelApiTestSupport {
 
         TravelPlanAssertions.assertPlan(created, createTravelRequest.startDate(), true);
         TravelPlanAssertions.assertPlan(stored, createTravelRequest.startDate(), false);
-        TravelPlanAssertions.assertMealMedication(stored);
+        TravelPlanAssertions.assertMealMedication(
+                stored,
+                LocalTime.of(12, 0)
+        );
         TravelPlanAssertions.assertSameDays(created.path("planDays"), stored.path("planDays"));
         assertThat(TravelPlanAssertions.codes(stored.path("tags")))
                 .isEqualTo(TravelPlanAssertions.codes(created.path("tags")));
@@ -374,7 +378,10 @@ class TravelIntegrationTest extends TravelApiTestSupport {
                 .asBoolean())
                 .isTrue();
         TravelPlanAssertions.assertPlan(after, startDate, true);
-        TravelPlanAssertions.assertMealMedication(after);
+        TravelPlanAssertions.assertMealMedication(
+                after,
+                LocalTime.of(12, 0)
+        );
         TravelPlanAssertions.assertSameDays(original.path("planDays"), getStored(travelId, login)
                 .path("planDays"));
         assertThat(after.path("planDays")

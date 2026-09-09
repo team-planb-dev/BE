@@ -40,7 +40,6 @@ import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Tag("external")
 class TravelRecommendHandlerTest extends IntegrationTest {
 
     private static final int EXPECTED_DAY_COUNT = 2;

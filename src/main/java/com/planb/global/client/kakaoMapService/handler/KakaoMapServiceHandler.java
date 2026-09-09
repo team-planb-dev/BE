@@ -195,10 +195,15 @@ public class KakaoMapServiceHandler {
             String keyword,
             String previousLocation,
             Transportation transportation,
-            List<String> excludeNames
+            List<String> excludeNames,
+            String categoryCode
     ) {
 
         return searchPlace(keyword)
+                .map(response -> kakaoPlaceSearchHelper.filterByCategory(
+                        response,
+                        categoryCode
+                ))
                 .filter(kakaoPlaceSearchHelper::hasResult)
                 .filter(response -> !kakaoPlaceSearchHelper.isExcluded(response, excludeNames))
                 .flatMap(response ->

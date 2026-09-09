@@ -33,8 +33,10 @@ import com.planb.domain.travel.helper.PlanPlaceHelper;
 import com.planb.domain.travel.repository.PlanRepository;
 import com.planb.domain.travel.service.PlanService;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
+import com.planb.global.config.exception.domain.BaseException;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -52,6 +54,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -195,25 +198,38 @@ class PlanServiceTest {
     }
 
     @Test
-    @DisplayName("AI 기반 여행 일정 생성 - MEDICATION 슬롯에 MEDICATION_SCHEDULE 태그를 자동으로 부여한다")
-    void makePlanByAiAddsMedicationScheduleTag() {
+    @DisplayName("다음 날짜 첫 장소의 이동시간이 누락되면 이전 날짜 마지막 장소에서 계산한다")
+    void makePlanByAiUsesPreviousDayLastPlaceForMissingRoute() {
 
         TravelPlanContext context =
                 travelPlanContext();
 
-        CreatePlanAiResponse.PlanDayDetail day1 =
-                planDay(
-                        1,
-                        List.of(medicationWithoutTag())
-                );
+        CreatePlanAiResponse.PlanScheduleDetail day1LastPlace =
+                attraction("첫날 마지막 장소");
+
+        CreatePlanAiResponse.PlanScheduleDetail day2FirstPlace =
+                attraction("둘째날 첫 장소");
 
         CreatePlanAiResponse response =
                 new CreatePlanAiResponse(
-                        List.of(day1)
+                        List.of(
+                                planDay(
+                                        1,
+                                        List.of(day1LastPlace)
+                                ),
+                                planDay(
+                                        2,
+                                        List.of(day2FirstPlace)
+                                )
+                        )
                 );
 
         when(
-                travelRecommendHandler.createPlanByAi(eq(context), any(PlaceCandidateContext.class))
+                travelRecommendHandler
+                        .createPlanByAi(
+                                eq(context),
+                                any(PlaceCandidateContext.class)
+                        )
         ).thenReturn(response);
 
         when(
@@ -229,16 +245,352 @@ class PlanServiceTest {
                                 null,
                                 null,
                                 null,
-                                null
+                                25
                         )
                 )
         );
 
         CreatePlanAiResponse result =
+                planService
+                        .makePlanByAi(context);
+
+        assertEquals(
+                25,
+                result
+                        .planDays()
+                        .get(1)
+                        .schedules()
+                        .getFirst()
+                        .travelMinutes()
+        );
+
+        verify(kakaoMapServiceHandler)
+                .getRoute(
+                        "첫날 마지막 장소",
+                        "둘째날 첫 장소",
+                        Transportation.TRANSIT,
+                        "129.16",
+                        "35.16",
+                        "129.16",
+                        "35.16"
+                );
+    }
+
+    @Test
+    @DisplayName("MINIMAL 여행자는 모든 날짜에 관광 장소가 2개 미만이면 일정을 거부한다")
+    void makePlanByAiRejectsInsufficientTouristPlacesForMinimalTraveler() {
+
+        TravelHealthContext healthContext =
+                new TravelHealthContext(
+                        "테스트 여행자",
+                        DiseaseType.DIABETES,
+                        WalkType.MINIMAL,
+                        new TravelHealthContext.MealInfoContext(
+                                LocalTime.of(8, 0),
+                                LocalTime.of(12, 0),
+                                LocalTime.of(18, 0)
+                        ),
+                        List.of(),
+                        List.of()
+                );
+
+        TravelPlanContext context =
+                travelPlanContext(
+                        Transportation.TRANSIT,
+                        List.of(healthContext)
+                );
+
+        when(
+                travelRecommendHandler
+                        .createPlanByAi(
+                                eq(context),
+                                any(PlaceCandidateContext.class)
+                        )
+        ).thenReturn(
+                new CreatePlanAiResponse(
+                        List.of(
+                                planDay(
+                                        1,
+                                        List.of(
+                                                attraction("첫날 관광지 1"),
+                                                attraction("첫날 관광지 2")
+                                        )
+                                ),
+                                planDay(
+                                        2,
+                                        List.of(
+                                                attraction("둘째날 관광지 1")
+                                        )
+                                )
+                        )
+                )
+        );
+
+        BaseException exception =
+                assertThrows(
+                        BaseException.class,
+                        () -> planService
+                                .makePlanByAi(context)
+                );
+
+        assertEquals(
+                "PLAN.EXCEPTION.INVALID_AI_PLACE",
+                exception.getErrorCode()
+        );
+    }
+
+    @Test
+    @DisplayName("ACTIVE 여행자는 모든 날짜에 관광 장소가 3개이면 일정을 허용한다")
+    void makePlanByAiAcceptsThreeTouristPlacesPerDayForActiveTraveler() {
+
+        TravelHealthContext healthContext =
+                new TravelHealthContext(
+                        "테스트 여행자",
+                        DiseaseType.DIABETES,
+                        WalkType.ACTIVE,
+                        new TravelHealthContext.MealInfoContext(
+                                LocalTime.of(8, 0),
+                                LocalTime.of(12, 0),
+                                LocalTime.of(18, 0)
+                        ),
+                        List.of(),
+                        List.of()
+                );
+
+        TravelPlanContext context =
+                travelPlanContext(
+                        Transportation.TRANSIT,
+                        List.of(healthContext)
+                );
+
+        when(
+                travelRecommendHandler
+                        .createPlanByAi(
+                                eq(context),
+                                any(PlaceCandidateContext.class)
+                        )
+        ).thenReturn(
+                new CreatePlanAiResponse(
+                        List.of(
+                                planDay(
+                                        1,
+                                        List.of(
+                                                attraction("첫날 관광지 1", 0),
+                                                attraction("첫날 관광지 2", 0),
+                                                attraction("첫날 관광지 3", 0)
+                                        )
+                                ),
+                                planDay(
+                                        2,
+                                        List.of(
+                                                attraction("둘째날 관광지 1", 0),
+                                                attraction("둘째날 관광지 2", 0),
+                                                attraction("둘째날 관광지 3", 0)
+                                        )
+                                )
+                        )
+                )
+        );
+
+        CreatePlanAiResponse result = planService
+                .makePlanByAi(context);
+
+        assertTrue(result
+                .planDays()
+                .stream()
+                .allMatch(day -> day.schedules().size() == 3));
+    }
+
+    @Test
+    @DisplayName("ACTIVE 여행자는 모든 날짜에 관광 장소가 3개 미만이면 일정을 거부한다")
+    void makePlanByAiRejectsInsufficientTouristPlacesForActiveTraveler() {
+
+        TravelHealthContext healthContext =
+                new TravelHealthContext(
+                        "테스트 여행자",
+                        DiseaseType.DIABETES,
+                        WalkType.ACTIVE,
+                        new TravelHealthContext.MealInfoContext(
+                                LocalTime.of(8, 0),
+                                LocalTime.of(12, 0),
+                                LocalTime.of(18, 0)
+                        ),
+                        List.of(),
+                        List.of()
+                );
+
+        TravelPlanContext context =
+                travelPlanContext(
+                        Transportation.TRANSIT,
+                        List.of(healthContext)
+                );
+
+        when(
+                travelRecommendHandler
+                        .createPlanByAi(
+                                eq(context),
+                                any(PlaceCandidateContext.class)
+                        )
+        ).thenReturn(
+                new CreatePlanAiResponse(
+                        List.of(
+                                planDay(
+                                        1,
+                                        List.of(
+                                                attraction("첫날 관광지 1", 0),
+                                                attraction("첫날 관광지 2", 0),
+                                                attraction("첫날 관광지 3", 0)
+                                        )
+                                ),
+                                planDay(
+                                        2,
+                                        List.of(
+                                                attraction("둘째날 관광지 1", 0),
+                                                attraction("둘째날 관광지 2", 0)
+                                        )
+                                )
+                        )
+                )
+        );
+
+        BaseException exception =
+                assertThrows(
+                        BaseException.class,
+                        () -> planService
+                                .makePlanByAi(context)
+                );
+
+        assertEquals(
+                "PLAN.EXCEPTION.INVALID_AI_PLACE",
+                exception.getErrorCode()
+        );
+    }
+
+    @Test
+    @DisplayName("MUST_HAVE는 날짜별 관광 장소 개수에 포함한다")
+    void makePlanByAiCountsMustHaveAsTouristPlace() {
+
+        TravelHealthContext healthContext =
+                new TravelHealthContext(
+                        "테스트 여행자",
+                        DiseaseType.DIABETES,
+                        WalkType.MINIMAL,
+                        new TravelHealthContext.MealInfoContext(
+                                LocalTime.of(8, 0),
+                                LocalTime.of(12, 0),
+                                LocalTime.of(18, 0)
+                        ),
+                        List.of(),
+                        List.of()
+                );
+
+        TravelPlanContext context =
+                travelPlanContext(
+                        Transportation.TRANSIT,
+                        List.of(healthContext)
+                );
+
+        when(
+                travelRecommendHandler
+                        .createPlanByAi(
+                                eq(context),
+                                any(PlaceCandidateContext.class)
+                        )
+        ).thenReturn(
+                new CreatePlanAiResponse(
+                        List.of(
+                                planDay(
+                                        1,
+                                        List.of(
+                                                attraction("첫날 관광지", 0),
+                                                mustHave("첫날 필수 장소")
+                                        )
+                                ),
+                                planDay(
+                                        2,
+                                        List.of(
+                                                attraction("둘째날 관광지", 0),
+                                                mustHave("둘째날 필수 장소")
+                                        )
+                                )
+                        )
+                )
+        );
+
+        CreatePlanAiResponse result =
+                planService
+                        .makePlanByAi(context);
+
+        assertEquals(
+                2,
+                result
+                        .planDays()
+                        .getFirst()
+                        .schedules()
+                        .size()
+        );
+    }
+
+    @Test
+    @DisplayName("AI 기반 여행 일정 생성 - MEDICATION 슬롯에 MEDICATION_SCHEDULE 태그를 자동으로 부여한다")
+    void makePlanByAiAddsMedicationScheduleTag() {
+
+        TravelHealthContext.MedicationInfoContext medicationInfo =
+                new TravelHealthContext.MedicationInfoContext(
+                        "테스트약",
+                        MedicationBasis.INDEPENDENT,
+                        LocalTime.of(12, 0),
+                        Set.of()
+                );
+
+        TravelHealthContext healthContext =
+                new TravelHealthContext(
+                        "테스트 여행자",
+                        DiseaseType.DIABETES,
+                        WalkType.MODERATE,
+                        new TravelHealthContext.MealInfoContext(
+                                LocalTime.of(8, 0),
+                                LocalTime.of(12, 0),
+                                LocalTime.of(18, 0)
+                        ),
+                        List.of(),
+                        List.of(medicationInfo)
+                );
+
+        TravelPlanContext context =
+                travelPlanContext(
+                        Transportation.TRANSIT,
+                        List.of(healthContext)
+                );
+
+        CreatePlanAiResponse.PlanDayDetail day1 =
+                planDay(
+                        1,
+                        withRequiredAttractions(medicationWithoutTag())
+                );
+
+        CreatePlanAiResponse response =
+                new CreatePlanAiResponse(
+                        List.of(day1)
+                );
+
+        when(
+                travelRecommendHandler.createPlanByAi(eq(context), any(PlaceCandidateContext.class))
+        ).thenReturn(response);
+
+        CreatePlanAiResponse result =
                 planService.makePlanByAi(context);
 
         assertTrue(
-                result.planDays().get(0).schedules().get(0).tags()
+                result
+                        .planDays()
+                        .getFirst()
+                        .schedules()
+                        .stream()
+                        .filter(schedule -> schedule.courseType() == CourseType.MEDICATION)
+                        .findFirst()
+                        .orElseThrow()
+                        .tags()
                         .contains(RecommendationTag.MEDICATION_SCHEDULE)
         );
 
@@ -307,7 +659,13 @@ class PlanServiceTest {
                 );
 
         CreatePlanAiResponse.PlanDayDetail day1 =
-                planDay(1, List.of(lunch, medicationWithoutTag()));
+                planDay(
+                        1,
+                        withRequiredAttractions(
+                                lunch,
+                                medicationWithoutTag()
+                        )
+                );
 
         CreatePlanAiResponse response = new CreatePlanAiResponse(List.of(day1));
 
@@ -336,6 +694,303 @@ class PlanServiceTest {
         assertTrue(medicationSchedule.medication().description().contains("점심"));
         assertTrue(medicationSchedule.medication().description().contains("식후"));
         assertTrue(medicationSchedule.medication().description().contains("30분"));
+    }
+
+    @Test
+    @DisplayName("등록된 복약 정보가 없으면 AI가 만든 MEDICATION 슬롯을 제거한다")
+    void makePlanByAiRemovesMedicationWhenNoMedicationRegistered() {
+
+        TravelPlanContext context =
+                travelPlanContext(
+                        Transportation.TRANSIT,
+                        List.of()
+                );
+
+        CreatePlanAiResponse response =
+                new CreatePlanAiResponse(
+                        List.of(
+                                planDay(
+                                        1,
+                                        List.of(
+                                                transportationSchedule(),
+                                                medicationWithoutTag()
+                                        )
+                                )
+                        )
+                );
+
+        when(
+                travelRecommendHandler
+                        .createPlanByAi(
+                                eq(context),
+                                any(PlaceCandidateContext.class)
+                        )
+        ).thenReturn(response);
+
+        CreatePlanAiResponse result =
+                planService.makePlanByAi(context);
+
+        assertTrue(
+                result
+                        .planDays()
+                        .getFirst()
+                        .schedules()
+                        .stream()
+                        .noneMatch(schedule -> schedule.courseType() == CourseType.MEDICATION)
+        );
+    }
+
+    @Test
+    @DisplayName("동일 시각의 여러 복약 일정을 하나로 병합한다")
+    void makePlanByAiMergesMedicationAtSameTime() {
+
+        TravelHealthContext.MedicationInfoContext.MealMedicationRuleContext rule =
+                new TravelHealthContext.MedicationInfoContext.MealMedicationRuleContext(
+                        RelatedMeal.LUNCH,
+                        MealTiming.AFTER_MEAL,
+                        30
+                );
+
+        TravelHealthContext healthContext =
+                new TravelHealthContext(
+                        "테스트 여행자",
+                        DiseaseType.DIABETES,
+                        WalkType.MODERATE,
+                        new TravelHealthContext.MealInfoContext(
+                                LocalTime.of(8, 0),
+                                LocalTime.of(12, 0),
+                                LocalTime.of(18, 0)
+                        ),
+                        List.of(),
+                        List.of(
+                                new TravelHealthContext.MedicationInfoContext(
+                                        "첫 번째 약",
+                                        MedicationBasis.WITH_MEAL,
+                                        null,
+                                        Set.of(rule)
+                                ),
+                                new TravelHealthContext.MedicationInfoContext(
+                                        "두 번째 약",
+                                        MedicationBasis.WITH_MEAL,
+                                        null,
+                                        Set.of(rule)
+                                )
+                        )
+                );
+
+        TravelPlanContext context =
+                travelPlanContext(
+                        Transportation.TRANSIT,
+                        List.of(healthContext)
+                );
+
+        when(
+                travelRecommendHandler
+                        .createPlanByAi(
+                                eq(context),
+                                any(PlaceCandidateContext.class)
+                        )
+        ).thenReturn(
+                new CreatePlanAiResponse(
+                        List.of(
+                                planDay(
+                                        1,
+                                        withRequiredAttractions(transportationSchedule())
+                                )
+                        )
+                )
+        );
+
+        List<CreatePlanAiResponse.PlanScheduleDetail> medications =
+                planService
+                        .makePlanByAi(context)
+                        .planDays()
+                        .getFirst()
+                        .schedules()
+                        .stream()
+                        .filter(schedule -> schedule.courseType() == CourseType.MEDICATION)
+                        .toList();
+
+        assertEquals(
+                1,
+                medications.size()
+        );
+
+        assertEquals(
+                LocalTime.of(12, 30),
+                medications
+                        .getFirst()
+                        .startTime()
+        );
+
+        assertTrue(
+                medications
+                        .getFirst()
+                        .medication()
+                        .description()
+                        .contains("첫 번째 약")
+        );
+
+        assertTrue(
+                medications
+                        .getFirst()
+                        .medication()
+                        .description()
+                        .contains("두 번째 약")
+        );
+    }
+
+    @Test
+    @DisplayName("적용 대상 식사시간의 허용 범위를 벗어나면 명시적으로 실패한다")
+    void makePlanByAiRejectsMealOutsideAllowedTimeRange() {
+
+        TravelHealthContext healthContext =
+                new TravelHealthContext(
+                        "테스트 여행자",
+                        DiseaseType.DIABETES,
+                        WalkType.MODERATE,
+                        new TravelHealthContext.MealInfoContext(
+                                true,
+                                true,
+                                LocalTime.of(8, 0),
+                                true,
+                                LocalTime.of(12, 0),
+                                true,
+                                LocalTime.of(18, 0)
+                        ),
+                        List.of(),
+                        List.of()
+                );
+
+        TravelPlanContext context =
+                travelPlanContext(
+                        Transportation.TRANSIT,
+                        List.of(healthContext)
+                );
+
+        CreatePlanAiResponse.PlanScheduleDetail lunch =
+                new CreatePlanAiResponse.PlanScheduleDetail(
+                        ScheduleType.LUNCH,
+                        CourseType.RESTAURANT,
+                        LocalTime.of(13, 0),
+                        LocalTime.of(14, 0),
+                        "테스트 식당",
+                        "부산 해운대구",
+                        "129.16",
+                        "35.16",
+                        "image-url",
+                        "thumbnail-url",
+                        60,
+                        0,
+                        Set.of(),
+                        null,
+                        new CreatePlanAiResponse.RestaurantDetail(
+                                "테스트 메뉴",
+                                10.0,
+                                100.0,
+                                5.0,
+                                "",
+                                "부산 해운대구",
+                                "129.16",
+                                "35.16",
+                                "image-url"
+                        )
+                );
+
+        when(
+                travelRecommendHandler
+                        .createPlanByAi(
+                                eq(context),
+                                any(PlaceCandidateContext.class)
+                        )
+        ).thenReturn(
+                new CreatePlanAiResponse(
+                        List.of(
+                                planDay(
+                                        1,
+                                        List.of(lunch)
+                                )
+                        )
+                )
+        );
+
+        BaseException exception =
+                assertThrows(
+                        BaseException.class,
+                        () -> planService.makePlanByAi(context)
+                );
+
+        assertEquals(
+                "PLAN.EXCEPTION.INVALID_AI_PLACE",
+                exception.getErrorCode()
+        );
+    }
+
+    @Test
+    @DisplayName("실제 식사와 등록 식사시간이 모두 없으면 명시적으로 실패한다")
+    void makePlanByAiFailsWhenMedicationBaseTimeIsMissing() {
+
+        TravelHealthContext.MedicationInfoContext.MealMedicationRuleContext rule =
+                new TravelHealthContext.MedicationInfoContext.MealMedicationRuleContext(
+                        RelatedMeal.LUNCH,
+                        MealTiming.AFTER_MEAL,
+                        30
+                );
+
+        TravelHealthContext healthContext =
+                new TravelHealthContext(
+                        "테스트 여행자",
+                        DiseaseType.DIABETES,
+                        WalkType.MODERATE,
+                        new TravelHealthContext.MealInfoContext(
+                                LocalTime.of(8, 0),
+                                null,
+                                LocalTime.of(18, 0)
+                        ),
+                        List.of(),
+                        List.of(
+                                new TravelHealthContext.MedicationInfoContext(
+                                        "테스트약",
+                                        MedicationBasis.WITH_MEAL,
+                                        null,
+                                        Set.of(rule)
+                                )
+                        )
+                );
+
+        TravelPlanContext context =
+                travelPlanContext(
+                        Transportation.TRANSIT,
+                        List.of(healthContext)
+                );
+
+        when(
+                travelRecommendHandler
+                        .createPlanByAi(
+                                eq(context),
+                                any(PlaceCandidateContext.class)
+                        )
+        ).thenReturn(
+                new CreatePlanAiResponse(
+                        List.of(
+                                planDay(
+                                        1,
+                                        List.of(transportationSchedule())
+                                )
+                        )
+                )
+        );
+
+        BaseException exception =
+                assertThrows(
+                        BaseException.class,
+                        () -> planService.makePlanByAi(context)
+                );
+
+        assertEquals(
+                "PLAN.EXCEPTION.INVALID_AI_PLACE",
+                exception.getErrorCode()
+        );
     }
 
     @Test
@@ -475,7 +1130,7 @@ class PlanServiceTest {
         CreatePlanAiResponse.PlanDayDetail day1 =
                 planDay(
                         1,
-                        List.of(restaurant("제육볶음"))
+                        withRequiredAttractions(restaurant("제육볶음"))
                 );
 
         CreatePlanAiResponse response =
@@ -509,7 +1164,15 @@ class PlanServiceTest {
                 planService.makePlanByAi(context);
 
         Set<RecommendationTag> tags =
-                result.planDays().get(0).schedules().get(0).tags();
+                result
+                        .planDays()
+                        .getFirst()
+                        .schedules()
+                        .stream()
+                        .filter(schedule -> schedule.courseType() == CourseType.RESTAURANT)
+                        .findFirst()
+                        .orElseThrow()
+                        .tags();
 
         assertTrue(tags.contains(RecommendationTag.ALLERGY_CHECK));
 
@@ -724,7 +1387,33 @@ class PlanServiceTest {
         );
     }
 
+    private List<CreatePlanAiResponse.PlanScheduleDetail> withRequiredAttractions(
+            CreatePlanAiResponse.PlanScheduleDetail... schedules
+    ) {
+
+        List<CreatePlanAiResponse.PlanScheduleDetail> result =
+                new ArrayList<>(List.of(schedules));
+
+        result.addAll(
+                List.of(
+                        attraction("계약 관광지 1", 0),
+                        attraction("계약 관광지 2", 0),
+                        attraction("계약 관광지 3", 0)
+                )
+        );
+
+        return result;
+    }
+
     private CreatePlanAiResponse.PlanScheduleDetail attraction(String name) {
+
+        return attraction(name, null);
+    }
+
+    private CreatePlanAiResponse.PlanScheduleDetail attraction(
+            String name,
+            Integer travelMinutes
+    ) {
 
         return new CreatePlanAiResponse.PlanScheduleDetail(
                 ScheduleType.ACTIVITY,
@@ -738,8 +1427,29 @@ class PlanServiceTest {
                 "image-url",
                 "thumbnail-url",
                 90,
-                null,
+                travelMinutes,
                 Set.of(RecommendationTag.NATURAL_SCENERY),
+                null,
+                null
+        );
+    }
+
+    private CreatePlanAiResponse.PlanScheduleDetail mustHave(String name) {
+
+        return new CreatePlanAiResponse.PlanScheduleDetail(
+                ScheduleType.ACTIVITY,
+                CourseType.MUST_HAVE,
+                LocalTime.of(11, 0),
+                LocalTime.of(12, 30),
+                name,
+                "부산 해운대구",
+                "129.17",
+                "35.17",
+                "image-url",
+                "thumbnail-url",
+                90,
+                0,
+                Set.of(RecommendationTag.MUST_VISIT),
                 null,
                 null
         );

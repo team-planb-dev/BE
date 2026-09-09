@@ -334,7 +334,7 @@ class TravelFacadeTest {
                                         true,
                                         true,
                                         LocalTime.of(8, 0),
-                                        true,
+                                        false,
                                         LocalTime.of(12, 0),
                                         true,
                                         LocalTime.of(18, 0)
@@ -377,6 +377,34 @@ class TravelFacadeTest {
                                 medicationInfos
                         )
                 );
+
+        assertThat(
+                healthContexts
+                        .getFirst()
+                        .mealInfo()
+                        .applied()
+        ).isTrue();
+
+        assertThat(
+                healthContexts
+                        .getFirst()
+                        .mealInfo()
+                        .breakfastApplied()
+        ).isTrue();
+
+        assertThat(
+                healthContexts
+                        .getFirst()
+                        .mealInfo()
+                        .lunchApplied()
+        ).isFalse();
+
+        assertThat(
+                healthContexts
+                        .getFirst()
+                        .mealInfo()
+                        .dinnerApplied()
+        ).isTrue();
 
         CreatePlanAiResponse.RestaurantDetail aiRestaurantDetail =
                 new CreatePlanAiResponse.RestaurantDetail(

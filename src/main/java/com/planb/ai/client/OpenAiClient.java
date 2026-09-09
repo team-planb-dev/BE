@@ -1,5 +1,6 @@
 package com.planb.ai.client;
 
+import com.planb.ai.mcp.PlanTourismTool;
 import com.planb.ai.prompt.AiPrompt;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +15,11 @@ import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 @Slf4j
@@ -90,57 +95,169 @@ public class OpenAiClient {
             BeanOutputConverter<T> outputConverter,
             Object... tools) {
 
-        return call(prompt, outputConverter, result -> true, tools);
+        Function<T, List<String>> validation = result -> List.of();
+
+        return call(
+                prompt,
+                outputConverter,
+                validation,
+                tools
+        );
     }
 
-    // 커스텀 OutputConverter 호출 (Tool 포함) + 결과 유효성 검증, 실패 시 1회 재시도
-    // 파싱 예외뿐 아니라 파싱은 성공했지만 isValid를 통과하지 못한 빈 응답도 재시도 대상으로 취급
+    // boolean 검증 호출부 호환
     public <T> T call(
             AiPrompt prompt,
             BeanOutputConverter<T> outputConverter,
             Predicate<T> isValid,
             Object... tools) {
 
+        Function<T, List<String>> validation = result -> isValid.test(result)
+                ? List.of()
+                : List.of("응답 유효성 조건을 충족하지 않았습니다.");
+
+        return call(
+                prompt,
+                outputConverter,
+                validation,
+                tools
+        );
+    }
+
+    // 커스텀 OutputConverter 호출 + 교정 가능한 검증 사유, 실패 시 1회 재시도
+    public <T> T call(
+            AiPrompt prompt,
+            BeanOutputConverter<T> outputConverter,
+            Function<T, List<String>> validation,
+            Object... tools
+    ) {
+
+        resetCandidates(tools);
+
+        Set<String> invalidResponses = new HashSet<>();
+
+        GeneratedResponse<T> generated;
+
         try {
-            return callAndConvertValid(prompt, outputConverter, isValid, tools);
+            generated = callAndConvert(
+                    prompt,
+                    outputConverter,
+                    List.of(),
+                    null,
+                    tools
+            );
         } catch (RuntimeException e) {
             log.warn(
-                    "AI 구조화 응답 파싱 또는 검증에 실패하여 1회 재시도합니다. 원인: {}",
+                    "AI 구조화 응답 생성 또는 JSON 파싱 실패 (시도 1/2). 동일 요청으로 1회 재시도합니다. 원인: {}",
                     e.toString()
             );
 
-            return callAndConvertValid(prompt, outputConverter, isValid, tools);
+            prepareRetry(tools);
+
+            return callAndValidate(
+                    prompt,
+                    outputConverter,
+                    validation,
+                    List.of(),
+                    null,
+                    invalidResponses,
+                    tools
+            );
         }
+
+        List<String> failures = validationFailures(
+                validation.apply(generated.value())
+        );
+
+        if (failures.isEmpty()) {
+            return generated.value();
+        }
+
+        invalidResponses.add(generated.content());
+
+        log.warn(
+                "AI 구조화 응답 검증 실패 (시도 1/2). correction 요청으로 1회 재시도합니다. 사유: {}",
+                failures
+        );
+
+        prepareRetry(tools);
+
+        return callAndValidate(
+                prompt,
+                outputConverter,
+                validation,
+                failures,
+                generated.content(),
+                invalidResponses,
+                tools
+        );
     }
 
-    private <T> T callAndConvertValid(
+    private <T> T callAndValidate(
             AiPrompt prompt,
             BeanOutputConverter<T> outputConverter,
-            Predicate<T> isValid,
-            Object... tools) {
+            Function<T, List<String>> validation,
+            List<String> correctionFailures,
+            String previousResponse,
+            Set<String> invalidResponses,
+            Object... tools
+    ) {
 
-        for (Object tool : tools) {
-            if (tool instanceof com.planb.ai.mcp.PlanTourismTool planTool) {
-                planTool.resetCandidates();
+        GeneratedResponse<T> generated = callAndConvert(
+                prompt,
+                outputConverter,
+                correctionFailures,
+                previousResponse,
+                tools
+        );
+
+        List<String> failures = validationFailures(
+                validation.apply(generated.value())
+        );
+
+        if (!failures.isEmpty()) {
+            if (!invalidResponses.add(generated.content())) {
+                throw new IllegalStateException(
+                        "AI가 동일한 무효 응답을 반복했습니다: " + failures
+                );
             }
-        }
-        String content = fetchContent(prompt, outputConverter, tools);
-        T result = convert(outputConverter, content);
 
-        // TODO(diagnostic): planDays가 왜 계속 null로 오는지 원인 조사용 임시 로그.
-        // 원인 파악 끝나면 이 로그(및 이 주석)는 지워야 함.
-        if (!isValid.test(result)) {
             log.warn(
-                    "AI 구조화 응답이 파싱은 성공했지만 내용이 비어 있습니다. 원본 응답: {}",
-                    content
+                    "AI 구조화 응답 검증 실패 (시도 2/2). 사유: {}",
+                    failures
             );
 
             throw new IllegalStateException(
-                    "AI 구조화 응답이 파싱은 성공했지만 내용이 비어 있습니다: " + result
+                    "AI 구조화 응답 검증 실패: " + failures
             );
         }
 
-        return result;
+        return generated.value();
+    }
+
+    private <T> GeneratedResponse<T> callAndConvert(
+            AiPrompt prompt,
+            BeanOutputConverter<T> outputConverter,
+            List<String> correctionFailures,
+            String previousResponse,
+            Object... tools
+    ) {
+
+        String content = fetchContent(
+                prompt,
+                outputConverter,
+                correctionFailures,
+                previousResponse,
+                tools
+        );
+
+        return new GeneratedResponse<>(
+                convert(
+                        outputConverter,
+                        content
+                ),
+                content
+        );
     }
 
     // OpenAI Structured Outputs(response_format=json_schema, strict) 강제 적용
@@ -149,14 +266,21 @@ public class OpenAiClient {
     private <T> String fetchContent(
             AiPrompt prompt,
             BeanOutputConverter<T> outputConverter,
-            Object... tools) {
+            List<String> correctionFailures,
+            String previousResponse,
+            Object... tools
+    ) {
 
         String schema = normalizeSchema(outputConverter.getJsonSchema());
 
-        return chatClient
+        String content = chatClient
                 .prompt()
                 .system(prompt.system())
-                .user(prompt.user())
+                .user(userPrompt(
+                        prompt,
+                        correctionFailures,
+                        previousResponse
+                ))
                 .tools(tools)
                 .options(
                         OpenAiChatOptions.builder()
@@ -169,6 +293,80 @@ public class OpenAiClient {
                 )
                 .call()
                 .content();
+
+        if (content == null || content.isBlank()) {
+            log.warn("AI 구조화 응답이 비어 있습니다.");
+            throw new IllegalStateException("AI 구조화 응답이 비어 있습니다.");
+        }
+
+        return content;
+    }
+
+    private String userPrompt(
+            AiPrompt prompt,
+            List<String> correctionFailures,
+            String previousResponse
+    ) {
+
+        if (correctionFailures.isEmpty()) {
+            return prompt.user();
+        }
+
+        String failureList = correctionFailures
+                .stream()
+                .map(failure -> "- " + failure)
+                .collect(java.util.stream.Collectors.joining("\n"));
+
+        return prompt.user() + """
+
+
+                [Java 검증 교정 요청]
+                이전 구조화 응답이 Java 검증에 실패했습니다.
+                누락 또는 위반 조건:
+                %s
+                이전 실패 응답:
+                %s
+                이전 실패 응답에서 정상인 값과 candidateId는 유지합니다.
+                위 목록의 모든 조건을 채우거나 교정한 전체 응답을 반환합니다.
+                """.formatted(
+                failureList,
+                previousResponse
+        );
+    }
+
+    private List<String> validationFailures(List<String> failures) {
+
+        if (failures == null || failures.isEmpty()) {
+            return List.of();
+        }
+
+        Set<String> uniqueFailures = new LinkedHashSet<>();
+
+        for (String failure : failures) {
+            if (failure != null && !failure.isBlank()) {
+                uniqueFailures.add(failure.trim());
+            }
+        }
+
+        return List.copyOf(uniqueFailures);
+    }
+
+    private void resetCandidates(Object... tools) {
+
+        for (Object tool : tools) {
+            if (tool instanceof PlanTourismTool planTool) {
+                planTool.resetCandidates();
+            }
+        }
+    }
+
+    private void prepareRetry(Object... tools) {
+
+        for (Object tool : tools) {
+            if (tool instanceof PlanTourismTool planTool) {
+                planTool.prepareRetry();
+            }
+        }
     }
 
     // NULLABLE_SCHEDULE_FIELDS null 허용 처리 + date/time format 제거된 스키마 문자열 반환
@@ -254,6 +452,12 @@ public class OpenAiClient {
             throw e;
         }
     }
+
+
+    private record GeneratedResponse<T>(
+            T value,
+            String content
+    ) { }
 
     // 스트리밍 호출
     public Flux<String> stream(AiPrompt prompt) {

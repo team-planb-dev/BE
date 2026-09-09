@@ -4,25 +4,33 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.planb.ai.client.OpenAiClient;
 import com.planb.ai.context.PlaceCandidateContext;
 import com.planb.ai.context.PlanEditContext;
+import com.planb.ai.context.TravelHealthContext;
 import com.planb.ai.context.TravelPlanContext;
 import com.planb.ai.dto.request.MakeFoodRecommendCallRequest;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
 import com.planb.ai.dto.response.EditPlanAiResponse;
+import com.planb.ai.dto.response.PlaceReselectResponse;
 import com.planb.ai.dto.response.RebuildPlanDayResponse;
 import com.planb.ai.dto.response.PlanEditScope;
 import com.planb.ai.prompt.PlanEditScopePrompt;
+import com.planb.ai.prompt.PlaceReselectPrompt;
 import com.planb.ai.prompt.RebuildPlanDayPrompt;
 import com.planb.ai.mcp.PlanTourismTool;
 import com.planb.ai.mcp.TourismTool;
-import com.planb.ai.prompt.AiPrompt;
 import com.planb.ai.prompt.EditPlanPrompt;
 import com.planb.ai.prompt.FoodRecommendPrompt;
 import com.planb.ai.prompt.TravelPlanPrompt;
 import com.planb.ai.prompt.VerifiedPlacePrompt;
 import com.planb.domain.travel.dto.response.MakeRecommendFoodResponse;
+import com.planb.domain.health.entity.constant.WalkType;
+import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.DateType;
 
-import java.util.function.Predicate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.IntStream;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.converter.BeanOutputConverter;
@@ -66,7 +74,7 @@ public class TravelRecommendHandler {
     }
 
     // AI로 사용자의 동행자 및 건강정보를 반영하여 일정생성
-    // planDays가 비어있거나 dateType 기준 예상 일수와 다르면 STEP 9 조립 실패로 간주하고 재시도 대상에 포함
+    // 날짜 또는 walkType 기준 관광지 개수가 맞지 않으면 조립 실패로 간주하고 재시도 대상에 포함
     public CreatePlanAiResponse createPlanByAi(TravelPlanContext travelPlanContext){
 
         return createPlanByAi(travelPlanContext, new PlaceCandidateContext());
@@ -85,10 +93,8 @@ public class TravelRecommendHandler {
                                 objectMapper
                         )),
                         createPlanAiResponseConverter,
-                        hasPlanDays(
+                        validatePlan(
                                 travelPlanContext
-                                        .createTravelRequest()
-                                        .dateType()
                         ),
                         new PlanTourismTool(tourismTool, candidates)
                 );
@@ -114,7 +120,7 @@ public class TravelRecommendHandler {
                                 objectMapper
                         )),
                         editPlanAiResponseConverter,
-                        hasEditPlanDays(
+                        validateEditPlan(
                                 planEditContext
                                         .createTravelRequest()
                                         .dateType()
@@ -156,63 +162,184 @@ public class TravelRecommendHandler {
 
     // 실패 슬롯 하나의 제한 재선택
     public CreatePlanAiResponse.PlanScheduleDetail reselectPlace(
-            AiPrompt prompt,
+            PlaceReselectPrompt prompt,
             PlaceCandidateContext candidates
     ) {
 
-        CreatePlanAiResponse.PlanScheduleDetail response = openAiClient.call(new VerifiedPlacePrompt(prompt),
-                new BeanOutputConverter<>(CreatePlanAiResponse.PlanScheduleDetail.class),
-                new PlanTourismTool(tourismTool, candidates));
+        PlaceReselectResponse response = openAiClient
+                .call(
+                        new VerifiedPlacePrompt(prompt),
+                        new BeanOutputConverter<>(PlaceReselectResponse.class),
+                        new PlanTourismTool(
+                                tourismTool,
+                                candidates));
 
-        if (response == null || response.candidateId() != null) {
-            return response;
+        if (response == null) {
+            return null;
         }
 
-        PlaceCandidateContext.Candidate candidate = candidates
-                .findUniqueByName(response.locationName());
+        CreatePlanAiResponse.PlanScheduleDetail slot = prompt.slot();
 
-        if (candidate == null) {
-            return response;
-        }
+        String candidateId = candidates
+                .find(response.selectedCandidateId()) == null
+                ? null
+                : response.selectedCandidateId();
 
         return new CreatePlanAiResponse.PlanScheduleDetail(
-                response.scheduleType(),
-                response.courseType(),
-                response.startTime(),
-                response.endTime(),
-                response.locationName(),
-                response.location(),
-                response.longitude(),
-                response.latitude(),
-                response.imageUrl(),
-                response.thumbNailImageUrl(),
-                response.stayMinutes(),
-                response.travelMinutes(),
-                response.tags(),
-                response.medication(),
+                slot.scheduleType(),
+                slot.courseType(),
+                slot.startTime(),
+                slot.endTime(),
+                slot.locationName(),
+                slot.location(),
+                slot.longitude(),
+                slot.latitude(),
+                slot.imageUrl(),
+                slot.thumbNailImageUrl(),
+                slot.stayMinutes(),
+                slot.travelMinutes(),
+                slot.tags(),
+                slot.medication(),
                 response.restaurantDetail(),
-                candidate.candidateId());
+                candidateId);
     }
 
-    // planDays가 null이거나 비어있으면 무효, dateType 기준 예상 일수와 다르면 무효
-    // (조립을 완료하지 못했거나 일부 날짜를 누락한 응답)
-    private static Predicate<CreatePlanAiResponse> hasPlanDays(DateType dateType) {
+    // 날짜 수와 walkType 기준 관광지 개수가 모두 맞는 응답만 허용
+    private static Function<CreatePlanAiResponse, List<String>> validatePlan(
+            TravelPlanContext context
+    ) {
+
+        int expectedDayCount = context
+                .createTravelRequest()
+                .dateType()
+                .getPlusDays() + 1;
+
+        return response -> {
+            if (response == null || response.planDays() == null) {
+                return List.of("planDays: 일정 응답이 없습니다.");
+            }
+
+            List<String> failures = new ArrayList<>();
+
+            if (response.planDays().size() != expectedDayCount) {
+                failures.add(
+                        "planDays: 여행 일수 " + expectedDayCount
+                                + "일 필요 / 실제 " + response.planDays().size() + "일"
+                );
+            }
+
+            failures.addAll(
+                    touristPlaceCountFailures(
+                            response,
+                            context.healthContexts(),
+                            expectedDayCount
+                    )
+            );
+
+            return failures;
+        };
+    }
+
+    private static List<String> touristPlaceCountFailures(
+            CreatePlanAiResponse response,
+            List<TravelHealthContext> healthContexts,
+            int expectedDayCount
+    ) {
+
+        if (healthContexts == null || healthContexts.isEmpty()) {
+            return List.of();
+        }
+
+        boolean hasMinimalTraveler = healthContexts
+                .stream()
+                .anyMatch(context -> context.walkType() == WalkType.MINIMAL);
+
+        int expectedCount = hasMinimalTraveler ? 2 : 3;
+
+        List<CreatePlanAiResponse.PlanDayDetail> planDays = response.planDays();
+
+        List<String> failures = IntStream
+                .range(0, expectedDayCount)
+                .mapToObj(dayIndex -> {
+                    CreatePlanAiResponse.PlanDayDetail day = dayIndex < planDays.size()
+                            ? planDays.get(dayIndex)
+                            : null;
+
+                    List<CreatePlanAiResponse.PlanScheduleDetail> touristPlaces =
+                            day == null || day.schedules() == null
+                                    ? List.of()
+                                    : day
+                                            .schedules()
+                                            .stream()
+                                            .filter(Objects::nonNull)
+                                            .filter(schedule -> schedule.courseType() == CourseType.ATTRACTION
+                                                    || schedule.courseType() == CourseType.MUST_HAVE)
+                                            .toList();
+
+                    int actualCount = touristPlaces.size();
+
+                    if (actualCount == expectedCount) {
+                        return null;
+                    }
+
+                    String selectedCandidateIds = touristPlaces
+                            .stream()
+                            .map(CreatePlanAiResponse.PlanScheduleDetail::candidateId)
+                            .filter(Objects::nonNull)
+                            .toList()
+                            .toString();
+
+                    return "planDays[day" + (day == null ? dayIndex + 1 : day.dayNumber())
+                            + "].schedules: 관광지 " + expectedCount
+                            + "개 필요 / 실제 " + actualCount + "개"
+                            + (actualCount < expectedCount
+                                    ? " / 추가 " + (expectedCount - actualCount) + "개"
+                                    : " / 제거 " + (actualCount - expectedCount) + "개")
+                            + " / 유지 candidateId " + selectedCandidateIds
+                            + " / 최초 관광지 candidate 목록 안에서 교정";
+                })
+                .filter(Objects::nonNull)
+                .toList();
+
+        return failures;
+    }
+
+    // 수정 응답의 모든 누락 조건을 한 번에 수집
+    private static Function<EditPlanAiResponse, List<String>> validateEditPlan(
+            DateType dateType
+    ) {
 
         int expectedDayCount = dateType.getPlusDays() + 1;
 
-        return response -> response != null
-                && response.planDays() != null
-                && response.planDays().size() == expectedDayCount;
-    }
+        return response -> {
+            if (response == null) {
+                return List.of("response: 일정 수정 응답이 없습니다.");
+            }
 
-    // editPlanByAi 응답 검증용 (EditPlanAiResponse는 CreatePlanAiResponse와 별개 타입이라 동일 로직 재정의)
-    private static Predicate<EditPlanAiResponse> hasEditPlanDays(DateType dateType) {
+            List<String> failures = new ArrayList<>();
 
-        int expectedDayCount = dateType.getPlusDays() + 1;
+            if (response.planDays() == null) {
+                failures.add("planDays: 수정된 일정이 없습니다.");
+            } else if (response.planDays().size() != expectedDayCount) {
+                failures.add(
+                        "planDays: 여행 일수 " + expectedDayCount
+                                + "일 필요 / 실제 " + response.planDays().size() + "일"
+                );
+            }
 
-        return response -> response != null
-                && response.planDays() != null
-                && response.planDays().size() == expectedDayCount;
+            if (response.processable()
+                    && (response.changes() == null || response.changes().isEmpty())) {
+                failures.add("changes: processable=true인 응답에는 수정 또는 미반영 내역이 필요합니다.");
+            }
+
+            if (!response.processable()
+                    && response.changes() != null
+                    && !response.changes().isEmpty()) {
+                failures.add("changes: processable=false인 응답은 빈 목록이어야 합니다.");
+            }
+
+            return failures;
+        };
     }
 
 }

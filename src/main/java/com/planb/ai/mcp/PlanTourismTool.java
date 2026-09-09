@@ -5,6 +5,7 @@ import com.planb.ai.dto.response.KakaoRouteResult;
 import com.planb.ai.dto.response.PlaceWithRouteResult;
 import com.planb.domain.health.entity.constant.DiseaseType;
 import com.planb.domain.travel.dto.nutrition.NutritionEvaluationResult;
+import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
 import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
@@ -20,53 +21,140 @@ public class PlanTourismTool {
     private final TourismTool tourismTool;
 
     private final PlaceCandidateContext candidates;
+    private String attractionLocationDo;
+    private String attractionLocationSigungu;
+    private Kor2KeywordSearchResponse attractionResponse;
 
     public void resetCandidates() {
+
+        candidates.clear();
+        attractionLocationDo = null;
+        attractionLocationSigungu = null;
+        attractionResponse = null;
+    }
+
+    public void prepareRetry() {
 
         candidates.clear();
     }
 
     @Tool(description = """
-            지역별 실제 장소 검색. 관광지 contentTypeId=12, 음식점=39.
-            keyword에는 실제 장소명 또는 음식명만 전달하며 지역명·'관광지'·'명소'·'맛집'은 포함하지 않습니다.
-            지역은 locationDo/locationSigungu로 별도 전달합니다.
-            예: keyword='동백섬', locationDo='부산', locationSigungu='해운대구'.
-            빈 결과이면 다른 구체적 장소명 후보를 검색하며 지역 전체의 후보 부재로 판단하지 않습니다.
-            반환된 candidateId로 일정 장소를 선택합니다.
+            locationDo와 locationSigungu 범위의 실제 관광지 후보를 조회합니다.
+            광역 지역은 시/도 전체, 도 지역은 시/군 범위로 Java가 조회합니다.
+            keyword와 contentTypeId는 전달하지 않습니다.
+            반환된 후보 중에서만 관광지를 선택하고 candidateId를 그대로 반환합니다.
             """)
-    public List<PlaceCandidateContext.Candidate> searchTourismByLocation(
-            String keyword,
+    public List<PlaceCandidateContext.Candidate> searchAttractionsByRegion(
             String locationDo,
-            String locationSigungu,
-            Integer contentTypeId
+            String locationSigungu
     ) {
 
-        Kor2KeywordSearchResponse response = tourismTool.searchTourismByLocation(
-                keyword, locationDo, locationSigungu, contentTypeId);
+        if (attractionResponse != null
+                && Objects.equals(attractionLocationDo, locationDo)
+                && Objects.equals(attractionLocationSigungu, locationSigungu)) {
+            return recordCandidates(attractionResponse);
+        }
 
-        if (response == null || response.response() == null || response.response().body() == null
-                || response.response().body().items() == null || response.response().body().items().item() == null) {
+        attractionLocationDo = locationDo;
+        attractionLocationSigungu = locationSigungu;
+        attractionResponse = tourismTool
+                .searchAttractionsByRegion(
+                        locationDo,
+                        locationSigungu
+                );
+
+        return recordCandidates(
+                attractionResponse
+        );
+    }
+
+    @Tool(description = """
+            locationDo와 locationSigungu 범위에서 실제 음식점을 검색합니다.
+            keyword에는 실제 음식명만 전달합니다.
+            반환된 후보 중에서만 음식점을 선택하고 candidateId를 그대로 반환합니다.
+            """)
+    public List<PlaceCandidateContext.Candidate> searchRestaurantsByLocation(
+            String keyword,
+            String locationDo,
+            String locationSigungu
+    ) {
+
+        return recordCandidates(
+                tourismTool
+                        .searchRestaurantsByLocation(
+                                keyword,
+                                locationDo,
+                                locationSigungu
+                        )
+        );
+    }
+
+    private List<PlaceCandidateContext.Candidate> recordCandidates(
+            Kor2KeywordSearchResponse response
+    ) {
+
+        if (response == null
+                || response.response() == null
+                || response.response().body() == null
+                || response.response().body().items() == null
+                || response.response().body().items().item() == null) {
             return List.of();
         }
 
-        return response.response().body().items().item().stream().filter(Objects::nonNull)
-                .filter(item -> item.contentid() != null && !item.contentid().isBlank()).map(candidates::record).toList();
+        return response
+                .response()
+                .body()
+                .items()
+                .item()
+                .stream()
+                .filter(Objects::nonNull)
+                .filter(item -> item.contentid() != null
+                        && !item.contentid().isBlank())
+                .map(candidates::record)
+                .toList();
     }
 
     @Tool(description = """
             카카오에서 구체적 장소 후보와 경로 확인. keyword에는 지역을 포함한 실제 장소명을 전달합니다.
             '해운대구 관광지' 같은 일반 표현은 사용하지 않습니다.
             previousLocation은 직전 장소명이며 excludeNames는 제외할 장소명 목록입니다. ID는 넣지 않습니다.
-            candidateId와 원본 categoryCode를 반환합니다. 관광지 AT4, 카페 CE7만 해당 용도로 선택합니다.
+            courseType에 맞는 카카오 카테고리만 검색하며 candidateId와 원본 categoryCode를 반환합니다.
             """)
     public PlaceWithRouteResult findPlaceWithRoute(
             String keyword,
             String previousLocation,
             Transportation transportation,
-            List<String> excludeNames
+            List<String> excludeNames,
+            CourseType courseType
     ) {
 
-        PlaceWithRouteResult result = tourismTool.findPlaceWithRoute(keyword, previousLocation, transportation, excludeNames);
+        String categoryCode = courseType == null
+                ? null
+                : switch (courseType) {
+                    case CAFE_REST -> "CE7";
+                    case ATTRACTION, MUST_HAVE, PARK_WALK -> "AT4";
+                    default -> null;
+                };
+
+        if (categoryCode == null) {
+            return new PlaceWithRouteResult(
+                    false,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
+            );
+        }
+
+        PlaceWithRouteResult result = tourismTool
+                .findPlaceWithRoute(
+                        keyword,
+                        previousLocation,
+                        transportation,
+                        excludeNames,
+                        categoryCode
+                );
 
         candidates.record(result);
 
@@ -76,7 +164,7 @@ public class PlanTourismTool {
     @Tool(description = """
             이번 호출의 검색 결과로 확정한 두 장소 사이의 이동시간 조회.
             originCandidateId와 destinationCandidateId에는 장소명이 아니라
-            searchTourismByLocation 또는 findPlaceWithRoute가 반환한 candidateId를 전달합니다.
+            searchAttractionsByRegion, searchRestaurantsByLocation 또는 findPlaceWithRoute가 반환한 candidateId를 전달합니다.
             후보 ID가 없거나 이번 호출에서 검색하지 않은 후보이면 이동시간을 반환하지 않습니다.
             """)
     public KakaoRouteResult getRoute(

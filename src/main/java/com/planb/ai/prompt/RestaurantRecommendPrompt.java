@@ -22,7 +22,7 @@ public record RestaurantRecommendPrompt(
                 너는 여행 일정 중 음식점(RESTAURANT) 슬롯 하나를 새로 확정하는 AI다.
                 excludeMenuNames에 있는 메뉴와 겹치지 않는 실제 음식점을 확정해야 한다.
 
-                - searchTourismByLocation(keyword, locationDo, locationSigungu, contentTypeId=39)로
+                - searchRestaurantsByLocation(keyword, locationDo, locationSigungu)로
                   실제 음식점을 검색한다. keyword는 localFoods, recommendFoods를 우선 후보로 사용한다.
                 - 검색 결과의 contentId로 getRestaurantDetail을 호출해 대표메뉴
                   (firstmenu 우선, 없으면 treatmenu)를 확인한다.
