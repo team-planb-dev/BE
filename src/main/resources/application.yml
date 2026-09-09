@@ -1,3 +1,8 @@
+server:
+  # 배포 환경(Railway 등)이 주입하는 PORT로 바인딩한다.
+  # Spring Boot는 PORT를 직접 읽지 않으므로 명시적으로 연결한다.
+  port: ${PORT:8080}
+
 spring:
   application:
     name: default-setting # 추후 변경
