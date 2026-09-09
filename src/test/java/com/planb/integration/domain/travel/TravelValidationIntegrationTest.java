@@ -14,8 +14,12 @@ import com.planb.ai.handler.TravelRecommendHandler;
 import com.planb.domain.travel.dto.request.CreateTravelRequest;
 import com.planb.domain.travel.dto.request.EditPlanRequest;
 import com.planb.domain.travel.dto.request.GetAiPlanRequest;
+import com.planb.domain.health.repository.HealthRepository;
+import com.planb.domain.travel.dto.response.ShareTravelResponse;
 import com.planb.domain.travel.entity.constant.*;
 import com.planb.domain.travel.repository.*;
+import com.planb.ai.context.PlanEditContext;
+import com.planb.ai.context.TravelPlanContext;
 import com.planb.domain.travel.service.PlanEditCacheService;
 import com.planb.global.client.kakaoMapService.dto.response.KakaoPlaceSearchResponse;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
@@ -24,6 +28,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.mockito.ArgumentCaptor;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MvcResult;
 import reactor.core.publisher.Mono;
@@ -68,9 +73,17 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     @Autowired
     private PlanEditCacheService cache;
 
+    @Autowired
+    private TravelHealthRepository travelHealths;
+
+    @Autowired
+    private HealthRepository healths;
+
     private final LocalDate date = LocalDate.of(2026, 10, 10);
     private LoginResult session;
     private CreateTravelRequest request;
+    private Long selectedHealthId;
+    private Long unselectedHealthId;
 
     @BeforeEach
     void prepareTravel() throws Exception {
@@ -87,7 +100,8 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         String username = createUniqueUsername();
         createUser(username);
         session = login(username);
-        addCompanion(session.accessToken());
+        selectedHealthId = addCompanion(session.accessToken());
+        unselectedHealthId = addCompanion(session.accessToken(), "동행인2");
 
         request = new CreateTravelRequest(
                 "검증 여행-" + UUID.randomUUID(),
@@ -101,7 +115,8 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                 TravelStyle.MATCH_MEAL_TIME,
                 TravelTheme.TASTE,
                 List.of(),
-                List.of());
+                List.of(),
+                List.of(selectedHealthId));
 
         when(kakao.getRoute(anyString(), anyString(), any()))
                 .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
@@ -428,6 +443,244 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         assertThat(cache.findEditResult(id))
                 .isEmpty();
         TravelPlanAssertions.assertSameDays(original.path("planDays"), stored(id).path("planDays"));
+    }
+
+    @Test
+    @DisplayName("선택한 구성원만 AI 컨텍스트에 포함하고 선택하지 않은 구성원 데이터는 유지한다")
+    void createUsesOnlySelectedCompanions() throws Exception {
+
+        stubCreate(true);
+        success(postApi("/add-with-recommend", request));
+
+        ArgumentCaptor<TravelPlanContext> captor =
+                ArgumentCaptor.forClass(TravelPlanContext.class);
+        verify(handler)
+                .createPlanByAi(captor.capture(), any());
+
+        assertThat(captor.getValue()
+                .healthContexts())
+                .extracting(context -> context.travelerName())
+                .containsExactly("동행인1");
+
+        assertThat(travelHealths.findAllByTravelId(travelId()))
+                .hasSize(1);
+        assertThat(healths.findById(unselectedHealthId))
+                .isPresent();
+    }
+
+    @Test
+    @DisplayName("여러 구성원을 선택하면 모두 관계로 저장하고 중복 요청은 한 번만 저장한다")
+    void createStoresEachSelectedCompanionOnce() throws Exception {
+
+        stubCreate(true);
+        request = withHealthIds(List.of(
+                selectedHealthId,
+                unselectedHealthId,
+                selectedHealthId));
+
+        success(postApi("/add-with-recommend", request));
+
+        ArgumentCaptor<TravelPlanContext> captor =
+                ArgumentCaptor.forClass(TravelPlanContext.class);
+        verify(handler)
+                .createPlanByAi(captor.capture(), any());
+
+        assertThat(captor.getValue()
+                .healthContexts())
+                .extracting(context -> context.travelerName())
+                .containsExactlyInAnyOrder("동행인1", "동행인2");
+        assertThat(travelHealths.findAllByTravelId(travelId()))
+                .hasSize(2);
+    }
+
+    @Test
+    @DisplayName("구성원을 선택하지 않은 생성 요청은 거부하고 여행을 저장하지 않는다")
+    void createRejectsEmptyCompanions() throws Exception {
+
+        List<Long> before = counts();
+        request = withHealthIds(List.of());
+
+        assertError(postApi("/add-with-recommend", request), "TRAVEL.EXCEPTION.COMPANION_REQUIRED");
+        assertThat(counts())
+                .isEqualTo(before);
+        verify(handler, never())
+                .createPlanByAi(any(), any());
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 구성원을 선택한 생성 요청은 거부한다")
+    void createRejectsUnknownCompanion() throws Exception {
+
+        List<Long> before = counts();
+        request = withHealthIds(List.of(selectedHealthId + 100_000L));
+
+        assertError(postApi("/add-with-recommend", request), "TRAVEL.EXCEPTION.COMPANION_NOT_OWNED");
+        assertThat(counts())
+                .isEqualTo(before);
+    }
+
+    @Test
+    @DisplayName("다른 사용자의 구성원을 선택한 생성 요청은 거부한다")
+    void createRejectsOtherUsersCompanion() throws Exception {
+
+        String strangerUsername = createUniqueUsername();
+        createUser(strangerUsername);
+        LoginResult strangerSession = login(strangerUsername);
+        Long strangerHealthId = addCompanion(strangerSession.accessToken(), "남의 동행인");
+
+        List<Long> before = counts();
+        request = withHealthIds(List.of(strangerHealthId));
+
+        assertError(postApi("/add-with-recommend", request), "TRAVEL.EXCEPTION.COMPANION_NOT_OWNED");
+        assertThat(counts())
+                .isEqualTo(before);
+    }
+
+    @Test
+    @DisplayName("수정 미리보기는 여행 생성 당시 선택한 구성원을 그대로 사용한다")
+    void previewReusesSelectedCompanions() throws Exception {
+
+        stubCreate(true);
+        success(postApi("/add-with-recommend", request));
+        Long id = travelId();
+
+        success(postApi("/edit-plan/preview", new EditPlanRequest(id, "장소를 변경해주세요.")));
+
+        ArgumentCaptor<PlanEditContext> captor =
+                ArgumentCaptor.forClass(PlanEditContext.class);
+        verify(handler)
+                .editPlanByAi(captor.capture(), any());
+
+        assertThat(captor.getValue()
+                .healthContexts())
+                .extracting(context -> context.travelerName())
+                .containsExactly("동행인1");
+        assertThat(captor.getValue()
+                .createTravelRequest()
+                .healthIds())
+                .containsExactly(selectedHealthId);
+    }
+
+    @Test
+    @DisplayName("생성 직후에는 저장 전 상태이며 저장 확정에 필요한 travelId를 반환한다")
+    void createReturnsUnsavedTravelId() throws Exception {
+
+        stubCreate(true);
+        JsonNode created = success(postApi("/add-with-recommend", request));
+
+        assertThat(created.path("saved")
+                .asBoolean())
+                .isFalse();
+        assertThat(created.path("travelId")
+                .asLong())
+                .isEqualTo(travelId());
+    }
+
+    @Test
+    @DisplayName("소유자의 저장 확정은 성공하고 중복 요청에도 결과가 같다")
+    void saveIsIdempotentForOwner() throws Exception {
+
+        stubCreate(true);
+        success(postApi("/add-with-recommend", request));
+        Long id = travelId();
+        List<Long> before = counts();
+
+        JsonNode saved = success(postApi("/save", new GetAiPlanRequest(id)));
+        assertThat(saved.path("saved")
+                .asBoolean())
+                .isTrue();
+        assertThat(saved.path("travelId")
+                .asLong())
+                .isEqualTo(id);
+
+        JsonNode again = success(postApi("/save", new GetAiPlanRequest(id)));
+        assertThat(again.path("saved")
+                .asBoolean())
+                .isTrue();
+        assertThat(counts())
+                .isEqualTo(before);
+        assertThat(travels.findById(id)
+                .orElseThrow()
+                .isSaved())
+                .isTrue();
+    }
+
+    @Test
+    @DisplayName("다른 사용자와 존재하지 않는 여행의 저장 확정 요청은 거부한다")
+    void saveRejectsForeignAndUnknownTravel() throws Exception {
+
+        stubCreate(true);
+        success(postApi("/add-with-recommend", request));
+        Long id = travelId();
+
+        String strangerUsername = createUniqueUsername();
+        createUser(strangerUsername);
+        LoginResult strangerSession = login(strangerUsername);
+
+        mockMvc.perform(post("/api/v1/travel/save")
+                        .header("Authorization", strangerSession.accessToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new GetAiPlanRequest(id))))
+                .andExpect(status()
+                        .isForbidden());
+
+        mockMvc.perform(post("/api/v1/travel/save")
+                        .header("Authorization", session.accessToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new GetAiPlanRequest(id + 100_000L))))
+                .andExpect(status()
+                        .isForbidden());
+
+        assertThat(travels.findById(id)
+                .orElseThrow()
+                .isSaved())
+                .isFalse();
+    }
+
+    @Test
+    @DisplayName("저장 전 공유 발급은 거부하고 저장 후에는 같은 토큰을 재사용한다")
+    void shareRequiresSavedTravel() throws Exception {
+
+        stubCreate(true);
+        success(postApi("/add-with-recommend", request));
+        Long id = travelId();
+
+        assertError(postApi("/share/issue", new GetAiPlanRequest(id)), "TRAVEL.EXCEPTION.TRAVEL_NOT_SAVED");
+        assertThat(travels.findById(id)
+                .orElseThrow()
+                .getShareToken())
+                .isNull();
+
+        success(postApi("/save", new GetAiPlanRequest(id)));
+
+        String first = success(postApi("/share/issue", new GetAiPlanRequest(id)))
+                .path("shareToken")
+                .asText();
+        String second = success(postApi("/share/issue", new GetAiPlanRequest(id)))
+                .path("shareToken")
+                .asText();
+
+        assertThat(first)
+                .isNotBlank()
+                .isEqualTo(second);
+    }
+
+    private CreateTravelRequest withHealthIds(List<Long> healthIds) {
+
+        return new CreateTravelRequest(
+                request.travelName(),
+                request.locationDo(),
+                request.locationSigungu(),
+                request.startDate(),
+                request.dateType(),
+                request.transportation(),
+                request.decidedLocation(),
+                request.plannedPlaces(),
+                request.travelStyle(),
+                request.travelTheme(),
+                request.localFoods(),
+                request.recommendFoods(),
+                healthIds);
     }
 
     private void stubCreate(boolean optionalCoordinates) {

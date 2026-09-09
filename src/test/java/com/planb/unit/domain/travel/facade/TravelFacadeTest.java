@@ -156,7 +156,7 @@ class TravelFacadeTest {
         // given
         MakeRecommendFoodsRequest request =
                 new MakeRecommendFoodsRequest(
-                        "부산광역시",
+                        "부산",
                         "해운대구"
                 );
 
@@ -266,7 +266,7 @@ class TravelFacadeTest {
         CreateTravelRequest createTravelRequest =
                 new CreateTravelRequest(
                         "부산 여행",
-                        "부산광역시",
+                        "부산",
                         "해운대구",
                         LocalDate.of(2026, 9, 1),
                         DateType.ONE_NIGHT_TWO_DAYS,
@@ -281,14 +281,15 @@ class TravelFacadeTest {
                         TravelStyle.LESS_WALK,
                         TravelTheme.TASTE,
                         List.of("돼지국밥"),
-                        List.of("밀면")
+                        List.of("밀면"),
+                        List.of(100L)
                 );
 
         Travel travel =
                 Travel.builder()
                         .id(1L)
                         .travelName("부산 여행")
-                        .locationDo("부산광역시")
+                        .locationDo("부산")
                         .locationSigungu("해운대구")
                         .startDate(LocalDate.of(2026, 9, 1))
                         .endDate(LocalDate.of(2026, 9, 2))
@@ -527,12 +528,22 @@ class TravelFacadeTest {
         );
 
         when(
-                healthService
-                        .getHealthListByUserId(
+                healthQueryService
+                        .checkHealthWithUser(
+                                health.getId(),
                                 userId
                         )
         ).thenReturn(
-                List.of(health)
+                true
+        );
+
+        when(
+                healthService
+                        .getHealthById(
+                                health.getId()
+                        )
+        ).thenReturn(
+                health
         );
 
         when(
@@ -786,7 +797,7 @@ class TravelFacadeTest {
                                 "부산 식당"
                         )
                         .location(
-                                "부산광역시"
+                                "부산"
                         )
                         .imageUrl(
                                 "image.jpg"
@@ -851,8 +862,8 @@ class TravelFacadeTest {
 
         when(
                 healthQueryService
-                        .getHealthSummaryList(
-                                userId
+                        .getHealthSummaryListByHealthIds(
+                                List.of()
                         )
         ).thenReturn(
                 healthSummaries
@@ -860,8 +871,8 @@ class TravelFacadeTest {
 
         when(
                 medicationInfoQueryService
-                        .getMedicationTimes(
-                                userId
+                        .getMedicationTimesByHealthIds(
+                                List.of()
                         )
         ).thenReturn(
                 medicationTimes
@@ -1073,14 +1084,14 @@ class TravelFacadeTest {
 
         verify(
                 healthQueryService
-        ).getHealthSummaryList(
-                userId
+        ).getHealthSummaryListByHealthIds(
+                List.of()
         );
 
         verify(
                 medicationInfoQueryService
-        ).getMedicationTimes(
-                userId
+        ).getMedicationTimesByHealthIds(
+                List.of()
         );
 
         verify(
@@ -1198,6 +1209,12 @@ class TravelFacadeTest {
                         username,
                         "ROLE_USER"
                 );
+
+        Travel confirmedTravel =
+                Travel.builder()
+                        .id(travelId)
+                        .travelName("부산 여행")
+                        .build();
 
         Plan plan =
                 Plan.builder()
@@ -1376,6 +1393,15 @@ class TravelFacadeTest {
                         )
         ).thenReturn(
                 newRestaurantDetails
+        );
+
+        when(
+                travelService
+                        .findTravelById(
+                                travelId
+                        )
+        ).thenReturn(
+                confirmedTravel
         );
 
         // when

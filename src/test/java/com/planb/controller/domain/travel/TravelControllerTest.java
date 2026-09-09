@@ -74,7 +74,7 @@ class TravelControllerTest {
         // when & then
         mockMvc.perform(
                         get("/api/v1/travel/recommend-local-food")
-                                .param("locationDo", "부산광역시")
+                                .param("locationDo", "부산")
                                 .param("locationSigungu", "해운대구")
                 )
                 .andExpect(status().isOk())
@@ -149,6 +149,8 @@ class TravelControllerTest {
         // given
         CreatePlanResponse response =
                 new CreatePlanResponse(
+                        1L,
+                        false,
                         Set.of(),
                         List.of()
                 );
@@ -161,7 +163,7 @@ class TravelControllerTest {
         String request = """
                 {
                   "travelName": "부산 여행",
-                  "locationDo": "부산광역시",
+                  "locationDo": "부산",
                   "locationSigungu": "해운대구",
                   "startDate": "2026-09-10",
                   "dateType": null,
@@ -310,6 +312,8 @@ class TravelControllerTest {
         // given
         CreatePlanResponse response =
                 new CreatePlanResponse(
+                        1L,
+                        false,
                         Set.of(),
                         List.of()
                 );

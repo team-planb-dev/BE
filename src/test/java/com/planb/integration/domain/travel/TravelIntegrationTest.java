@@ -61,6 +61,11 @@ class TravelIntegrationTest extends TravelApiTestSupport {
         LocalDate startDate =
                 LocalDate.now().plusDays(7);
 
+        String username = createUniqueUsername();
+        createUser(username);
+        LoginResult loginResult = login(username);
+        Long healthId = addCompanion(loginResult.accessToken());
+
         CreateTravelRequest createTravelRequest =
                 new CreateTravelRequest(
                         "서울 건강 여행",
@@ -80,16 +85,14 @@ class TravelIntegrationTest extends TravelApiTestSupport {
                         TravelTheme.TASTE,
                         List.of("설렁탕"),
                         List.of(
-                                "설렁탕",
                                 "불고기",
-                                "비빔밥"
-                        )
+                                "비빔밥",
+                                "칼국수",
+                                "삼계탕",
+                                "생선구이"
+                        ),
+                        List.of(healthId)
                 );
-
-        String username = createUniqueUsername();
-        createUser(username);
-        LoginResult loginResult = login(username);
-        addCompanion(loginResult.accessToken());
 
         // when
         CreatePlanResponse response =
@@ -209,7 +212,7 @@ class TravelIntegrationTest extends TravelApiTestSupport {
         String username = createUniqueUsername();
         createUser(username);
         LoginResult loginResult = login(username);
-        addCompanion(loginResult.accessToken());
+        Long healthId = addCompanion(loginResult.accessToken());
 
         String travelName =
                 "강릉 건강 여행 " + UUID.randomUUID();
@@ -233,10 +236,13 @@ class TravelIntegrationTest extends TravelApiTestSupport {
                         TravelTheme.TASTE,
                         List.of("초당순두부"),
                         List.of(
-                                "초당순두부",
                                 "물회",
-                                "장칼국수"
-                        )
+                                "장칼국수",
+                                "감자옹심이",
+                                "생선구이",
+                                "막국수"
+                        ),
+                        List.of(healthId)
                 );
 
         // when : AI 일정 생성 (실제 OpenAI + 실제 외부 API + 실제 DB 저장까지 전부 연결)

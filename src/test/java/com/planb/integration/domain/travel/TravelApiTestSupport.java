@@ -1,5 +1,7 @@
 package com.planb.integration.domain.travel;
 
+import com.planb.domain.user.entity.constant.RecoveryQuestion;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import com.planb.integration.IntegrationTest;
 import com.planb.domain.user.dto.request.UserCreateRequest;
@@ -19,6 +21,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.startsWith;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -27,6 +30,7 @@ abstract class TravelApiTestSupport extends IntegrationTest {
     private static final String CREATE_USER_URL = "/api/v1/user/create";
     private static final String LOGIN_URL = "/login";
     private static final String ADD_COMPANION_URL = "/api/v1/health/add-traveler";
+    private static final String COMPANION_SUMMARY_URL = "/api/v1/health/get-companion-summary";
     private static final String NICKNAME = "travelTestNickname";
     private static final String PASSWORD = "test1234!";
 
@@ -45,6 +49,8 @@ abstract class TravelApiTestSupport extends IntegrationTest {
                         username,
                         NICKNAME,
                         PASSWORD,
+                        RecoveryQuestion.FIRST_PET,
+                        "콩이",
                         true,
                         true,
                         true
@@ -140,13 +146,24 @@ abstract class TravelApiTestSupport extends IntegrationTest {
     /*
     동행인(건강정보) 등록 - AI 일정 생성 시 실제 Health 컨텍스트로 반영됨
      */
-    protected void addCompanion(
+    protected Long addCompanion(
             String accessToken
+    ) throws Exception {
+
+        return addCompanion(accessToken, "동행인1");
+    }
+
+    /*
+    이름을 지정해 동행인을 등록하고 생성된 healthId를 반환
+     */
+    protected Long addCompanion(
+            String accessToken,
+            String travelerName
     ) throws Exception {
 
         AddCompanionRequest request =
                 new AddCompanionRequest(
-                        "동행인1",
+                        travelerName,
                         true,
                         true,
 
@@ -175,7 +192,7 @@ abstract class TravelApiTestSupport extends IntegrationTest {
                                 ),
 
                                 new AddCompanionRequest.FoodInfoDetail(
-                                        "과도하게 단 음식",
+                                        "사탕",
                                         FoodType.AVOID
                                 )
                         ),
@@ -219,6 +236,51 @@ abstract class TravelApiTestSupport extends IntegrationTest {
                         jsonPath("$.success")
                                 .value(true)
                 );
+
+        return findHealthId(accessToken, travelerName);
+    }
+
+    /*
+    등록된 동행인 목록에서 이름으로 healthId 조회
+     */
+    protected Long findHealthId(
+            String accessToken,
+            String travelerName
+    ) throws Exception {
+
+        MvcResult result =
+                mockMvc.perform(
+                                get(COMPANION_SUMMARY_URL)
+                                        .header(
+                                                "Authorization",
+                                                accessToken
+                                        )
+                        )
+                        .andExpect(
+                                status().isOk()
+                        )
+                        .andReturn();
+
+        JsonNode companions = objectMapper
+                .readTree(result
+                        .getResponse()
+                        .getContentAsString())
+                .path("data")
+                .path("companionList");
+
+        for (JsonNode companion : companions) {
+
+            if (travelerName.equals(companion
+                    .path("travelerName")
+                    .asText())) {
+
+                return companion
+                        .path("healthId")
+                        .asLong();
+            }
+        }
+
+        throw new IllegalStateException("등록한 동행인을 찾을 수 없습니다: " + travelerName);
     }
 
     protected String createUniqueUsername() {

@@ -1,6 +1,9 @@
 package com.planb.integration.domain.chat;
 
 import com.jayway.jsonpath.JsonPath;
+import com.planb.domain.health.dto.request.AddCompanionRequest;
+import com.planb.domain.health.entity.constant.DiseaseType;
+import com.planb.domain.health.entity.constant.WalkType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -41,6 +44,7 @@ import reactor.core.publisher.Mono;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -84,6 +88,12 @@ public class ChatAiEditPlanIntegrationTest
 
     private static final String ATTRACTION_CANDIDATE_ID =
             "kakao:haeundae-beach";
+
+    private static final String SECOND_ATTRACTION_NAME =
+            "동백섬";
+
+    private static final String SECOND_ATTRACTION_CANDIDATE_ID =
+            "kakao:dongbaek-island";
 
     private static final String ORIGINAL_CAFE_CANDIDATE_ID =
             "kakao:test-cafe";
@@ -525,7 +535,7 @@ public class ChatAiEditPlanIntegrationTest
                     )
                     .andExpect(status().isOk())
                     .andExpect(
-                            jsonPath("$.data.planDays[0].schedules[1].locationName")
+                            jsonPath("$.data.planDays[0].schedules[2].locationName")
                                     .value(EDITED_CAFE_NAME)
                     );
 
@@ -648,7 +658,7 @@ public class ChatAiEditPlanIntegrationTest
                     )
                     .andExpect(status().isOk())
                     .andExpect(
-                            jsonPath("$.data.planDays[0].schedules[1].locationName")
+                            jsonPath("$.data.planDays[0].schedules[2].locationName")
                                     .value(ORIGINAL_CAFE_NAME)
                     );
 
@@ -690,10 +700,84 @@ public class ChatAiEditPlanIntegrationTest
     }
 
     // Travel 생성 후 travelId 반환 (AI 호출은 travelRecommendHandler Mock으로 대체)
+    // 여행 생성에 필요한 동행인을 등록하고 healthId 반환
+    private Long addCompanion(
+            String accessToken,
+            String travelerName
+    ) throws Exception {
+
+        AddCompanionRequest addCompanionRequest =
+                new AddCompanionRequest(
+                        travelerName,
+                        true,
+                        false,
+
+                        new AddCompanionRequest.HealthInfo(
+                                DiseaseType.DIABETES,
+                                WalkType.MINIMAL
+                        ),
+
+                        new AddCompanionRequest.MealInfo(
+                                true,
+                                true,
+                                LocalTime.of(8, 0),
+                                true,
+                                LocalTime.of(12, 0),
+                                true,
+                                LocalTime.of(18, 0)
+                        ),
+
+                        List.of(),
+                        List.of()
+                );
+
+        mockMvc.perform(
+                        post("/api/v1/health/add-traveler")
+                                .header(
+                                        "Authorization",
+                                        accessToken
+                                )
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                addCompanionRequest
+                                        )
+                                )
+                )
+                .andExpect(status().isOk());
+
+        MvcResult result =
+                mockMvc.perform(
+                                get("/api/v1/health/get-companion-summary")
+                                        .header(
+                                                "Authorization",
+                                                accessToken
+                                        )
+                        )
+                        .andExpect(status().isOk())
+                        .andReturn();
+
+        List<Map<String, Object>> companions =
+                JsonPath.read(
+                        result.getResponse()
+                                .getContentAsString(),
+                        "$.data.companionList[?(@.travelerName == '" + travelerName + "')]"
+                );
+
+        return ((Number) companions
+                .get(0)
+                .get("healthId"))
+                .longValue();
+    }
+
     private Long createTravel(
             String accessToken,
             String travelName
     ) throws Exception {
+
+        Long healthId = addCompanion(accessToken, travelName + " 동행인");
 
         CreateTravelRequest createTravelRequest =
                 new CreateTravelRequest(
@@ -713,7 +797,14 @@ public class ChatAiEditPlanIntegrationTest
                         TravelStyle.MATCH_MEAL_TIME,
                         TravelTheme.TASTE,
                         List.of("돼지국밥"),
-                        List.of("돼지국밥", "밀면")
+                        List.of(
+                                "밀면",
+                                "복국",
+                                "씨앗호떡",
+                                "어묵",
+                                "낙지볶음"
+                        ),
+                        List.of(healthId)
                 );
 
         mockMvc.perform(
@@ -812,6 +903,18 @@ public class ChatAiEditPlanIntegrationTest
 
         candidates.record(new PlaceWithRouteResult(
                 true,
+                SECOND_ATTRACTION_NAME,
+                "부산광역시 해운대구",
+                "129.1520",
+                "35.1531",
+                null,
+                SECOND_ATTRACTION_CANDIDATE_ID,
+                "AT4",
+                "여행 > 관광명소 > 섬"
+        ));
+
+        candidates.record(new PlaceWithRouteResult(
+                true,
                 cafeName,
                 "부산광역시 해운대구",
                 "129.1608",
@@ -823,7 +926,8 @@ public class ChatAiEditPlanIntegrationTest
         ));
     }
 
-    // 초기 일정 AI 응답 고정값 (관광지·카페 각 1곳, 경로 조회 결과는 Kakao Handler Mock으로 고정)
+    // 초기 일정 AI 응답 고정값 (관광지 2곳·카페 1곳, 경로 조회 결과는 Kakao Handler Mock으로 고정)
+    // 관광지 수는 TravelRecommendHandler의 기대 개수(걷기 수준 MINIMAL이면 2곳)를 만족해야 한다.
     private CreatePlanAiResponse baseCreatePlanAiResponse() {
 
         CreatePlanAiResponse.PlanScheduleDetail attraction =
@@ -844,6 +948,26 @@ public class ChatAiEditPlanIntegrationTest
                         null,
                         null,
                         ATTRACTION_CANDIDATE_ID
+                );
+
+        CreatePlanAiResponse.PlanScheduleDetail secondAttraction =
+                new CreatePlanAiResponse.PlanScheduleDetail(
+                        ScheduleType.ACTIVITY,
+                        CourseType.ATTRACTION,
+                        LocalTime.of(11, 0),
+                        LocalTime.of(12, 0),
+                        SECOND_ATTRACTION_NAME,
+                        "부산광역시 해운대구",
+                        null,
+                        null,
+                        null,
+                        null,
+                        60,
+                        15,
+                        Set.of(RecommendationTag.NATURAL_SCENERY),
+                        null,
+                        null,
+                        SECOND_ATTRACTION_CANDIDATE_ID
                 );
 
         CreatePlanAiResponse.PlanScheduleDetail cafe =
@@ -870,7 +994,7 @@ public class ChatAiEditPlanIntegrationTest
                 new CreatePlanAiResponse.PlanDayDetail(
                         1,
                         LocalDate.now().plusDays(7),
-                        List.of(attraction, cafe)
+                        List.of(attraction, secondAttraction, cafe)
                 );
 
         return new CreatePlanAiResponse(
@@ -913,6 +1037,26 @@ public class ChatAiEditPlanIntegrationTest
                         ATTRACTION_CANDIDATE_ID
                 );
 
+        CreatePlanAiResponse.PlanScheduleDetail secondAttraction =
+                new CreatePlanAiResponse.PlanScheduleDetail(
+                        ScheduleType.ACTIVITY,
+                        CourseType.ATTRACTION,
+                        LocalTime.of(11, 0),
+                        LocalTime.of(12, 0),
+                        SECOND_ATTRACTION_NAME,
+                        "부산광역시 해운대구",
+                        null,
+                        null,
+                        null,
+                        null,
+                        60,
+                        15,
+                        Set.of(RecommendationTag.NATURAL_SCENERY),
+                        null,
+                        null,
+                        SECOND_ATTRACTION_CANDIDATE_ID
+                );
+
         CreatePlanAiResponse.PlanScheduleDetail editedCafe =
                 new CreatePlanAiResponse.PlanScheduleDetail(
                         ScheduleType.ACTIVITY,
@@ -937,7 +1081,7 @@ public class ChatAiEditPlanIntegrationTest
                 new CreatePlanAiResponse.PlanDayDetail(
                         1,
                         LocalDate.now().plusDays(7),
-                        List.of(attraction, editedCafe)
+                        List.of(attraction, secondAttraction, editedCafe)
                 );
 
         return new EditPlanAiResponse(
