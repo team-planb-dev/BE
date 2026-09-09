@@ -11,10 +11,14 @@ import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
+import com.planb.ai.context.PlaceCandidateContext;
 import com.planb.ai.context.PlanEditContext;
 import com.planb.ai.context.TravelPlanContext;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
 import com.planb.ai.dto.response.EditPlanAiResponse;
+import com.planb.ai.dto.response.KakaoRouteResult;
+import com.planb.ai.dto.response.PlaceWithRouteResult;
+import com.planb.ai.dto.response.PlanEditScope;
 import com.planb.ai.handler.TravelRecommendHandler;
 import com.planb.domain.chat.dto.MessageType;
 import com.planb.domain.chat.dto.request.SendChatMessageRequest;
@@ -29,8 +33,10 @@ import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.domain.travel.entity.constant.TravelStyle;
 import com.planb.domain.travel.entity.constant.TravelTheme;
 import com.planb.domain.travel.repository.TravelRepository;
+import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.integration.domain.chat.helper.ChatIntegrationTestSupport;
 import com.planb.integration.domain.chat.helper.StompTestClientHelper;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -76,6 +82,15 @@ public class ChatAiEditPlanIntegrationTest
     private static final String EDITED_CAFE_NAME =
             "스타벅스 하버타운점";
 
+    private static final String ATTRACTION_CANDIDATE_ID =
+            "kakao:haeundae-beach";
+
+    private static final String ORIGINAL_CAFE_CANDIDATE_ID =
+            "kakao:test-cafe";
+
+    private static final String EDITED_CAFE_CANDIDATE_ID =
+            "kakao:starbucks-harbor-town";
+
     @LocalServerPort
     private int port;
 
@@ -84,6 +99,9 @@ public class ChatAiEditPlanIntegrationTest
 
     @MockitoBean
     private TravelRecommendHandler travelRecommendHandler;
+
+    @MockitoBean
+    private KakaoMapServiceHandler kakaoMapServiceHandler;
 
     private StompTestClientHelper stompHelper;
 
@@ -94,15 +112,33 @@ public class ChatAiEditPlanIntegrationTest
                 new StompTestClientHelper(
                         port
                 );
+
+        when(kakaoMapServiceHandler.getRoute(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any()
+        ))
+                .thenReturn(Mono.just(new KakaoRouteResult(
+                        null,
+                        null,
+                        null,
+                        10
+                )));
+
+        when(travelRecommendHandler.classifyEditScope(any(PlanEditContext.class)))
+                .thenReturn(new PlanEditScope(List.of()));
     }
 
     @Test
-    @DisplayName("여행 연동 채팅방 최초 구독 시 AI 인사 메시지 2건이 발행됨")
+    @DisplayName("여행 채팅방 조회/생성 후 별도 멤버 추가 없이 최초 구독 시 AI 인사 메시지 2건이 발행됨")
     void firstSubscribeToTravelChatRoomPublishesGreetingMessages() throws Exception {
 
         // given
-        when(travelRecommendHandler.createPlanByAi(any(TravelPlanContext.class)))
-                .thenReturn(baseCreatePlanAiResponse());
+        stubCreatePlan();
 
         TestUser testUser =
                 createAuthenticatedUser();
@@ -119,11 +155,14 @@ public class ChatAiEditPlanIntegrationTest
                         travelId
                 );
 
-        addChatRoomMember(
-                testUser.accessToken(),
-                roomId,
-                testUser.userId()
-        );
+        Long existingRoomId =
+                findOrCreateTravelChatRoom(
+                        testUser.accessToken(),
+                        travelId
+                );
+
+        assertThat(existingRoomId)
+                .isEqualTo(roomId);
 
         WebSocketStompClient stompClient =
                 stompHelper.createStompClient();
@@ -189,8 +228,7 @@ public class ChatAiEditPlanIntegrationTest
     void talkPublishesAiEditPreviewReply() throws Exception {
 
         // given
-        when(travelRecommendHandler.createPlanByAi(any(TravelPlanContext.class)))
-                .thenReturn(baseCreatePlanAiResponse());
+        stubCreatePlan();
 
         TestUser testUser =
                 createAuthenticatedUser();
@@ -207,19 +245,10 @@ public class ChatAiEditPlanIntegrationTest
                         travelId
                 );
 
-        addChatRoomMember(
-                testUser.accessToken(),
-                roomId,
-                testUser.userId()
+        stubEditPlan(
+                List.of("1일차 카페를 " + EDITED_CAFE_NAME + "으로 변경"),
+                true
         );
-
-        when(travelRecommendHandler.editPlanByAi(any(PlanEditContext.class)))
-                .thenReturn(
-                        editPlanAiResponse(
-                                List.of("1일차 카페를 " + EDITED_CAFE_NAME + "으로 변경"),
-                                true
-                        )
-                );
 
         WebSocketStompClient stompClient =
                 stompHelper.createStompClient();
@@ -301,8 +330,7 @@ public class ChatAiEditPlanIntegrationTest
     void talkPublishesFallbackMessageWhenNotProcessable() throws Exception {
 
         // given
-        when(travelRecommendHandler.createPlanByAi(any(TravelPlanContext.class)))
-                .thenReturn(baseCreatePlanAiResponse());
+        stubCreatePlan();
 
         TestUser testUser =
                 createAuthenticatedUser();
@@ -319,19 +347,10 @@ public class ChatAiEditPlanIntegrationTest
                         travelId
                 );
 
-        addChatRoomMember(
-                testUser.accessToken(),
-                roomId,
-                testUser.userId()
+        stubEditPlan(
+                List.of(),
+                false
         );
-
-        when(travelRecommendHandler.editPlanByAi(any(PlanEditContext.class)))
-                .thenReturn(
-                        editPlanAiResponse(
-                                List.of(),
-                                false
-                        )
-                );
 
         WebSocketStompClient stompClient =
                 stompHelper.createStompClient();
@@ -398,8 +417,7 @@ public class ChatAiEditPlanIntegrationTest
     void confirmEditPlanAppliesChangeAndPublishesFixedMessage() throws Exception {
 
         // given
-        when(travelRecommendHandler.createPlanByAi(any(TravelPlanContext.class)))
-                .thenReturn(baseCreatePlanAiResponse());
+        stubCreatePlan();
 
         TestUser testUser =
                 createAuthenticatedUser();
@@ -416,19 +434,10 @@ public class ChatAiEditPlanIntegrationTest
                         travelId
                 );
 
-        addChatRoomMember(
-                testUser.accessToken(),
-                roomId,
-                testUser.userId()
+        stubEditPlan(
+                List.of("1일차 카페를 " + EDITED_CAFE_NAME + "으로 변경"),
+                true
         );
-
-        when(travelRecommendHandler.editPlanByAi(any(PlanEditContext.class)))
-                .thenReturn(
-                        editPlanAiResponse(
-                                List.of("1일차 카페를 " + EDITED_CAFE_NAME + "으로 변경"),
-                                true
-                        )
-                );
 
         WebSocketStompClient stompClient =
                 stompHelper.createStompClient();
@@ -467,10 +476,14 @@ public class ChatAiEditPlanIntegrationTest
                     )
             );
 
-            stompHelper.awaitMessage(
-                    messages,
-                    message -> AI_BOT_NICKNAME.equals(message.senderNickname())
-            );
+            SendChatMessageResponse previewResponse =
+                    stompHelper.awaitMessage(
+                            messages,
+                            message -> AI_BOT_NICKNAME.equals(message.senderNickname())
+                    );
+
+            assertThat(previewResponse)
+                    .isNotNull();
 
             // when
             session.send(
@@ -527,8 +540,7 @@ public class ChatAiEditPlanIntegrationTest
     void cancelEditPlanKeepsOriginalPlanAndPublishesFixedMessage() throws Exception {
 
         // given
-        when(travelRecommendHandler.createPlanByAi(any(TravelPlanContext.class)))
-                .thenReturn(baseCreatePlanAiResponse());
+        stubCreatePlan();
 
         TestUser testUser =
                 createAuthenticatedUser();
@@ -545,19 +557,10 @@ public class ChatAiEditPlanIntegrationTest
                         travelId
                 );
 
-        addChatRoomMember(
-                testUser.accessToken(),
-                roomId,
-                testUser.userId()
+        stubEditPlan(
+                List.of("1일차 카페를 " + EDITED_CAFE_NAME + "으로 변경"),
+                true
         );
-
-        when(travelRecommendHandler.editPlanByAi(any(PlanEditContext.class)))
-                .thenReturn(
-                        editPlanAiResponse(
-                                List.of("1일차 카페를 " + EDITED_CAFE_NAME + "으로 변경"),
-                                true
-                        )
-                );
 
         WebSocketStompClient stompClient =
                 stompHelper.createStompClient();
@@ -596,10 +599,14 @@ public class ChatAiEditPlanIntegrationTest
                     )
             );
 
-            stompHelper.awaitMessage(
-                    messages,
-                    message -> AI_BOT_NICKNAME.equals(message.senderNickname())
-            );
+            SendChatMessageResponse previewResponse =
+                    stompHelper.awaitMessage(
+                            messages,
+                            message -> AI_BOT_NICKNAME.equals(message.senderNickname())
+                    );
+
+            assertThat(previewResponse)
+                    .isNotNull();
 
             // when
             session.send(
@@ -739,7 +746,84 @@ public class ChatAiEditPlanIntegrationTest
         return travel.getId();
     }
 
-    // 초기 일정 AI 응답 고정값 (관광지·카페 각 1곳, travelMinutes 채워 Kakao 보정 호출 회피)
+    private void stubCreatePlan() {
+
+        when(travelRecommendHandler.createPlanByAi(
+                any(TravelPlanContext.class),
+                any(PlaceCandidateContext.class)
+        ))
+                .thenAnswer(invocation -> {
+                    PlaceCandidateContext candidates =
+                            invocation.getArgument(1);
+
+                    recordPlanCandidates(
+                            candidates,
+                            ORIGINAL_CAFE_NAME,
+                            ORIGINAL_CAFE_CANDIDATE_ID
+                    );
+
+                    return baseCreatePlanAiResponse();
+                });
+    }
+
+    private void stubEditPlan(
+            List<String> changes,
+            boolean processable
+    ) {
+
+        when(travelRecommendHandler.editPlanByAi(
+                any(PlanEditContext.class),
+                any(PlaceCandidateContext.class)
+        ))
+                .thenAnswer(invocation -> {
+                    PlaceCandidateContext candidates =
+                            invocation.getArgument(1);
+
+                    recordPlanCandidates(
+                            candidates,
+                            processable ? EDITED_CAFE_NAME : ORIGINAL_CAFE_NAME,
+                            processable ? EDITED_CAFE_CANDIDATE_ID : ORIGINAL_CAFE_CANDIDATE_ID
+                    );
+
+                    return editPlanAiResponse(
+                            changes,
+                            processable
+                    );
+                });
+    }
+
+    private void recordPlanCandidates(
+            PlaceCandidateContext candidates,
+            String cafeName,
+            String cafeCandidateId
+    ) {
+
+        candidates.record(new PlaceWithRouteResult(
+                true,
+                "해운대해수욕장",
+                "부산광역시 해운대구",
+                "129.1603",
+                "35.1587",
+                null,
+                ATTRACTION_CANDIDATE_ID,
+                "AT4",
+                "여행 > 관광명소 > 해수욕장"
+        ));
+
+        candidates.record(new PlaceWithRouteResult(
+                true,
+                cafeName,
+                "부산광역시 해운대구",
+                "129.1608",
+                "35.1592",
+                null,
+                cafeCandidateId,
+                "CE7",
+                "음식점 > 카페"
+        ));
+    }
+
+    // 초기 일정 AI 응답 고정값 (관광지·카페 각 1곳, 경로 조회 결과는 Kakao Handler Mock으로 고정)
     private CreatePlanAiResponse baseCreatePlanAiResponse() {
 
         CreatePlanAiResponse.PlanScheduleDetail attraction =
@@ -758,7 +842,8 @@ public class ChatAiEditPlanIntegrationTest
                         15,
                         Set.of(RecommendationTag.NATURAL_SCENERY),
                         null,
-                        null
+                        null,
+                        ATTRACTION_CANDIDATE_ID
                 );
 
         CreatePlanAiResponse.PlanScheduleDetail cafe =
@@ -777,7 +862,8 @@ public class ChatAiEditPlanIntegrationTest
                         10,
                         Set.of(RecommendationTag.REST_POINT),
                         null,
-                        null
+                        null,
+                        ORIGINAL_CAFE_CANDIDATE_ID
                 );
 
         CreatePlanAiResponse.PlanDayDetail day1 =
@@ -823,7 +909,8 @@ public class ChatAiEditPlanIntegrationTest
                         15,
                         Set.of(RecommendationTag.NATURAL_SCENERY),
                         null,
-                        null
+                        null,
+                        ATTRACTION_CANDIDATE_ID
                 );
 
         CreatePlanAiResponse.PlanScheduleDetail editedCafe =
@@ -842,7 +929,8 @@ public class ChatAiEditPlanIntegrationTest
                         10,
                         Set.of(RecommendationTag.REST_POINT),
                         null,
-                        null
+                        null,
+                        EDITED_CAFE_CANDIDATE_ID
                 );
 
         CreatePlanAiResponse.PlanDayDetail editedDay1 =

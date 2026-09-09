@@ -89,4 +89,36 @@ class ChatDestinationResolverTest {
         // then
         assertThat(roomId).isNull();
     }
+    @Test
+    @DisplayName("메시지 발행 destination에서 채팅방 id 추출 성공")
+    void extractSendRoomIdSuccess() {
+
+        // given
+        String destination = "/pub/api/v1/chat/1/send";
+
+        // when
+        Long roomId = chatDestinationResolver
+                .extractSendRoomId(destination);
+
+        // then
+        assertThat(roomId)
+                .isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("메시지 발행 destination 형식이 잘못되면 null 반환")
+    void extractSendRoomIdWithInvalidDestination() {
+
+        // given
+        String destination = "/pub/api/v1/chat/1";
+
+        // when
+        Long roomId = chatDestinationResolver
+                .extractSendRoomId(destination);
+
+        // then
+        assertThat(roomId)
+                .isNull();
+    }
+
 }

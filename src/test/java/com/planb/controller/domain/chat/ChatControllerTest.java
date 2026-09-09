@@ -1,189 +1,60 @@
 package com.planb.controller.domain.chat;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import com.planb.ai.dto.response.EditPlanAiResponse;
+
 import com.planb.domain.chat.controller.ChatController;
 import com.planb.domain.chat.dto.MessageType;
 import com.planb.domain.chat.dto.request.SendChatMessageRequest;
-import com.planb.domain.chat.facade.ChatFacade;
-import com.planb.domain.travel.dto.request.EditPlanRequest;
-import com.planb.domain.travel.dto.request.GetAiPlanRequest;
-import com.planb.domain.travel.dto.response.EditPlanPreviewResponse;
-import com.planb.domain.travel.facade.TravelFacade;
+import com.planb.domain.chat.facade.ChatMessageFacade;
 
 import java.security.Principal;
-import java.util.List;
-import java.util.Optional;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ChatControllerTest {
 
     @Mock
-    private ChatFacade chatFacade;
+    private ChatMessageFacade chatMessageFacade;
 
-    @Mock
-    private TravelFacade travelFacade;
-
+    @InjectMocks
     private ChatController chatController;
 
-    @BeforeEach
-    void setUp() {
-        chatController = new ChatController(chatFacade, travelFacade);
-    }
-
     @Test
-    @DisplayName("Travel과 연결된 방이면 편집 미리보기를 생성해 AI 응답 발행에 위임한다")
-    void sendMessageWithTravelLink() {
+    @DisplayName("STOMP 메시지 처리를 인증 사용자와 함께 Facade에 위임")
+    void sendMessageDelegatesToFacade() {
 
         // given
         Long roomId = 1L;
-        Long travelId = 100L;
+        String username = "testUser@example.com";
 
         SendChatMessageRequest request =
-                new SendChatMessageRequest(MessageType.TALK, "안녕하세요.");
-
-        Principal principal = () -> "testUser@example.com";
-
-        EditPlanAiResponse editPlanAiResponse =
-                new EditPlanAiResponse(
-                        "부산 여행",
-                        List.of(),
-                        List.of("변경 사항 없음"),
-                        true
+                new SendChatMessageRequest(
+                        MessageType.TALK,
+                        "일정을 수정해 주세요."
                 );
 
-        EditPlanPreviewResponse preview =
-                new EditPlanPreviewResponse(
-                        null,
-                        editPlanAiResponse
-                );
-
-        when(chatFacade.findTravelIdByRoomId(roomId))
-                .thenReturn(Optional.of(travelId));
-
-        when(travelFacade.makeEditPlanPreview(
-                new EditPlanRequest(travelId, request.message()),
-                "testUser@example.com"
-        ))
-                .thenReturn(preview);
+        Principal principal = () -> username;
 
         // when
         chatController.sendMessage(
                 roomId,
                 request,
-                principal);
+                principal
+        );
 
         // then
-        verify(chatFacade)
-                .publishMessage(
+        verify(chatMessageFacade)
+                .handleMessage(
                         roomId,
                         request,
-                        "testUser@example.com");
-
-        verify(chatFacade)
-                .publishTalkReply(roomId, preview);
-    }
-
-    @Test
-    @DisplayName("Travel과 연결되지 않은 순수 채팅방이면 AI 미리보기 없이 메시지만 전달한다")
-    void sendMessageWithoutTravelLink() {
-
-        // given
-        Long roomId = 1L;
-
-        SendChatMessageRequest request =
-                new SendChatMessageRequest(MessageType.TALK, "안녕하세요.");
-
-        Principal principal = () -> "testUser@example.com";
-
-        when(chatFacade.findTravelIdByRoomId(roomId))
-                .thenReturn(Optional.empty());
-
-        // when
-        chatController.sendMessage(
-                roomId,
-                request,
-                principal);
-
-        // then
-        verify(chatFacade)
-                .publishMessage(
-                        roomId,
-                        request,
-                        "testUser@example.com");
-
-        verifyNoInteractions(travelFacade);
-
-        verify(chatFacade, never())
-                .publishTalkReply(any(), any());
-    }
-
-    @Test
-    @DisplayName("CONFIRM 메시지면 편집을 확정하고 CONFIRM 완료 메시지 발행에 위임한다")
-    void sendMessageWithConfirmType() {
-
-        // given
-        Long roomId = 1L;
-        Long travelId = 100L;
-
-        SendChatMessageRequest request =
-                new SendChatMessageRequest(MessageType.CONFIRM, null);
-
-        Principal principal = () -> "testUser@example.com";
-
-        when(chatFacade.getTravelIdByRoomId(roomId))
-                .thenReturn(travelId);
-
-        // when
-        chatController.sendMessage(roomId, request, principal);
-
-        // then
-        verify(travelFacade)
-                .confirmEditPlan(
-                        new GetAiPlanRequest(travelId),
-                        "testUser@example.com");
-
-        verify(chatFacade)
-                .publishConfirmReply(roomId);
-    }
-
-    @Test
-    @DisplayName("CANCEL 메시지면 편집을 취소하고 CANCEL 완료 메시지 발행에 위임한다")
-    void sendMessageWithCancelType() {
-
-        // given
-        Long roomId = 1L;
-        Long travelId = 100L;
-
-        SendChatMessageRequest request =
-                new SendChatMessageRequest(MessageType.CANCEL, null);
-
-        Principal principal = () -> "testUser@example.com";
-
-        when(chatFacade.getTravelIdByRoomId(roomId))
-                .thenReturn(travelId);
-
-        // when
-        chatController.sendMessage(roomId, request, principal);
-
-        // then
-        verify(travelFacade)
-                .cancelEditPlan(
-                        new GetAiPlanRequest(travelId),
-                        "testUser@example.com");
-
-        verify(chatFacade)
-                .publishCancelReply(roomId);
+                        username
+                );
     }
 }

@@ -139,6 +139,7 @@ class ChatFacadeTest {
         // given
         Long userId = 10L;
         Long roomId = 1L;
+        String username = "testUser@example.com";
 
         AddChatRoomMemberRequest request =
                 mock(AddChatRoomMemberRequest.class);
@@ -160,8 +161,12 @@ class ChatFacadeTest {
                 .roomId())
                 .thenReturn(roomId);
 
+        when(user
+                .getId())
+                .thenReturn(userId);
+
         when(userQueryService
-                .findById(userId))
+                .findByUsername(username))
                 .thenReturn(user);
 
         when(chatRoomQueryService
@@ -179,27 +184,30 @@ class ChatFacadeTest {
 
         // when
         AddChatUserResponse result =
-                chatFacade.addChatUser(request);
+                chatFacade.addChatUser(
+                        request,
+                        username
+                );
 
         // then
         assertThat(result)
                 .isSameAs(expectedResponse);
 
         InOrder inOrder = inOrder(
-                chatRoomMemberQueryService,
                 userQueryService,
+                chatRoomMemberQueryService,
                 chatRoomQueryService,
                 chatRoomMemberService
         );
+
+        inOrder.verify(userQueryService)
+                .findByUsername(username);
 
         inOrder.verify(chatRoomMemberQueryService)
                 .validateDuplicateMemberWithRoom(
                         roomId,
                         userId
                 );
-
-        inOrder.verify(userQueryService)
-                .findById(userId);
 
         inOrder.verify(chatRoomQueryService)
                 .findChatRoomByRoomId(roomId);
@@ -232,6 +240,7 @@ class ChatFacadeTest {
         // given
         Long userId = 10L;
         Long roomId = 1L;
+        String username = "testUser@example.com";
 
         AddChatRoomMemberRequest request =
                 mock(AddChatRoomMemberRequest.class);
@@ -244,6 +253,17 @@ class ChatFacadeTest {
                 .roomId())
                 .thenReturn(roomId);
 
+        User user =
+                mock(User.class);
+
+        when(userQueryService
+                .findByUsername(username))
+                .thenReturn(user);
+
+        when(user
+                .getId())
+                .thenReturn(userId);
+
         doThrow(new BaseException(
                 WebSocketExceptionEnum.USER_ROOM_DUPLICATED
         ))
@@ -255,7 +275,10 @@ class ChatFacadeTest {
 
         // when & then
         assertThatThrownBy(() ->
-                chatFacade.addChatUser(request))
+                chatFacade.addChatUser(
+                        request,
+                        username
+                ))
                 .isInstanceOf(BaseException.class);
 
         verify(chatRoomMemberQueryService)
@@ -265,7 +288,6 @@ class ChatFacadeTest {
                 );
 
         verifyNoInteractions(
-                userQueryService,
                 chatRoomQueryService,
                 chatRoomMemberService,
                 chatMessageQueryService,
@@ -281,6 +303,7 @@ class ChatFacadeTest {
         // given
         Long userId = 10L;
         Long roomId = 1L;
+        String username = "testUser@example.com";
 
         DeleteChatRoomMemberRequest request =
                 mock(DeleteChatRoomMemberRequest.class);
@@ -305,13 +328,17 @@ class ChatFacadeTest {
                 .roomId())
                 .thenReturn(roomId);
 
+        when(user
+                .getId())
+                .thenReturn(userId);
+
+        when(userQueryService
+                .findByUsername(username))
+                .thenReturn(user);
+
         when(chatRoomMemberQueryService
                 .findByUserId(roomId, userId))
                 .thenReturn(chatRoomMember);
-
-        when(userQueryService
-                .findById(userId))
-                .thenReturn(user);
 
         when(chatRoomQueryService
                 .findChatRoomByRoomId(roomId))
@@ -328,24 +355,27 @@ class ChatFacadeTest {
 
         // when
         DeleteChatUserResponse result =
-                chatFacade.deleteChatUser(request);
+                chatFacade.deleteChatUser(
+                        request,
+                        username
+                );
 
         // then
         assertThat(result)
                 .isSameAs(expectedResponse);
 
         InOrder inOrder = inOrder(
-                chatRoomMemberQueryService,
                 userQueryService,
+                chatRoomMemberQueryService,
                 chatRoomQueryService,
                 chatRoomMemberService
         );
 
+        inOrder.verify(userQueryService)
+                .findByUsername(username);
+
         inOrder.verify(chatRoomMemberQueryService)
                 .findByUserId(roomId, userId);
-
-        inOrder.verify(userQueryService)
-                .findById(userId);
 
         inOrder.verify(chatRoomQueryService)
                 .findChatRoomByRoomId(roomId);
@@ -382,6 +412,7 @@ class ChatFacadeTest {
         // given
         Long roomId = 1L;
         String chatRoomName = "테스트 채팅방";
+        String username = "testUser@example.com";
         Long deletedMessageCount = 3L;
 
         DeleteChatRoomRequest request =
@@ -390,9 +421,27 @@ class ChatFacadeTest {
         ChatRoom chatRoom =
                 mock(ChatRoom.class);
 
+        User user =
+                mock(User.class);
+
         when(request
                 .roomId())
                 .thenReturn(roomId);
+
+        when(userQueryService
+                .findByUsername(username))
+                .thenReturn(user);
+
+        when(user
+                .getId())
+                .thenReturn(10L);
+
+        when(chatRoomMemberQueryService
+                .checkSubscriberWithRoomId(
+                        roomId,
+                        10L
+                ))
+                .thenReturn(true);
 
         when(chatRoomQueryService
                 .findChatRoomByRoomId(roomId))
@@ -412,7 +461,10 @@ class ChatFacadeTest {
 
         // when
         DeleteChatRoomResponse result =
-                chatFacade.deleteChatRoom(request);
+                chatFacade.deleteChatRoom(
+                        request,
+                        username
+                );
 
         // then
         assertThat(result)
@@ -428,11 +480,21 @@ class ChatFacadeTest {
                 .isEqualTo("채팅방이 삭제되었습니다.");
 
         InOrder inOrder = inOrder(
+                userQueryService,
                 chatRoomQueryService,
                 chatRoomMemberQueryService,
                 chatRoomService,
                 chatMessageQueryService
         );
+
+        inOrder.verify(userQueryService)
+                .findByUsername(username);
+
+        inOrder.verify(chatRoomMemberQueryService)
+                .checkSubscriberWithRoomId(
+                        roomId,
+                        10L
+                );
 
         inOrder.verify(chatRoomQueryService)
                 .findChatRoomByRoomId(roomId);
@@ -447,7 +509,6 @@ class ChatFacadeTest {
                 .softDeleteAllMessageInChatRoom(roomId);
 
         verifyNoInteractions(
-                userQueryService,
                 chatRoomMemberService,
                 chatMessageService
         );
@@ -852,6 +913,22 @@ class ChatFacadeTest {
 
         verify(chatRoomService, never())
                 .createChatRoomForTravel(any());
+
+        ArgumentCaptor<AddChatUserRequest> requestCaptor =
+                ArgumentCaptor.forClass(AddChatUserRequest.class);
+
+        verify(chatRoomMemberService)
+                .addChatUser(requestCaptor.capture());
+
+        assertThat(requestCaptor
+                .getValue()
+                .chatRoom())
+                .isSameAs(chatRoom);
+
+        assertThat(requestCaptor
+                .getValue()
+                .user())
+                .isSameAs(user);
     }
 
     @Test
@@ -907,6 +984,76 @@ class ChatFacadeTest {
 
         verify(chatRoomService)
                 .createChatRoomForTravel(travel);
+
+        ArgumentCaptor<AddChatUserRequest> requestCaptor =
+                ArgumentCaptor.forClass(AddChatUserRequest.class);
+
+        verify(chatRoomMemberService)
+                .addChatUser(requestCaptor.capture());
+
+        assertThat(requestCaptor
+                .getValue()
+                .chatRoom())
+                .isSameAs(chatRoom);
+
+        assertThat(requestCaptor
+                .getValue()
+                .user())
+                .isSameAs(user);
+    }
+
+    @Test
+    @DisplayName("travel 채팅방에 이미 가입한 소유자는 중복 등록하지 않음")
+    void findOrCreateTravelChatRoomDoesNotAddExistingMember() {
+
+        // given
+        Long travelId = 1L;
+        Long userId = 10L;
+        Long roomId = 100L;
+        String username = "testUser@example.com";
+
+        User user = mock(User.class);
+        ChatRoom chatRoom = mock(ChatRoom.class);
+
+        when(userQueryService
+                .findByUsername(username))
+                .thenReturn(user);
+
+        when(user
+                .getId())
+                .thenReturn(userId);
+
+        when(travelQueryService
+                .existsByIdAndUserId(
+                        travelId,
+                        userId
+                ))
+                .thenReturn(true);
+
+        when(chatRoomQueryService
+                .findChatRoomByTravelId(travelId))
+                .thenReturn(Optional.of(chatRoom));
+
+        when(chatRoom
+                .getId())
+                .thenReturn(roomId);
+
+        when(chatRoomMemberQueryService
+                .checkSubscriberWithRoomId(
+                        roomId,
+                        userId
+                ))
+                .thenReturn(true);
+
+        // when
+        chatFacade.findOrCreateTravelChatRoom(
+                travelId,
+                username
+        );
+
+        // then
+        verify(chatRoomMemberService, never())
+                .addChatUser(any(AddChatUserRequest.class));
     }
 
     @Test
@@ -1404,5 +1551,128 @@ class ChatFacadeTest {
 
         verify(chatMessageService)
                 .publishMessage(roomId, response);
+    }
+
+    @Test
+    @DisplayName("여행 소유자가 아닌 사용자의 여행 채팅방 가입 거부")
+    void addTravelChatRoomMemberByNonOwnerForbidden() {
+
+        // given
+        Long roomId = 1L;
+        Long userId = 10L;
+        String username = "requester@example.com";
+
+        AddChatRoomMemberRequest request =
+                mock(AddChatRoomMemberRequest.class);
+
+        User requester =
+                mock(User.class);
+
+        User owner =
+                mock(User.class);
+
+        Travel travel =
+                mock(Travel.class);
+
+        ChatRoom chatRoom =
+                mock(ChatRoom.class);
+
+        when(request.userId())
+                .thenReturn(userId);
+
+        when(request.roomId())
+                .thenReturn(roomId);
+
+        when(requester.getId())
+                .thenReturn(userId);
+
+        when(owner.getId())
+                .thenReturn(20L);
+
+        when(travel.getUser())
+                .thenReturn(owner);
+
+        when(chatRoom.getTravel())
+                .thenReturn(travel);
+
+        when(userQueryService.findByUsername(username))
+                .thenReturn(requester);
+
+        when(chatRoomQueryService.findChatRoomByRoomId(roomId))
+                .thenReturn(chatRoom);
+
+        // when & then
+        assertThatThrownBy(() ->
+                chatFacade.addChatUser(
+                        request,
+                        username
+                ))
+                .isInstanceOf(ForbiddenException.class);
+
+        verify(chatRoomMemberService, never())
+                .addChatUser(any());
+    }
+
+    @Test
+    @DisplayName("여행 소유자가 아닌 채팅방 멤버의 여행 채팅방 삭제 거부")
+    void deleteTravelChatRoomByNonOwnerForbidden() {
+
+        // given
+        Long roomId = 1L;
+        Long userId = 10L;
+        String username = "requester@example.com";
+
+        DeleteChatRoomRequest request =
+                mock(DeleteChatRoomRequest.class);
+
+        User requester =
+                mock(User.class);
+
+        User owner =
+                mock(User.class);
+
+        Travel travel =
+                mock(Travel.class);
+
+        ChatRoom chatRoom =
+                mock(ChatRoom.class);
+
+        when(request.roomId())
+                .thenReturn(roomId);
+
+        when(requester.getId())
+                .thenReturn(userId);
+
+        when(owner.getId())
+                .thenReturn(20L);
+
+        when(travel.getUser())
+                .thenReturn(owner);
+
+        when(chatRoom.getTravel())
+                .thenReturn(travel);
+
+        when(userQueryService.findByUsername(username))
+                .thenReturn(requester);
+
+        when(chatRoomMemberQueryService.checkSubscriberWithRoomId(
+                roomId,
+                userId
+        ))
+                .thenReturn(true);
+
+        when(chatRoomQueryService.findChatRoomByRoomId(roomId))
+                .thenReturn(chatRoom);
+
+        // when & then
+        assertThatThrownBy(() ->
+                chatFacade.deleteChatRoom(
+                        request,
+                        username
+                ))
+                .isInstanceOf(ForbiddenException.class);
+
+        verify(chatRoomService, never())
+                .deleteChatRoom(any());
     }
 }

@@ -27,7 +27,7 @@ import java.time.Instant;
 
                 공통 연결 정보
                 - WebSocket Endpoint: `/ws-stomp`
-                - Publish Destination: `/pub/api/v1/chat/{roomId}`
+                - Publish Destination: `/pub/api/v1/chat/{roomId}/send`
                 - Subscribe Destination: `/sub/api/v1/chat/{roomId}`
                 - 인증 방식: STOMP CONNECT Header에 `Authorization: Bearer {accessToken}` 전달
 
@@ -72,7 +72,7 @@ public class ChatWebSocketMockController {
                     examples = @ExampleObject(
                             value = """
                                     {
-                                      "messageType": "TALK",
+                                      "type": "TALK",
                                       "roomId": 1,
                                       "senderId": 1,
                                       "senderNickname": "wooju",

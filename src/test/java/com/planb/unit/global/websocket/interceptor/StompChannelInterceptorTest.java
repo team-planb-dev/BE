@@ -6,6 +6,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import org.springframework.messaging.Message;
@@ -21,6 +22,7 @@ import com.planb.global.security.auth.AuthPrincipal;
 import com.planb.global.security.dto.UserAuthCache;
 import com.planb.global.security.provider.JwtAuthenticationProvider;
 import com.planb.global.websocket.interceptor.StompChannelInterceptor;
+import com.planb.domain.chat.websocket.resolver.ChatDestinationResolver;
 import com.planb.query.chat.service.ChatRoomMemberQueryService;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,6 +46,9 @@ class StompChannelInterceptorTest {
 
     @Mock
     private MessageChannel messageChannel;
+
+    @Spy
+    private ChatDestinationResolver chatDestinationResolver;
 
     @InjectMocks
     private StompChannelInterceptor stompChannelInterceptor;
@@ -186,7 +191,7 @@ class StompChannelInterceptorTest {
                         .SEND);
 
         accessor.setDestination(
-                "/pub/api/v1/chat/" + roomId
+                "/pub/api/v1/chat/" + roomId + "/send"
         );
 
         accessor.setUser(createAuthentication());
@@ -263,7 +268,7 @@ class StompChannelInterceptorTest {
                         .SEND);
 
         accessor.setDestination(
-                "/pub/api/v1/chat/" + roomId
+                "/pub/api/v1/chat/" + roomId + "/send"
         );
 
         accessor.setUser(createAuthentication());
@@ -429,6 +434,9 @@ class StompChannelInterceptorTest {
     private Message<byte[]> createMessage(
             StompHeaderAccessor accessor
     ) {
+
+        accessor.setLeaveMutable(true);
+
         return MessageBuilder.createMessage(
                 new byte[0],
                 accessor.getMessageHeaders()

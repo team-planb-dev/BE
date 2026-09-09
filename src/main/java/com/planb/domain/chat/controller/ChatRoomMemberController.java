@@ -37,7 +37,10 @@ public class ChatRoomMemberController {
                         .OK)
                 .body(ApiResult
                         .success(chatFacade
-                                .addChatUser(addChatUserRequest)));
+                                .addChatUser(
+                                        addChatUserRequest,
+                                        userDetails.getUsername()
+                                )));
     }
 
     @Operation(summary = "채팅방 맴버 삭제",
@@ -53,6 +56,9 @@ public class ChatRoomMemberController {
                         .OK)
                 .body(ApiResult
                         .success(chatFacade
-                                .deleteChatUser(deleteChatRoomMemberRequest)));
+                                .deleteChatUser(
+                                        deleteChatRoomMemberRequest,
+                                        userDetails.getUsername()
+                                )));
     }
 }

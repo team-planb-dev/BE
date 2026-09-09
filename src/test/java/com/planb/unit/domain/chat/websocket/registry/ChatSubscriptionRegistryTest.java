@@ -318,7 +318,7 @@ class ChatSubscriptionRegistryTest {
 
         assertThat(result)
                 .extracting(ChatSubscriptionInfo::username)
-                .containsOnly("testUser");
+                .containsOnly("testUser@example.com");
     }
 
     @Test

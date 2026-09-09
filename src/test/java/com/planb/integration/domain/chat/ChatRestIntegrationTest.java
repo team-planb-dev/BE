@@ -172,6 +172,53 @@ public class ChatRestIntegrationTest
     }
 
     @Test
+    @DisplayName("다른 사용자를 대신한 채팅방 멤버 추가 거부")
+    void addChatRoomMemberForAnotherUserForbidden() throws Exception {
+
+        // given
+        TestUser roomOwner =
+                createAuthenticatedUser();
+
+        TestUser requester =
+                createAuthenticatedUser();
+
+        Long roomId =
+                createChatRoom(
+                        roomOwner.accessToken(),
+                        "member-forbidden-room-"
+                                + createUniqueValue()
+                );
+
+        AddChatRoomMemberRequest request =
+                new AddChatRoomMemberRequest(
+                        roomId,
+                        roomOwner.userId()
+                );
+
+        // when & then
+        mockMvc.perform(
+                        post(ADD_CHAT_MEMBER_URL)
+                                .header(
+                                        "Authorization",
+                                        requester.accessToken()
+                                )
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                request
+                                        )
+                                )
+                )
+                .andExpect(status().isForbidden())
+                .andExpect(
+                        jsonPath("$.success")
+                                .value(false)
+                );
+    }
+
+    @Test
     @DisplayName("이미 참여한 사용자를 같은 채팅방에 추가하면 중복 예외")
     void addDuplicateChatRoomMemberFail() throws Exception {
 
@@ -385,6 +432,56 @@ public class ChatRestIntegrationTest
                 .andExpect(
                         jsonPath("$.error")
                                 .isEmpty()
+                );
+    }
+
+    @Test
+    @DisplayName("참여하지 않은 사용자의 채팅방 삭제 거부")
+    void deleteChatRoomByNonMemberForbidden() throws Exception {
+
+        // given
+        TestUser roomMember =
+                createAuthenticatedUser();
+
+        TestUser requester =
+                createAuthenticatedUser();
+
+        Long roomId =
+                createChatRoom(
+                        roomMember.accessToken(),
+                        "delete-forbidden-room-"
+                                + createUniqueValue()
+                );
+
+        addChatRoomMember(
+                roomMember.accessToken(),
+                roomId,
+                roomMember.userId()
+        );
+
+        DeleteChatRoomRequest request =
+                new DeleteChatRoomRequest(roomId);
+
+        // when & then
+        mockMvc.perform(
+                        delete(DELETE_CHAT_ROOM_URL)
+                                .header(
+                                        "Authorization",
+                                        requester.accessToken()
+                                )
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                request
+                                        )
+                                )
+                )
+                .andExpect(status().isForbidden())
+                .andExpect(
+                        jsonPath("$.success")
+                                .value(false)
                 );
     }
 }

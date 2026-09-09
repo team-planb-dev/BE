@@ -75,7 +75,10 @@ public class ChatRoomController {
                         .OK)
                 .body(ApiResult
                         .success(chatFacade
-                                .deleteChatRoom(request)));
+                                .deleteChatRoom(
+                                        request,
+                                        userDetails.getUsername()
+                                )));
     }
 
 

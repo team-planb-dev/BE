@@ -9,6 +9,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.security.test.context.support.WithMockUser;
 
 import tools.jackson.databind.ObjectMapper;
 
@@ -20,6 +21,7 @@ import com.planb.domain.chat.dto.response.DeleteChatUserResponse;
 import com.planb.domain.chat.facade.ChatFacade;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -42,6 +44,7 @@ class ChatRoomMemberControllerTest {
     private ChatFacade chatFacade;
 
     @Test
+    @WithMockUser(username = "testUser@example.com")
     @DisplayName("채팅방 멤버 추가 성공")
     void addMemberSuccess() throws Exception {
 
@@ -64,7 +67,8 @@ class ChatRoomMemberControllerTest {
                 );
 
         when(chatFacade.addChatUser(
-                any(AddChatRoomMemberRequest.class)
+                any(AddChatRoomMemberRequest.class),
+                eq("testUser@example.com")
         )).thenReturn(response);
 
         // when & then
@@ -87,11 +91,13 @@ class ChatRoomMemberControllerTest {
 
         verify(chatFacade)
                 .addChatUser(
-                        any(AddChatRoomMemberRequest.class)
+                        any(AddChatRoomMemberRequest.class),
+                        eq("testUser@example.com")
                 );
     }
 
     @Test
+    @WithMockUser(username = "testUser@example.com")
     @DisplayName("채팅방 멤버 삭제 성공")
     void deleteMemberSuccess() throws Exception {
 
@@ -114,7 +120,8 @@ class ChatRoomMemberControllerTest {
                 );
 
         when(chatFacade.deleteChatUser(
-                any(DeleteChatRoomMemberRequest.class)
+                any(DeleteChatRoomMemberRequest.class),
+                eq("testUser@example.com")
         )).thenReturn(response);
 
 
@@ -136,7 +143,8 @@ class ChatRoomMemberControllerTest {
 
         verify(chatFacade)
                 .deleteChatUser(
-                        any(DeleteChatRoomMemberRequest.class)
+                        any(DeleteChatRoomMemberRequest.class),
+                        eq("testUser@example.com")
                 );
     }
 }
