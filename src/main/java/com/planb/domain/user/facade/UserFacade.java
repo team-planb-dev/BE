@@ -3,8 +3,15 @@ package com.planb.domain.user.facade;
 
 import com.planb.domain.user.dto.request.CheckNicknameDuplicationRequest;
 import com.planb.domain.user.dto.request.CheckUsernameDuplicationRequest;
+import com.planb.domain.user.dto.request.FindUsernameRequest;
+import com.planb.domain.user.dto.request.ResetPasswordRequest;
 import com.planb.domain.user.dto.response.CheckNicknameDuplicationResponse;
 import com.planb.domain.user.dto.response.CheckUsernameDuplicationResponse;
+import com.planb.domain.user.dto.response.FindUsernameResponse;
+import com.planb.domain.user.dto.response.RecoveryQuestionResponse;
+import com.planb.domain.user.dto.response.ResetPasswordResponse;
+import com.planb.global.config.exception.BaseExceptionEnum;
+import com.planb.global.config.exception.domain.BaseException;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -19,6 +26,7 @@ import com.planb.global.security.service.UserAuthCacheService;
 import com.planb.query.user.service.UserQueryService;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * 사용자 계정의 생성, 조회, 삭제와 중복 검증 흐름을 조합하는 Facade.
@@ -91,6 +99,86 @@ public class UserFacade {
         return userQueryService
                 .findByUsernameInCache(username);
     }
+
+    /**
+     * 회원가입과 계정 복구 화면에서 선택할 수 있는 복구 질문 목록을 반환한다.
+     *
+     * @return 복구 질문 코드와 문구 목록
+     */
+    public List<RecoveryQuestionResponse> findRecoveryQuestions(){
+
+        return RecoveryQuestionResponse
+                .all();
+    }
+
+
+    /**
+     * 계정 복구 질문과 답변으로 가입된 이메일을 찾는다.
+     *
+     * @param findUsernameRequest 복구 질문과 답변
+     * @return 마스킹된 이메일
+     */
+    @Transactional(readOnly = true)
+    public FindUsernameResponse findUsername(FindUsernameRequest findUsernameRequest){
+
+        User user = userQueryService
+                .findByAccountRecovery(
+                        findUsernameRequest
+                                .recoveryQuestion(),
+                        findUsernameRequest
+                                .recoveryAnswer()
+                );
+
+        return FindUsernameResponse
+                .of(user.getUsername());
+    }
+
+
+    /**
+     * 이메일과 계정 복구 질문/답변을 확인한 뒤 비밀번호를 재설정한다.
+     *
+     * 비밀번호가 바뀌면 기존 토큰과 인증 캐시는 더 이상 유효하지 않아야 하므로 함께 제거한다.
+     *
+     * @param resetPasswordRequest 이메일, 복구 질문, 복구 답변, 새 비밀번호
+     * @return 재설정된 계정 정보
+     */
+    @Transactional
+    public ResetPasswordResponse resetPassword(ResetPasswordRequest resetPasswordRequest){
+
+        User user = userQueryService
+                .findByUsername(resetPasswordRequest
+                        .username());
+
+        boolean matched = user
+                .getAccountRecovery() != null
+                && user
+                        .getAccountRecovery()
+                        .matches(
+                                resetPasswordRequest
+                                        .recoveryQuestion(),
+                                resetPasswordRequest
+                                        .recoveryAnswer()
+                        );
+
+        if (!matched) {
+            throw new BaseException(BaseExceptionEnum
+                    .RECOVERY_ANSWER_MISMATCH);
+        }
+
+        userService.resetPassword(user,
+                resetPasswordRequest
+                        .newPassword());
+
+        userAuthCacheService.deleteUserAuthCache(user
+                .getUsername());
+
+        refreshService.deleteRefreshByUsername(user
+                .getUsername());
+
+        return new ResetPasswordResponse(user.getUsername(),
+                Instant.now());
+    }
+
 
     /**
      * 회원가입 전에 username 사용 가능 여부를 확인한다.

@@ -43,9 +43,16 @@ public class User extends BaseEntity {
     @Embedded
     private TermsAgreement termsAgreement;
 
+    @Embedded
+    private AccountRecovery accountRecovery;
+
     public void delete(){
         this.deleted = true;
         markDeleted();
+    }
+
+    public void changePassword(String encodedPassword){
+        this.password = encodedPassword;
     }
 
 }

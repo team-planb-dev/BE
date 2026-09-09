@@ -22,6 +22,7 @@ public enum BaseExceptionEnum implements MessageCommInterface {
     USER_NOT_FOUND("BASE.EXCEPTION.USER_NOT_FOUND","해당 유저를 찾을 수 없습니다."),
     USER_UNAUTHORIZED("BASE.EXCEPTION.USER_UNAUTHORIZED","검증되지 않은 유저입니다."),
     INVALID_TOKEN("BASE.EXCEPTION.INVALID_TOKEN","잘못된 형식의 토큰입니다."),
+    RECOVERY_ANSWER_MISMATCH("BASE.EXCEPTION.RECOVERY_ANSWER_MISMATCH","답변이 일치하지 않아요."),
     ;
 
     private final String errorCode;
