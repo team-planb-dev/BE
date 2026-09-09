@@ -9,8 +9,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.planb.global.config.exception.dto.ApiResult;
+import com.planb.global.security.dto.response.FilterSuccessResponse;
 import com.planb.global.security.dto.response.LoginResponse;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Tag(name = "Docks", description = "Controller 형태가 아닌 API를 위한 문서")
@@ -32,5 +34,21 @@ public class ApiDocsController {
                                         .now()
                                         .toString())));
 
+    }
+
+    @Operation(summary = "사용자 로그아웃",
+            description = "로그아웃 API, 로그아웃 url은 {baseURL}/logout 입니다. refresh 토큰 쿠키를 함께 전송해야 합니다.")
+    @PostMapping("/logout")
+    public ResponseEntity<FilterSuccessResponse> logout(){
+
+        return ResponseEntity
+                .status(HttpStatus
+                        .OK)
+                .body(new FilterSuccessResponse(true,
+                        "Method : /logout ",
+                        "로그아웃에 성공하였습니다.",
+                        LocalDate
+                                .now()
+                                .toString()));
     }
 }
