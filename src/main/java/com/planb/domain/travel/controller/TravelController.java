@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 @RestController
-@Tag(name ="여행 API",description = "여행 생성 관련 도메인")
+@Tag(name ="여행 API", description = "여행 생성 관련 도메인")
 @RequestMapping("/api/v1/travel")
 @RequiredArgsConstructor
 public class TravelController {

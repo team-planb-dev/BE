@@ -14,7 +14,7 @@ public class UserAuthCacheService {
     // Redis에 UserAuthCache 저장
     public void saveUserAuthCache(UserAuthCache userAuthCache){
         userAuthCacheRepository
-                .save(userAuthCache.username(), userAuthCache,2_100_000L);
+                .save(userAuthCache.username(), userAuthCache, 2_100_000L);
     }
 
     public void deleteUserAuthCache(String username) {

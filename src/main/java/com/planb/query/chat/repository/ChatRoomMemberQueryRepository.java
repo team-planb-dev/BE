@@ -56,7 +56,7 @@ public class ChatRoomMemberQueryRepository {
         );
     }
 
-    public boolean checkSubscriberWithRoomId(Long roomId,Long userId){
+    public boolean checkSubscriberWithRoomId(Long roomId, Long userId){
 
         Integer result = jpaQueryFactory
                 .selectOne()

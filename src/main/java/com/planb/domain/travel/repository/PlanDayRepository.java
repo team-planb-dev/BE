@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface PlanDayRepository extends JpaRepository<PlanDay,Long> {
+public interface PlanDayRepository extends JpaRepository<PlanDay, Long> {
 
     List<PlanDay> findAllByPlan(Plan plan);
 

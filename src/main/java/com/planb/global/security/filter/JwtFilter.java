@@ -48,9 +48,9 @@ public class JwtFilter extends OncePerRequestFilter {
         String accessToken = extractToken(request);
 
         // 빈 토큰 여부 검사
-        if(accessToken == null){
+        if (accessToken == null){
             log.info("No Access Token: {}", LocalDateTime.now());
-            filterChain.doFilter(request,response);
+            filterChain.doFilter(request, response);
             return;
         }
 
@@ -66,16 +66,16 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         // 토큰 카테고리 검사
-        if(!checkTokenCategory(jwtUtil.getCategory(accessToken))){
-            log.info("Token Invalid Category: {}",LocalDateTime.now());
+        if (!checkTokenCategory(jwtUtil.getCategory(accessToken))){
+            log.info("Token Invalid Category: {}", LocalDateTime.now());
             handleInvalidTokenCategory(response);
             return;
         }
 
         // Redis Cache에서 회원정보 조회
 
-        Authentication authentication = makeAuthentication(accessToken,response);
-        if(authentication==null){
+        Authentication authentication = makeAuthentication(accessToken, response);
+        if (authentication == null){
             return;
         }
 
@@ -83,13 +83,13 @@ public class JwtFilter extends OncePerRequestFilter {
                 .getContext()
                 .setAuthentication(authentication);
 
-        filterChain.doFilter(request,response);
+        filterChain.doFilter(request, response);
 
     }
 
     private String extractToken(HttpServletRequest request){
         String header = request.getHeader("Authorization");
-        if(header == null || !header.startsWith("Bearer ")){
+        if (header == null || !header.startsWith("Bearer ")){
             return null;
         }
         return header.substring(7);
@@ -145,7 +145,7 @@ public class JwtFilter extends OncePerRequestFilter {
         Optional<UserAuthCache> userAuthCache = userAuthCacheRepository
                 .findByUsername(username);
 
-        if(userAuthCache.isEmpty()){
+        if (userAuthCache.isEmpty()){
             handleRedisMissToken(httpServletResponse);
             return null;
         }

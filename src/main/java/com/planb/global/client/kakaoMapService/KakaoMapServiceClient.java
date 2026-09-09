@@ -13,7 +13,7 @@ public class KakaoMapServiceClient extends ApiClient<KakaoMapServiceProperties> 
     public KakaoMapServiceClient
             (WebClient.Builder webClientBuilder,
              KakaoMapServiceProperties properties) {
-        super(webClientBuilder,properties);
+        super(webClientBuilder, properties);
     }
 
     public String serviceKey() {

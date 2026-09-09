@@ -66,7 +66,7 @@ public class HealthFacade {
 
         // Health 객체 생성
         Health health =
-                healthService.validSensitiveAgree(healthRequest,user);
+                healthService.validSensitiveAgree(healthRequest, user);
 
         // Health 저장
         healthService.saveHealth(health);

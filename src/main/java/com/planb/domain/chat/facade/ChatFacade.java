@@ -587,6 +587,6 @@ public class ChatFacade {
         );
 
         chatMessageService
-                .publishMessage(roomId,response);
+                .publishMessage(roomId, response);
     }
 }

@@ -22,9 +22,9 @@ public class HealthService {
 
 
     // 개인정보 동의 여부에 따른 Health 객체 생성
-    public Health validSensitiveAgree(CreateHealthRequest request,User user){
-        if(request.sensitiveAgree()){
-            return makeHealthWithSensitiveAgree(request,user);
+    public Health validSensitiveAgree(CreateHealthRequest request, User user){
+        if (request.sensitiveAgree()){
+            return makeHealthWithSensitiveAgree(request, user);
         } else {
             return makeHealthWithoutSensitiveAgree(
                     new CreateHealthWithoutSensitiveAgreeRequest(
@@ -35,7 +35,7 @@ public class HealthService {
     }
 
     // Health 객체 생성 (정보동의 O)
-    private Health makeHealthWithSensitiveAgree(CreateHealthRequest request,User user){
+    private Health makeHealthWithSensitiveAgree(CreateHealthRequest request, User user){
 
         return Health
                 .builder()

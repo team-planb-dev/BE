@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface RestaurantDetailRepository extends JpaRepository<RestaurantDetail,Long> {
+public interface RestaurantDetailRepository extends JpaRepository<RestaurantDetail, Long> {
 
     void deleteAllByPlanScheduleIn(List<PlanSchedule> planSchedules);
 }

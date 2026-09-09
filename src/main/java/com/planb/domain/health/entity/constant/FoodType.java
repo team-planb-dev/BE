@@ -8,8 +8,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum FoodType implements CodeCommInterface {
 
-    ALLERGY("ALLERGY","알러지 음식"),
-    AVOID("AVOID","피하는 음식");
+    ALLERGY("ALLERGY", "알러지 음식"),
+    AVOID("AVOID", "피하는 음식");
 
     private final String code;
     private final String codeName;

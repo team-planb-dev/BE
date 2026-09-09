@@ -37,7 +37,7 @@ public class MedicationInfo {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "health_id",nullable = false)
+    @JoinColumn(name = "health_id", nullable = false)
     private Health health;
 
 

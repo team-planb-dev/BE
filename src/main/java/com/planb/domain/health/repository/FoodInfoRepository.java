@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface FoodInfoRepository extends JpaRepository<FoodInfo,Long> {
+public interface FoodInfoRepository extends JpaRepository<FoodInfo, Long> {
 
     List<FoodInfo> findAllByHealthId(Long healthId);
 }

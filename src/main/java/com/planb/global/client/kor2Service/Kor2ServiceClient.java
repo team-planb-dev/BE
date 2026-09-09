@@ -15,7 +15,7 @@ public class Kor2ServiceClient
     public Kor2ServiceClient
             (WebClient.Builder webClientBuilder,
              Kor2ServiceProperties properties) {
-        super(webClientBuilder,properties);
+        super(webClientBuilder, properties);
     }
 
     public String serviceKey() {

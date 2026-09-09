@@ -23,14 +23,14 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/health")
 @RequiredArgsConstructor
-@Tag(name = "동행인 API",description = "여행에 함께할 동행인을 관리하는 API")
+@Tag(name = "동행인 API", description = "여행에 함께할 동행인을 관리하는 API")
 public class HealthController {
 
     private final HealthFacade healthFacade;
 
     // 동행자를 한번에 등록
     @PostMapping("/add-traveler")
-    @Operation(summary = "동행자 등록",description = "동행자를 등록합니다.")
+    @Operation(summary = "동행자 등록", description = "동행자를 등록합니다.")
     @SecurityRequirement(name = "JWT")
     public ResponseEntity<ApiResult<AddCompanionResponse>> addTraveler
             (@AuthenticationPrincipal UserDetails userDetails,
@@ -69,7 +69,7 @@ public class HealthController {
 
     // 단일 동행자 삭제 메소드
     @DeleteMapping("/delete-companion")
-    @Operation(summary = "동행자 삭제",description = "동행자를 삭제합니다.")
+    @Operation(summary = "동행자 삭제", description = "동행자를 삭제합니다.")
     @SecurityRequirement(name = "JWT")
     public ResponseEntity<ApiResult<DeleteCompanionResponse>> deleteCompanion
     (@AuthenticationPrincipal UserDetails userDetails,
@@ -89,7 +89,7 @@ public class HealthController {
 
     // 단일 동행자 조회 메소드
     @GetMapping("/get-companion-summary")
-    @Operation(summary = "단일 동행자 간단 조회",description = "동행자 리스트에 명시되는 바 형태의 정보를 조회합니다.")
+    @Operation(summary = "단일 동행자 간단 조회", description = "동행자 리스트에 명시되는 바 형태의 정보를 조회합니다.")
     @SecurityRequirement(name = "JWT")
     public ResponseEntity<ApiResult<CompanionSummaryResponse>> getCompanion
     (@AuthenticationPrincipal UserDetails userDetails){

@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum HealthExceptionEnum implements MessageCommInterface {
 
-    HEALTH_NOT_FOUND("HEALTH.EXCEPTION.HEALTH_NOUT_FOUND","해당 객체를 찾을 수 없습니다.");
+    HEALTH_NOT_FOUND("HEALTH.EXCEPTION.HEALTH_NOUT_FOUND", "해당 객체를 찾을 수 없습니다.");
 
     private final String errorCode;
     private final String message;

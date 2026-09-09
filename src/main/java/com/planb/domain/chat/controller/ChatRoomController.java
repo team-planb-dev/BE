@@ -16,7 +16,7 @@ import com.planb.domain.chat.dto.response.DeleteChatRoomResponse;
 import com.planb.domain.chat.facade.ChatFacade;
 import com.planb.global.config.exception.dto.ApiResult;
 
-@Tag(name="chatRoom",description = "채팅방 생성 및 삭제 API")
+@Tag(name="chatRoom", description = "채팅방 생성 및 삭제 API")
 @RestController
 @RequestMapping("/api/v1/chat/room")
 @RequiredArgsConstructor
@@ -63,7 +63,7 @@ public class ChatRoomController {
 
 
     // 채팅방 삭제하기
-    @Operation(summary = "채팅방 삭제",description = "AccessToken을 검증한 뒤, 채팅방을 삭제합니다.")
+    @Operation(summary = "채팅방 삭제", description = "AccessToken을 검증한 뒤, 채팅방을 삭제합니다.")
     @SecurityRequirement(name = "JWT")
     @DeleteMapping("/delete")
     public ResponseEntity<ApiResult<DeleteChatRoomResponse>> deleteChatRoom

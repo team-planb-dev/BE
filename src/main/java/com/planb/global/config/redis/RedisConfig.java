@@ -30,7 +30,7 @@ public class RedisConfig {
     public RedisConnectionFactory redisConnectionFactory(){
 
         RedisStandaloneConfiguration redisStandaloneConfiguration =
-                new RedisStandaloneConfiguration(host,port);
+                new RedisStandaloneConfiguration(host, port);
 
         return new LettuceConnectionFactory(redisStandaloneConfiguration);
 

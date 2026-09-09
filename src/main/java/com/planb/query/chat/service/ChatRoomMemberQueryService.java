@@ -30,23 +30,23 @@ public class ChatRoomMemberQueryService {
                                        Long memberId){
 
         return chatRoomMemberQueryRepository
-                .findByUserIdWithRoomId(roomId,memberId)
+                .findByUserIdWithRoomId(roomId, memberId)
                 .orElseThrow(()-> new BaseException(WebSocketExceptionEnum
                         .SUBSCRIBER_NOT_MATCHED));
     }
 
     public void validateDuplicateMemberWithRoom(Long roomId, Long userId){
 
-        if(chatRoomMemberQueryRepository.checkSubscriberWithRoomId(roomId,userId)){
+        if (chatRoomMemberQueryRepository.checkSubscriberWithRoomId(roomId, userId)){
             throw new BaseException(WebSocketExceptionEnum.USER_ROOM_DUPLICATED);
         }
     }
 
     // 단일 메소드 (facade사용 금지)
     @Transactional(readOnly = true)
-    public boolean checkSubscriberWithRoomId(Long roomId,Long userId){
+    public boolean checkSubscriberWithRoomId(Long roomId, Long userId){
 
-        return chatRoomMemberQueryRepository.checkSubscriberWithRoomId(roomId,userId);
+        return chatRoomMemberQueryRepository.checkSubscriberWithRoomId(roomId, userId);
 
     }
 }

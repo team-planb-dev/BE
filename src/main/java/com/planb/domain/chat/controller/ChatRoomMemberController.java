@@ -16,7 +16,7 @@ import com.planb.domain.chat.dto.response.DeleteChatUserResponse;
 import com.planb.domain.chat.facade.ChatFacade;
 import com.planb.global.config.exception.dto.ApiResult;
 
-@Tag(name="chatRoomMember",description = "채팅방 멤버 API")
+@Tag(name="chatRoomMember", description = "채팅방 멤버 API")
 @RestController
 @RequestMapping("/api/v1/chat/member")
 @RequiredArgsConstructor

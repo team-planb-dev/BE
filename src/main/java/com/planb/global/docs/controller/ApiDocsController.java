@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 @RequestMapping("/docs/api")
 public class ApiDocsController {
 
-    @Operation(summary = "사용자 로그인",description = "로그인 API, 로그인 url은 {baseURL}/login 입니다.")
+    @Operation(summary = "사용자 로그인", description = "로그인 API, 로그인 url은 {baseURL}/login 입니다.")
     @PostMapping("/login")
     public ResponseEntity<ApiResult<LoginResponse>> login(){
 

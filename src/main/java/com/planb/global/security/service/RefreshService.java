@@ -26,7 +26,7 @@ public class RefreshService {
         String refresh = cookieUtil.findCookie(request);
 
         // refresh가 비엇는지 검사
-        if(refresh == null) {
+        if (refresh == null) {
             return handleRefreshTokenNull();
         }
 
@@ -34,7 +34,7 @@ public class RefreshService {
         try{
             jwtUtil.isExpired(refresh);
 
-        } catch(ExpiredJwtException e) {
+        } catch (ExpiredJwtException e) {
             return handleRefreshTokenExpired();
         }
 
@@ -104,7 +104,7 @@ public class RefreshService {
 
         deleteRefresh(refresh);
 
-        addRefresh(username,newRefresh);
+        addRefresh(username, newRefresh);
 
         return newRefresh;
 
@@ -129,7 +129,7 @@ public class RefreshService {
 
         String username = jwtUtil.getUsername(refresh);
 
-        if(username == null){
+        if (username == null){
             return;
         }
 
@@ -161,7 +161,7 @@ public class RefreshService {
 
     public void validateAlreadyLogin(String username){
 
-        if(userTokenCacheRepository.exists("refresh:user:" + username)){
+        if (userTokenCacheRepository.exists("refresh:user:" + username)){
             throw new BaseException(BaseExceptionEnum.USER_ALREADY_LOGIN);
         }
     }

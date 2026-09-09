@@ -28,7 +28,7 @@ import com.planb.global.security.dto.UserAuthCache;
 
 import java.util.List;
 
-@Tag(name = "user",description = "유저 API")
+@Tag(name = "user", description = "유저 API")
 @RestController
 @RequestMapping("/api/v1/user")
 @RequiredArgsConstructor
@@ -36,7 +36,7 @@ public class UserController {
 
     private final UserFacade userFacade;
 
-    @Operation(summary = "유저 생성",description = "유저를 생성합니다.")
+    @Operation(summary = "유저 생성", description = "유저를 생성합니다.")
     @PostMapping("/create")
     public ResponseEntity<ApiResult<UserCreateResponse>> create
             (@Valid @RequestBody UserCreateRequest userCreateRequest){
@@ -49,7 +49,7 @@ public class UserController {
                                 .create(userCreateRequest)));
     }
 
-    @Operation(summary = "유저 조회",description = "해당 유저를 조회합니다.이때 , RDB가 아닌 Redis Cache에서 조회를 진행합니다.")
+    @Operation(summary = "유저 조회", description = "해당 유저를 조회합니다.이때 , RDB가 아닌 Redis Cache에서 조회를 진행합니다.")
     @SecurityRequirement(name = "JWT")
     @GetMapping("/me")
     public ResponseEntity<ApiResult<UserAuthCache>> read
@@ -65,7 +65,7 @@ public class UserController {
 
     }
 
-    @Operation(summary = "유저 삭제",description = "해당 유저를 삭제합니다.")
+    @Operation(summary = "유저 삭제", description = "해당 유저를 삭제합니다.")
     @SecurityRequirement(name = "JWT")
     @DeleteMapping("/delete")
     public ResponseEntity<ApiResult<UserDeleteResponse>> delete
@@ -81,7 +81,7 @@ public class UserController {
 
     }
 
-    @Operation(summary = "username(email) 중복 조회",description = "id로 사용되는 email의 중복을 체크합니다.")
+    @Operation(summary = "username(email) 중복 조회", description = "id로 사용되는 email의 중복을 체크합니다.")
     @GetMapping("/check/duplication/username")
     public ResponseEntity<ApiResult<CheckUsernameDuplicationResponse>> checkUsernameDuplication
             (@RequestBody CheckUsernameDuplicationRequest checkUsernameDuplicationRequest){
@@ -94,7 +94,7 @@ public class UserController {
                                 .checkUsernameDuplication(checkUsernameDuplicationRequest)));
     }
 
-    @Operation(summary = "nickname 중복 조회",description = "기존 nickname과의 중복 여부를 검사합니다.")
+    @Operation(summary = "nickname 중복 조회", description = "기존 nickname과의 중복 여부를 검사합니다.")
     @GetMapping("/check/duplication/nickname")
     public ResponseEntity<ApiResult<CheckNicknameDuplicationResponse>> checkNicknameDuplication
             (@RequestBody CheckNicknameDuplicationRequest checkNicknameDuplicationRequest){

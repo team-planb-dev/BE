@@ -46,8 +46,8 @@ public class JwtLogoutFilter extends OncePerRequestFilter {
         String refresh = cookieUtil.findCookie(request);
 
         // refresh 토큰 오류검사
-        if(refreshTokenValidator.isInvalid(refresh)){
-            filterChain.doFilter(request,response);
+        if (refreshTokenValidator.isInvalid(refresh)){
+            filterChain.doFilter(request, response);
             return;
         }
 
@@ -72,8 +72,6 @@ public class JwtLogoutFilter extends OncePerRequestFilter {
                                 .now()
                                 .toString()));
 
-        log.info("[ 회원 로그아웃 ] : {}",username);
+        log.info("[ 회원 로그아웃 ] : {}", username);
     }
-
-    
 }

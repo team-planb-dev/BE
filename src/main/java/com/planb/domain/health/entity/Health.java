@@ -20,7 +20,7 @@ public class Health {
     @Column(name = "health_id")
     private Long id;
 
-    @Column(name = "traveler_name",nullable = false)
+    @Column(name = "traveler_name", nullable = false)
     private String travelerName;
 
     // 민감 정보 조회 동의여부
@@ -49,7 +49,7 @@ public class Health {
     private MealInfo mealInfo;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "users_id",nullable = false)
+    @JoinColumn(name = "users_id", nullable = false)
     private User user;
 
     /**

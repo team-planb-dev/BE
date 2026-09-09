@@ -88,7 +88,7 @@ public class ChatMessageService {
         chatMessageRepository.save(chatMessage);
     }
 
-    public String createSystemMessage(MessageType messageType,String userNickname){
+    public String createSystemMessage(MessageType messageType, String userNickname){
 
         return switch (messageType){
             case ENTER -> userNickname + "님이 입장했습니다.";
