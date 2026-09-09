@@ -1,6 +1,8 @@
 package com.planb.slice.query.user.repository;
 
 
+import com.planb.domain.user.entity.AccountRecovery;
+import com.planb.domain.user.entity.constant.RecoveryQuestion;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +44,11 @@ class UserQueryRepositoryTest
                 .deleted(false)
                 .role("ROLE_USER")
                 .nickname("testUser")
+                .accountRecovery(
+                        AccountRecovery.of(
+                                RecoveryQuestion.FIRST_PET,
+                                "콩이"
+                        ))
                 .build();
 
         userRepository.save(user);
@@ -93,6 +100,11 @@ class UserQueryRepositoryTest
                 .deleted(false)
                 .role("ROLE_USER")
                 .nickname("testNickname")
+                .accountRecovery(
+                        AccountRecovery.of(
+                                RecoveryQuestion.FIRST_PET,
+                                "콩이"
+                        ))
                 .build();
 
         userRepository.save(user);
@@ -130,6 +142,11 @@ class UserQueryRepositoryTest
                 .deleted(false)
                 .role("ROLE_USER")
                 .nickname("testNickname")
+                .accountRecovery(
+                        AccountRecovery.of(
+                                RecoveryQuestion.FIRST_PET,
+                                "콩이"
+                        ))
                 .build();
 
         userRepository.save(user);

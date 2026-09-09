@@ -1,6 +1,8 @@
 package com.planb.slice.query.chat.repository.helper;
 
 
+import com.planb.domain.user.entity.AccountRecovery;
+import com.planb.domain.user.entity.constant.RecoveryQuestion;
 import com.planb.domain.user.entity.TermsAgreement;
 import lombok.RequiredArgsConstructor;
 
@@ -36,6 +38,11 @@ public class ChatDomainRepositoryTestHelper {
                                 true))
                 .nickname(nickname)
                 .deleted(deleted)
+                .accountRecovery(
+                        AccountRecovery.of(
+                                RecoveryQuestion.FIRST_PET,
+                                "콩이"
+                        ))
                 .build();
 
         return entityManager

@@ -1,5 +1,7 @@
 package com.planb.slice.query.travel.repository;
 
+import com.planb.domain.user.entity.AccountRecovery;
+import com.planb.domain.user.entity.constant.RecoveryQuestion;
 import com.planb.domain.travel.entity.Plan;
 import com.planb.domain.travel.entity.PlanDay;
 import com.planb.domain.travel.entity.PlanSchedule;
@@ -368,6 +370,12 @@ class RestaurantDetailQueryRepositoryTest
                                 true,
                                 true,
                                 true
+                        )
+                )
+                .accountRecovery(
+                        AccountRecovery.of(
+                                RecoveryQuestion.FIRST_PET,
+                                "콩이"
                         )
                 )
                 .build();

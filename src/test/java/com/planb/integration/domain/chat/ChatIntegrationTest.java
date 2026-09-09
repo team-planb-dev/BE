@@ -1,5 +1,6 @@
 package com.planb.integration.domain.chat;
 
+import com.planb.domain.user.entity.constant.RecoveryQuestion;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.http.Cookie;
 
@@ -700,6 +701,8 @@ public class ChatIntegrationTest extends IntegrationTest {
                         username,
                         nickname,
                         password,
+                        RecoveryQuestion.FIRST_PET,
+                        "콩이",
                         true,
                         true,
                         true

@@ -1,6 +1,7 @@
 package com.planb.integration.domain.user;
 
 
+import com.planb.domain.user.entity.constant.RecoveryQuestion;
 import org.junit.jupiter.api.DisplayName;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -87,6 +88,8 @@ public class UserIntegrationTest extends IntegrationTest {
                 new UserCreateRequest(username,
                         NICKNAME,
                         PASSWORD,
+                        RecoveryQuestion.FIRST_PET,
+                        "콩이",
                         true,
                         true,
                         true);
@@ -403,6 +406,8 @@ public class UserIntegrationTest extends IntegrationTest {
                         username,
                         nickname,
                         password,
+                        RecoveryQuestion.FIRST_PET,
+                        "콩이",
                         true,
                         true,
                         true);

@@ -1,5 +1,6 @@
 package com.planb.integration.domain.chat.helper;
 
+import com.planb.domain.user.entity.constant.RecoveryQuestion;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.http.Cookie;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -110,6 +111,8 @@ public abstract class ChatIntegrationTestSupport
                         username,
                         nickname,
                         password,
+                        RecoveryQuestion.FIRST_PET,
+                        "콩이",
                         true,
                         true,
                         true
