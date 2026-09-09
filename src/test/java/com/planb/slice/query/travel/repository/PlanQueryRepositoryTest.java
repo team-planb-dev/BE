@@ -7,6 +7,7 @@ import com.planb.domain.user.entity.User;
 import com.planb.global.config.persistence.QueryDslConfig;
 import com.planb.query.travel.dto.response.PlanBasicQueryResponse;
 import com.planb.query.travel.repository.PlanQueryRepository;
+import com.planb.slice.support.MySqlRepositoryTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +28,8 @@ import static org.assertj.core.api.Assertions.assertThat;
         replace = AutoConfigureTestDatabase.Replace.NONE
 )
 @ActiveProfiles("test")
-class PlanQueryRepositoryTest {
+class PlanQueryRepositoryTest
+        extends MySqlRepositoryTest {
 
     @Autowired
     private TestEntityManager entityManager;

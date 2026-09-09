@@ -12,6 +12,7 @@ import com.planb.domain.user.entity.User;
 import com.planb.domain.user.repository.UserRepository;
 import com.planb.global.config.persistence.QueryDslConfig;
 import com.planb.query.user.repository.UserQueryRepository;
+import com.planb.slice.support.MySqlRepositoryTest;
 
 import java.util.Optional;
 
@@ -21,7 +22,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import({QueryDslConfig.class, UserQueryRepository.class})
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("local")
-class UserQueryRepositoryTest {
+class UserQueryRepositoryTest
+        extends MySqlRepositoryTest {
 
     @Autowired
     private UserRepository userRepository;
