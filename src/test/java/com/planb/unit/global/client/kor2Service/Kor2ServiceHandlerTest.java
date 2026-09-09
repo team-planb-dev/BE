@@ -19,6 +19,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -136,7 +137,7 @@ class Kor2ServiceHandlerTest {
     }
 
     @Test
-    @DisplayName("음식점은 시군구 코드가 포함된 키워드 검색")
+    @DisplayName("도 지역 음식점은 시군구 코드가 포함된 키워드 검색")
     void searchesRestaurantsBySigungu() {
 
         when(
@@ -146,8 +147,8 @@ class Kor2ServiceHandlerTest {
                                 eq(Kor2AreaCodeResponse.class)
                         )
         ).thenReturn(
-                Mono.just(areaCodes("1", "서울")),
-                Mono.just(areaCodes("110", "종로구"))
+                Mono.just(areaCodes("35", "경상북도")),
+                Mono.just(areaCodes("2", "경주시"))
         );
 
         when(
@@ -160,9 +161,9 @@ class Kor2ServiceHandlerTest {
 
         handler
                 .searchRestaurants(
-                        "설렁탕",
-                        "서울",
-                        "종로구"
+                        "쌈밥",
+                        "경상북도",
+                        "경주시"
                 )
                 .block();
 
@@ -178,10 +179,63 @@ class Kor2ServiceHandlerTest {
                 .isEqualTo("/searchKeyword2");
 
         assertThat(uri.getValue().getQuery())
-                .contains("keyword=설렁탕")
-                .contains("areaCode=1")
-                .contains("sigunguCode=110")
+                .contains("keyword=쌈밥")
+                .contains("areaCode=35")
+                .contains("sigunguCode=2")
                 .contains("contentTypeId=39");
+    }
+
+    // 광역 지역은 관광지 조회와 같은 기준으로 시/도 전체를 검색해야 한다
+    @Test
+    @DisplayName("광역 지역 음식점은 시군구 코드 없이 시/도 전체 키워드 검색")
+    void searchesRestaurantsAcrossMetropolitanArea() {
+
+        when(
+                kor2ServiceClient
+                        .get(
+                                any(URI.class),
+                                eq(Kor2AreaCodeResponse.class)
+                        )
+        ).thenReturn(Mono.just(areaCodes("6", "부산")));
+
+        when(
+                kor2ServiceClient
+                        .get(
+                                any(URI.class),
+                                eq(Kor2KeywordSearchResponse.class)
+                        )
+        ).thenReturn(Mono.just(emptyPlaces()));
+
+        handler
+                .searchRestaurants(
+                        "밀면",
+                        "부산",
+                        "해운대구"
+                )
+                .block();
+
+        ArgumentCaptor<URI> uri = ArgumentCaptor.forClass(URI.class);
+
+        verify(kor2ServiceClient)
+                .get(
+                        uri.capture(),
+                        eq(Kor2KeywordSearchResponse.class)
+                );
+
+        assertThat(uri.getValue().getQuery())
+                .contains("keyword=밀면")
+                .contains("areaCode=6")
+                .contains("contentTypeId=39")
+                .doesNotContain("sigunguCode");
+
+        verify(
+                kor2ServiceClient,
+                times(1)
+        )
+                .get(
+                        any(URI.class),
+                        eq(Kor2AreaCodeResponse.class)
+                );
     }
 
     private Kor2AreaCodeResponse areaCodes(

@@ -84,7 +84,13 @@ class TravelRecommendHandlerTest extends IntegrationTest {
                         TravelStyle.MATCH_MEAL_TIME,
                         TravelTheme.TASTE,
                         List.of("돼지국밥"),
-                        List.of("돼지국밥", "밀면")
+                        List.of(
+                                "밀면",
+                                "복국",
+                                "씨앗호떡",
+                                "어묵",
+                                "낙지볶음"
+                        )
                 );
 
         TravelHealthContext baseHealthContext =
@@ -204,11 +210,13 @@ class TravelRecommendHandlerTest extends IntegrationTest {
                         ),
                         TravelStyle.MATCH_MEAL_TIME,
                         TravelTheme.TASTE,
-                        List.of("황남빵"),
+                        List.of("쌈밥"),
                         List.of(
-                                "황남빵",
-                                "쌈밥",
-                                "연잎밥"
+                                "연잎밥",
+                                "한정식",
+                                "순두부",
+                                "비빔밥",
+                                "칼국수"
                         )
                 );
 
@@ -230,7 +238,7 @@ class TravelRecommendHandlerTest extends IntegrationTest {
                                         FoodType.ALLERGY
                                 ),
                                 new TravelHealthContext.FoodInfoContext(
-                                        "과도하게 단 음식",
+                                        "사탕",
                                         FoodType.AVOID
                                 )
                         ),

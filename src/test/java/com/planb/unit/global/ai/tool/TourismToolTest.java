@@ -86,11 +86,11 @@ class TourismToolTest {
     }
 
     @Test
-    @DisplayName("지역 관광지 후보는 원본 후보에서 최대 12개만 반환")
+    @DisplayName("지역 관광지 후보는 원본 후보에서 최대 40개만 반환")
     void selectsAttractionCandidatesWithinLimit() {
 
         List<Kor2KeywordSearchResponse.Item> source = IntStream
-                .range(0, 20)
+                .range(0, 50)
                 .mapToObj(index ->
                         attraction(String.valueOf(index))
                 )
@@ -115,7 +115,7 @@ class TourismToolTest {
                 .items()
                 .item();
 
-        assertEquals(12, selected.size());
+        assertEquals(40, selected.size());
         assertTrue(source.containsAll(selected));
         verify(kor2ServiceHandler)
                 .searchAttractions(
