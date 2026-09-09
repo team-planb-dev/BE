@@ -150,7 +150,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     }
 
     @Test
-    @DisplayName("생성 결과의 필수 필드·복약·태그를 검증하고 비음식점 좌표 누락을 저장·재조회한다")
+    @DisplayName("생성 결과의 필수 필드·복약·태그 검증과 비음식점 좌표 누락 저장·재조회")
     void createPersistsValidatedFieldsWithOptionalCoordinates() throws Exception {
 
         stubCreate(true);
@@ -179,7 +179,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     }
 
     @Test
-    @DisplayName("미등록 후보가 두 번의 재선택에도 해결되지 않으면 실패 응답과 DB 롤백을 보장한다")
+    @DisplayName("미등록 후보의 재선택 두 번 실패 시 실패 응답과 DB 롤백")
     void invalidCandidateRollsBackCreation() throws Exception {
 
         List<Long> before = counts();
@@ -194,7 +194,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     }
 
     @Test
-    @DisplayName("음식점 좌표 누락은 비음식점과 달리 거부하며 생성 데이터를 남기지 않는다")
+    @DisplayName("비음식점과 달리 음식점 좌표 누락 거부와 생성 데이터 미저장")
     void restaurantCoordinatesRemainRequired() throws Exception {
 
         List<Long> before = counts();
@@ -223,7 +223,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     }
 
     @Test
-    @DisplayName("수정 미리보기는 DB를 보존하고 확정 시 모든 필드를 교체하며 캐시와 이전 자식을 정리한다")
+    @DisplayName("수정 미리보기의 DB 보존과 확정 시 모든 필드 교체 및 캐시·이전 자식 정리")
     void previewConfirmAndQueryPreserveAllFields() throws Exception {
 
         success(postApi("/add-with-recommend", request));
@@ -269,7 +269,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     }
 
     @Test
-    @DisplayName("대기 중인 수정안을 취소하면 원본은 유지되고 캐시 삭제 후 확정은 실패한다")
+    @DisplayName("대기 중인 수정안 취소 시 원본 유지와 캐시 삭제 후 확정 실패")
     void cancelPendingPreviewKeepsOriginal() throws Exception {
 
         success(postApi("/add-with-recommend", request));
@@ -292,7 +292,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     }
 
     @Test
-    @DisplayName("전체 재구성 두 번 실패 시 명시적 오류를 반환하고 원본 및 캐시를 보존한다")
+    @DisplayName("전체 재구성 두 번 실패 시 명시적 오류 반환과 원본·캐시 보존")
     void failedRebuildDoesNotPublishPreview() throws Exception {
 
         success(postApi("/add-with-recommend", request));
@@ -320,7 +320,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     }
 
     @Test
-    @DisplayName("재구성 재시도가 성공하면 대상 날짜만 바뀌고 좌표 없는 유지 날짜도 확정까지 보존한다")
+    @DisplayName("재구성 재시도 성공 시 대상 날짜만 변경과 좌표 없는 유지 날짜의 확정까지 보존")
     void rebuiltDayPreservesOtherDayThroughConfirmation() throws Exception {
 
         stubCreate(true);
@@ -369,7 +369,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     }
 
     @Test
-    @DisplayName("잘못 분류한 장소만 재선택하고 정상 슬롯은 유지한 결과를 저장한다")
+    @DisplayName("잘못 분류한 장소만 재선택과 정상 슬롯 유지 결과 저장")
     void reselectsOnlyInvalidPlace() throws Exception {
 
         when(handler.createPlanByAi(any(), any()))
@@ -416,7 +416,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     }
 
     @Test
-    @DisplayName("수정 장소와 기존 장소 모두 검증 불가하면 오류를 반환하고 원본 DB를 유지한다")
+    @DisplayName("수정 장소와 기존 장소 모두 검증 불가 시 오류 반환과 원본 DB 유지")
     void invalidEditDoesNotReplaceStoredPlan() throws Exception {
 
         success(postApi("/add-with-recommend", request));
@@ -446,7 +446,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     }
 
     @Test
-    @DisplayName("선택한 구성원만 AI 컨텍스트에 포함하고 선택하지 않은 구성원 데이터는 유지한다")
+    @DisplayName("선택한 구성원만 AI 컨텍스트 포함과 미선택 구성원 데이터 유지")
     void createUsesOnlySelectedCompanions() throws Exception {
 
         stubCreate(true);
@@ -469,7 +469,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     }
 
     @Test
-    @DisplayName("여러 구성원을 선택하면 모두 관계로 저장하고 중복 요청은 한 번만 저장한다")
+    @DisplayName("여러 구성원 선택 시 모두 관계 저장과 중복 요청 한 번만 저장")
     void createStoresEachSelectedCompanionOnce() throws Exception {
 
         stubCreate(true);
@@ -494,7 +494,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     }
 
     @Test
-    @DisplayName("구성원을 선택하지 않은 생성 요청은 거부하고 여행을 저장하지 않는다")
+    @DisplayName("구성원 미선택 생성 요청 거부와 여행 미저장")
     void createRejectsEmptyCompanions() throws Exception {
 
         List<Long> before = counts();
@@ -508,7 +508,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     }
 
     @Test
-    @DisplayName("존재하지 않는 구성원을 선택한 생성 요청은 거부한다")
+    @DisplayName("존재하지 않는 구성원 선택 생성 요청 거부")
     void createRejectsUnknownCompanion() throws Exception {
 
         List<Long> before = counts();
@@ -520,7 +520,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     }
 
     @Test
-    @DisplayName("다른 사용자의 구성원을 선택한 생성 요청은 거부한다")
+    @DisplayName("다른 사용자의 구성원 선택 생성 요청 거부")
     void createRejectsOtherUsersCompanion() throws Exception {
 
         String strangerUsername = createUniqueUsername();
@@ -537,7 +537,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     }
 
     @Test
-    @DisplayName("수정 미리보기는 여행 생성 당시 선택한 구성원을 그대로 사용한다")
+    @DisplayName("수정 미리보기의 여행 생성 당시 선택 구성원 그대로 사용")
     void previewReusesSelectedCompanions() throws Exception {
 
         stubCreate(true);
@@ -562,7 +562,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     }
 
     @Test
-    @DisplayName("생성 직후에는 저장 전 상태이며 저장 확정에 필요한 travelId를 반환한다")
+    @DisplayName("생성 직후 저장 전 상태와 저장 확정에 필요한 travelId 반환")
     void createReturnsUnsavedTravelId() throws Exception {
 
         stubCreate(true);
@@ -577,7 +577,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     }
 
     @Test
-    @DisplayName("소유자의 저장 확정은 성공하고 중복 요청에도 결과가 같다")
+    @DisplayName("소유자의 저장 확정 성공과 중복 요청 결과 동일")
     void saveIsIdempotentForOwner() throws Exception {
 
         stubCreate(true);
@@ -606,7 +606,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     }
 
     @Test
-    @DisplayName("다른 사용자와 존재하지 않는 여행의 저장 확정 요청은 거부한다")
+    @DisplayName("다른 사용자와 존재하지 않는 여행의 저장 확정 요청 거부")
     void saveRejectsForeignAndUnknownTravel() throws Exception {
 
         stubCreate(true);
@@ -638,7 +638,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     }
 
     @Test
-    @DisplayName("저장 전 공유 발급은 거부하고 저장 후에는 같은 토큰을 재사용한다")
+    @DisplayName("저장 전 공유 발급 거부와 저장 후 동일 토큰 재사용")
     void shareRequiresSavedTravel() throws Exception {
 
         stubCreate(true);

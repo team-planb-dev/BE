@@ -217,7 +217,7 @@ class ChatMessageServiceTest {
     }
 
     @Test
-    @DisplayName("퇴장 시스템 메시지를 생성한다")
+    @DisplayName("퇴장 시스템 메시지 생성")
     void createSystemMessageLeave() {
 
         // given

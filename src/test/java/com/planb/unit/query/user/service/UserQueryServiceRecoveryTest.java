@@ -35,7 +35,7 @@ class UserQueryServiceRecoveryTest {
     private UserQueryService userQueryService;
 
     @Test
-    @DisplayName("복구 질문과 답변이 유일하게 일치하면 해당 유저를 반환한다")
+    @DisplayName("복구 질문과 답변이 유일하게 일치하는 유저 반환")
     void findsSingleMatchedUser() {
 
         // given
@@ -61,7 +61,7 @@ class UserQueryServiceRecoveryTest {
     }
 
     @Test
-    @DisplayName("복구 답변이 여러 계정에 걸리면 실패로 처리한다")
+    @DisplayName("복구 답변이 여러 계정에 일치하는 경우 실패 처리")
     void failsWhenMultipleUsersMatch() {
 
         // given
@@ -89,7 +89,7 @@ class UserQueryServiceRecoveryTest {
     }
 
     @Test
-    @DisplayName("복구 답변이 일치하는 계정이 없으면 실패로 처리한다")
+    @DisplayName("복구 답변이 일치하는 계정이 없는 경우 실패 처리")
     void failsWhenNoUserMatches() {
 
         // given

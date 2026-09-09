@@ -1342,7 +1342,7 @@ class ChatFacadeTest {
     }
 
     @Test
-    @DisplayName("travel과 연결되지 않은 채팅방이면 인사 메시지를 발행하지 않는다")
+    @DisplayName("travel과 연결되지 않은 채팅방인 경우 인사 메시지 미발행")
     void publishAiGreetingIfNeededSkipsWhenNotTravelLinked() {
 
         // given
@@ -1368,7 +1368,7 @@ class ChatFacadeTest {
     }
 
     @Test
-    @DisplayName("이미 메시지가 존재하는 채팅방이면 인사 메시지를 발행하지 않는다")
+    @DisplayName("이미 메시지가 존재하는 채팅방인 경우 인사 메시지 미발행")
     void publishAiGreetingIfNeededSkipsWhenMessageExists() {
 
         // given
@@ -1405,7 +1405,7 @@ class ChatFacadeTest {
     }
 
     @Test
-    @DisplayName("최초 입장이면 사용자와 AI 닉네임 기준 인사 메시지 2건을 발행한다")
+    @DisplayName("최초 입장 시 사용자와 AI 닉네임 기준 인사 메시지 2건 발행")
     void publishAiGreetingIfNeededPublishesGreetings() {
 
         // given
@@ -1474,7 +1474,7 @@ class ChatFacadeTest {
     }
 
     @Test
-    @DisplayName("CONFIRM 완료 메시지를 조회한 뒤 AI 응답으로 발행한다")
+    @DisplayName("CONFIRM 완료 메시지 조회 후 AI 응답 발행")
     void publishConfirmReplySuccess() {
 
         // given
@@ -1514,7 +1514,7 @@ class ChatFacadeTest {
     }
 
     @Test
-    @DisplayName("CANCEL 완료 메시지를 조회한 뒤 AI 응답으로 발행한다")
+    @DisplayName("CANCEL 완료 메시지 조회 후 AI 응답 발행")
     void publishCancelReplySuccess() {
 
         // given

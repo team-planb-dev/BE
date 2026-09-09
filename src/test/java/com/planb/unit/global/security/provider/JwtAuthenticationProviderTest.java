@@ -117,10 +117,10 @@ class JwtAuthenticationProviderTest {
         )
                 .isInstanceOf(BaseException.class);
 
-        verify(jwtUtil,never())
+        verify(jwtUtil, never())
                 .isExpired(anyString());
 
-        verify(userAuthCacheRepository,never())
+        verify(userAuthCacheRepository, never())
                 .findByUsername(anyString());
     }
 
@@ -133,7 +133,7 @@ class JwtAuthenticationProviderTest {
         )
                 .isInstanceOf(BaseException.class);
 
-        verify(jwtUtil,never())
+        verify(jwtUtil, never())
                 .isExpired(anyString());
 
         verify(userAuthCacheRepository, never())

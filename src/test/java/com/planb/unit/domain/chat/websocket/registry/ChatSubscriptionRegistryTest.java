@@ -285,7 +285,7 @@ class ChatSubscriptionRegistryTest {
     }
 
     @Test
-    @DisplayName("세션 연결 종료 시 해당 세션의 모든 구독 정보를 반환한다")
+    @DisplayName("세션 연결 종료 시 해당 세션의 모든 구독 정보 반환")
     void disconnectSuccess() {
 
         // given

@@ -11,7 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AccountRecoveryTest {
 
     @Test
-    @DisplayName("답변의 앞뒤 공백과 대소문자 차이를 무시하고 일치로 판정한다")
+    @DisplayName("답변의 앞뒤 공백과 대소문자 차이 무시 후 일치 판정")
     void matchesIgnoringWhitespaceAndCase() {
 
         AccountRecovery accountRecovery = AccountRecovery
@@ -23,7 +23,7 @@ class AccountRecoveryTest {
     }
 
     @Test
-    @DisplayName("질문이 다르면 답변이 같아도 일치하지 않는다")
+    @DisplayName("질문이 다른 경우 동일 답변 불일치")
     void doesNotMatchWhenQuestionDiffers() {
 
         AccountRecovery accountRecovery = AccountRecovery
@@ -35,7 +35,7 @@ class AccountRecoveryTest {
     }
 
     @Test
-    @DisplayName("답변 해시는 64자리 16진수이다")
+    @DisplayName("답변 해시의 64자리 16진수 형식")
     void hashesAnswerToHex() {
 
         assertThat(AccountRecovery
@@ -45,7 +45,7 @@ class AccountRecoveryTest {
     }
 
     @Test
-    @DisplayName("이메일 찾기 응답은 아이디 앞 두 글자만 노출한다")
+    @DisplayName("이메일 찾기 응답의 아이디 앞 두 글자만 노출")
     void masksUsername() {
 
         assertThat(FindUsernameResponse

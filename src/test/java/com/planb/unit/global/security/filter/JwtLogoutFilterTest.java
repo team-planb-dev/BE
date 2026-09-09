@@ -88,7 +88,7 @@ class JwtLogoutFilterTest {
     }
 
     @Test
-    @DisplayName("유효하지 않은 refresh 토큰이면 다음 필터로 넘긴다")
+    @DisplayName("유효하지 않은 refresh 토큰인 경우 다음 필터 위임")
     void doFilterInternal_fail_invalidRefresh()
             throws Exception {
 
@@ -132,7 +132,7 @@ class JwtLogoutFilterTest {
 
     @Test
 
-    @DisplayName("유효한 refresh 토큰이면 로그아웃을 수행한다")
+    @DisplayName("유효한 refresh 토큰인 경우 로그아웃 수행")
 
     void doFilterInternal_success()
 
@@ -169,16 +169,16 @@ class JwtLogoutFilterTest {
 
         // when
         jwtLogoutFilter
-                .callDoFilterInternal(request,response,filterChain);
+                .callDoFilterInternal(request, response, filterChain);
 
         // then
-        verify(refreshService,times(1))
+        verify(refreshService, times(1))
                 .deleteRefresh(refresh);
 
         verify(userAuthCacheService)
                 .deleteUserAuthCache(username);
 
-        verify(cookieUtil,times(1))
+        verify(cookieUtil, times(1))
                 .zeroCookie(response);
 
         Cookie responseCookie = response
@@ -228,7 +228,7 @@ class JwtLogoutFilterTest {
                  FilterChain filterChain)
                 throws Exception {
 
-            doFilterInternal(request,response,filterChain);
+            doFilterInternal(request, response, filterChain);
         }
 
     }

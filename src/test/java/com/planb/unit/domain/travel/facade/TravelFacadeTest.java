@@ -1124,7 +1124,7 @@ class TravelFacadeTest {
     }
 
     @Test
-    @DisplayName("Travel 소유자가 아니면 접근이 거부된다")
+    @DisplayName("Travel 소유자가 아닌 경우 접근 거부")
     void getAiPlanThrowsForbiddenWhenNotOwner() {
 
         // given
@@ -1189,7 +1189,7 @@ class TravelFacadeTest {
     }
 
     @Test
-    @DisplayName("수정안을 저장 확정하면 기존 PlanDay를 지우고 수정안으로 다시 생성한다")
+    @DisplayName("수정안 저장 확정 시 기존 PlanDay 삭제 후 수정안 기반 재생성")
     void confirmEditPlan() {
 
         // given
@@ -1480,7 +1480,7 @@ class TravelFacadeTest {
     }
 
     @Test
-    @DisplayName("Redis에 저장된 수정안이 없거나 만료되었으면 예외가 발생한다")
+    @DisplayName("Redis 수정안 부재 또는 만료 시 예외 발생")
     void confirmEditPlanThrowsWhenEditResultNotFound() {
 
         // given
@@ -1549,7 +1549,7 @@ class TravelFacadeTest {
     }
 
     @Test
-    @DisplayName("Travel 소유자가 아니면 저장 확정 시 접근이 거부된다")
+    @DisplayName("Travel 소유자가 아닌 경우 저장 확정 접근 거부")
     void confirmEditPlanThrowsForbiddenWhenNotOwner() {
 
         // given
@@ -1602,7 +1602,7 @@ class TravelFacadeTest {
     }
 
     @Test
-    @DisplayName("수정 미리보기를 취소하면 Redis 캐시만 삭제한다")
+    @DisplayName("수정 미리보기 취소 시 Redis 캐시만 삭제")
     void cancelEditPlan() {
 
         // given
@@ -1651,7 +1651,7 @@ class TravelFacadeTest {
     }
 
     @Test
-    @DisplayName("Travel 소유자가 아니면 취소 시 접근이 거부된다")
+    @DisplayName("Travel 소유자가 아닌 경우 취소 접근 거부")
     void cancelEditPlanThrowsForbiddenWhenNotOwner() {
 
         // given

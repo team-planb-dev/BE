@@ -2471,7 +2471,7 @@ class PlanPlaceValidationTest {
     }
 
     @Test
-    @DisplayName("빈 그룹 코드는 명시적인 사찰 상세 분류로 보완하되 알 수 없는 분류는 거부한다")
+    @DisplayName("빈 그룹 코드의 명시적 사찰 상세 분류 보완과 알 수 없는 분류 거부")
     void emptyGroupRequiresVerifiedDetailedCategory() {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();

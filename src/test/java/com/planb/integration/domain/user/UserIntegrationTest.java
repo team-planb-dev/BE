@@ -118,7 +118,7 @@ public class UserIntegrationTest extends IntegrationTest {
                 PASSWORD);
 
         LoginRequest request =
-                new LoginRequest(username,PASSWORD);
+                new LoginRequest(username, PASSWORD);
 
         // when
         MvcResult result = mockMvc
@@ -265,7 +265,7 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String username = createUniqueUsername();
 
-        createUser(username,NICKNAME, PASSWORD);
+        createUser(username, NICKNAME, PASSWORD);
 
         LoginResult loginResult = login(username, PASSWORD);
 
@@ -298,7 +298,7 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String username = createUniqueUsername();
 
-        createUser(username,NICKNAME, PASSWORD);
+        createUser(username, NICKNAME, PASSWORD);
 
         LoginResult loginResult = login(username, PASSWORD);
 
@@ -432,7 +432,7 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String username = createUniqueUsername();
 
-        createUser(username,NICKNAME, PASSWORD);
+        createUser(username, NICKNAME, PASSWORD);
 
         LoginRequest request = new LoginRequest(
                 username,

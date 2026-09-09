@@ -198,7 +198,7 @@ class PlanServiceTest {
     }
 
     @Test
-    @DisplayName("다음 날짜 첫 장소의 이동시간이 누락되면 이전 날짜 마지막 장소에서 계산한다")
+    @DisplayName("다음 날짜 첫 장소 이동시간 누락 시 이전 날짜 마지막 장소 기준 계산")
     void makePlanByAiUsesPreviousDayLastPlaceForMissingRoute() {
 
         TravelPlanContext context =
@@ -277,7 +277,7 @@ class PlanServiceTest {
     }
 
     @Test
-    @DisplayName("MINIMAL 여행자는 모든 날짜에 관광 장소가 2개 미만이면 일정을 거부한다")
+    @DisplayName("MINIMAL 여행자의 모든 날짜 관광 장소 2개 미만 일정 거부")
     void makePlanByAiRejectsInsufficientTouristPlacesForMinimalTraveler() {
 
         TravelHealthContext healthContext =
@@ -340,7 +340,7 @@ class PlanServiceTest {
     }
 
     @Test
-    @DisplayName("ACTIVE 여행자는 모든 날짜에 관광 장소가 3개이면 일정을 허용한다")
+    @DisplayName("ACTIVE 여행자의 모든 날짜 관광 장소 3개 일정 허용")
     void makePlanByAiAcceptsThreeTouristPlacesPerDayForActiveTraveler() {
 
         TravelHealthContext healthContext =
@@ -402,7 +402,7 @@ class PlanServiceTest {
     }
 
     @Test
-    @DisplayName("ACTIVE 여행자는 모든 날짜에 관광 장소가 3개 미만이면 일정을 거부한다")
+    @DisplayName("ACTIVE 여행자의 모든 날짜 관광 장소 3개 미만 일정 거부")
     void makePlanByAiRejectsInsufficientTouristPlacesForActiveTraveler() {
 
         TravelHealthContext healthContext =
@@ -467,7 +467,7 @@ class PlanServiceTest {
     }
 
     @Test
-    @DisplayName("MUST_HAVE는 날짜별 관광 장소 개수에 포함한다")
+    @DisplayName("MUST_HAVE의 날짜별 관광 장소 개수 포함")
     void makePlanByAiCountsMustHaveAsTouristPlace() {
 
         TravelHealthContext healthContext =
@@ -532,7 +532,7 @@ class PlanServiceTest {
     }
 
     @Test
-    @DisplayName("AI 기반 여행 일정 생성 - MEDICATION 슬롯에 MEDICATION_SCHEDULE 태그를 자동으로 부여한다")
+    @DisplayName("AI 기반 여행 일정 생성 - MEDICATION 슬롯의 MEDICATION_SCHEDULE 태그 자동 부여")
     void makePlanByAiAddsMedicationScheduleTag() {
 
         TravelHealthContext.MedicationInfoContext medicationInfo =
@@ -600,7 +600,7 @@ class PlanServiceTest {
     }
 
     @Test
-    @DisplayName("AI 기반 여행 일정 생성 - WITH_MEAL/AFTER_MEAL 복약 규칙에 따라 실제 식사시간 기준으로 복약 시각을 재계산한다")
+    @DisplayName("AI 기반 여행 일정 생성 - WITH_MEAL/AFTER_MEAL 복약 규칙의 실제 식사시간 기준 복약 시각 재계산")
     void makePlanByAiRecalculatesMedicationTimeByMealRule() {
 
         TravelHealthContext.MedicationInfoContext.MealMedicationRuleContext rule =
@@ -697,7 +697,7 @@ class PlanServiceTest {
     }
 
     @Test
-    @DisplayName("등록된 복약 정보가 없으면 AI가 만든 MEDICATION 슬롯을 제거한다")
+    @DisplayName("등록된 복약 정보가 없는 경우 AI 생성 MEDICATION 슬롯 제거")
     void makePlanByAiRemovesMedicationWhenNoMedicationRegistered() {
 
         TravelPlanContext context =
@@ -741,7 +741,7 @@ class PlanServiceTest {
     }
 
     @Test
-    @DisplayName("동일 시각의 여러 복약 일정을 하나로 병합한다")
+    @DisplayName("동일 시각의 여러 복약 일정 하나로 병합")
     void makePlanByAiMergesMedicationAtSameTime() {
 
         TravelHealthContext.MedicationInfoContext.MealMedicationRuleContext rule =
@@ -841,7 +841,7 @@ class PlanServiceTest {
     }
 
     @Test
-    @DisplayName("적용 대상 식사시간의 허용 범위를 벗어나면 명시적으로 실패한다")
+    @DisplayName("적용 대상 식사시간의 허용 범위 이탈 시 명시적 실패")
     void makePlanByAiRejectsMealOutsideAllowedTimeRange() {
 
         TravelHealthContext healthContext =
@@ -927,7 +927,7 @@ class PlanServiceTest {
     }
 
     @Test
-    @DisplayName("실제 식사와 등록 식사시간이 모두 없으면 명시적으로 실패한다")
+    @DisplayName("실제 식사와 등록 식사시간이 모두 없는 경우 명시적 실패")
     void makePlanByAiFailsWhenMedicationBaseTimeIsMissing() {
 
         TravelHealthContext.MedicationInfoContext.MealMedicationRuleContext rule =
@@ -994,7 +994,7 @@ class PlanServiceTest {
     }
 
     @Test
-    @DisplayName("AI 기반 여행 일정 생성 - TRANSPORTATION 슬롯에 여행 요청의 이동수단(TRANSIT) 태그를 자동으로 부여한다")
+    @DisplayName("AI 기반 여행 일정 생성 - TRANSPORTATION 슬롯의 여행 요청 이동수단(TRANSIT) 태그 자동 부여")
     void makePlanByAiAddsTransitTagForTransportationSlot() {
 
         TravelPlanContext context =
@@ -1025,7 +1025,7 @@ class PlanServiceTest {
     }
 
     @Test
-    @DisplayName("AI 기반 여행 일정 생성 - TRANSPORTATION 슬롯에 여행 요청의 이동수단(CAR) 태그를 자동으로 부여한다")
+    @DisplayName("AI 기반 여행 일정 생성 - TRANSPORTATION 슬롯의 여행 요청 이동수단(CAR) 태그 자동 부여")
     void makePlanByAiAddsCarTagForTransportationSlot() {
 
         TravelPlanContext context =
@@ -1056,7 +1056,7 @@ class PlanServiceTest {
     }
 
     @Test
-    @DisplayName("AI 기반 여행 일정 생성 - RESTAURANT 메뉴가 지역음식 후보와 일치하면 LOCAL_FOOD 태그를 자동으로 부여한다")
+    @DisplayName("AI 기반 여행 일정 생성 - 지역음식 후보와 일치하는 RESTAURANT 메뉴의 LOCAL_FOOD 태그 자동 부여")
     void makePlanByAiAddsLocalFoodTagWhenMenuMatchesLocalFood() {
 
         TravelPlanContext context =
@@ -1105,7 +1105,7 @@ class PlanServiceTest {
     }
 
     @Test
-    @DisplayName("AI 기반 여행 일정 생성 - 여행자 중 알레르기/기피 음식이 있으면 RESTAURANT 슬롯에 ALLERGY_CHECK 태그를 자동으로 부여한다")
+    @DisplayName("AI 기반 여행 일정 생성 - 여행자 중 알레르기/기피 음식 보유 시 RESTAURANT 슬롯의 ALLERGY_CHECK 태그 자동 부여")
     void makePlanByAiAddsAllergyCheckTagWhenTravelerHasAllergyFood() {
 
         TravelHealthContext healthContext =
@@ -1181,7 +1181,7 @@ class PlanServiceTest {
     }
 
     @Test
-    @DisplayName("AI 기반 여행 일정 생성 - 수집된 영양평가 결과 중 CHECK/HIGH 성분만 참고 태그로 부여하고 LOW는 제외한다")
+    @DisplayName("AI 기반 여행 일정 생성 - 수집된 영양평가 결과의 CHECK/HIGH 성분만 참고 태그 부여와 LOW 제외")
     void makePlanByAiAddsNutritionReferenceTagsFromCollectedEvaluations() {
 
         TravelPlanContext context =
@@ -1255,7 +1255,7 @@ class PlanServiceTest {
     }
 
     @Test
-    @DisplayName("RecommendationTag 집계 - PlanDay 목록의 모든 스케줄 태그를 모은다")
+    @DisplayName("RecommendationTag 집계 - PlanDay 목록의 모든 스케줄 태그 수집")
     void aggregateTags() {
 
         // given

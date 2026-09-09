@@ -91,7 +91,7 @@ class UserAuthCacheRepositoryTest {
     }
 
     @Test
-    @DisplayName("저장되지 않은 username을 조회하면 Optional.empty를 반환한다")
+    @DisplayName("저장되지 않은 username 조회 시 Optional.empty 반환")
     void findByUsernameReturnsEmptyWhenUserDoesNotExist() {
 
         // given

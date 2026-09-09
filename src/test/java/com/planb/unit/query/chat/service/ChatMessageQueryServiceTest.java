@@ -25,7 +25,7 @@ class ChatMessageQueryServiceTest {
     private ChatMessageQueryService chatMessageQueryService;
 
     @Test
-    @DisplayName("채팅방의 모든 메시지를 Soft Delete 한다")
+    @DisplayName("채팅방의 모든 메시지 Soft Delete")
     void softDeleteAllMessageInChatRoom() {
 
         // given
