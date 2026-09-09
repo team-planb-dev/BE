@@ -21,6 +21,12 @@ import org.springframework.stereotype.Component;
 
 
 
+/**
+ * 동행인의 건강, 음식 제한, 복약 정보 흐름을 조합하는 Facade.
+ *
+ * 개인정보 동의 여부에 따라 저장 범위를 결정하고 사용자 소유권을 기준으로
+ * 동행인 정보의 생성, 조회, 삭제가 일관되게 처리되도록 각 Service를 조합한다.
+ */
 @Component
 @RequiredArgsConstructor
 public class HealthFacade {
@@ -37,8 +43,14 @@ public class HealthFacade {
 
 
     /**
-     개인정보 동의에 따른 health 정보 생성 후
-     나머지 객체 생성 및 저장
+     * 개인정보 동의 범위에 맞춰 동행인과 건강 관련 정보를 등록한다.
+     *
+     * 민감정보에 동의하지 않은 경우 기본 동행인 정보만 저장하고,
+     * 동의한 경우 음식 제한과 복약 정보까지 같은 등록 흐름에서 저장한다.
+     *
+     * @param request 등록할 동행인과 건강 정보
+     * @param username 동행인을 등록하는 사용자의 username
+     * @return 등록된 동행인 정보
      */
     @Transactional
     public AddCompanionResponse addCompanion(AddCompanionRequest request,
@@ -89,7 +101,10 @@ public class HealthFacade {
     }
 
     /**
-     * UserDetails를 통해 동행인 리스트 조회 (간단조회)
+     * 인증 사용자가 소유한 동행인의 요약 정보를 조회한다.
+     *
+     * @param username 동행인을 소유한 사용자의 username
+     * @return 동행인 요약 목록
      */
     @Transactional(readOnly = true)
     public CompanionSummaryResponse getCompanionSummary
@@ -107,7 +122,7 @@ public class HealthFacade {
     }
 
     /**
-     * 동행인 상세 조회
+     * 동행인의 건강, 음식 제한, 복약 정보를 함께 제공할 상세 조회 흐름을 정의한다.
      */
     @Transactional(readOnly = true)
     public void getCompanionDetail(){
@@ -120,7 +135,14 @@ public class HealthFacade {
     }
 
     /**
-     * 단일 동행인 삭제
+     * 사용자 소유권을 검증한 뒤 동행인과 연관된 건강 정보를 함께 삭제한다.
+     *
+     * 참조 관계가 남지 않도록 음식 제한과 복약 정보를 먼저 제거한다.
+     *
+     * @param request 삭제할 동행인 식별 정보
+     * @param username 삭제를 요청한 사용자의 username
+     * @return 동행인 삭제 결과
+     * @throws BaseException 요청한 사용자가 해당 동행인을 소유하지 않은 경우
      */
     @Transactional
     public DeleteCompanionResponse deleteCompanion(
