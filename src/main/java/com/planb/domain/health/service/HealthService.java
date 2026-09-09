@@ -95,6 +95,60 @@ public class HealthService {
 
 
 
+    // 동행인 정보 수정 (민감정보 동의 여부에 따라 저장 범위가 달라진다)
+    public void updateHealth(
+            Health health,
+            CreateHealthRequest request
+    ) {
+
+        if (!request.sensitiveAgree()) {
+            health.update(request
+                            .travelerName(),
+                    false,
+                    false,
+                    null,
+                    null);
+
+            return;
+        }
+
+        health.update(request
+                        .travelerName(),
+                true,
+                request
+                        .hasMedication(),
+                new HealthInfo(
+                        request
+                                .healthInfo()
+                                .diseaseType(),
+                        request
+                                .healthInfo()
+                                .walkType()),
+                new MealInfo(
+                        request
+                                .mealInfo()
+                                .applied(),
+                        request
+                                .mealInfo()
+                                .breakfastApplied(),
+                        request
+                                .mealInfo()
+                                .breakfastTime(),
+                        request
+                                .mealInfo()
+                                .lunchApplied(),
+                        request
+                                .mealInfo()
+                                .lunchTime(),
+                        request
+                                .mealInfo()
+                                .dinnerApplied(),
+                        request
+                                .mealInfo()
+                                .dinnerTime()));
+    }
+
+
     /*
     기본 CRUD 모음
      */

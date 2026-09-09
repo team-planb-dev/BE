@@ -52,4 +52,23 @@ public class Health {
     @JoinColumn(name = "users_id",nullable = false)
     private User user;
 
+    /**
+     * 동행인 정보를 수정한다.
+     *
+     * 민감정보 동의를 철회하면 건강/식사 정보를 남기지 않는다.
+     */
+    public void update(
+            String travelerName,
+            boolean sensitiveAgree,
+            boolean hasMedication,
+            HealthInfo healthInfo,
+            MealInfo mealInfo
+    ) {
+
+        this.travelerName = travelerName;
+        this.sensitiveAgree = sensitiveAgree;
+        this.hasMedication = sensitiveAgree && hasMedication;
+        this.healthInfo = sensitiveAgree ? healthInfo : null;
+        this.mealInfo = sensitiveAgree ? mealInfo : null;
+    }
 }

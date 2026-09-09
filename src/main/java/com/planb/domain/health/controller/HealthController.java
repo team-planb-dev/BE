@@ -2,9 +2,12 @@ package com.planb.domain.health.controller;
 
 import com.planb.domain.health.dto.request.AddCompanionRequest;
 import com.planb.domain.health.dto.request.DeleteCompanionRequest;
+import com.planb.domain.health.dto.request.UpdateCompanionRequest;
 import com.planb.domain.health.dto.response.AddCompanionResponse;
+import com.planb.domain.health.dto.response.CompanionDetailResponse;
 import com.planb.domain.health.dto.response.CompanionSummaryResponse;
 import com.planb.domain.health.dto.response.DeleteCompanionResponse;
+import com.planb.domain.health.dto.response.UpdateCompanionResponse;
 import com.planb.domain.health.facade.HealthFacade;
 import com.planb.global.config.exception.dto.ApiResult;
 import io.swagger.v3.oas.annotations.Operation;
@@ -44,6 +47,25 @@ public class HealthController {
     }
 
     // 단일 동행자 수정 메소드
+    @PutMapping("/update-companion")
+    @Operation(summary = "동행자 수정",
+            description = "동행자의 건강, 음식 제한, 복약 정보를 요청 값으로 덮어씁니다. " +
+                    "음식과 복약 목록은 전달한 목록으로 전체 교체됩니다.")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<ApiResult<UpdateCompanionResponse>> updateCompanion
+            (@AuthenticationPrincipal UserDetails userDetails,
+             @RequestBody UpdateCompanionRequest updateCompanionRequest){
+
+        return ResponseEntity
+                .status(HttpStatus
+                        .OK)
+                .body(ApiResult
+                        .success(healthFacade
+                                .updateCompanion(
+                                        updateCompanionRequest,
+                                        userDetails
+                                                .getUsername())));
+    }
 
     // 단일 동행자 삭제 메소드
     @DeleteMapping("/delete-companion")
@@ -82,6 +104,23 @@ public class HealthController {
                                                 .getUsername())));
     }
 
-    // TODO : 구성원 여행일정 수정 시 , 세부 정보 조회기능
-    // TODO : 구성원 세부 정보 조회 후 , 여행일정 수정 기능
+    // 단일 동행자 상세 조회 메소드
+    @GetMapping("/get-companion-detail")
+    @Operation(summary = "단일 동행자 상세 조회",
+            description = "동행자 수정 화면에 필요한 건강, 음식 제한, 복약 정보를 함께 조회합니다.")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<ApiResult<CompanionDetailResponse>> getCompanionDetail
+            (@AuthenticationPrincipal UserDetails userDetails,
+             @RequestParam Long healthId){
+
+        return ResponseEntity
+                .status(HttpStatus
+                        .OK)
+                .body(ApiResult
+                        .success(healthFacade
+                                .getCompanionDetail(
+                                        healthId,
+                                        userDetails
+                                                .getUsername())));
+    }
 }

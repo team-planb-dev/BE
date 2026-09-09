@@ -3,7 +3,9 @@ package com.planb.domain.health.facade;
 import com.planb.domain.health.dto.request.*;
 import com.planb.domain.health.dto.response.AddCompanionResponse;
 import com.planb.domain.health.dto.response.CompanionSummaryResponse;
+import com.planb.domain.health.dto.response.CompanionDetailResponse;
 import com.planb.domain.health.dto.response.DeleteCompanionResponse;
+import com.planb.domain.health.dto.response.UpdateCompanionResponse;
 import com.planb.domain.health.entity.Health;
 import com.planb.domain.health.service.FoodInfoService;
 import com.planb.domain.health.service.HealthService;
@@ -122,16 +124,111 @@ public class HealthFacade {
     }
 
     /**
-     * 동행인의 건강, 음식 제한, 복약 정보를 함께 제공할 상세 조회 흐름을 정의한다.
+     * 동행인 수정 화면에 필요한 건강, 음식 제한, 복약 정보를 함께 조회한다.
+     *
+     * @param healthId 조회할 동행인 id
+     * @param username 동행인을 소유한 사용자의 username
+     * @return 동행인 상세 정보
+     * @throws BaseException 요청한 사용자가 해당 동행인을 소유하지 않은 경우
      */
     @Transactional(readOnly = true)
-    public void getCompanionDetail(){
+    public CompanionDetailResponse getCompanionDetail(
+            Long healthId,
+            String username
+    ) {
 
-        // username을 UserAuthCache에서 userId를 조회
+        Health health = findOwnedHealth(healthId, username);
 
-        // userId로 Health 조회
+        return CompanionDetailResponse
+                .of(health,
+                        foodInfoService
+                                .getFoodInfoList(healthId),
+                        medicationInfoService
+                                .findAllByHealthId(healthId));
+    }
 
-        // HealthId로 MedicationInfo , FoodInfo를 묶어서 조회
+
+    /**
+     * 동행인의 건강, 음식 제한, 복약 정보를 요청 값으로 덮어쓴다.
+     *
+     * 음식 제한과 복약 정보는 항목 수가 달라질 수 있어 기존 값을 지우고 다시 저장한다.
+     *
+     * @param request  수정할 동행인 정보
+     * @param username 수정을 요청한 사용자의 username
+     * @return 동행인 수정 결과
+     * @throws BaseException 요청한 사용자가 해당 동행인을 소유하지 않은 경우
+     */
+    @Transactional
+    public UpdateCompanionResponse updateCompanion(
+            UpdateCompanionRequest request,
+            String username
+    ) {
+
+        Long healthId = request.healthId();
+
+        Health health = findOwnedHealth(healthId, username);
+
+        AddCompanionRequest companionRequest =
+                request.toAddCompanionRequest();
+
+        healthService.updateHealth(health,
+                companionRequest.toHealthRequest());
+
+        // 기존 하위 정보는 전부 제거한 뒤 요청 값으로 다시 저장한다.
+        foodInfoQueryService
+                .deleteAllByHealthId(healthId);
+        medicationInfoQueryService
+                .deleteAllMedicationInfoByHealthId(healthId);
+
+        if (!request.sensitiveAgree()) {
+            return new UpdateCompanionResponse(
+                    health
+                            .getTravelerName(),
+                    "동행인 정보가 수정되었습니다.");
+        }
+
+        foodInfoService.saveFoodInfoAll(
+                foodInfoService.makeFoodInfoList(
+                        companionRequest.toFoodInfoRequest(health)
+                )
+        );
+
+        medicationInfoService.saveMedicationInfoAll(
+                medicationInfoService.makeMedicationInfoList(
+                        companionRequest.toMedicationInfoRequest(health)
+                )
+        );
+
+        return new UpdateCompanionResponse(
+                health
+                        .getTravelerName(),
+                "동행인 정보가 수정되었습니다.");
+    }
+
+
+    /**
+     * 사용자가 소유한 동행인인지 확인하고 반환한다.
+     *
+     * @param healthId 확인할 동행인 id
+     * @param username 요청한 사용자의 username
+     * @return 소유가 확인된 동행인
+     * @throws BaseException 요청한 사용자가 해당 동행인을 소유하지 않은 경우
+     */
+    private Health findOwnedHealth(
+            Long healthId,
+            String username
+    ) {
+
+        Long userId = userQueryService
+                .findByUsernameInCache(username)
+                .userId();
+
+        if (!healthQueryService.checkHealthWithUser(healthId, userId)) {
+            throw new BaseException(HealthExceptionEnum.HEALTH_NOT_FOUND);
+        }
+
+        return healthService
+                .getHealthById(healthId);
     }
 
     /**
