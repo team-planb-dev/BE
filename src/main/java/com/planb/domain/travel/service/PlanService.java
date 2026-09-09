@@ -782,7 +782,12 @@ public class PlanService {
         }
 
         if (firstPlaceIndex < 0) {
-            throw invalidPlace("식사시간을 만족할 수 없는 일정");
+            throw invalidPlace(
+                    "식사시간을 만족할 수 없는 일정: 앞당길 장소가 없음"
+                            + " / fromIndex=" + fromIndex
+                            + " / shiftMinutes=" + shiftMinutes
+                            + " / scheduleSize=" + schedules.size()
+            );
         }
 
         CreatePlanAiResponse.PlanScheduleDetail firstPlace = schedules.get(firstPlaceIndex);
@@ -790,7 +795,13 @@ public class PlanService {
         LocalTime shiftedFirstStart = firstPlace.startTime().minusMinutes(shiftMinutes);
 
         if (shiftedFirstStart.isAfter(firstPlace.startTime())) {
-            throw invalidPlace("식사시간을 만족할 수 없는 일정");
+            throw invalidPlace(
+                    "식사시간을 만족할 수 없는 일정: 앞당긴 시작시간이 원래 시작시간보다 늦음"
+                            + " / locationName=" + firstPlace.locationName()
+                            + " / originalStart=" + firstPlace.startTime()
+                            + " / shiftedStart=" + shiftedFirstStart
+                            + " / shiftMinutes=" + shiftMinutes
+            );
         }
 
         if (previousMealEnd != null) {
@@ -801,7 +812,15 @@ public class PlanService {
             );
 
             if (shiftedFirstStart.isBefore(earliestStart)) {
-                throw invalidPlace("식사시간을 만족할 수 없는 일정");
+                throw invalidPlace(
+                        "식사시간을 만족할 수 없는 일정: 이전 식사 종료 시각 이전으로 앞당겨짐"
+                                + " / locationName=" + firstPlace.locationName()
+                                + " / shiftedStart=" + shiftedFirstStart
+                                + " / earliestStart=" + earliestStart
+                                + " / previousMealEnd=" + previousMealEnd
+                                + " / travelMinutes=" + firstPlace.travelMinutes()
+                                + " / shiftMinutes=" + shiftMinutes
+                );
             }
         }
 

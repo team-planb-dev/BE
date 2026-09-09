@@ -190,7 +190,16 @@ public class PlanPlaceHelper {
                 })
                 .filter(Validation::valid)
                 .findFirst()
-                .orElseGet(() -> Validation.failure("기존 슬롯의 동일 장소/유형 재검증 실패"));
+                .orElseGet(() -> Validation.failure(
+                        "기존 슬롯의 동일 장소/유형 재검증 실패"
+                                + " / locationName=" + slot.locationName()
+                                + " / courseType=" + slot.courseType()
+                                + " / 카카오 검색결과=" + documents.size() + "건"
+                                + " / 이름일치=" + documents
+                                        .stream()
+                                        .filter(place -> Objects.equals(slot.locationName(), place.place_name()))
+                                        .count() + "건"
+                ));
     }
 
     public PlanScheduleDetail select(PlanScheduleDetail original, PlanScheduleDetail choice) {

@@ -27,7 +27,7 @@ public class TourismTool {
 
     private static final List<String> ZONE_TITLE_KEYWORDS = List.of("관광특구", "지구", "권역");
 
-    private static final int ATTRACTION_CANDIDATE_LIMIT = 12;
+    private static final int ATTRACTION_CANDIDATE_LIMIT = 40;
 
     private final Kor2ServiceHandler kor2ServiceHandler;
     private final KakaoMapServiceHandler kakaoMapServiceHandler;
@@ -68,9 +68,10 @@ public class TourismTool {
     }
 
     @Tool(description = """
-            여행 요청의 시/군/구에서 실제 음식점을 검색합니다.
+            여행 요청 지역에서 실제 음식점을 검색합니다.
             keyword에는 실제 음식명만 전달하고 locationDo와 locationSigungu에는
             여행 요청 값을 그대로 전달합니다.
+            광역 지역은 시/도 전체, 도 지역은 시/군 범위로 Java가 조회합니다.
             """)
     public Kor2KeywordSearchResponse searchRestaurantsByLocation(
             String keyword,

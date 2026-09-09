@@ -27,8 +27,10 @@ import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.DateType;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
@@ -86,7 +88,7 @@ public class TravelRecommendHandler {
             PlaceCandidateContext candidates
     ) {
 
-        return openAiClient
+        CreatePlanAiResponse response = openAiClient
                 .call(
                         new VerifiedPlacePrompt(new TravelPlanPrompt(
                                 travelPlanContext,
@@ -98,6 +100,119 @@ public class TravelRecommendHandler {
                         ),
                         new PlanTourismTool(tourismTool, candidates)
                 );
+
+        return trimExcessTouristPlaces(
+                response,
+                travelPlanContext.healthContexts()
+        );
+    }
+
+    // 날짜 또는 walkType 기준 하루 관광지 개수
+    private static int expectedTouristPlaceCount(
+            List<TravelHealthContext> healthContexts
+    ) {
+
+        if (healthContexts == null || healthContexts.isEmpty()) {
+            return 0;
+        }
+
+        boolean hasMinimalTraveler = healthContexts
+                .stream()
+                .anyMatch(context -> context.walkType() == WalkType.MINIMAL);
+
+        return hasMinimalTraveler ? 2 : 3;
+    }
+
+    // 관광지 초과분은 AI 재시도 없이 뒤에서부터 제거한다. 사용자가 지정한 MUST_HAVE는 남긴다.
+    // ponytail: 제거 이후 남은 슬롯의 travelMinutes는 이전 장소 기준 그대로 둔다.
+    // 일정 시간이 앞당겨지지 않을 뿐 순서와 시간 검증은 통과하며, 정확한 이동시간이 필요해지면 재계산을 붙인다.
+    private static CreatePlanAiResponse trimExcessTouristPlaces(
+            CreatePlanAiResponse response,
+            List<TravelHealthContext> healthContexts
+    ) {
+
+        if (response == null || response.planDays() == null) {
+            return response;
+        }
+
+        int expectedCount = expectedTouristPlaceCount(healthContexts);
+
+        if (expectedCount <= 0) {
+            return response;
+        }
+
+        return new CreatePlanAiResponse(
+                response
+                        .planDays()
+                        .stream()
+                        .map(day ->
+                                trimDayTouristPlaces(
+                                        day,
+                                        expectedCount
+                                )
+                        )
+                        .toList()
+        );
+    }
+
+    // 하루치 관광지 초과분 제거
+    private static CreatePlanAiResponse.PlanDayDetail trimDayTouristPlaces(
+            CreatePlanAiResponse.PlanDayDetail day,
+            int expectedCount
+    ) {
+
+        if (day == null || day.schedules() == null) {
+            return day;
+        }
+
+        List<CreatePlanAiResponse.PlanScheduleDetail> schedules = day.schedules();
+
+        List<Integer> touristIndexes = IntStream
+                .range(0, schedules.size())
+                .filter(index -> {
+                    CreatePlanAiResponse.PlanScheduleDetail schedule = schedules.get(index);
+
+                    return schedule != null
+                            && (schedule.courseType() == CourseType.ATTRACTION
+                                    || schedule.courseType() == CourseType.MUST_HAVE);
+                })
+                .boxed()
+                .toList();
+
+        int excess = touristIndexes.size() - expectedCount;
+
+        if (excess <= 0) {
+            return day;
+        }
+
+        Set<Integer> removeIndexes = new HashSet<>();
+
+        for (int cursor = touristIndexes.size() - 1;
+                cursor >= 0 && removeIndexes.size() < excess;
+                cursor--) {
+
+            int index = touristIndexes.get(cursor);
+
+            if (schedules.get(index).courseType() == CourseType.MUST_HAVE) {
+                continue;
+            }
+
+            removeIndexes.add(index);
+        }
+
+        if (removeIndexes.isEmpty()) {
+            return day;
+        }
+
+        return new CreatePlanAiResponse.PlanDayDetail(
+                day.dayNumber(),
+                day.date(),
+                IntStream
+                        .range(0, schedules.size())
+                        .filter(index -> !removeIndexes.contains(index))
+                        .mapToObj(schedules::get)
+                        .toList()
+        );
     }
 
     // AI로 기존 일정을 자연어 수정 요청에 맞춰 부분 수정
@@ -246,15 +361,11 @@ public class TravelRecommendHandler {
             int expectedDayCount
     ) {
 
-        if (healthContexts == null || healthContexts.isEmpty()) {
+        int expectedCount = expectedTouristPlaceCount(healthContexts);
+
+        if (expectedCount <= 0) {
             return List.of();
         }
-
-        boolean hasMinimalTraveler = healthContexts
-                .stream()
-                .anyMatch(context -> context.walkType() == WalkType.MINIMAL);
-
-        int expectedCount = hasMinimalTraveler ? 2 : 3;
 
         List<CreatePlanAiResponse.PlanDayDetail> planDays = response.planDays();
 
@@ -278,7 +389,8 @@ public class TravelRecommendHandler {
 
                     int actualCount = touristPlaces.size();
 
-                    if (actualCount == expectedCount) {
+                    // 초과분은 trimExcessTouristPlaces가 제거하므로 부족한 경우만 재시도 대상
+                    if (actualCount >= expectedCount) {
                         return null;
                     }
 
@@ -292,9 +404,7 @@ public class TravelRecommendHandler {
                     return "planDays[day" + (day == null ? dayIndex + 1 : day.dayNumber())
                             + "].schedules: 관광지 " + expectedCount
                             + "개 필요 / 실제 " + actualCount + "개"
-                            + (actualCount < expectedCount
-                                    ? " / 추가 " + (expectedCount - actualCount) + "개"
-                                    : " / 제거 " + (actualCount - expectedCount) + "개")
+                            + " / 추가 " + (expectedCount - actualCount) + "개"
                             + " / 유지 candidateId " + selectedCandidateIds
                             + " / 최초 관광지 candidate 목록 안에서 교정";
                 })

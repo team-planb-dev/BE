@@ -172,7 +172,8 @@ public record TravelPlanPrompt(
                   지역명, 시/군/구명, "맛집" 등의 검색 보조 표현을 포함하지 않습니다.
                 - 관광지 조회에는 CreateTravelRequest의 locationDo와 locationSigungu를 그대로 전달합니다.
                   광역 지역은 시/도 전체, 도 지역은 시/군 범위로 Java가 조회합니다.
-                  음식점 조회에는 locationDo와 locationSigungu를 그대로 사용합니다.
+                  음식점 조회에도 locationDo와 locationSigungu를 그대로 전달하며,
+                  관광지와 같은 기준으로 광역 지역은 시/도 전체, 도 지역은 시/군 범위를 Java가 조회합니다.
                 - 선택한 item의 title은 locationName, addr1은 location,
                   contentid는 candidateId의 원본 ID, firstimage는 imageUrl,
                   firstimage2는 thumbNailImageUrl로 사용합니다.

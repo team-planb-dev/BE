@@ -112,7 +112,7 @@ public class Kor2ServiceHandler {
     }
 
 
-    // Ko2Service API : 시/군/구 기준 음식점 키워드 검색
+    // Ko2Service API : 광역 지역은 시/도, 도 지역은 시/군 기준 음식점 키워드 검색
     public Mono<Kor2KeywordSearchResponse> searchRestaurants(
             String keyword,
             String locationDo,
@@ -126,22 +126,30 @@ public class Kor2ServiceHandler {
                                 locationDo
                         )
                 )
-                .flatMap(areaCode ->
-                        getSigunguCode(areaCode)
-                                .map(response ->
-                                        findCode(
-                                                response,
-                                                locationSigungu
-                                        )
-                                )
-                                .flatMap(sigunguCode ->
-                                        searchRestaurantByCode(
-                                                keyword,
-                                                areaCode,
-                                                sigunguCode
-                                        )
-                                )
-                );
+                .flatMap(areaCode -> {
+                    if (METROPOLITAN_AREAS.contains(locationDo)) {
+                        return searchRestaurantByCode(
+                                keyword,
+                                areaCode,
+                                null
+                        );
+                    }
+
+                    return getSigunguCode(areaCode)
+                            .map(response ->
+                                    findCode(
+                                            response,
+                                            locationSigungu
+                                    )
+                            )
+                            .flatMap(sigunguCode ->
+                                    searchRestaurantByCode(
+                                            keyword,
+                                            areaCode,
+                                            sigunguCode
+                                    )
+                            );
+                });
     }
 
 
@@ -358,7 +366,11 @@ public class Kor2ServiceHandler {
                         item.name().equals(location)
                 )
                 .findFirst()
-                .orElseThrow()
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "TourAPI 지역코드를 찾을 수 없습니다. 입력값: " + location
+                        )
+                )
                 .code();
     }
 
