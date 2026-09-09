@@ -29,4 +29,19 @@ public class ChatRoomQueryRepository {
                 .fetchOne());
     }
 
+    public Optional<ChatRoom> findByTravelId(Long travelId){
+
+        return Optional.ofNullable(jpaQueryFactory
+                .selectFrom(chatRoom)
+                .where(
+                        chatRoom
+                                .travel
+                                .id
+                                .eq(travelId),
+                        chatRoom
+                                .deleted
+                                .isFalse())
+                .fetchOne());
+    }
+
 }

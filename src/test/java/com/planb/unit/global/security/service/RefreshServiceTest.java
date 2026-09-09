@@ -109,7 +109,7 @@ class RefreshServiceTest {
 
     // DisplayName 수정 필요
     @Test
-    @DisplayName("정상 refresh token이면 access token과 refresh token을 재발급한다")
+    @DisplayName("정상 refresh token인 경우 access token과 refresh token 재발급")
     void refreshCookies_success() {
 
         // given
@@ -129,6 +129,10 @@ class RefreshServiceTest {
         when(jwtUtil
                 .isExpired(oldRefresh))
                 .thenReturn(false);
+
+        when(userTokenCacheRepository
+                .exists("refresh:refreshToken:" + oldRefresh))
+                .thenReturn(true);
 
         when(jwtUtil
                 .getUsername(oldRefresh))
@@ -186,7 +190,7 @@ class RefreshServiceTest {
     }
 
     @Test
-    @DisplayName("이미 로그인된 username이면 USER_ALREADY_LOGIN 예외가 발생한다")
+    @DisplayName("이미 로그인된 username인 경우 USER_ALREADY_LOGIN 예외 발생")
     void validateAlreadyLogin_alreadyLogin() {
 
         // given
@@ -206,7 +210,7 @@ class RefreshServiceTest {
     }
 
     @Test
-    @DisplayName("username이 null이면 refresh token 삭제를 수행하지 않는다")
+    @DisplayName("username이 null인 경우 refresh token 삭제 미수행")
     void deleteRefresh_usernameNull() {
 
         // given

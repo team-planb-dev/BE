@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class UserTokenCacheRepository {
 
-    private final RedisTemplate<String,String> refreshTokenRedisTemplate;
+    private final RedisTemplate<String, String> refreshTokenRedisTemplate;
 
     // 저장
     public void save(String key,
@@ -32,7 +32,7 @@ public class UserTokenCacheRepository {
 
         Object value = refreshTokenRedisTemplate.opsForValue().get(key);
 
-        if(value == null){
+        if (value == null){
             throw new BaseException(BaseExceptionEnum.REFRESH_TOKEN_NOT_FOUND);
         }
 

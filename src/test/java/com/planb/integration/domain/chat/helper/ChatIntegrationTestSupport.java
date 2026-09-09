@@ -1,5 +1,6 @@
 package com.planb.integration.domain.chat.helper;
 
+import com.planb.domain.user.entity.constant.RecoveryQuestion;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.http.Cookie;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Chat 통합 테스트 공통 지원 클래스.
  * 사용자 생성, 로그인, 사용자 조회,
- * 채팅방 생성 및 멤버 추가에 필요한 공통 헬퍼 메소드를 제공한다.
+ * 채팅방 생성 및 멤버 추가에 필요한 공통 헬퍼 메소드 제공
  */
 public abstract class ChatIntegrationTestSupport
         extends IntegrationTest {
@@ -110,6 +111,8 @@ public abstract class ChatIntegrationTestSupport
                         username,
                         nickname,
                         password,
+                        RecoveryQuestion.FIRST_PET,
+                        "콩이",
                         true,
                         true,
                         true

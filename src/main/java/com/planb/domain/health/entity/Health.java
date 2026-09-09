@@ -20,7 +20,7 @@ public class Health {
     @Column(name = "health_id")
     private Long id;
 
-    @Column(name = "traveler_name",nullable = false)
+    @Column(name = "traveler_name", nullable = false)
     private String travelerName;
 
     // 민감 정보 조회 동의여부
@@ -49,7 +49,26 @@ public class Health {
     private MealInfo mealInfo;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "users_id",nullable = false)
+    @JoinColumn(name = "users_id", nullable = false)
     private User user;
 
+    /**
+     * 동행인 정보를 수정한다.
+     *
+     * 민감정보 동의를 철회하면 건강/식사 정보를 남기지 않는다.
+     */
+    public void update(
+            String travelerName,
+            boolean sensitiveAgree,
+            boolean hasMedication,
+            HealthInfo healthInfo,
+            MealInfo mealInfo
+    ) {
+
+        this.travelerName = travelerName;
+        this.sensitiveAgree = sensitiveAgree;
+        this.hasMedication = sensitiveAgree && hasMedication;
+        this.healthInfo = sensitiveAgree ? healthInfo : null;
+        this.mealInfo = sensitiveAgree ? mealInfo : null;
+    }
 }

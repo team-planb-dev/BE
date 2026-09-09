@@ -4,6 +4,7 @@ import com.planb.domain.travel.dto.request.CreatePlannedPlaceRequest;
 import com.planb.domain.travel.dto.request.SearchPlannedPlaceRequest;
 import com.planb.domain.travel.dto.response.SearchPlannedPlaceResponse;
 import com.planb.domain.travel.entity.PlannedPlace;
+import com.planb.domain.travel.entity.Travel;
 import com.planb.domain.travel.repository.PlannedPlaceRepository;
 import com.planb.global.client.kor2Service.handler.Kor2ServiceHandler;
 import lombok.RequiredArgsConstructor;
@@ -79,6 +80,12 @@ public class PlannedPlaceService {
     /*
     기본 CRUD 모음
      */
+
+    // 특정 Travel에 속한 PlannedPlace 리스트 조회하기
+    public List<PlannedPlace> findAllByTravel(Travel travel){
+
+        return plannedPlaceRepository.findAllByTravel(travel);
+    }
 
     // PlanedPlace 리스트 저장하기
     public void savePlannedPlaceList(List<PlannedPlace> plannedPlaceList){

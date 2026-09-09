@@ -1,8 +1,10 @@
 package com.planb.domain.user.dto.request;
 
+import com.planb.domain.user.entity.constant.RecoveryQuestion;
 import com.planb.global.validation.password.ValidPassword;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public record UserCreateRequest(
 
@@ -16,6 +18,12 @@ public record UserCreateRequest(
         @NotBlank(message = "비밀번호는 필수 입니다.")
         @ValidPassword
         String password,
+
+        @NotNull(message = "계정 복구 질문은 필수 입니다.")
+        RecoveryQuestion recoveryQuestion,
+
+        @NotBlank(message = "계정 복구 답변은 필수 입니다.")
+        String recoveryAnswer,
 
         boolean ageRequirementAgreed,
         boolean serviceTermsAgreed,

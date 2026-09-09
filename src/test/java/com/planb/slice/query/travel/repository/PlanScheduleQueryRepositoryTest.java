@@ -1,5 +1,7 @@
 package com.planb.slice.query.travel.repository;
 
+import com.planb.domain.user.entity.AccountRecovery;
+import com.planb.domain.user.entity.constant.RecoveryQuestion;
 import com.planb.domain.travel.entity.Plan;
 import com.planb.domain.travel.entity.PlanDay;
 import com.planb.domain.travel.entity.PlanSchedule;
@@ -11,6 +13,7 @@ import com.planb.domain.user.entity.TermsAgreement;
 import com.planb.domain.user.entity.User;
 import com.planb.global.config.persistence.QueryDslConfig;
 import com.planb.query.travel.repository.PlanScheduleQueryRepository;
+import com.planb.slice.support.MySqlRepositoryTest;
 import org.hibernate.Hibernate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,7 +40,8 @@ import static org.assertj.core.api.Assertions.assertThat;
         replace = AutoConfigureTestDatabase.Replace.NONE
 )
 @ActiveProfiles("test")
-class PlanScheduleQueryRepositoryTest {
+class PlanScheduleQueryRepositoryTest
+        extends MySqlRepositoryTest {
 
     @Autowired
     private TestEntityManager entityManager;
@@ -340,6 +344,12 @@ class PlanScheduleQueryRepositoryTest {
                                 true,
                                 true,
                                 true
+                        )
+                )
+                .accountRecovery(
+                        AccountRecovery.of(
+                                RecoveryQuestion.FIRST_PET,
+                                "콩이"
                         )
                 )
                 .build();

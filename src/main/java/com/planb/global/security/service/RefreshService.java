@@ -26,7 +26,7 @@ public class RefreshService {
         String refresh = cookieUtil.findCookie(request);
 
         // refresh가 비엇는지 검사
-        if(refresh == null) {
+        if (refresh == null) {
             return handleRefreshTokenNull();
         }
 
@@ -34,8 +34,16 @@ public class RefreshService {
         try{
             jwtUtil.isExpired(refresh);
 
-         } catch(ExpiredJwtException e) {
+        } catch (ExpiredJwtException e) {
             return handleRefreshTokenExpired();
+        }
+
+        if (!userTokenCacheRepository
+                .exists("refresh:refreshToken:" + refresh)) {
+
+            throw new BaseException(
+                    BaseExceptionEnum.REFRESH_TOKEN_NOT_FOUND
+            );
         }
 
         return new ReissueResponse(ReissueResponse.ReissueStatus.REFRESH_REISSUED,
@@ -96,7 +104,7 @@ public class RefreshService {
 
         deleteRefresh(refresh);
 
-        addRefresh(username,newRefresh);
+        addRefresh(username, newRefresh);
 
         return newRefresh;
 
@@ -121,7 +129,7 @@ public class RefreshService {
 
         String username = jwtUtil.getUsername(refresh);
 
-        if(username == null){
+        if (username == null){
             return;
         }
 
@@ -132,10 +140,28 @@ public class RefreshService {
                 .delete("refresh:user:"+username);
     }
 
+    public void deleteRefreshByUsername(String username) {
+
+        String userKey = "refresh:user:" + username;
+
+        if (!userTokenCacheRepository.exists(userKey)) {
+            return;
+        }
+
+        String refresh = (String) userTokenCacheRepository
+                .findByKey(userKey);
+
+        userTokenCacheRepository.delete(
+                "refresh:refreshToken:" + refresh
+        );
+
+        userTokenCacheRepository.delete(userKey);
+    }
+
 
     public void validateAlreadyLogin(String username){
 
-        if(userTokenCacheRepository.exists("refresh:user:" + username)){
+        if (userTokenCacheRepository.exists("refresh:user:" + username)){
             throw new BaseException(BaseExceptionEnum.USER_ALREADY_LOGIN);
         }
     }

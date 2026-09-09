@@ -8,22 +8,57 @@ public class ChatDestinationResolver {
     private static final String CHAT_SUBSCRIPTION_PREFIX =
             "/sub/api/v1/chat/";
 
-    public Long extractRoomId(String destination){
-        if(destination == null||
-                !destination.startsWith(CHAT_SUBSCRIPTION_PREFIX)){
-                return null;
-            }
+    private static final String CHAT_SEND_PREFIX =
+            "/pub/api/v1/chat/";
 
-        String roomIdValue = destination
-                .substring(CHAT_SUBSCRIPTION_PREFIX.length());
+    private static final String CHAT_SEND_SUFFIX =
+            "/send";
 
-        if(roomIdValue.isBlank()||roomIdValue.contains("/")){
+    public Long extractRoomId(String destination) {
+
+        return extractRoomId(
+                destination,
+                CHAT_SUBSCRIPTION_PREFIX,
+                ""
+        );
+    }
+
+    public Long extractSendRoomId(String destination) {
+
+        return extractRoomId(
+                destination,
+                CHAT_SEND_PREFIX,
+                CHAT_SEND_SUFFIX
+        );
+    }
+
+    private Long extractRoomId(
+            String destination,
+            String prefix,
+            String suffix
+    ) {
+
+        if (destination == null
+                || !destination.startsWith(prefix)
+                || !destination.endsWith(suffix)) {
+
             return null;
         }
 
-        try{
+        String roomIdValue = destination.substring(
+                prefix.length(),
+                destination.length() - suffix.length()
+        );
+
+        if (roomIdValue.isBlank()
+                || roomIdValue.contains("/")) {
+
+            return null;
+        }
+
+        try {
             return Long.parseLong(roomIdValue);
-        }catch(NumberFormatException e){
+        } catch (NumberFormatException exception) {
             return null;
         }
     }

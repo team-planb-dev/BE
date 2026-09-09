@@ -24,6 +24,35 @@ public class MedicationInfoQueryRepository {
                 .execute();
     }
 
+    /**
+     * 여행에 선택된 구성원의 복약 시간만 조회한다.
+     *
+     * @param healthIds 조회할 구성원 id
+     * @return 복약 시간 목록
+     */
+    public List<LocalTime> findMedicationTimesByHealthIds(List<Long> healthIds) {
+
+        if (healthIds.isEmpty()) {
+            return List.of();
+        }
+
+        return jpaQueryFactory
+                .select(
+                        medicationInfo.medicationTime
+                )
+                .from(medicationInfo)
+                .where(
+                        medicationInfo
+                                .health
+                                .id
+                                .in(healthIds),
+                        medicationInfo
+                                .medicationTime
+                                .isNotNull()
+                )
+                .fetch();
+    }
+
     // userId로 관련 동행인의 의료정보(복약 시간) 리스트를 조회
     public List<LocalTime> findMedicationTimesByUserId(Long userId) {
 

@@ -11,6 +11,7 @@ import com.planb.domain.health.entity.vo.MealInfo;
 import com.planb.domain.user.entity.User;
 import com.planb.global.config.persistence.QueryDslConfig;
 import com.planb.query.health.repository.HealthQueryRepository;
+import com.planb.slice.support.MySqlRepositoryTest;
 import com.planb.slice.query.chat.repository.helper.ChatDomainRepositoryTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,7 +37,8 @@ import static org.assertj.core.groups.Tuple.tuple;
         replace = AutoConfigureTestDatabase.Replace.NONE
 )
 @ActiveProfiles("test")
-class HealthQueryRepositoryTest {
+class HealthQueryRepositoryTest
+        extends MySqlRepositoryTest {
 
     @Autowired
     private TestEntityManager entityManager;

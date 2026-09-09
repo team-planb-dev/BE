@@ -30,8 +30,12 @@ public record TravelHealthContext(
                 health.getHealthInfo().getWalkType(),
 
                 new MealInfoContext(
+                        health.getMealInfo().isApplied(),
+                        health.getMealInfo().isBreakfastApplied(),
                         health.getMealInfo().getBreakfastTime(),
+                        health.getMealInfo().isLunchApplied(),
                         health.getMealInfo().getLunchTime(),
+                        health.getMealInfo().isDinnerApplied(),
                         health.getMealInfo().getDinnerTime()
                 ),
 
@@ -52,10 +56,31 @@ public record TravelHealthContext(
 
 
     public record MealInfoContext(
+            boolean applied,
+            boolean breakfastApplied,
             LocalTime breakfastTime,
+            boolean lunchApplied,
             LocalTime lunchTime,
+            boolean dinnerApplied,
             LocalTime dinnerTime
     ) {
+
+        public MealInfoContext(
+                LocalTime breakfastTime,
+                LocalTime lunchTime,
+                LocalTime dinnerTime
+        ) {
+
+            this(
+                    true,
+                    breakfastTime != null,
+                    breakfastTime,
+                    lunchTime != null,
+                    lunchTime,
+                    dinnerTime != null,
+                    dinnerTime
+            );
+        }
     }
 
 

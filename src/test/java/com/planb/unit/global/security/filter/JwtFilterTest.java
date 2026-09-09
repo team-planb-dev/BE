@@ -45,7 +45,7 @@ class JwtFilterTest {
     }
 
     @Test
-    @DisplayName("Authorization 헤드가 없으면 다음 필터로")
+    @DisplayName("Authorization 헤더가 없는 경우 다음 필터 위임")
     void doFilterInternal_noAuthorizationHeader()
             throws Exception{
 
@@ -57,19 +57,19 @@ class JwtFilterTest {
                 new MockHttpServletResponse();
 
         // when
-        jwtFilter.doFilter(request,response,filterChain);
+        jwtFilter.doFilter(request, response, filterChain);
 
         // then
         verify(filterChain,
                 times(1))
-                .doFilter(request,response);
+                .doFilter(request, response);
 
         verifyNoInteractions(jwtUtil);
         verifyNoInteractions(userAuthCacheRepository);
     }
 
     @Test
-    @DisplayName("Authorization 헤더가 Bearer 형식이 아니면 다음 필터로")
+    @DisplayName("Authorization 헤더가 Bearer 형식이 아닌 경우 다음 필터 위임")
     void doFilterInternal_invalidAuthorizationHeader()
             throws Exception{
 
@@ -78,18 +78,18 @@ class JwtFilterTest {
                 new MockHttpServletRequest();
 
         request
-                .addHeader("Authorization","accessToken");
+                .addHeader("Authorization", "accessToken");
 
         MockHttpServletResponse response =
                 new MockHttpServletResponse();
 
         // when
-        jwtFilter.doFilter(request,response,filterChain);
+        jwtFilter.doFilter(request, response, filterChain);
 
         // then
         verify(filterChain,
                 times(1))
-                .doFilter(request,response);
+                .doFilter(request, response);
 
         verifyNoInteractions(jwtUtil);
         verifyNoInteractions(userAuthCacheRepository);
@@ -110,7 +110,7 @@ class JwtFilterTest {
                 new MockHttpServletResponse();
 
         request
-                .addHeader("Authorization","Bearer "+accessToken);
+                .addHeader("Authorization", "Bearer "+accessToken);
 
         when(jwtUtil
                 .isExpired(accessToken))
@@ -118,15 +118,15 @@ class JwtFilterTest {
 
         // when
         jwtFilter
-                .doFilter(request,response,filterChain);
+                .doFilter(request, response, filterChain);
 
         // then
         assertThat(response
                 .getStatus())
                 .isEqualTo(401);
 
-        verify(filterChain,never())
-                .doFilter(request,response);
+        verify(filterChain, never())
+                .doFilter(request, response);
 
     }
 
@@ -156,15 +156,15 @@ class JwtFilterTest {
 
         // when
         jwtFilter
-                .doFilter(request,response,filterChain);
+                .doFilter(request, response, filterChain);
 
         // then
         assertThat(response
                 .getStatus())
                 .isEqualTo(401);
 
-        verify(filterChain,never())
-                .doFilter(request,response);
+        verify(filterChain, never())
+                .doFilter(request, response);
 
     }
 
@@ -182,7 +182,7 @@ class JwtFilterTest {
                 new MockHttpServletRequest();
 
         request
-                .addHeader("Authorization","Bearer "+accessToken);
+                .addHeader("Authorization", "Bearer "+accessToken);
 
         MockHttpServletResponse response =
                 new MockHttpServletResponse();
@@ -206,19 +206,19 @@ class JwtFilterTest {
 
         // when
         jwtFilter
-                .doFilter(request,response,filterChain);
+                .doFilter(request, response, filterChain);
 
         // then
         assertThat(response.getStatus())
                 .isEqualTo(401);
 
-        verify(filterChain,never())
-                .doFilter(request,response);
+        verify(filterChain, never())
+                .doFilter(request, response);
 
     }
 
     @Test
-    @DisplayName("유효한 access 토큰일 경우, Security Context에 Authorization을 저장한 후 다음 필터로")
+    @DisplayName("유효한 access 토큰의 Security Context Authorization 저장 후 다음 필터 위임")
     void doFilterInternal_success()
             throws Exception{
 
@@ -235,7 +235,7 @@ class JwtFilterTest {
                 new MockHttpServletRequest();
 
         request
-                .addHeader("Authorization","Bearer "+accessToken);
+                .addHeader("Authorization", "Bearer "+accessToken);
 
         MockHttpServletResponse response =
                 new MockHttpServletResponse();
@@ -262,7 +262,7 @@ class JwtFilterTest {
 
         // when
         jwtFilter
-                .doFilter(request,response,filterChain);
+                .doFilter(request, response, filterChain);
 
         // then
         Authentication authentication = SecurityContextHolder
@@ -276,8 +276,8 @@ class JwtFilterTest {
                 .getPrincipal())
                 .isNotNull();
 
-        verify(filterChain,times(1))
-                .doFilter(request,response);
+        verify(filterChain, times(1))
+                .doFilter(request, response);
 
     }
 

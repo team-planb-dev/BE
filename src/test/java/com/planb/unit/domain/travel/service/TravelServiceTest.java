@@ -1,5 +1,7 @@
 package com.planb.unit.domain.travel.service;
 
+import com.planb.domain.user.entity.AccountRecovery;
+import com.planb.domain.user.entity.constant.RecoveryQuestion;
 import com.planb.ai.dto.request.MakeFoodRecommendCallRequest;
 import com.planb.ai.handler.TravelRecommendHandler;
 import com.planb.domain.travel.dto.request.CreateTravelRequest;
@@ -54,6 +56,11 @@ class TravelServiceTest {
         User user =
                 User.builder()
                         .id(userId)
+                        .accountRecovery(
+                                AccountRecovery.of(
+                                        RecoveryQuestion.FIRST_PET,
+                                        "콩이"
+                                ))
                         .build();
 
         when(
@@ -84,7 +91,7 @@ class TravelServiceTest {
         CreateTravelRequest request =
                 new CreateTravelRequest(
                         "부산 여행",
-                        "부산광역시",
+                        "부산",
                         "해운대구",
                         startDate,
                         DateType.ONE_NIGHT_TWO_DAYS,
@@ -114,7 +121,7 @@ class TravelServiceTest {
         );
 
         assertEquals(
-                "부산광역시",
+                "부산",
                 travel.getLocationDo()
         );
 
@@ -175,7 +182,7 @@ class TravelServiceTest {
 
         MakeRecommendFoodsRequest request =
                 new MakeRecommendFoodsRequest(
-                        "부산광역시",
+                        "부산",
                         "해운대구"
                 );
 

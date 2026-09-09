@@ -14,11 +14,13 @@ import com.planb.global.client.kakaoMobilityService.KakaoMobilityServiceClient;
 import com.planb.global.client.kakaoMobilityService.dto.response.KakaoCarRouteResponse;
 import com.planb.global.client.kakaoMobilityService.helper.KakaoMobilityRouteHelper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class KakaoMapServiceHandler {
@@ -114,45 +116,94 @@ public class KakaoMapServiceHandler {
             Transportation transportation
     ) {
 
-        return Mono.zip(
-                searchPlace(origin),
-                searchPlace(destination)
-        ).flatMap(tuple -> {
+        return getRoute(origin, destination, transportation, null, null, null, null);
+    }
 
-            KakaoPlaceSearchResponse.Document start =
-                    kakaoMapRouteHelper.getFirstPlace(tuple.getT1(), origin);
+    // 확정된 좌표를 우선 사용하고, 좌표가 없는 지점만 이름으로 검색한다.
+    public Mono<KakaoRouteResult> getRoute(
+            String origin,
+            String destination,
+            Transportation transportation,
+            String originX,
+            String originY,
+            String destinationX,
+            String destinationY
+    ) {
 
-            KakaoPlaceSearchResponse.Document end =
-                    kakaoMapRouteHelper.getFirstPlace(tuple.getT2(), destination);
+        return Mono
+                .zip(
+                        routeCoordinates(origin, originX, originY),
+                        routeCoordinates(destination, destinationX, destinationY))
+                .flatMap(points -> {
+                    List<String> start = points.getT1();
+                    List<String> end = points.getT2();
 
-            return switch (transportation) {
-                case TRANSIT ->
-                        getPublicTrafficRoute(start.x(), start.y(), end.x(), end.y())
-                                .map(response ->
-                                        kakaoMapRouteHelper.makePublicTrafficRouteResult(origin, destination, response));
-                case CAR ->
-                        getCarRoute(start.x(), start.y(), end.x(), end.y())
-                                .map(response ->
-                                        kakaoMobilityRouteHelper.makeCarRouteResult(origin, destination, response));
-            };
-        }).onErrorResume(e ->
-                Mono.just(
-                        new KakaoRouteResult(origin, destination, null, null)
-                )
-        );
+                    return switch (transportation) {
+                        case TRANSIT -> getPublicTrafficRoute(start.get(0), start.get(1), end.get(0), end.get(1))
+                                .map(response -> kakaoMapRouteHelper.makePublicTrafficRouteResult(origin, destination, response));
+                        case CAR -> getCarRoute(start.get(0), start.get(1), end.get(0), end.get(1))
+                                .map(response -> kakaoMobilityRouteHelper.makeCarRouteResult(origin, destination, response));
+                    };
+                })
+                .switchIfEmpty(Mono.error(new IllegalStateException("경로 조회 응답 없음")))
+                .map(route -> {
+                    if (route.travelMinutes() == null || route.travelMinutes() < 0) {
+                        throw new IllegalStateException("유효한 경로 이동시간 없음: " + route);
+                    }
+                    return route;
+                })
+                .onErrorResume(exception -> {
+                    log.warn(
+                            "[ROUTE LOOKUP FAILED] origin={}, destination={}, transportation={}, originX={}, originY={}, destinationX={}, destinationY={}",
+                            origin,
+                            destination,
+                            transportation,
+                            originX,
+                            originY,
+                            destinationX,
+                            destinationY,
+                            exception);
+
+                    return Mono.just(new KakaoRouteResult(origin, destination, null, null));
+                });
+    }
+
+    private Mono<List<String>> routeCoordinates(
+            String name,
+            String x,
+            String y
+    ) {
+
+        return Mono.defer(() -> {
+            if (x != null && !x.isBlank() && y != null && !y.isBlank()) {
+                return Mono.just(List.of(x, y));
+            }
+            if (name == null || name.isBlank()) {
+                return Mono.error(new IllegalArgumentException("경로 조회 지점의 이름과 좌표 누락"));
+            }
+            return searchPlace(name)
+                    .map(response -> kakaoMapRouteHelper.getFirstPlace(response, name))
+                    .map(place -> List.of(place.x(), place.y()))
+                    .switchIfEmpty(Mono.error(new IllegalStateException("경로 조회 지점 검색 결과 없음: " + name)));
+        });
     }
 
     // 실제 장소(카페 또는 TourAPI에서 검색되지 않는 관광지) 존재 확인
     // + 이전 장소로부터의 이동시간 조회.
-    // excludeNames와 일치하는 장소는 이미 사용된 것으로 간주해 found=false로 처리합니다.
+    // excludeNames와 일치하는 장소는 이미 사용된 것으로 간주, found=false로 처리
     public Mono<PlaceWithRouteResult> findPlaceWithRoute(
             String keyword,
             String previousLocation,
             Transportation transportation,
-            List<String> excludeNames
+            List<String> excludeNames,
+            String categoryCode
     ) {
 
         return searchPlace(keyword)
+                .map(response -> kakaoPlaceSearchHelper.filterByCategory(
+                        response,
+                        categoryCode
+                ))
                 .filter(kakaoPlaceSearchHelper::hasResult)
                 .filter(response -> !kakaoPlaceSearchHelper.isExcluded(response, excludeNames))
                 .flatMap(response ->

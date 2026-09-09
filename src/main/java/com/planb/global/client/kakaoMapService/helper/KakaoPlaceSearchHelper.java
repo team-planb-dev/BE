@@ -18,6 +18,30 @@ public class KakaoPlaceSearchHelper {
                 .isPresent();
     }
 
+    public KakaoPlaceSearchResponse filterByCategory(
+            KakaoPlaceSearchResponse response,
+            String categoryCode
+    ) {
+
+        if (!hasResult(response) || categoryCode == null || categoryCode.isBlank()) {
+            return new KakaoPlaceSearchResponse(
+                    response == null
+                            ? null
+                            : response.meta(),
+                    List.of()
+            );
+        }
+
+        return new KakaoPlaceSearchResponse(
+                response.meta(),
+                response
+                        .documents()
+                        .stream()
+                        .filter(place -> categoryCode.equals(place.category_group_code()))
+                        .toList()
+        );
+    }
+
     // 검색 결과의 대표 장소명이 이미 사용된 이름 목록(excludeNames)에 포함되는지 확인.
     // LLM이 excludeNames를 정확히 전달하지 않았더라도, 실제 검색 결과를 기준으로 다시 한번 중복 여부를 검증하는 최종 방어선
     public boolean isExcluded(
@@ -45,7 +69,7 @@ public class KakaoPlaceSearchHelper {
 
     // 검색 결과(+선택적으로 조회한 이동시간)를 PlaceWithRouteResult로 변환.
     // 도로명주소(road_address_name)가 있으면 우선 사용하고, 없으면 지번주소(address_name)로 대체.
-    // 카카오 로컬 검색 결과의 x(경도)/y(위도)를 좌표값으로 함께 반환한다.
+    // 카카오 로컬 검색 결과의 x(경도)/y(위도)를 좌표값으로 함께 반환
     public PlaceWithRouteResult toResult(
             KakaoPlaceSearchResponse response,
             Integer travelMinutes
@@ -62,7 +86,10 @@ public class KakaoPlaceSearchHelper {
                 address,
                 place.x(),
                 place.y(),
-                travelMinutes
+                travelMinutes,
+                "kakao:" + place.id(),
+                place.category_group_code(),
+                place.category_name()
         );
     }
 

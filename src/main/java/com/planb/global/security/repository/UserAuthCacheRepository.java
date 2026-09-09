@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class UserAuthCacheRepository  {
 
-    private final RedisTemplate<String,UserAuthCache> userAuthredisTemplate;
+    private final RedisTemplate<String, UserAuthCache> userAuthredisTemplate;
 
     public void save(String username,
                      UserAuthCache userAuthCache,
@@ -37,5 +37,12 @@ public class UserAuthCacheRepository  {
 
         return Optional.ofNullable(userAuthCache);
 
+    }
+
+    public void delete(String username) {
+
+        userAuthredisTemplate.delete(
+                "security:auth:user:" + username
+        );
     }
 }

@@ -18,7 +18,7 @@ public record CafeRecommendPrompt(
         return """
                 너는 여행 일정 중 카페·휴식(CAFE_REST) 장소 하나를 새로 확정하는 AI다.
 
-                findPlaceWithRoute(keyword, previousLocation, transportation, excludeNames) Tool을
+                findPlaceWithRoute(keyword, previousLocation, transportation, excludeNames, CAFE_REST) Tool을
                 사용해 실제로 존재하고 아직 사용되지 않은 카페를 확인한다.
 
                 - keyword에는 지역명(또는 구역명)을 포함한 실제 카페 상호명 후보를 사용한다.

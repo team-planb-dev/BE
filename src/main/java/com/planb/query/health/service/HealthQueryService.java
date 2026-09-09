@@ -22,6 +22,12 @@ public class HealthQueryService {
         return healthQueryRepository.findHealthSummaryList(userId);
     }
 
+    // 여행에 선택된 구성원만 건강 요약정보 가져오기
+    public List<HealthSummaryQueryResponse> getHealthSummaryListByHealthIds(List<Long> healthIds){
+
+        return healthQueryRepository.findHealthSummaryListByHealthIds(healthIds);
+    }
+
     public boolean checkHealthWithUser
             (Long healthId,
              Long userId){

@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Chat WebSocket 및 STOMP 통합 테스트.
  * WebSocket 연결, 채팅방 구독,
- * 채팅 메시지 송수신과 입퇴장 시스템 메시지를 검증한다.
+ * 채팅 메시지 송수신과 입퇴장 시스템 메시지 검증
  */
 public class ChatWebSocketIntegrationTest
         extends ChatIntegrationTestSupport {
@@ -86,7 +86,7 @@ public class ChatWebSocketIntegrationTest
 
             /*
              * SUBSCRIBE 이벤트에서 ENTER 메시지가 먼저 올 수 있으므로
-             * TALK 타입 메시지를 필터링해서 검증한다.
+             * TALK 타입 메시지 필터링 후 검증
              */
             String messageContent =
                     "통합 테스트 메시지";
@@ -97,6 +97,7 @@ public class ChatWebSocketIntegrationTest
                             + roomId
                             + "/send",
                     new SendChatMessageRequest(
+                            MessageType.TALK,
                             messageContent
                     )
             );
@@ -277,7 +278,7 @@ public class ChatWebSocketIntegrationTest
             );
 
             /*
-             * 두 세션의 구독으로 발생한 ENTER 메시지를 제거한다.
+             * 두 세션의 구독으로 발생한 ENTER 메시지 제거
              */
             stompHelper.drainPresenceMessages(
                     observerMessages

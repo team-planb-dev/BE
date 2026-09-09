@@ -15,6 +15,7 @@ import com.planb.domain.chat.dto.response.CreateChatRoomResponse;
 import com.planb.domain.chat.entity.ChatRoom;
 import com.planb.domain.chat.repository.ChatRoomRepository;
 import com.planb.domain.chat.service.ChatRoomService;
+import com.planb.domain.travel.entity.Travel;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -102,5 +103,33 @@ class ChatRoomServiceTest {
         assertThat(result
                 .message())
                 .isEqualTo("채팅방이 생성되었습니다.");
+    }
+
+    @Test
+    @DisplayName("travel 기준으로 채팅방을 생성")
+    void createChatRoomForTravel() {
+
+        // given
+        Travel travel = mock(Travel.class);
+
+        when(travel.getTravelName())
+                .thenReturn("부산 여행");
+
+        // when
+        ChatRoom result =
+                chatRoomService.createChatRoomForTravel(travel);
+
+        // then
+        verify(chatRoomRepository)
+                .save(result);
+
+        assertThat(result.getChatRoomName())
+                .isEqualTo("부산 여행");
+
+        assertThat(result.getTravel())
+                .isSameAs(travel);
+
+        assertThat(result.isDeleted())
+                .isFalse();
     }
 }

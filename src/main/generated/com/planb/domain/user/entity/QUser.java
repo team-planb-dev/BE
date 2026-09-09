@@ -24,6 +24,8 @@ public class QUser extends EntityPathBase<User> {
 
     public final com.planb.global.jpa.QBaseEntity _super = new com.planb.global.jpa.QBaseEntity(this);
 
+    public final QAccountRecovery accountRecovery;
+
     //inherited
     public final DateTimePath<java.time.Instant> createdAt = _super.createdAt;
 
@@ -65,6 +67,7 @@ public class QUser extends EntityPathBase<User> {
 
     public QUser(Class<? extends User> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
+        this.accountRecovery = inits.isInitialized("accountRecovery") ? new QAccountRecovery(forProperty("accountRecovery")) : null;
         this.termsAgreement = inits.isInitialized("termsAgreement") ? new QTermsAgreement(forProperty("termsAgreement")) : null;
     }
 

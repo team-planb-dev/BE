@@ -9,9 +9,9 @@ public class EnumUtil {
             (Class<T> codeEnum,
              String code){
 
-        if(code != null && codeEnum.isEnum()){
+        if (code != null && codeEnum.isEnum()){
             for(T e: codeEnum.getEnumConstants()){
-                if(e.getCode().equals(code)){
+                if (e.getCode().equals(code)){
                     return e;
                 }
             }

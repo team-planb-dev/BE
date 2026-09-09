@@ -1,0 +1,10 @@
+build
+.gradle
+.git
+.idea
+.claude
+.agents
+.codex
+docs
+*.md
+skills-lock.json

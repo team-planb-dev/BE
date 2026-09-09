@@ -5,6 +5,7 @@ import com.planb.global.client.foodNtrCpnt.dto.response.FoodNtrCpntResponse;
 import com.planb.global.client.foodNtrCpnt.handler.FoodNtrCpntHandler;
 import com.planb.integration.IntegrationTest;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

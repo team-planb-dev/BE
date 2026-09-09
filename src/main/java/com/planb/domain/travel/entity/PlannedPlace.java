@@ -14,7 +14,7 @@ public class PlannedPlace {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "location_name",nullable = false)
+    @Column(name = "location_name", nullable = false)
     private String locationName;
 
     @Column(name = "location")
@@ -22,6 +22,6 @@ public class PlannedPlace {
 
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "travel_id",nullable = false)
+    @JoinColumn(name = "travel_id", nullable = false)
     private Travel travel;
 }

@@ -6,5 +6,5 @@ import com.planb.domain.chat.entity.ChatRoomMember;
 
 @Repository
 public interface ChatRoomMemberRepository
-        extends JpaRepository<ChatRoomMember,Long> {
+        extends JpaRepository<ChatRoomMember, Long> {
 }

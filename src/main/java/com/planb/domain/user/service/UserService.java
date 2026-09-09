@@ -1,5 +1,6 @@
 package com.planb.domain.user.service;
 
+import com.planb.domain.user.entity.AccountRecovery;
 import com.planb.domain.user.entity.TermsAgreement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -33,6 +34,12 @@ public class UserService {
                                         .serviceTermsAgreed(),
                                 userCreateRequest
                                         .privacyCollectionAgreed()))
+                .accountRecovery(
+                        AccountRecovery.of(
+                                userCreateRequest
+                                        .recoveryQuestion(),
+                                userCreateRequest
+                                        .recoveryAnswer()))
                 .role("USER")
                 .deleted(false)
                 .build();
@@ -45,6 +52,15 @@ public class UserService {
 
     public void delete(User user){
         user.delete();
+    }
+
+    public void resetPassword(
+            User user,
+            String newPassword
+    ) {
+
+        user.changePassword(bCryptPasswordEncoder
+                .encode(newPassword));
     }
 
 }

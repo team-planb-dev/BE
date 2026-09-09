@@ -3,15 +3,15 @@ package com.planb.ai.dto.response;
 import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.RecommendationTag;
 import com.planb.domain.travel.entity.constant.ScheduleType;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Set;
 
+// planName 필드 없음: Plan.planName은 생성 시점 travelName 기반 확정, AI 재생성 불필요
 public record CreatePlanAiResponse(
-        String planName,
-        String description,
         List<PlanDayDetail> planDays
 ) {
 
@@ -20,6 +20,7 @@ public record CreatePlanAiResponse(
             LocalDate date,
             List<PlanScheduleDetail> schedules
     ) {
+
     }
 
     public record PlanScheduleDetail(
@@ -37,14 +38,30 @@ public record CreatePlanAiResponse(
             Integer travelMinutes,
             Set<RecommendationTag> tags,
             MedicationSchedule medication,
-            RestaurantDetail restaurantDetail
+            RestaurantDetail restaurantDetail,
+            @Schema(
+                    description = "외부 조회 후보의 식별자입니다. 장소 일정에는 필요하며 복약과 이동 일정에는 null일 수 있습니다.",
+                    example = "tour:126508"
+            )
+            String candidateId
     ) {
+
+        public PlanScheduleDetail(ScheduleType scheduleType, CourseType courseType,
+                LocalTime startTime, LocalTime endTime, String locationName, String location,
+                String longitude, String latitude, String imageUrl, String thumbNailImageUrl,
+                Integer stayMinutes, Integer travelMinutes, Set<RecommendationTag> tags,
+                MedicationSchedule medication, RestaurantDetail restaurantDetail) {
+            this(scheduleType, courseType, startTime, endTime, locationName, location, longitude,
+                    latitude, imageUrl, thumbNailImageUrl, stayMinutes, travelMinutes, tags,
+                    medication, restaurantDetail, null);
+        }
     }
 
     public record MedicationSchedule(
             Integer intervalMinutes,
             String description
     ) {
+
     }
 
     public record RestaurantDetail(
@@ -58,5 +75,6 @@ public record CreatePlanAiResponse(
             String latitude,
             String imageUrl
     ) {
+
     }
 }

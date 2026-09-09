@@ -15,6 +15,7 @@ import com.planb.domain.chat.entity.ChatRoom;
 import com.planb.global.config.persistence.QueryDslConfig;
 import com.planb.query.chat.repository.ChatRoomQueryRepository;
 import com.planb.slice.query.chat.repository.helper.ChatDomainRepositoryTestHelper;
+import com.planb.slice.support.MySqlRepositoryTest;
 
 import java.util.Optional;
 
@@ -29,7 +30,8 @@ import static org.assertj.core.api.Assertions.assertThat;
         replace = AutoConfigureTestDatabase.Replace.NONE
 )
 @ActiveProfiles("test")
-class ChatRoomQueryRepositoryTest {
+class ChatRoomQueryRepositoryTest
+        extends MySqlRepositoryTest {
 
     @Autowired
     private TestEntityManager entityManager;
