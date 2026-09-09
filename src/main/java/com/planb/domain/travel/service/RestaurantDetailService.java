@@ -88,4 +88,9 @@ public class RestaurantDetailService {
     public void saveRestaurantDetailAll(List<RestaurantDetail> restaurantDetails){
         restaurantDetailRepository.saveAll(restaurantDetails);
     }
+
+    // 특정 PlanSchedule 목록에 속한 RestaurantDetail 리스트 일괄 삭제하기
+    public void deleteAllByPlanScheduleIn(List<PlanSchedule> planSchedules){
+        restaurantDetailRepository.deleteAllByPlanScheduleIn(planSchedules);
+    }
 }

@@ -1,7 +1,7 @@
 spring:
   config:
     activate:
-      on-profile: common-local
+      on-profile: common-prod
   datasource:
     url: ${DATABASE_URL}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -30,6 +30,7 @@ spring:
       api-key: ${OPENAI_API_KEY}
       chat:
         model: ${OPENAI_MODEL}
+        reasoning-effort: ${OPENAI_REASONING_EFFORT:none}
     mcp:
       server:
         protocol: streamable
@@ -50,6 +51,14 @@ external:
   tar-rlte-tar-service:
     base-url: ${TAR_RLTE_TAR_SERVICE_URL}
     service-key: ${TAR_RLTE_TAR_SERVICE_KEY}
+
+  kakao-map:
+    base-url: ${KAKAO_MAP_API_BASE_URL}
+    api-key: ${KAKAO_REST_API_KEY}
+
+  kakao-mobility:
+    base-url: ${KAKAO_MOBILITY_API_BASE_URL}
+    api-key: ${KAKAO_REST_API_KEY}
 
 
 springdoc:

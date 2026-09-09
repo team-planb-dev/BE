@@ -60,6 +60,11 @@ public class ChatSessionEventListener {
                                 subscription.username(),
                                 MessageType.ENTER
                         );
+
+                        chatFacade.publishAiGreetingIfNeeded(
+                                subscription.roomId(),
+                                subscription.username()
+                        );
                 });
     }
 

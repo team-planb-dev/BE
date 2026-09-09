@@ -1,5 +1,8 @@
 package com.planb.unit.domain.user.service;
 
+import com.planb.domain.user.entity.AccountRecovery;
+import com.planb.domain.user.entity.constant.RecoveryQuestion;
+import com.planb.domain.user.entity.constant.RecoveryQuestion;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,6 +39,8 @@ class UserServiceTest {
                 "testUser",
                 "testNickname",
                 "1234",
+                RecoveryQuestion.FIRST_PET,
+                "콩이",
                 true,
                 true,
                 true
@@ -86,6 +91,11 @@ class UserServiceTest {
                 .nickname("testNickname")
                 .role("USER")
                 .deleted(false)
+                .accountRecovery(
+                        AccountRecovery.of(
+                                RecoveryQuestion.FIRST_PET,
+                                "콩이"
+                        ))
                 .build();
 
         // when
@@ -106,6 +116,11 @@ class UserServiceTest {
                 .nickname("testNickname")
                 .role("USER")
                 .deleted(false)
+                .accountRecovery(
+                        AccountRecovery.of(
+                                RecoveryQuestion.FIRST_PET,
+                                "콩이"
+                        ))
                 .build();
 
         // when

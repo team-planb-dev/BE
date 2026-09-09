@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.filter.OncePerRequestFilter;
 import com.planb.global.security.dto.response.FilterSuccessResponse;
 import com.planb.global.security.service.RefreshService;
+import com.planb.global.security.service.UserAuthCacheService;
 import com.planb.global.security.util.JwtUtil;
 import com.planb.global.security.validator.RefreshTokenValidator;
 import com.planb.global.utils.app.JsonResponseUtils;
@@ -24,6 +25,7 @@ public class JwtLogoutFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final RefreshService refreshService;
+    private final UserAuthCacheService userAuthCacheService;
     private final CookieUtil cookieUtil;
     private final RefreshTokenValidator refreshTokenValidator;
 
@@ -42,16 +44,19 @@ public class JwtLogoutFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String refresh = cookieUtil.findCookie(request);
-        String username = jwtUtil.getUsername(refresh);
 
         // refresh 토큰 오류검사
-        if(refreshTokenValidator.isInvalid(refresh)){
-            filterChain.doFilter(request,response);
+        if (refreshTokenValidator.isInvalid(refresh)){
+            filterChain.doFilter(request, response);
             return;
         }
 
+        String username = jwtUtil.getUsername(refresh);
+
         // Refresh 삭제하기
         refreshService.deleteRefresh(refresh);
+
+        userAuthCacheService.deleteUserAuthCache(username);
 
         // Cookie를 빈 쿠키로 설정
         response.addCookie(cookieUtil.zeroCookie(response));
@@ -67,8 +72,6 @@ public class JwtLogoutFilter extends OncePerRequestFilter {
                                 .now()
                                 .toString()));
 
-        log.info("[ 회원 로그아웃 ] : {}",username);
+        log.info("[ 회원 로그아웃 ] : {}", username);
     }
-
-    
 }

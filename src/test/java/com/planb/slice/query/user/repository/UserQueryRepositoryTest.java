@@ -1,6 +1,8 @@
 package com.planb.slice.query.user.repository;
 
 
+import com.planb.domain.user.entity.AccountRecovery;
+import com.planb.domain.user.entity.constant.RecoveryQuestion;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +14,7 @@ import com.planb.domain.user.entity.User;
 import com.planb.domain.user.repository.UserRepository;
 import com.planb.global.config.persistence.QueryDslConfig;
 import com.planb.query.user.repository.UserQueryRepository;
+import com.planb.slice.support.MySqlRepositoryTest;
 
 import java.util.Optional;
 
@@ -21,7 +24,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import({QueryDslConfig.class, UserQueryRepository.class})
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("local")
-class UserQueryRepositoryTest {
+class UserQueryRepositoryTest
+        extends MySqlRepositoryTest {
 
     @Autowired
     private UserRepository userRepository;
@@ -40,6 +44,11 @@ class UserQueryRepositoryTest {
                 .deleted(false)
                 .role("ROLE_USER")
                 .nickname("testUser")
+                .accountRecovery(
+                        AccountRecovery.of(
+                                RecoveryQuestion.FIRST_PET,
+                                "콩이"
+                        ))
                 .build();
 
         userRepository.save(user);
@@ -91,6 +100,11 @@ class UserQueryRepositoryTest {
                 .deleted(false)
                 .role("ROLE_USER")
                 .nickname("testNickname")
+                .accountRecovery(
+                        AccountRecovery.of(
+                                RecoveryQuestion.FIRST_PET,
+                                "콩이"
+                        ))
                 .build();
 
         userRepository.save(user);
@@ -128,6 +142,11 @@ class UserQueryRepositoryTest {
                 .deleted(false)
                 .role("ROLE_USER")
                 .nickname("testNickname")
+                .accountRecovery(
+                        AccountRecovery.of(
+                                RecoveryQuestion.FIRST_PET,
+                                "콩이"
+                        ))
                 .build();
 
         userRepository.save(user);

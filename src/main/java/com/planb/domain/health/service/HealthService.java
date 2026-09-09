@@ -22,9 +22,9 @@ public class HealthService {
 
 
     // 개인정보 동의 여부에 따른 Health 객체 생성
-    public Health validSensitiveAgree(CreateHealthRequest request,User user){
-        if(request.sensitiveAgree()){
-            return makeHealthWithSensitiveAgree(request,user);
+    public Health validSensitiveAgree(CreateHealthRequest request, User user){
+        if (request.sensitiveAgree()){
+            return makeHealthWithSensitiveAgree(request, user);
         } else {
             return makeHealthWithoutSensitiveAgree(
                     new CreateHealthWithoutSensitiveAgreeRequest(
@@ -35,7 +35,7 @@ public class HealthService {
     }
 
     // Health 객체 생성 (정보동의 O)
-    private Health makeHealthWithSensitiveAgree(CreateHealthRequest request,User user){
+    private Health makeHealthWithSensitiveAgree(CreateHealthRequest request, User user){
 
         return Health
                 .builder()
@@ -93,6 +93,60 @@ public class HealthService {
                 .build();
     }
 
+
+
+    // 동행인 정보 수정 (민감정보 동의 여부에 따라 저장 범위가 달라진다)
+    public void updateHealth(
+            Health health,
+            CreateHealthRequest request
+    ) {
+
+        if (!request.sensitiveAgree()) {
+            health.update(request
+                            .travelerName(),
+                    false,
+                    false,
+                    null,
+                    null);
+
+            return;
+        }
+
+        health.update(request
+                        .travelerName(),
+                true,
+                request
+                        .hasMedication(),
+                new HealthInfo(
+                        request
+                                .healthInfo()
+                                .diseaseType(),
+                        request
+                                .healthInfo()
+                                .walkType()),
+                new MealInfo(
+                        request
+                                .mealInfo()
+                                .applied(),
+                        request
+                                .mealInfo()
+                                .breakfastApplied(),
+                        request
+                                .mealInfo()
+                                .breakfastTime(),
+                        request
+                                .mealInfo()
+                                .lunchApplied(),
+                        request
+                                .mealInfo()
+                                .lunchTime(),
+                        request
+                                .mealInfo()
+                                .dinnerApplied(),
+                        request
+                                .mealInfo()
+                                .dinnerTime()));
+    }
 
 
     /*

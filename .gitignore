@@ -38,3 +38,36 @@ out/
 
 ### QueryDSL ###
 /src/main/generated/
+### AI Agents / Coding Assistants ###
+# Claude Code
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+# Universal skills (npx skills)
+.agents/
+skills-lock.json
+# OpenAI Codex
+.codex/
+AGENTS.md
+# Gemini CLI
+.gemini/
+GEMINI.md
+# Cursor
+.cursor/
+.cursorrules
+.cursorignore
+# GitHub Copilot
+.github/copilot-instructions.md
+# Windsurf
+.windsurf/
+.windsurfrules
+# Cline / Roo
+.clinerules
+.clinerules/
+.roo/
+# Aider
+.aider*
+# Continue
+.continue/
+# MCP server config
+.mcp.json

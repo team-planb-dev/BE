@@ -72,7 +72,7 @@ public class JwtAuthenticationProvider {
     // 토큰 만료 여부확인 처리 메소드
     private void handleExpiredAuthorization(String parsedToken){
 
-        if(jwtUtil.isExpired(parsedToken)){
+        if (jwtUtil.isExpired(parsedToken)){
             throw new BaseException(BaseExceptionEnum.JWT_EXPIRED);
         }
 

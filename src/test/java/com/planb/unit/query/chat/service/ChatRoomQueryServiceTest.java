@@ -86,4 +86,53 @@ class ChatRoomQueryServiceTest {
                 .findByRoomId(roomId);
     }
 
+
+    @Test
+    @DisplayName("travelId로 연결된 채팅방 조회")
+    void findChatRoomByTravelIdFound() {
+
+        // given
+        Long travelId = 1L;
+
+        ChatRoom chatRoom = mock(ChatRoom.class);
+
+        when(chatRoomQueryRepository
+                .findByTravelId(travelId))
+                .thenReturn(Optional.of(chatRoom));
+
+        // when
+        Optional<ChatRoom> result =
+                chatRoomQueryService.findChatRoomByTravelId(travelId);
+
+        // then
+        assertThat(result)
+                .contains(chatRoom);
+
+        verify(chatRoomQueryRepository)
+                .findByTravelId(travelId);
+    }
+
+    @Test
+    @DisplayName("travelId에 연결된 채팅방이 없으면 빈 값 반환")
+    void findChatRoomByTravelIdNotFound() {
+
+        // given
+        Long travelId = 1L;
+
+        when(chatRoomQueryRepository
+                .findByTravelId(travelId))
+                .thenReturn(Optional.empty());
+
+        // when
+        Optional<ChatRoom> result =
+                chatRoomQueryService.findChatRoomByTravelId(travelId);
+
+        // then
+        assertThat(result)
+                .isEmpty();
+
+        verify(chatRoomQueryRepository)
+                .findByTravelId(travelId);
+    }
+
 }

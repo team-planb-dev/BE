@@ -9,6 +9,7 @@ import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.domain.travel.entity.constant.TravelStyle;
 import com.planb.domain.travel.entity.constant.TravelTheme;
 import com.planb.domain.user.entity.User;
+import com.planb.global.converter.BooleanToYNConverter;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -99,5 +100,48 @@ public class Travel {
     @Column(name = "decided_location")
     private String decidedLocation;
 
+    // 저장 확정 여부 (AI 생성 직후에는 false, 사용자가 저장하기를 누르면 true)
+    // 여행 진행 상태(TravelStatus)와는 별개 값이다.
+    @Convert(converter = BooleanToYNConverter.class)
+    @Column(
+            name = "saved",
+            nullable = false,
+            length = 1
+    )
+    private boolean saved;
 
+    // 읽기 전용 공유 링크 토큰 (공유하지 않은 여행은 null)
+    @Column(
+            name = "share_token",
+            unique = true,
+            length = 36
+    )
+    private String shareToken;
+
+
+    /**
+     * 일정을 저장 확정 상태로 바꾼다.
+     *
+     * 이미 저장된 여행에 다시 호출해도 상태가 바뀌지 않아 중복 요청에 안전하다.
+     */
+    public void markSaved() {
+
+        this.saved = true;
+    }
+
+    /**
+     * 공유 토큰을 발급한다.
+     *
+     * 이미 발급된 토큰이 있으면 그대로 두어 기존에 공유한 링크가 계속 열리도록 한다.
+     *
+     * @param shareToken 새로 발급할 토큰
+     */
+    public void issueShareToken(String shareToken) {
+
+        if (this.shareToken != null) {
+            return;
+        }
+
+        this.shareToken = shareToken;
+    }
 }

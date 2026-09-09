@@ -12,6 +12,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import com.planb.global.security.filter.JwtLogoutFilter;
 import com.planb.global.security.service.RefreshService;
+import com.planb.global.security.service.UserAuthCacheService;
 import com.planb.global.security.util.JwtUtil;
 import com.planb.global.security.validator.RefreshTokenValidator;
 import com.planb.global.utils.web.CookieUtil;
@@ -27,6 +28,9 @@ class JwtLogoutFilterTest {
 
     @Mock
     private RefreshService refreshService;
+
+    @Mock
+    private UserAuthCacheService userAuthCacheService;
 
     @Mock
     private CookieUtil cookieUtil;
@@ -84,7 +88,7 @@ class JwtLogoutFilterTest {
     }
 
     @Test
-    @DisplayName("유효하지 않은 refresh 토큰이면 다음 필터로 넘긴다")
+    @DisplayName("유효하지 않은 refresh 토큰인 경우 다음 필터 위임")
     void doFilterInternal_fail_invalidRefresh()
             throws Exception {
 
@@ -100,10 +104,6 @@ class JwtLogoutFilterTest {
         when(cookieUtil
                 .findCookie(request))
                 .thenReturn(refresh);
-
-        when(jwtUtil
-                .getUsername(refresh))
-                .thenReturn("testUser");
 
         when(refreshTokenValidator
                 .isInvalid(refresh))
@@ -123,13 +123,16 @@ class JwtLogoutFilterTest {
         verify(refreshService, never())
                 .deleteRefresh(anyString());
 
+        verify(jwtUtil, never())
+                .getUsername(anyString());
+
         verify(cookieUtil, never())
                 .zeroCookie(any());
     }
 
     @Test
 
-    @DisplayName("유효한 refresh 토큰이면 로그아웃을 수행한다")
+    @DisplayName("유효한 refresh 토큰인 경우 로그아웃 수행")
 
     void doFilterInternal_success()
 
@@ -166,13 +169,16 @@ class JwtLogoutFilterTest {
 
         // when
         jwtLogoutFilter
-                .callDoFilterInternal(request,response,filterChain);
+                .callDoFilterInternal(request, response, filterChain);
 
         // then
-        verify(refreshService,times(1))
+        verify(refreshService, times(1))
                 .deleteRefresh(refresh);
 
-        verify(cookieUtil,times(1))
+        verify(userAuthCacheService)
+                .deleteUserAuthCache(username);
+
+        verify(cookieUtil, times(1))
                 .zeroCookie(response);
 
         Cookie responseCookie = response
@@ -195,11 +201,13 @@ class JwtLogoutFilterTest {
 
         public TestJwtLogoutFilter(JwtUtil jwtUtil,
                                    RefreshService refreshService,
+                                   UserAuthCacheService userAuthCacheService,
                                    CookieUtil cookieUtil,
                                    RefreshTokenValidator refreshTokenValidator) {
 
             super(jwtUtil,
                     refreshService,
+                    userAuthCacheService,
                     cookieUtil,
                     refreshTokenValidator);
 
@@ -220,7 +228,7 @@ class JwtLogoutFilterTest {
                  FilterChain filterChain)
                 throws Exception {
 
-            doFilterInternal(request,response,filterChain);
+            doFilterInternal(request, response, filterChain);
         }
 
     }

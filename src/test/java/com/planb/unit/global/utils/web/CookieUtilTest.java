@@ -36,7 +36,7 @@ class CookieUtilTest {
 
         // when
         Cookie cookie = cookieUtil
-                .createCookie(key,value);
+                .createCookie(key, value);
 
         // then
         assertThat(cookie

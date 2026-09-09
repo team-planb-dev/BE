@@ -15,6 +15,7 @@ import com.planb.global.config.exception.WebSocketExceptionEnum;
 import com.planb.global.config.exception.domain.BaseException;
 import com.planb.global.security.auth.AuthPrincipal;
 import com.planb.global.security.provider.JwtAuthenticationProvider;
+import com.planb.domain.chat.websocket.resolver.ChatDestinationResolver;
 import com.planb.query.chat.service.ChatRoomMemberQueryService;
 
 @Component
@@ -24,6 +25,7 @@ public class StompChannelInterceptor implements ChannelInterceptor {
 
     private final JwtAuthenticationProvider jwtAuthenticationProvider;
     private final ChatRoomMemberQueryService chatRoomMemberQueryService;
+    private final ChatDestinationResolver chatDestinationResolver;
 
     @Override
     public @Nullable Message<?> preSend(Message<?> message,
@@ -98,7 +100,14 @@ public class StompChannelInterceptor implements ChannelInterceptor {
                         : null
         );
 
-        Long roomId = extractSubscribeRoomId(accessor);
+        Long roomId = chatDestinationResolver
+                .extractRoomId(accessor.getDestination());
+
+        if (roomId == null) {
+            throw new BaseException(
+                    WebSocketExceptionEnum.CHATROOM_NOT_FOUND
+            );
+        }
         Long userId = extractUserId(accessor);
 
         log.info(
@@ -120,7 +129,14 @@ public class StompChannelInterceptor implements ChannelInterceptor {
                         : null
         );
 
-        Long roomId = extractSendRoomId(accessor);
+        Long roomId = chatDestinationResolver
+                .extractSendRoomId(accessor.getDestination());
+
+        if (roomId == null) {
+            throw new BaseException(
+                    WebSocketExceptionEnum.CHATROOM_NOT_FOUND
+            );
+        }
         Long userId = extractUserId(accessor);
 
         log.info(
@@ -153,44 +169,6 @@ public class StompChannelInterceptor implements ChannelInterceptor {
                     WebSocketExceptionEnum.SUBSCRIBER_NOT_MATCHED
             );
         }
-    }
-
-    /**
-     * SUBSCRIBE
-     * /sub/api/v1/chat/{roomId}
-     */
-    private Long extractSubscribeRoomId(StompHeaderAccessor accessor) {
-
-        String destination = accessor.getDestination();
-
-        if (destination == null) {
-            throw new BaseException(
-                    WebSocketExceptionEnum.CHATROOM_NOT_FOUND
-            );
-        }
-
-        return Long.parseLong(
-                destination.substring(destination.lastIndexOf("/") + 1)
-        );
-    }
-
-    /**
-     * SEND
-     * /pub/api/v1/chat/{roomId}/send
-     */
-    private Long extractSendRoomId(StompHeaderAccessor accessor) {
-
-        String destination = accessor.getDestination();
-
-        if (destination == null) {
-            throw new BaseException(
-                    WebSocketExceptionEnum.CHATROOM_NOT_FOUND
-            );
-        }
-
-        String[] paths = destination.split("/");
-
-        return Long.parseLong(paths[paths.length - 2]);
     }
 
     private Long extractUserId(StompHeaderAccessor accessor) {

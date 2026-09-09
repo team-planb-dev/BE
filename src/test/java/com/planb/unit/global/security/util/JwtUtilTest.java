@@ -63,7 +63,7 @@ class JwtUtilTest {
         // then
 
         assertThat(username)
-                .isEqualTo("wooju");
+                .isEqualTo("wooju@example.com");
 
     }
 

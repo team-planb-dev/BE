@@ -5,7 +5,7 @@ import jakarta.persistence.Converter;
 
 // Boolean 타입 필드를 DB에서 String타입으로 매핑
 @Converter(autoApply = true)
-public class BooleanToYNConverter implements AttributeConverter<Boolean,String> {
+public class BooleanToYNConverter implements AttributeConverter<Boolean, String> {
 
     // true,false 지정시 DB에는 Y,N ( String 타입 ) 으로 저장되는 컨버터 메소드
     @Override

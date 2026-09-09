@@ -1,6 +1,6 @@
 package com.planb.domain.user.dto.response;
 
-public record CheckUsernameDuplicationResponse(boolean duplicate,String message) {
+public record CheckUsernameDuplicationResponse(boolean duplicate, String message) {
 
     public static CheckUsernameDuplicationResponse result(boolean result) {
         return new CheckUsernameDuplicationResponse(

@@ -5,8 +5,9 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Controller;
+
 import com.planb.domain.chat.dto.request.SendChatMessageRequest;
-import com.planb.domain.chat.facade.ChatFacade;
+import com.planb.domain.chat.facade.ChatMessageFacade;
 
 import java.security.Principal;
 
@@ -15,49 +16,19 @@ import java.security.Principal;
 @MessageMapping("/api/v1/chat")
 public class ChatController {
 
-    private final ChatFacade chatFacade;
+    private final ChatMessageFacade chatMessageFacade;
 
     @MessageMapping("/{roomId}/send")
-    public void sendMessage(@DestinationVariable Long roomId,
-                            @Payload SendChatMessageRequest request,
-                            Principal principal){
+    public void sendMessage(
+            @DestinationVariable Long roomId,
+            @Payload SendChatMessageRequest request,
+            Principal principal
+    ) {
 
-        chatFacade
-                .publishMessage(
-                        roomId,
-                        request,
-                        principal
-                                .getName());
-
-    }
-
-    /**
-    3-refactor-migrate-chat-presence-handling-to-stomp-session-events 변경점
-    System 메시지를 수동 API가 아닌 EventListener를 통해 자동화
-     */
-
-    /*
-    @MessageMapping("/{roomId}/enter")
-    public void enter(@DestinationVariable Long roomId,
-                      Principal principal){
-
-        chatFacade.publishSystemMessage(
+        chatMessageFacade.handleMessage(
                 roomId,
-                principal
-                        .getName(),
-                MessageType.ENTER);
+                request,
+                principal.getName()
+        );
     }
-
-    @MessageMapping("/{roomId}/leave")
-    public void leave(@DestinationVariable Long roomId,
-                      Principal principal){
-
-        chatFacade.publishSystemMessage(
-                roomId,
-                principal
-                        .getName(),
-                MessageType.LEAVE);
-    }
-
-     */
 }

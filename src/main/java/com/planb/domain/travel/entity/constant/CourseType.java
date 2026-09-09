@@ -1,11 +1,13 @@
 package com.planb.domain.travel.entity.constant;
 
 import com.planb.global.constant.enums.CodeCommInterface;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
+@Schema(description = "일정의 세부 장소 또는 활동 유형입니다.")
 public enum CourseType implements CodeCommInterface {
 
     RESTAURANT(

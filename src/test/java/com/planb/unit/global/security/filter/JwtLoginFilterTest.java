@@ -77,7 +77,7 @@ class JwtLoginFilterTest {
         String password = "test1234!";
 
         LoginRequest loginRequest =
-                new LoginRequest(username,password);
+                new LoginRequest(username, password);
 
         MockHttpServletRequest request =
                 new MockHttpServletRequest();
@@ -102,7 +102,7 @@ class JwtLoginFilterTest {
 
         // when
         Authentication result = testJwtLoginFilter
-                .attemptAuthentication(request,response);
+                .attemptAuthentication(request, response);
 
         // then
         assertThat(result)
@@ -116,7 +116,7 @@ class JwtLoginFilterTest {
                         UsernamePasswordAuthenticationToken.class
                 );
 
-        verify(authenticationManager,times(1))
+        verify(authenticationManager, times(1))
                 .authenticate(captor.capture());
 
         UsernamePasswordAuthenticationToken token =
@@ -131,7 +131,7 @@ class JwtLoginFilterTest {
     }
 
     @Test
-    @DisplayName("로그인 성공 시 인증 Principal로 UserAuthCache를 저장하고 토큰을 응답한다")
+    @DisplayName("로그인 성공 시 인증 Principal 기반 UserAuthCache 저장과 토큰 응답")
     void successfulAuthentication_success()
             throws Exception{
 
@@ -243,10 +243,10 @@ class JwtLoginFilterTest {
         assertThat(savedCache.role())
                 .isEqualTo(role);
 
-        verify(refreshService,times(1))
+        verify(refreshService, times(1))
                 .addRefresh(username, "refreshToken");
 
-        verify(jwtUtil,times(1))
+        verify(jwtUtil, times(1))
                 .createJwt(
                         eq("access"),
                         eq(username),

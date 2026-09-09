@@ -11,7 +11,7 @@ public class FoodNtrCpntClient extends ApiClient<FoodNtrCpntProperties> {
     public FoodNtrCpntClient
             (WebClient.Builder webClientBuilder,
              FoodNtrCpntProperties properties) {
-        super(webClientBuilder,properties);
+        super(webClientBuilder, properties);
     }
 
     public String serviceKey() {

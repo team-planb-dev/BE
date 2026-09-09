@@ -1,6 +1,7 @@
 package com.planb.controller.domain.user;
 
 
+import com.planb.domain.user.entity.constant.RecoveryQuestion;
 import com.planb.domain.user.dto.request.CheckNicknameDuplicationRequest;
 import com.planb.domain.user.dto.request.CheckUsernameDuplicationRequest;
 import com.planb.domain.user.dto.response.CheckNicknameDuplicationResponse;
@@ -61,6 +62,8 @@ class UserControllerTest {
                         "testUser@example.com",
                         "testNickname",
                         "test1234",
+                        RecoveryQuestion.FIRST_PET,
+                        "콩이",
                         true,
                         true,
                         true

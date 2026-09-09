@@ -8,8 +8,8 @@ import lombok.RequiredArgsConstructor;
 @Getter
 public enum Transportation implements CodeCommInterface {
 
-    CAR("CAR","자가용"),
-    TRANSIT("TRANSIT","대중 교통");
+    CAR("CAR", "자가용"),
+    TRANSIT("TRANSIT", "대중 교통");
 
     private final String code;
     private final String codeName;

@@ -75,12 +75,12 @@ public class JwtLoginFilter extends UsernamePasswordAuthenticationFilter {
             refreshService.validateAlreadyLogin(username);
 
             UsernamePasswordAuthenticationToken authenticationToken =
-                    new UsernamePasswordAuthenticationToken(username,loginRequest.password());
+                    new UsernamePasswordAuthenticationToken(username, loginRequest.password());
 
             return authenticationManager.authenticate(authenticationToken);
 
-        }catch(IOException e){
-            throw new AuthenticationServiceException("JSON 파싱 오류",e);
+        } catch (IOException e){
+            throw new AuthenticationServiceException("JSON 파싱 오류", e);
         }
 
     }
@@ -107,10 +107,10 @@ public class JwtLoginFilter extends UsernamePasswordAuthenticationFilter {
         String username = userDetails.getUsername();
 
         // access 토큰 생성
-        String access = jwtUtil.createJwt("access",username,role,600000*6*24L);
+        String access = jwtUtil.createJwt("access", username, role, 600000*6*24L);
 
         // refresh 토큰 생성
-        String refresh = jwtUtil.createJwt("refresh",username,role,7*600000*6*24L);
+        String refresh = jwtUtil.createJwt("refresh", username, role, 7*600000*6*24L);
 
         UserAuthCache userAuthCache = new UserAuthCache(
                 userId,
@@ -121,12 +121,12 @@ public class JwtLoginFilter extends UsernamePasswordAuthenticationFilter {
         userAuthCacheService.saveUserAuthCache(userAuthCache);
 
         // cache에 refresh 토큰 추가
-        refreshService.addRefresh(username,refresh);
+        refreshService.addRefresh(username, refresh);
 
-        log.info("로그인 성공:{} " + " [ Time ]:{}",username, LocalDate.now());
+        log.info("로그인 성공:{} " + " [ Time ]:{}", username, LocalDate.now());
 
         response.setHeader("Authorization", "Bearer " + access);
-        response.addCookie(cookieUtil.createCookie("refreshToken",refresh));
+        response.addCookie(cookieUtil.createCookie("refreshToken", refresh));
 
         ApiResult<?> result = ApiResult
                 .success(new LoginResponse(username,
@@ -151,7 +151,7 @@ public class JwtLoginFilter extends UsernamePasswordAuthenticationFilter {
             throws IOException, ServletException {
 
         ApiResult<?> result = ApiResult
-                .fail("AUTH_FAILED","아이디 또는 비밀번호가 일치하지 않습니다.");
+                .fail("AUTH_FAILED", "아이디 또는 비밀번호가 일치하지 않습니다.");
 
         JsonResponseUtils.writeJsonResponse(
                 HttpStatus.UNAUTHORIZED,

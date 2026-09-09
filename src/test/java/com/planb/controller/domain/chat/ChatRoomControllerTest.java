@@ -23,6 +23,7 @@ import com.planb.domain.chat.dto.response.DeleteChatRoomResponse;
 import com.planb.domain.chat.facade.ChatFacade;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -97,7 +98,8 @@ class ChatRoomControllerTest {
                 mock(DeleteChatRoomResponse.class);
 
         when(chatFacade.deleteChatRoom(
-                any(DeleteChatRoomRequest.class)
+                any(DeleteChatRoomRequest.class),
+                eq("testUser@example.com")
         )).thenReturn(response);
 
         // when & then
@@ -110,7 +112,8 @@ class ChatRoomControllerTest {
 
         verify(chatFacade)
                 .deleteChatRoom(
-                        any(DeleteChatRoomRequest.class)
+                        any(DeleteChatRoomRequest.class),
+                        eq("testUser@example.com")
                 );
     }
 }

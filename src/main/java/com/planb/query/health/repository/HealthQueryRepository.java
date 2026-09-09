@@ -7,6 +7,7 @@ import com.planb.domain.health.entity.QFoodInfo;
 import com.planb.domain.health.entity.QHealth;
 import com.planb.domain.health.entity.constant.FoodType;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -23,6 +24,28 @@ public class HealthQueryRepository {
 
 
     public List<HealthSummaryQueryResponse> findHealthSummaryList(Long userId) {
+
+        return findHealthSummaryList(health.user.id.eq(userId));
+    }
+
+
+    /**
+     * 여행에 선택된 구성원만 건강 요약으로 조회한다.
+     *
+     * @param healthIds 조회할 구성원 id
+     * @return 구성원 건강 요약 목록
+     */
+    public List<HealthSummaryQueryResponse> findHealthSummaryListByHealthIds(List<Long> healthIds) {
+
+        if (healthIds.isEmpty()) {
+            return List.of();
+        }
+
+        return findHealthSummaryList(health.id.in(healthIds));
+    }
+
+
+    private List<HealthSummaryQueryResponse> findHealthSummaryList(BooleanExpression condition) {
 
         return jpaQueryFactory
                 .select(Projections.constructor(HealthSummaryQueryResponse.class,
@@ -50,12 +73,7 @@ public class HealthQueryRepository {
                                 .foodType
                                 .eq(FoodType.ALLERGY)
                 )
-                .where(
-                        health
-                                .user
-                                .id
-                                .eq(userId)
-                )
+                .where(condition)
                 .groupBy(
                         health
                                 .id,

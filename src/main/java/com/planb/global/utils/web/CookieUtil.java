@@ -10,16 +10,16 @@ public class CookieUtil {
 
     public Cookie zeroCookie(HttpServletResponse response){
 
-        Cookie cookie = new Cookie("refreshToken",null);
+        Cookie cookie = new Cookie("refreshToken", null);
         cookie.setMaxAge(0);
         cookie.setPath("/");
 
         return cookie;
     }
 
-    public Cookie createCookie(String key,String value){
+    public Cookie createCookie(String key, String value){
 
-        Cookie cookie = new Cookie(key,value);
+        Cookie cookie = new Cookie(key, value);
         cookie.setMaxAge(24*60*60);
         cookie.setHttpOnly(true);
         return cookie;
@@ -30,9 +30,9 @@ public class CookieUtil {
 
         String refresh = null;
         Cookie[] cookies = request.getCookies();
-        if(cookies != null){
+        if (cookies != null){
             for(Cookie cookie : cookies){
-                if("refreshToken".equals(cookie.getName())){
+                if ("refreshToken".equals(cookie.getName())){
                     refresh = cookie.getValue();
                 }
             }

@@ -35,7 +35,7 @@ public class JwtUtil {
                 .build()
                 .parseSignedClaims(token)
                 .getPayload()
-                .get("username",String.class);
+                .get("username", String.class);
     }
 
     public String getCategory(String token){
@@ -56,7 +56,7 @@ public class JwtUtil {
                 .build()
                 .parseSignedClaims(token)
                 .getPayload()
-                .get("role",String.class);
+                .get("role", String.class);
     }
 
     public Boolean isExpired(String token){
@@ -71,14 +71,14 @@ public class JwtUtil {
                 .before(new Date());
     }
 
-    public String createJwt(String category,String username,
+    public String createJwt(String category, String username,
                             String role,
                             Long expiredMs){
 
         return Jwts.builder()
-                .claim("category",category)
-                .claim("username",username)
-                .claim("role",role)
+                .claim("category", category)
+                .claim("username", username)
+                .claim("role", role)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis()+expiredMs))
                 .signWith(secretKey)

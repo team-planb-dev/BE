@@ -17,7 +17,7 @@ public class FoodInfo {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "health_id",nullable = false)
+    @JoinColumn(name = "health_id", nullable = false)
     private Health health;
 
     @Column(name = "food_name")

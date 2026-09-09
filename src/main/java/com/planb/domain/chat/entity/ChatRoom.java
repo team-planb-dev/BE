@@ -2,6 +2,7 @@ package com.planb.domain.chat.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import com.planb.domain.travel.entity.Travel;
 import com.planb.global.converter.BooleanToYNConverter;
 import com.planb.global.jpa.BaseEntity;
 
@@ -19,6 +20,10 @@ public class ChatRoom extends BaseEntity {
 
     @Column
     private String chatRoomName;
+
+    @OneToOne
+    @JoinColumn(name = "travel_id")
+    private Travel travel;
 
     @Convert(converter = BooleanToYNConverter.class)
     @Column(nullable = false, length = 1)

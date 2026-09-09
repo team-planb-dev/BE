@@ -20,7 +20,7 @@ public class User extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false,unique = true)
+    @Column(nullable = false, unique = true)
     @NotBlank(message = "이메일은 필수 입니다.")
     @Email(message = "올바른 이메일 형식이 아닙니다.")
     private String username;
@@ -43,9 +43,16 @@ public class User extends BaseEntity {
     @Embedded
     private TermsAgreement termsAgreement;
 
+    @Embedded
+    private AccountRecovery accountRecovery;
+
     public void delete(){
         this.deleted = true;
         markDeleted();
+    }
+
+    public void changePassword(String encodedPassword){
+        this.password = encodedPassword;
     }
 
 }

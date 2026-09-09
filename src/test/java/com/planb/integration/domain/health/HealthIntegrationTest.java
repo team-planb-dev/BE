@@ -1,7 +1,9 @@
 package com.planb.integration.domain.health;
 
+import com.planb.domain.user.entity.constant.RecoveryQuestion;
 import com.planb.domain.health.dto.request.AddCompanionRequest;
 import com.planb.domain.health.dto.request.DeleteCompanionRequest;
+import com.planb.domain.health.dto.request.UpdateCompanionRequest;
 import com.planb.domain.health.dto.request.MealMedicationRuleDetail;
 import com.planb.domain.health.entity.constant.DiseaseType;
 import com.planb.domain.health.entity.constant.FoodType;
@@ -30,6 +32,7 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -56,6 +59,12 @@ public class HealthIntegrationTest extends IntegrationTest {
 
     private static final String COMPANION_SUMMARY_URL =
             "/api/v1/health/get-companion-summary";
+
+    private static final String UPDATE_COMPANION_URL =
+            "/api/v1/health/update-companion";
+
+    private static final String COMPANION_DETAIL_URL =
+            "/api/v1/health/get-companion-detail";
 
     private static final String DELETE_COMPANION_URL =
             "/api/v1/health/delete-companion";
@@ -288,6 +297,201 @@ public class HealthIntegrationTest extends IntegrationTest {
 
 
     /**
+     * 동행인 수정
+     */
+    @Test
+    @DisplayName("동행인 등록 후 수정 성공")
+    void updateCompanionSuccess() throws Exception {
+
+        // given
+        String username =
+                createUniqueUsername();
+
+        createUser(username);
+
+        LoginResult loginResult =
+                login(username);
+
+        addCompanion(
+                loginResult.accessToken()
+        );
+
+        Long healthId =
+                getHealthId(
+                        loginResult.accessToken()
+                );
+
+        UpdateCompanionRequest request =
+                new UpdateCompanionRequest(
+                        healthId,
+                        "동행인1 수정",
+                        true,
+                        false,
+
+                        new AddCompanionRequest.HealthInfo(
+                                DiseaseType.HIGH_BLOOD_PRESSURE,
+                                WalkType.MINIMAL
+                        ),
+
+                        new AddCompanionRequest.MealInfo(
+                                true,
+
+                                true,
+                                LocalTime.of(
+                                        9,
+                                        0
+                                ),
+
+                                true,
+                                LocalTime.of(
+                                        13,
+                                        0
+                                ),
+
+                                false,
+                                null
+                        ),
+
+                        List.of(
+                                new AddCompanionRequest.FoodInfoDetail(
+                                        "우유",
+                                        FoodType.ALLERGY
+                                )
+                        ),
+
+                        List.of()
+                );
+
+        // when & then
+        mockMvc.perform(
+                        put(UPDATE_COMPANION_URL)
+                                .header(
+                                        "Authorization",
+                                        loginResult.accessToken()
+                                )
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                request
+                                        )
+                                )
+                )
+                .andExpect(
+                        status().isOk()
+                )
+                .andExpect(
+                        jsonPath("$.data.travelerName")
+                                .value("동행인1 수정")
+                );
+
+        /*
+        수정 후 상세 조회로
+        기존 음식 정보가 교체되었는지 확인
+         */
+        mockMvc.perform(
+                        get(COMPANION_DETAIL_URL)
+                                .param(
+                                        "healthId",
+                                        String.valueOf(healthId)
+                                )
+                                .header(
+                                        "Authorization",
+                                        loginResult.accessToken()
+                                )
+                )
+                .andExpect(
+                        status().isOk()
+                )
+                .andExpect(
+                        jsonPath("$.data.travelerName")
+                                .value("동행인1 수정")
+                )
+                .andExpect(
+                        jsonPath("$.data.healthInfo.diseaseType")
+                                .value("HIGH_BLOOD_PRESSURE")
+                )
+                .andExpect(
+                        jsonPath("$.data.foodInfoList.length()")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.data.foodInfoList[0].foodName")
+                                .value("우유")
+                )
+                .andExpect(
+                        jsonPath("$.data.medicationInfoList")
+                                .isEmpty()
+                );
+    }
+
+    @Test
+    @DisplayName("다른 사용자의 동행인은 수정 불가")
+    void updateCompanionForbiddenForOtherUser() throws Exception {
+
+        // given
+        String ownerUsername =
+                createUniqueUsername();
+
+        createUser(ownerUsername);
+
+        LoginResult ownerLogin =
+                login(ownerUsername);
+
+        addCompanion(
+                ownerLogin.accessToken()
+        );
+
+        Long healthId =
+                getHealthId(
+                        ownerLogin.accessToken()
+                );
+
+        String strangerUsername =
+                createUniqueUsername();
+
+        createUser(strangerUsername);
+
+        LoginResult strangerLogin =
+                login(strangerUsername);
+
+        UpdateCompanionRequest request =
+                new UpdateCompanionRequest(
+                        healthId,
+                        "탈취 시도",
+                        false,
+                        false,
+                        null,
+                        null,
+                        List.of(),
+                        List.of()
+                );
+
+        // when & then
+        mockMvc.perform(
+                        put(UPDATE_COMPANION_URL)
+                                .header(
+                                        "Authorization",
+                                        strangerLogin.accessToken()
+                                )
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                request
+                                        )
+                                )
+                )
+                .andExpect(
+                        jsonPath("$.success")
+                                .value(false)
+                );
+    }
+
+
+    /**
      * 인증 실패
      */
     @Test
@@ -450,6 +654,8 @@ public class HealthIntegrationTest extends IntegrationTest {
                         username,
                         NICKNAME,
                         PASSWORD,
+                        RecoveryQuestion.FIRST_PET,
+                        "콩이",
                         true,
                         true,
                         true

@@ -30,6 +30,7 @@ spring:
       api-key: ${OPENAI_API_KEY}
       chat:
         model: ${OPENAI_MODEL}
+        reasoning-effort: ${OPENAI_REASONING_EFFORT:none}
     mcp:
       server:
         protocol: streamable

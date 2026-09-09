@@ -1,5 +1,6 @@
 package com.planb.integration.domain.chat;
 
+import com.planb.domain.user.entity.constant.RecoveryQuestion;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.http.Cookie;
 
@@ -56,7 +57,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Chat API 통합 테스트
  * 채팅방 생성, 멤버 등록 및 삭제, 채팅방 삭제,
- * WebSocket 연결과 STOMP 메시지 송수신을 검증한다.
+ * WebSocket 연결과 STOMP 메시지 송수신 검증
  */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
@@ -259,7 +260,7 @@ public class ChatIntegrationTest extends IntegrationTest {
                 )
                 /*
                  * 현재 ApiExceptionHandler의 BaseException 처리 메소드에
-                 * @ResponseStatus가 없어서 HTTP 상태는 200으로 반환된다.
+                 * @ResponseStatus가 없어서 HTTP 상태 200으로 반환
                  */
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(false))
@@ -433,7 +434,7 @@ public class ChatIntegrationTest extends IntegrationTest {
 
         /*
          * SUBSCRIBE 이벤트에서 ENTER 메시지가 먼저 올 수 있으므로
-         * TALK 타입 메시지를 필터링해서 검증한다.
+         * TALK 타입 메시지 필터링 후 검증
          */
         String messageContent =
                 "통합 테스트 메시지";
@@ -444,6 +445,7 @@ public class ChatIntegrationTest extends IntegrationTest {
                         + roomId
                         + "/send",
                 new SendChatMessageRequest(
+                        MessageType.TALK,
                         messageContent
                 )
         );
@@ -607,7 +609,7 @@ public class ChatIntegrationTest extends IntegrationTest {
         );
 
         /*
-         * 두 세션의 구독으로 발생한 ENTER 메시지를 제거한다.
+         * 두 세션의 구독으로 발생한 ENTER 메시지 제거
          */
         drainPresenceMessages(observerMessages);
 
@@ -699,6 +701,8 @@ public class ChatIntegrationTest extends IntegrationTest {
                         username,
                         nickname,
                         password,
+                        RecoveryQuestion.FIRST_PET,
+                        "콩이",
                         true,
                         true,
                         true

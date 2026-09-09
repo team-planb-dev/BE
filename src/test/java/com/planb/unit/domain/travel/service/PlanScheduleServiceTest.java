@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PlanScheduleServiceTest {
@@ -260,5 +261,60 @@ class PlanScheduleServiceTest {
 
         verify(planScheduleRepository)
                 .saveAll(planScheduleList);
+    }
+
+    @Test
+    @DisplayName("특정 PlanDay 목록에 속한 PlanSchedule 리스트 조회")
+    void findAllByPlanDayIn() {
+
+        PlanDay planDay =
+                PlanDay.builder()
+                        .dayNumber(1)
+                        .build();
+
+        List<PlanSchedule> planSchedules =
+                List.of(
+                        PlanSchedule.builder()
+                                .planDay(planDay)
+                                .scheduleType(ScheduleType.LUNCH)
+                                .courseType(CourseType.RESTAURANT)
+                                .build()
+                );
+
+        when(
+                planScheduleRepository
+                        .findAllByPlanDayIn(
+                                List.of(planDay)
+                        )
+        ).thenReturn(
+                planSchedules
+        );
+
+        List<PlanSchedule> result =
+                planScheduleService.findAllByPlanDayIn(
+                        List.of(planDay)
+                );
+
+        assertEquals(
+                planSchedules,
+                result
+        );
+    }
+
+    @Test
+    @DisplayName("특정 PlanDay 목록에 속한 PlanSchedule 리스트 일괄 삭제")
+    void deleteAllByPlanDayIn() {
+
+        PlanDay planDay =
+                PlanDay.builder()
+                        .dayNumber(1)
+                        .build();
+
+        planScheduleService.deleteAllByPlanDayIn(
+                List.of(planDay)
+        );
+
+        verify(planScheduleRepository)
+                .deleteAllByPlanDayIn(List.of(planDay));
     }
 }
