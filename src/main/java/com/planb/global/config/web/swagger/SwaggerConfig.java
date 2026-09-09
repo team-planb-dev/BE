@@ -1,7 +1,6 @@
 package com.planb.global.config.web.swagger;
 
 import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -14,8 +13,6 @@ public class SwaggerConfig {
     @Bean
     public OpenAPI openAPI() {
         String jwt = "JWT";
-        SecurityRequirement securityRequirement = new SecurityRequirement().addList(jwt);
-        // 보안 스킴 적용 -> Swagger에서 API 호출 시 , JWT 토큰 필요
 
         // OpenAPI에서 사용할 재사용 가능한 구성 요소
         Components components = new Components()
@@ -28,27 +25,31 @@ public class SwaggerConfig {
 
         return new OpenAPI()
                 .components(components)
-                .info(apiInfo())
-                .addSecurityItem(securityRequirement);
+                .info(apiInfo());
     }
 
     private Info apiInfo() {
         return new Info()
-                .title("프로젝트 API")
+                .title("PlanB API")
                 .description("""
-                             * JWT Authentication 가이드
+                             ## 인증 안내
 
-                             - AccessToken: Authorization Header (Bearer Token)
-                             - RefreshToken: HttpOnly Cookie
+                             인증이 필요한 REST API에는 `JWT` 보안 표시가 있습니다.
+                             로그인 후 발급받은 Access Token을 다음 형식으로 전달해 주세요.
 
-                               예시:
-                               Authorization: Bearer {accessToken}
-                               Cookies={RefreshToken
-                               
-                             * 로그인/로그아웃 가이드 
-                             
-                             해당 서비스의 로그인/로그아웃은 Controller가 아닌 Security Filter에서 처리됩니다.
-                             자세한 요청/응답 형식은 Mock API 문서를 참고해주세요.
+                             `Authorization: Bearer {accessToken}`
+
+                             Refresh Token은 `refreshToken` 이름의 HttpOnly Cookie로 사용합니다.
+                             로그인과 로그아웃은 Security Filter가 처리합니다. 실제 요청 경로와 형식은
+                             `인증 API 문서`의 Mock API를 확인해 주세요.
+
+                             ## 공통 응답 및 오류 안내
+
+                             REST API는 일반적으로 `ApiResult` 형식으로 응답합니다.
+                             `success=false`이면 `error.errorCode`와 `error.message`를 확인해 주세요.
+                             만료되거나 잘못된 Access Token은 HTTP 401로 응답할 수 있습니다.
+                             접근 권한이 없으면 HTTP 403으로 응답합니다.
+                             일부 비즈니스 오류는 현재 HTTP 200과 `success=false`로 반환됩니다.
                              """)
                 .version("1.0.0");
     }

@@ -3,6 +3,7 @@ package com.planb.ai.dto.response;
 import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.RecommendationTag;
 import com.planb.domain.travel.entity.constant.ScheduleType;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -38,6 +39,10 @@ public record CreatePlanAiResponse(
             Set<RecommendationTag> tags,
             MedicationSchedule medication,
             RestaurantDetail restaurantDetail,
+            @Schema(
+                    description = "외부 조회 후보의 식별자입니다. 장소 일정에는 필요하며 복약과 이동 일정에는 null일 수 있습니다.",
+                    example = "tour:126508"
+            )
             String candidateId
     ) {
 

@@ -3,6 +3,7 @@ package com.planb.domain.travel.dto.response;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
 import com.planb.domain.travel.entity.Travel;
 import com.planb.domain.travel.entity.constant.RecommendationTag;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
 import java.util.Set;
@@ -13,9 +14,16 @@ import java.util.Set;
 // tags는 PlanService.aggregateTags()로 Java에서 집계한 값 그대로 사용
 // travelId와 saved는 저장 확정과 공유 가능 여부를 프런트가 판단하기 위한 값
 public record CreatePlanResponse(
+        @Schema(description = "생성된 여행 ID", example = "1")
         Long travelId,
+
+        @Schema(description = "사용자가 저장을 확정했는지 여부입니다. 생성 직후에는 false입니다.", example = "false")
         boolean saved,
+
+        @Schema(description = "전체 일정에 적용된 추천 근거 태그")
         Set<RecommendationTag> tags,
+
+        @Schema(description = "날짜별 생성 일정")
         List<CreatePlanAiResponse.PlanDayDetail> planDays
 ) {
 

@@ -5,23 +5,51 @@ import com.planb.domain.travel.entity.constant.DateType;
 import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.domain.travel.entity.constant.TravelStyle;
 import com.planb.domain.travel.entity.constant.TravelTheme;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
 import java.util.List;
 
-public record CreateTravelRequest(String travelName, // 여행이름
-                                  String locationDo, // 여행 위치 (도,특별시,광역시)
-                                  String locationSigungu, // 여행 위치 (
-                                  LocalDate startDate, // 시작일
-                                  DateType dateType, // 날짜 타입
-                                  Transportation transportation, // 교통수단
-                                  String decidedLocation, // 정해진 위치
-                                  List<PlannedPlaceDetail> plannedPlaces, // 사용자가 미리 선택한 장소
-                                  TravelStyle travelStyle, // 여행 스타일
-                                  TravelTheme travelTheme, // 여행 테마
-                                  List<String> localFoods, // 기입받은 지역 음식
-                                  List<String> recommendFoods, // AI 추천 지역음식
-                                  List<Long> healthIds){ // 이번 여행에 참여할 구성원
+public record CreateTravelRequest(
+        @Schema(description = "여행 이름", example = "경주 건강 여행")
+        String travelName,
+
+        @Schema(description = "지역 규격에 맞는 시·도 이름", example = "경상북도")
+        String locationDo,
+
+        @Schema(description = "여행할 시·군·구 이름", example = "경주시")
+        String locationSigungu,
+
+        @Schema(description = "여행 시작일", example = "2026-09-16")
+        LocalDate startDate,
+
+        @Schema(description = "여행 기간 코드", example = "ONE_NIGHT_TWO_DAYS")
+        DateType dateType,
+
+        @Schema(description = "주요 이동 수단", example = "TRANSIT")
+        Transportation transportation,
+
+        @Schema(description = "사용자가 정한 대표 여행 장소 또는 지역", example = "경주")
+        String decidedLocation,
+
+        @Schema(description = "사용자가 일정에 포함하기를 원하는 장소 목록")
+        List<PlannedPlaceDetail> plannedPlaces,
+
+        @Schema(description = "일정 구성에 적용할 여행 스타일", example = "MATCH_MEAL_TIME")
+        TravelStyle travelStyle,
+
+        @Schema(description = "선호 여행 테마", example = "HISTORY")
+        TravelTheme travelTheme,
+
+        @Schema(description = "사용자가 직접 선택한 지역 음식", example = "[\"황남빵\"]")
+        List<String> localFoods,
+
+        @Schema(description = "지역 음식 추천 API에서 선택한 음식", example = "[\"쌈밥\", \"연잎밥\"]")
+        List<String> recommendFoods,
+
+        @Schema(description = "이번 여행에 참여할 동행인 ID 목록입니다. 한 명 이상 필요합니다.", example = "[1, 2]")
+        List<Long> healthIds
+) {
 
     // healthIds가 필요 없는 AI 프롬프트 컨텍스트 재구성 등에서 사용하는 축약 생성자
     public CreateTravelRequest(String travelName,
@@ -77,9 +105,13 @@ public record CreateTravelRequest(String travelName, // 여행이름
         );
     }
 
-    public record PlannedPlaceDetail
-            (String locationName,
-             String location) {
+    public record PlannedPlaceDetail(
+            @Schema(description = "장소 이름", example = "불국사")
+            String locationName,
+
+            @Schema(description = "장소 주소", example = "경상북도 경주시 불국로 385")
+            String location
+    ) {
 
     }
 }

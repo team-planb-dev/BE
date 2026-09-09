@@ -1,5 +1,7 @@
 package com.planb.domain.travel.dto.response;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * 공유 링크 발급 결과.
  *
@@ -9,6 +11,10 @@ package com.planb.domain.travel.dto.response;
  */
 public record ShareTravelResponse(
 
+        @Schema(description = "공유한 여행 ID", example = "1")
         Long travelId,
-        String shareToken) {
+
+        @Schema(description = "공유 조회 경로에 사용할 토큰")
+        String shareToken
+) {
 }

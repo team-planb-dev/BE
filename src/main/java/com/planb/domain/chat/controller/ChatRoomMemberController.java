@@ -16,7 +16,7 @@ import com.planb.domain.chat.dto.response.DeleteChatUserResponse;
 import com.planb.domain.chat.facade.ChatFacade;
 import com.planb.global.config.exception.dto.ApiResult;
 
-@Tag(name="chatRoomMember", description = "채팅방 멤버 API")
+@Tag(name = "채팅방 멤버 API", description = "일반 채팅방의 사용자 참여와 퇴장을 관리합니다.")
 @RestController
 @RequestMapping("/api/v1/chat/member")
 @RequiredArgsConstructor
@@ -24,8 +24,14 @@ public class ChatRoomMemberController {
 
     private final ChatFacade chatFacade;
 
-    @Operation(summary = "채팅방 맴버 추가",
-            description = "채팅방에 새로운 User맴버를 추가합니다.")
+    @Operation(
+            summary = "채팅방 멤버 추가",
+            description = """
+                    로그인한 사용자를 일반 채팅방 멤버로 등록합니다.
+                    요청 본문의 `userId`는 로그인한 사용자의 ID와 같아야 합니다.
+                    여행 채팅방은 여행 소유자만 등록할 수 있으며 중복 등록은 거부됩니다.
+                    """
+    )
     @PostMapping("/add")
     @SecurityRequirement(name = "JWT")
     public ResponseEntity<ApiResult<AddChatUserResponse>> addMember
@@ -43,8 +49,14 @@ public class ChatRoomMemberController {
                                 )));
     }
 
-    @Operation(summary = "채팅방 맴버 삭제",
-            description = "채팅방에서 기존의 User맴버를 삭제합니다.")
+    @Operation(
+            summary = "채팅방 멤버 삭제",
+            description = """
+                    로그인한 사용자를 채팅방 멤버에서 삭제합니다.
+                    요청 본문의 `userId`는 로그인한 사용자의 ID와 같아야 하며,
+                    해당 채팅방에 등록된 멤버만 삭제할 수 있습니다.
+                    """
+    )
     @DeleteMapping("/delete")
     @SecurityRequirement(name = "JWT")
     public ResponseEntity<ApiResult<DeleteChatUserResponse>> deleteMember
