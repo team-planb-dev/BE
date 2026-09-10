@@ -7,7 +7,7 @@ spring:
   application:
     name: default-setting # 추후 변경
   profiles:
-    active: local
+    active: prod
     group:
       test: common-test
       local: common-local
