@@ -35,25 +35,33 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
         RedisConfig.class,
         UserTokenCacheRepository.class
 })
-@ActiveProfiles({"test", "common-test"})
+@ActiveProfiles("redis-url-test")
 class UserTokenCacheRepositoryTest {
+
+    private static final String REDIS_PASSWORD =
+            "test-password";
 
     @Container
     static GenericContainer<?> redisContainer =
             new GenericContainer<>(DockerImageName
                     .parse("redis:7.4-alpine"))
+                    .withCommand(
+                            "redis-server",
+                            "--requirepass",
+                            REDIS_PASSWORD
+                    )
                     .withExposedPorts(6379);
 
     @DynamicPropertySource
     static void registerRedisProperties(DynamicPropertyRegistry registry) {
         registry.add(
-                "spring.data.redis.host",
-                redisContainer::getHost
-        );
-
-        registry.add(
-                "spring.data.redis.port",
-                redisContainer::getFirstMappedPort
+                "spring.data.redis.url",
+                () -> "redis://default:%s@%s:%d"
+                        .formatted(
+                                REDIS_PASSWORD,
+                                redisContainer.getHost(),
+                                redisContainer.getFirstMappedPort()
+                        )
         );
     }
 
@@ -74,7 +82,7 @@ class UserTokenCacheRepositoryTest {
     }
 
     @Test
-    @DisplayName("토큰을 Redis에 저장한 후,key로 조회")
+    @DisplayName("인증 정보가 포함된 Redis URL 기반 토큰 저장 및 조회")
     void saveAndFindByKey() {
 
         // given
