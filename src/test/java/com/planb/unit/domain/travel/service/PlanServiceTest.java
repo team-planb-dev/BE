@@ -29,8 +29,8 @@ import com.planb.domain.travel.entity.constant.ScheduleType;
 import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.domain.travel.entity.constant.TravelStyle;
 import com.planb.domain.travel.entity.constant.TravelTheme;
-import com.planb.domain.travel.helper.PlanEditValidationHelper;
-import com.planb.domain.travel.helper.PlanPlaceHelper;
+import com.planb.domain.travel.helper.PlanEditValidator;
+import com.planb.domain.travel.helper.PlanPlaceResolver;
 import com.planb.domain.travel.repository.PlanRepository;
 import com.planb.domain.travel.service.PlanService;
 import com.planb.domain.travel.service.ScheduleNormalizer;
@@ -81,7 +81,7 @@ class PlanServiceTest {
     private NutritionEvaluationCollector nutritionEvaluationCollector;
 
     @Mock
-    private PlanPlaceHelper planPlaceHelper;
+    private PlanPlaceResolver planPlaceResolver;
 
     private PlanService planService;
 
@@ -90,9 +90,9 @@ class PlanServiceTest {
 
         planService = new PlanService(
                 planRepository,
-                planPlaceHelper,
-                new PlanEditValidationHelper(),
-                new ScheduleNormalizer(planPlaceHelper),
+                planPlaceResolver,
+                new PlanEditValidator(),
+                new ScheduleNormalizer(planPlaceResolver),
                 travelRecommendHandler,
                 kakaoMapServiceHandler,
                 nutritionEvaluationCollector
@@ -107,8 +107,8 @@ class PlanServiceTest {
                         invocation.<com.planb.domain.travel.entity.constant.Transportation>getArgument(2)));
 
         // 복약·태그 후처리 단위 테스트의 장소 검증 경계 대역
-        lenient().when(planPlaceHelper.validate(any(), any(), anySet(), anySet()))
-                .thenAnswer(invocation -> new PlanPlaceHelper.Validation(invocation.getArgument(0), null));
+        lenient().when(planPlaceResolver.validate(any(), any(), anySet(), anySet()))
+                .thenAnswer(invocation -> new PlanPlaceResolver.Validation(invocation.getArgument(0), null));
     }
 
     @Test

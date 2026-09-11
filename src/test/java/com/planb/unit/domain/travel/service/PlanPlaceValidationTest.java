@@ -10,7 +10,7 @@ import com.planb.ai.dto.response.CreatePlanAiResponse.PlanScheduleDetail;
 import com.planb.ai.dto.response.EditPlanAiResponse;
 import com.planb.ai.dto.response.RebuildPlanDayResponse;
 import com.planb.ai.dto.response.PlanEditScope;
-import com.planb.domain.travel.helper.PlanEditValidationHelper;
+import com.planb.domain.travel.helper.PlanEditValidator;
 import org.junit.jupiter.api.BeforeEach;
 import com.planb.ai.dto.response.KakaoRouteResult;
 import com.planb.ai.dto.response.PlaceWithRouteResult;
@@ -27,7 +27,7 @@ import com.planb.domain.health.entity.constant.WalkType;
 import com.planb.domain.travel.dto.request.CreateTravelRequest;
 import com.planb.domain.travel.dto.response.GetAiPlanResponse;
 import com.planb.domain.travel.entity.constant.*;
-import com.planb.domain.travel.helper.PlanPlaceHelper;
+import com.planb.domain.travel.helper.PlanPlaceResolver;
 import com.planb.domain.travel.repository.PlanRepository;
 import com.planb.domain.travel.service.PlanService;
 import com.planb.domain.travel.service.ScheduleNormalizer;
@@ -54,7 +54,7 @@ class PlanPlaceValidationTest {
 
     private final KakaoMapServiceHandler kakao = mock(KakaoMapServiceHandler.class);
 
-    private final PlanPlaceHelper helper = new PlanPlaceHelper(kakao);
+    private final PlanPlaceResolver helper = new PlanPlaceResolver(kakao);
 
     private final NutritionEvaluationCollector nutrition = new NutritionEvaluationCollector();
 
@@ -63,7 +63,7 @@ class PlanPlaceValidationTest {
     private final PlanService service = new PlanService(
             mock(PlanRepository.class),
             helper,
-            new PlanEditValidationHelper(),
+            new PlanEditValidator(),
             scheduleNormalizer,
             handler,
             kakao,
@@ -115,7 +115,7 @@ class PlanPlaceValidationTest {
 
         candidates.record(tour("2784321", "39", "개금밀면"));
 
-        PlanPlaceHelper.Validation result = helper
+        PlanPlaceResolver.Validation result = helper
                 .validate(
                         slot(
                                 "tour:2784321",
@@ -146,7 +146,7 @@ class PlanPlaceValidationTest {
 
         candidates.record(tour("1", "12", "경복궁"));
 
-        PlanPlaceHelper.Validation result = helper
+        PlanPlaceResolver.Validation result = helper
                 .validate(
                         slot(
                                 "tour:missing",
@@ -333,7 +333,7 @@ class PlanPlaceValidationTest {
         candidates
                 .record(tour("1", "12", "해운대"));
 
-        PlanPlaceHelper.Validation result =
+        PlanPlaceResolver.Validation result =
                 helper
                         .validate(
                                 slot(
@@ -2277,7 +2277,7 @@ class PlanPlaceValidationTest {
     @DisplayName("불명확한 대상 날짜 및 장소 표기만 바꾼 응답 거부")
     void scopeAndPlaceComparisonRejectAmbiguousDayAndCosmeticChanges() {
 
-        PlanEditValidationHelper validation = new PlanEditValidationHelper();
+        PlanEditValidator validation = new PlanEditValidator();
 
         assertThrows(
                 BaseException.class,

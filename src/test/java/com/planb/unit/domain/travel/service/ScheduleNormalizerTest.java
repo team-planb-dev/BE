@@ -10,7 +10,7 @@ import com.planb.domain.health.entity.constant.WalkType;
 import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.RecommendationTag;
 import com.planb.domain.travel.entity.constant.ScheduleType;
-import com.planb.domain.travel.helper.PlanPlaceHelper;
+import com.planb.domain.travel.helper.PlanPlaceResolver;
 import com.planb.domain.travel.service.ScheduleNormalizer;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import org.junit.jupiter.api.DisplayName;
@@ -27,7 +27,7 @@ import static org.mockito.Mockito.mock;
 class ScheduleNormalizerTest {
 
     private final ScheduleNormalizer scheduleNormalizer =
-            new ScheduleNormalizer(new PlanPlaceHelper(mock(KakaoMapServiceHandler.class)));
+            new ScheduleNormalizer(new PlanPlaceResolver(mock(KakaoMapServiceHandler.class)));
 
     private final LocalDate date = LocalDate.of(2026, 9, 10);
 
