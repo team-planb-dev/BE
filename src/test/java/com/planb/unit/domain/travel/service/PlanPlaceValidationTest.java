@@ -30,6 +30,7 @@ import com.planb.domain.travel.entity.constant.*;
 import com.planb.domain.travel.helper.PlanPlaceHelper;
 import com.planb.domain.travel.repository.PlanRepository;
 import com.planb.domain.travel.service.PlanService;
+import com.planb.domain.travel.service.ScheduleNormalizer;
 import com.planb.global.client.kakaoMapService.dto.response.KakaoPlaceSearchResponse;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
@@ -57,10 +58,13 @@ class PlanPlaceValidationTest {
 
     private final NutritionEvaluationCollector nutrition = new NutritionEvaluationCollector();
 
+    private final ScheduleNormalizer scheduleNormalizer = new ScheduleNormalizer(helper);
+
     private final PlanService service = new PlanService(
             mock(PlanRepository.class),
             helper,
             new PlanEditValidationHelper(),
+            scheduleNormalizer,
             handler,
             kakao,
             nutrition

@@ -29,9 +29,11 @@ import com.planb.domain.travel.entity.constant.ScheduleType;
 import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.domain.travel.entity.constant.TravelStyle;
 import com.planb.domain.travel.entity.constant.TravelTheme;
+import com.planb.domain.travel.helper.PlanEditValidationHelper;
 import com.planb.domain.travel.helper.PlanPlaceHelper;
 import com.planb.domain.travel.repository.PlanRepository;
 import com.planb.domain.travel.service.PlanService;
+import com.planb.domain.travel.service.ScheduleNormalizer;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.global.config.exception.domain.BaseException;
 import java.time.LocalDate;
@@ -44,7 +46,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
@@ -82,11 +83,20 @@ class PlanServiceTest {
     @Mock
     private PlanPlaceHelper planPlaceHelper;
 
-    @InjectMocks
     private PlanService planService;
 
     @BeforeEach
     void acceptAlreadyValidatedSlots() {
+
+        planService = new PlanService(
+                planRepository,
+                planPlaceHelper,
+                new PlanEditValidationHelper(),
+                new ScheduleNormalizer(planPlaceHelper),
+                travelRecommendHandler,
+                kakaoMapServiceHandler,
+                nutritionEvaluationCollector
+        );
 
         org.mockito.Mockito
                 .lenient()
