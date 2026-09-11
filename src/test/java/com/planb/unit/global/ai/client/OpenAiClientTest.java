@@ -6,6 +6,8 @@ import com.planb.ai.dto.response.PlaceWithRouteResult;
 import com.planb.ai.mcp.PlanTourismTool;
 import com.planb.ai.mcp.TourismTool;
 import com.planb.ai.prompt.AiPrompt;
+import com.planb.global.config.exception.AiFailure;
+import com.planb.global.config.exception.domain.AiOrchestrationException;
 
 import java.util.List;
 import java.util.function.Function;
@@ -24,6 +26,7 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -321,8 +324,8 @@ class OpenAiClientTest {
 
         Function<TestDto, List<String>> validation = dto -> List.of(reason);
 
-        IllegalStateException exception = assertThrows(
-                IllegalStateException.class,
+        AiOrchestrationException exception = assertThrows(
+                AiOrchestrationException.class,
                 () -> openAiClient.call(
                         prompt,
                         outputConverter,
@@ -330,7 +333,46 @@ class OpenAiClientTest {
                 )
         );
 
-        assertTrue(exception.getMessage().contains("동일한 무효 응답"));
+        assertEquals(
+                AiFailure.RESPONSE_REPEATED_INVALID,
+                exception.getFailure()
+        );
+
+        assertFalse(exception.getFailure().isRetryable());
+    }
+
+    @Test
+    @DisplayName("2회 연속 빈 응답의 재시도 가능 분류")
+    void call_withRepeatedEmptyResponse_classifiesAsRetryableFailure() {
+
+        when(
+                chatClient.prompt()
+                        .system(prompt.system())
+                        .user(anyString())
+                        .tools()
+                        .options(any())
+                        .call()
+                        .content()
+        ).thenReturn(
+                " ",
+                " "
+        );
+
+        Function<TestDto, List<String>> validation = dto -> List.of();
+
+        AiOrchestrationException exception = assertThrows(
+                AiOrchestrationException.class,
+                () -> openAiClient.call(
+                        prompt,
+                        outputConverter,
+                        validation
+                )
+        );
+
+        assertEquals(
+                AiFailure.RESPONSE_EMPTY,
+                exception.getFailure()
+        );
     }
 
     @Test
@@ -362,13 +404,18 @@ class OpenAiClientTest {
 
         Function<TestDto, List<String>> validation = dto -> List.of(reason);
 
-        IllegalStateException exception = assertThrows(
-                IllegalStateException.class,
+        AiOrchestrationException exception = assertThrows(
+                AiOrchestrationException.class,
                 () -> openAiClient.call(
                         prompt,
                         outputConverter,
                         validation
                 )
+        );
+
+        assertEquals(
+                AiFailure.RESPONSE_INVALID,
+                exception.getFailure()
         );
 
         assertTrue(exception.getMessage().contains(reason));
