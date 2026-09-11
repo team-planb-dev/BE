@@ -7,7 +7,7 @@ import com.planb.domain.health.entity.constant.MedicationBasis;
 import com.planb.domain.health.entity.constant.RelatedMeal;
 import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.ScheduleType;
-import com.planb.domain.travel.helper.PlanPlaceHelper;
+import com.planb.domain.travel.helper.PlanPlaceResolver;
 import com.planb.global.config.exception.PlanEditExceptionEnum;
 import com.planb.global.config.exception.domain.BaseException;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +43,7 @@ public class ScheduleNormalizer {
 
     private static final long MEAL_TIME_TOLERANCE_MINUTES = 30;
 
-    private final PlanPlaceHelper planPlaceHelper;
+    private final PlanPlaceResolver planPlaceResolver;
 
     public CreatePlanAiResponse normalizeScheduleTimes(
             CreatePlanAiResponse response,
@@ -79,7 +79,7 @@ public class ScheduleNormalizer {
 
         for (CreatePlanAiResponse.PlanScheduleDetail schedule : day.schedules()) {
             if (schedule == null || schedule.startTime() == null || schedule.stayMinutes() == null
-                    || schedule.stayMinutes() <= 0 || !planPlaceHelper.requiresPlace(schedule)) {
+                    || schedule.stayMinutes() <= 0 || !planPlaceResolver.requiresPlace(schedule)) {
                 schedules.add(schedule);
 
                 continue;
@@ -208,7 +208,7 @@ public class ScheduleNormalizer {
         for (int index = fromIndex; index < schedules.size(); index++) {
             CreatePlanAiResponse.PlanScheduleDetail schedule = schedules.get(index);
 
-            if (schedule != null && planPlaceHelper.requiresPlace(schedule)) {
+            if (schedule != null && planPlaceResolver.requiresPlace(schedule)) {
                 firstPlaceIndex = index;
                 break;
             }
@@ -260,7 +260,7 @@ public class ScheduleNormalizer {
         for (int index = firstPlaceIndex; index < schedules.size(); index++) {
             CreatePlanAiResponse.PlanScheduleDetail schedule = schedules.get(index);
 
-            if (schedule == null || !planPlaceHelper.requiresPlace(schedule)) {
+            if (schedule == null || !planPlaceResolver.requiresPlace(schedule)) {
                 continue;
             }
 

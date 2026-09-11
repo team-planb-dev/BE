@@ -20,7 +20,7 @@ import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
-public class PlanPlaceHelper {
+public class PlanPlaceResolver {
 
     private final KakaoMapServiceHandler kakaoMapServiceHandler;
 
