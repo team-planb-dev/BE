@@ -87,6 +87,40 @@ class PlanTourismToolTest {
     }
 
     @Test
+    @DisplayName("candidateId로 요청한 음식점 상세 조회의 tour 접두사 제거")
+    void stripsCandidateIdPrefixBeforeRestaurantDetailLookup() {
+
+        TourismTool tourismTool = mock(TourismTool.class);
+
+        PlanTourismTool tool = new PlanTourismTool(
+                tourismTool,
+                new PlaceCandidateContext()
+        );
+
+        tool.getRestaurantDetail("tour:126508");
+
+        verify(tourismTool)
+                .getRestaurantDetail("126508");
+    }
+
+    @Test
+    @DisplayName("접두사 없는 contentId의 음식점 상세 조회 그대로 전달")
+    void passesBareContentIdUnchanged() {
+
+        TourismTool tourismTool = mock(TourismTool.class);
+
+        PlanTourismTool tool = new PlanTourismTool(
+                tourismTool,
+                new PlaceCandidateContext()
+        );
+
+        tool.getRestaurantDetail("126508");
+
+        verify(tourismTool)
+                .getRestaurantDetail("126508");
+    }
+
+    @Test
     @DisplayName("같은 요청의 correction 재시도는 최초 관광지 후보를 재사용")
     void reusesInitialAttractionCandidatesDuringCorrectionRetry() {
 
