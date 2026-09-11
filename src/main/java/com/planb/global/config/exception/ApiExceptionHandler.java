@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import com.planb.global.config.exception.domain.AiOrchestrationException;
 import com.planb.global.config.exception.domain.BadRequestException;
 import com.planb.global.config.exception.domain.BaseDataException;
 import com.planb.global.config.exception.domain.BaseException;
@@ -155,6 +156,18 @@ public class ApiExceptionHandler {
         logErrorException(e, ENTITY_NOT_FOUND);
 
         return ApiResult.fail(ENTITY_NOT_FOUND);
+    }
+
+    /**
+     * AI 오케스트레이션 실패
+     * 도메인 사유는 로그에 남기고 클라이언트에는 대응 방법이 다른 3종만 노출
+     */
+    @ExceptionHandler(AiOrchestrationException.class)
+    public ApiResult<Void> aiOrchestrationExceptionHandler(AiOrchestrationException e) {
+
+        logErrorException(e, e.getFailure());
+
+        return ApiResult.fail(e.getFailure().getApiError());
     }
 
     /**

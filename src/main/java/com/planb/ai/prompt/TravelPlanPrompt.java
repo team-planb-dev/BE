@@ -3,7 +3,8 @@ package com.planb.ai.prompt;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.planb.ai.context.TravelPlanContext;
-import com.planb.global.config.exception.AiExceptionEnum;
+import com.planb.global.config.exception.AiFailure;
+import com.planb.global.config.exception.domain.AiOrchestrationException;
 import com.planb.global.config.exception.domain.BaseException;
 
 public record TravelPlanPrompt(
@@ -521,8 +522,9 @@ public record TravelPlanPrompt(
             return objectMapper
                     .writeValueAsString(travelPlanContext);
         } catch (JsonProcessingException e) {
-            throw new BaseException(
-                    AiExceptionEnum.AI_CONTEXT_SERIALIZATION_FAILED
+            throw new AiOrchestrationException(
+                    AiFailure.CONTEXT_SERIALIZATION_FAILED,
+                    e
             );
         }
     }

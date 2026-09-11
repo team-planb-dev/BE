@@ -2,6 +2,8 @@ package com.planb.ai.client;
 
 import com.planb.ai.mcp.PlanTourismTool;
 import com.planb.ai.prompt.AiPrompt;
+import com.planb.global.config.exception.AiFailure;
+import com.planb.global.config.exception.domain.AiOrchestrationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -65,6 +67,10 @@ public class OpenAiClient {
         try {
             return callEntity(prompt, responseType, tools);
         } catch (RuntimeException e) {
+            if (!retryable(e)) {
+                throw e;
+            }
+
             log.warn(
                     "AI 응답 파싱에 실패하여 1회 재시도합니다. 원인: {}",
                     e.toString()
@@ -147,6 +153,10 @@ public class OpenAiClient {
                     tools
             );
         } catch (RuntimeException e) {
+            if (!retryable(e)) {
+                throw e;
+            }
+
             log.warn(
                     "AI 구조화 응답 생성 또는 JSON 파싱 실패 (시도 1/2). 동일 요청으로 1회 재시도합니다. 원인: {}",
                     e.toString()
@@ -213,8 +223,9 @@ public class OpenAiClient {
 
         if (!failures.isEmpty()) {
             if (!invalidResponses.add(generated.content())) {
-                throw new IllegalStateException(
-                        "AI가 동일한 무효 응답을 반복했습니다: " + failures
+                throw new AiOrchestrationException(
+                        AiFailure.RESPONSE_REPEATED_INVALID,
+                        failures.toString()
                 );
             }
 
@@ -223,8 +234,9 @@ public class OpenAiClient {
                     failures
             );
 
-            throw new IllegalStateException(
-                    "AI 구조화 응답 검증 실패: " + failures
+            throw new AiOrchestrationException(
+                    AiFailure.RESPONSE_INVALID,
+                    failures.toString()
             );
         }
 
@@ -292,7 +304,8 @@ public class OpenAiClient {
 
         if (content == null || content.isBlank()) {
             log.warn("AI 구조화 응답이 비어 있습니다.");
-            throw new IllegalStateException("AI 구조화 응답이 비어 있습니다.");
+
+            throw new AiOrchestrationException(AiFailure.RESPONSE_EMPTY);
         }
 
         return content;
@@ -436,8 +449,16 @@ public class OpenAiClient {
                     content
             );
 
-            throw e;
+            throw new AiOrchestrationException(AiFailure.RESPONSE_UNPARSABLE, e);
         }
+    }
+
+    // 같은 요청을 다시 보냈을 때 결과가 달라질 수 있는 실패만 재시도한다.
+    // 분류되지 않은 실패는 AI 호출 자체의 실패로 보고 재시도 대상에 넣는다.
+    private boolean retryable(RuntimeException exception) {
+
+        return !(exception instanceof AiOrchestrationException failure)
+                || failure.getFailure().isRetryable();
     }
 
 
