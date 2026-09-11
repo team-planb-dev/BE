@@ -41,8 +41,11 @@ public class TravelController {
             summary = "여행지 음식 추천",
             description = """
                     여행 지역의 시·도와 시·군·구를 기준으로 지역 음식을 추천합니다.
-                    음식 정보 조회 과정에서 외부 API를 호출하므로 응답 시간이 길어지거나
-                    외부 서비스 오류가 `BASE.EXCEPTION.EXCEPTION_ISSUED`로 반환될 수 있습니다.
+                    음식 정보 조회 과정에서 외부 API를 호출하므로 응답 시간이 길어질 수 있습니다.
+                    AI 실패는 재시도로 해소될 수 있는 `AI.EXCEPTION.AI_TEMPORARILY_UNAVAILABLE`,
+                    AI가 조건을 만족하지 못한 `AI.EXCEPTION.AI_RESPONSE_REJECTED`,
+                    서버 내부 오류인 `AI.EXCEPTION.AI_INTERNAL_ERROR`로 구분됩니다.
+                    그 밖의 외부 API 오류는 `BASE.EXCEPTION.EXCEPTION_ISSUED`로 반환될 수 있습니다.
                     """
     )
     @SecurityRequirement(name = "JWT")
@@ -107,7 +110,10 @@ public class TravelController {
                     구성원 누락은 `TRAVEL.EXCEPTION.COMPANION_REQUIRED`, 소유권 불일치는
                     `TRAVEL.EXCEPTION.COMPANION_NOT_OWNED`, 장소 검증 실패는
                     `PLAN.EXCEPTION.INVALID_AI_PLACE`로 구분됩니다.
-                    AI 또는 외부 API 처리 실패는 `BASE.EXCEPTION.EXCEPTION_ISSUED`로 반환될 수 있습니다.
+                    AI 실패는 재시도로 해소될 수 있는 `AI.EXCEPTION.AI_TEMPORARILY_UNAVAILABLE`,
+                    AI가 조건을 만족하지 못한 `AI.EXCEPTION.AI_RESPONSE_REJECTED`,
+                    서버 내부 오류인 `AI.EXCEPTION.AI_INTERNAL_ERROR`로 구분됩니다.
+                    그 밖의 외부 API 오류는 `BASE.EXCEPTION.EXCEPTION_ISSUED`로 반환될 수 있습니다.
                     """
     )
     @SecurityRequirement(name = "JWT")
@@ -264,7 +270,10 @@ public class TravelController {
                     AI가 요청을 처리할 수 없다고 판단하면 `processable=false`인 정상 미리보기를 반환합니다.
                     수정 범위 또는 재구성 검증 실패는 `PLAN.EXCEPTION.EDIT_NOT_APPLIED`,
                     장소 검증 실패는 `PLAN.EXCEPTION.INVALID_AI_PLACE`로 구분됩니다.
-                    AI 또는 외부 API 처리 실패는 `BASE.EXCEPTION.EXCEPTION_ISSUED`로 반환될 수 있습니다.
+                    AI 실패는 재시도로 해소될 수 있는 `AI.EXCEPTION.AI_TEMPORARILY_UNAVAILABLE`,
+                    AI가 조건을 만족하지 못한 `AI.EXCEPTION.AI_RESPONSE_REJECTED`,
+                    서버 내부 오류인 `AI.EXCEPTION.AI_INTERNAL_ERROR`로 구분됩니다.
+                    그 밖의 외부 API 오류는 `BASE.EXCEPTION.EXCEPTION_ISSUED`로 반환될 수 있습니다.
                     """
     )
     @SecurityRequirement(name = "JWT")
@@ -290,6 +299,9 @@ public class TravelController {
                     미리보기로 생성해 임시 보관한 수정안을 실제 일정에 반영합니다.
                     미리보기를 먼저 생성해야 하며, 결과가 없거나 만료되었으면
                     `PLAN.EXCEPTION.EDIT_RESULT_NOT_FOUND`를 반환합니다.
+                    수정안은 조회와 동시에 소비되므로 같은 여행에 확정 요청이 동시에 들어와도
+                    일정은 한 번만 반영됩니다.
+                    확정 직후 같은 요청을 다시 보내면 일정을 다시 쓰지 않고 같은 응답을 돌려줍니다.
                     """
     )
     @SecurityRequirement(name = "JWT")
