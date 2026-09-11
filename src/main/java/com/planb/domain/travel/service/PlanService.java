@@ -28,6 +28,7 @@ import com.planb.domain.travel.entity.constant.NutritionEvaluationStatus;
 import com.planb.domain.travel.entity.constant.NutritionLevel;
 import com.planb.domain.travel.entity.constant.NutritionType;
 import com.planb.domain.travel.entity.constant.RecommendationTag;
+import com.planb.domain.travel.policy.TouristPlaceCountPolicy;
 import com.planb.domain.travel.entity.constant.ScheduleType;
 import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.domain.travel.helper.PlanPlaceHelper.Validation;
@@ -671,15 +672,11 @@ public class PlanService {
             List<TravelHealthContext> healthContexts
     ) {
 
-        if (healthContexts == null || healthContexts.isEmpty()) {
+        int expectedCount = TouristPlaceCountPolicy.expectedCount(healthContexts);
+
+        if (expectedCount == 0) {
             return;
         }
-
-        boolean hasMinimalTraveler = healthContexts
-                .stream()
-                .anyMatch(context -> context.walkType() == WalkType.MINIMAL);
-
-        int expectedCount = hasMinimalTraveler ? 2 : 3;
 
         for (CreatePlanAiResponse.PlanDayDetail day : response.planDays()) {
             long touristPlaceCount = day.schedules() == null

@@ -5,6 +5,7 @@ import com.planb.ai.client.OpenAiClient;
 import com.planb.ai.context.PlaceCandidateContext;
 import com.planb.ai.context.PlanEditContext;
 import com.planb.ai.context.TravelHealthContext;
+import com.planb.domain.travel.policy.TouristPlaceCountPolicy;
 import com.planb.ai.context.TravelPlanContext;
 import com.planb.ai.dto.request.MakeFoodRecommendCallRequest;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
@@ -107,22 +108,6 @@ public class TravelRecommendHandler {
         );
     }
 
-    // 날짜 또는 walkType 기준 하루 관광지 개수
-    private static int expectedTouristPlaceCount(
-            List<TravelHealthContext> healthContexts
-    ) {
-
-        if (healthContexts == null || healthContexts.isEmpty()) {
-            return 0;
-        }
-
-        boolean hasMinimalTraveler = healthContexts
-                .stream()
-                .anyMatch(context -> context.walkType() == WalkType.MINIMAL);
-
-        return hasMinimalTraveler ? 2 : 3;
-    }
-
     // 관광지 초과분은 AI 재시도 없이 뒤에서부터 제거한다. 사용자가 지정한 MUST_HAVE는 남긴다.
     // ponytail: 제거 이후 남은 슬롯의 travelMinutes는 이전 장소 기준 그대로 둔다.
     // 일정 시간이 앞당겨지지 않을 뿐 순서와 시간 검증은 통과하며, 정확한 이동시간이 필요해지면 재계산을 붙인다.
@@ -135,7 +120,7 @@ public class TravelRecommendHandler {
             return response;
         }
 
-        int expectedCount = expectedTouristPlaceCount(healthContexts);
+        int expectedCount = TouristPlaceCountPolicy.expectedCount(healthContexts);
 
         if (expectedCount <= 0) {
             return response;
@@ -361,7 +346,7 @@ public class TravelRecommendHandler {
             int expectedDayCount
     ) {
 
-        int expectedCount = expectedTouristPlaceCount(healthContexts);
+        int expectedCount = TouristPlaceCountPolicy.expectedCount(healthContexts);
 
         if (expectedCount <= 0) {
             return List.of();
