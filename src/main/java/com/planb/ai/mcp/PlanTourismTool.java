@@ -33,11 +33,6 @@ public class PlanTourismTool {
         attractionResponse = null;
     }
 
-    public void prepareRetry() {
-
-        candidates.clear();
-    }
-
     @Tool(description = """
             locationDo와 locationSigungu 범위의 실제 관광지 후보를 조회합니다.
             광역 지역은 시/도 전체, 도 지역은 시/군 범위로 Java가 조회합니다.

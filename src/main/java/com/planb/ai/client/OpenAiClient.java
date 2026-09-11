@@ -152,8 +152,6 @@ public class OpenAiClient {
                     e.toString()
             );
 
-            prepareRetry(tools);
-
             return callAndValidate(
                     prompt,
                     outputConverter,
@@ -179,8 +177,6 @@ public class OpenAiClient {
                 "AI 구조화 응답 검증 실패 (시도 1/2). correction 요청으로 1회 재시도합니다. 사유: {}",
                 failures
         );
-
-        prepareRetry(tools);
 
         return callAndValidate(
                 prompt,
@@ -356,15 +352,6 @@ public class OpenAiClient {
         for (Object tool : tools) {
             if (tool instanceof PlanTourismTool planTool) {
                 planTool.resetCandidates();
-            }
-        }
-    }
-
-    private void prepareRetry(Object... tools) {
-
-        for (Object tool : tools) {
-            if (tool instanceof PlanTourismTool planTool) {
-                planTool.prepareRetry();
             }
         }
     }
