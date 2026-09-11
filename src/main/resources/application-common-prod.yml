@@ -22,8 +22,7 @@ spring:
 
   data:
     redis:
-      host: ${REDIS_HOST}
-      port: ${REDIS_PORT}
+      url: ${REDIS_URL}
 
   ai:
     openai:
@@ -47,10 +46,6 @@ external:
   kor2-service:
     base-url: ${KOR2_SERVICE_URL}
     service-key: ${KOR2_SERVICE_KEY}
-
-  tar-rlte-tar-service:
-    base-url: ${TAR_RLTE_TAR_SERVICE_URL}
-    service-key: ${TAR_RLTE_TAR_SERVICE_KEY}
 
   kakao-map:
     base-url: ${KAKAO_MAP_API_BASE_URL}
