@@ -124,8 +124,6 @@ class PlanTourismToolTest {
                         "종로구"
                 );
 
-        tool.prepareRetry();
-
         List<PlaceCandidateContext.Candidate> correction = tool
                 .searchAttractionsByRegion(
                         "서울",

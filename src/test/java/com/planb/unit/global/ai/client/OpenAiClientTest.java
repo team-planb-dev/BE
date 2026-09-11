@@ -72,26 +72,25 @@ class OpenAiClientTest {
     }
 
     @Test
-    @DisplayName("JSON 파싱 재시도 시 실패한 호출의 검색 후보 제거")
-    void parsingRetryClearsCandidatesFromFailedAttempt() {
+    @DisplayName("JSON 파싱 재시도에도 실패한 호출의 검색 후보 유지")
+    void parsingRetryKeepsCandidatesFromFailedAttempt() {
         PlaceCandidateContext candidates = new PlaceCandidateContext();
         PlanTourismTool tool = new PlanTourismTool(mock(TourismTool.class), candidates);
         when(chatClient.prompt().system(prompt.system()).user(prompt.user()).tools(tool)
-                .options(any()).call().content()).thenAnswer(invocation -> {
-                    assertNull(candidates.find("kakao:first"));
-                    return "raw";
-                });
+                .options(any()).call().content()).thenReturn("raw");
         when(outputConverter.convert("raw")).thenAnswer(invocation -> {
             candidates.record(new PlaceWithRouteResult(true, "카페", "부산", "129.1", "35.1", null,
                     "kakao:first", "CE7", "카페"));
             throw new IllegalArgumentException("잘못된 JSON");
         }).thenAnswer(invocation -> {
-            assertNull(candidates.find("kakao:first"));
+            // 후보는 외부 검색으로 확인한 사실이므로 응답 파싱 실패와 무관하게 남는다
+            assertNotNull(candidates.find("kakao:first"));
             candidates.record(new PlaceWithRouteResult(true, "두 번째 카페", "부산", "129.1", "35.1", null,
                     "kakao:second", "CE7", "카페"));
             return new TestDto("ok");
         });
         assertEquals(new TestDto("ok"), openAiClient.call(prompt, outputConverter, tool));
+        assertNotNull(candidates.find("kakao:first"));
         assertNotNull(candidates.find("kakao:second"));
         verify(outputConverter, times(2)).convert("raw");
     }
@@ -152,6 +151,79 @@ class OpenAiClientTest {
                 RuntimeException.class,
                 () -> openAiClient.call(prompt, TestDto.class)
         );
+    }
+
+    @Test
+    @DisplayName("correction 재시도 시 이전 응답이 선택한 검색 후보 유지")
+    void correctionRetryKeepsCandidatesFromPreviousAttempt() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        PlanTourismTool tool = new PlanTourismTool(mock(TourismTool.class), candidates);
+
+        TestDto invalid = new TestDto(null);
+
+        TestDto valid = new TestDto("ok");
+
+        when(
+                chatClient.prompt()
+                        .system(prompt.system())
+                        .user(prompt.user())
+                        .tools(tool)
+                        .options(any())
+                        .call()
+                        .content()
+        ).thenReturn("raw-1");
+
+        when(
+                chatClient.prompt()
+                        .system(prompt.system())
+                        .user(contains("이전 실패 응답:\nraw-1"))
+                        .tools(tool)
+                        .options(any())
+                        .call()
+                        .content()
+        ).thenReturn("raw-2");
+
+        when(
+                outputConverter.convert("raw-1")
+        ).thenAnswer(invocation -> {
+            candidates.record(new PlaceWithRouteResult(
+                    true,
+                    "카페",
+                    "부산",
+                    "129.1",
+                    "35.1",
+                    null,
+                    "kakao:first",
+                    "CE7",
+                    "카페"));
+
+            return invalid;
+        });
+
+        // correction 응답은 이전 응답을 고친 것이므로 그 응답이 가리키던 후보가 남아 있어야 한다
+        when(
+                outputConverter.convert("raw-2")
+        ).thenAnswer(invocation -> {
+            assertNotNull(candidates.find("kakao:first"));
+
+            return valid;
+        });
+
+        Function<TestDto, List<String>> validation = value -> value.value() == null
+                ? List.of("value 누락")
+                : List.of();
+
+        TestDto result = openAiClient.call(
+                prompt,
+                outputConverter,
+                validation,
+                tool
+        );
+
+        assertEquals(valid, result);
+        assertNotNull(candidates.find("kakao:first"));
     }
 
     @Test
