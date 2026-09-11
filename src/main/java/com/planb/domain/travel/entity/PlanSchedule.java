@@ -78,7 +78,7 @@ public class PlanSchedule {
     @Column(name = "stay_minutes")
     private Integer stayMinutes;
 
-    // 다음 장소 까지의 이동 시간
+    // 직전 확정 장소에서 이 장소까지의 이동 시간 (inbound, 날짜 경계를 넘어 이어짐)
     @Column(name = "travel_minutes")
     private Integer travelMinutes;
 
