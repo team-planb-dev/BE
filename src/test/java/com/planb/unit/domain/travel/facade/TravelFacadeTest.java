@@ -1318,7 +1318,7 @@ class TravelFacadeTest {
 
         when(
                 planEditCacheService
-                        .findEditResult(travelId)
+                        .consumeEditResult(travelId)
         ).thenReturn(
                 Optional.of(editPlanAiResponse)
         );
@@ -1474,8 +1474,9 @@ class TravelFacadeTest {
 
         verify(
                 planEditCacheService
-        ).deleteEditResult(
-                travelId
+        ).markConfirmed(
+                travelId,
+                editPlanAiResponse
         );
     }
 
@@ -1516,7 +1517,14 @@ class TravelFacadeTest {
 
         when(
                 planEditCacheService
-                        .findEditResult(travelId)
+                        .consumeEditResult(travelId)
+        ).thenReturn(
+                Optional.empty()
+        );
+
+        when(
+                planEditCacheService
+                        .findConfirmedResult(travelId)
         ).thenReturn(
                 Optional.empty()
         );
@@ -1545,6 +1553,102 @@ class TravelFacadeTest {
                 never()
         ).getPlanByTravelId(
                 travelId
+        );
+    }
+
+    @Test
+    @DisplayName("확정 완료 후 재확정 요청의 동일 응답 반환과 재저장 생략")
+    void confirmEditPlanReturnsSameResponseWhenAlreadyConfirmed() {
+
+        // given
+        Long travelId = 1L;
+        Long userId = 1L;
+        String username = "testUser@example.com";
+
+        GetAiPlanRequest request =
+                new GetAiPlanRequest(
+                        travelId
+                );
+
+        UserAuthCache userAuthCache =
+                new UserAuthCache(
+                        userId,
+                        username,
+                        "ROLE_USER"
+                );
+
+        EditPlanAiResponse confirmedResult =
+                new EditPlanAiResponse(
+                        "부산 여행",
+                        List.of(),
+                        List.of("점심 식당을 변경했습니다"),
+                        true
+                );
+
+        Travel confirmedTravel =
+                Travel.builder()
+                        .travelName("확정된 여행")
+                        .build();
+
+        when(
+                userQueryService
+                        .findByUsernameInCache(username)
+        ).thenReturn(
+                userAuthCache
+        );
+
+        when(
+                travelQueryService
+                        .existsByIdAndUserId(travelId, userId)
+        ).thenReturn(
+                true
+        );
+
+        when(
+                planEditCacheService
+                        .consumeEditResult(travelId)
+        ).thenReturn(
+                Optional.empty()
+        );
+
+        when(
+                planEditCacheService
+                        .findConfirmedResult(travelId)
+        ).thenReturn(
+                Optional.of(confirmedResult)
+        );
+
+        when(
+                travelService
+                        .findTravelById(travelId)
+        ).thenReturn(
+                confirmedTravel
+        );
+
+        // when
+        CreatePlanResponse result =
+                travelFacade.confirmEditPlan(
+                        request,
+                        username
+                );
+
+        // then
+        assertThat(
+                result
+        ).isNotNull();
+
+        verify(
+                planQueryService,
+                never()
+        ).getPlanByTravelId(
+                travelId
+        );
+
+        verify(
+                planDayService,
+                never()
+        ).savePlanDay(
+                org.mockito.ArgumentMatchers.any()
         );
     }
 
@@ -1596,7 +1700,7 @@ class TravelFacadeTest {
         verify(
                 planEditCacheService,
                 never()
-        ).findEditResult(
+        ).consumeEditResult(
                 travelId
         );
     }

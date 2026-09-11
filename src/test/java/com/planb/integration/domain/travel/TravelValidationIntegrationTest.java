@@ -265,7 +265,12 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                 .isEqualTo(before);
         assertThat(cache.findEditResult(id))
                 .isEmpty();
-        assertError(postApi("/edit-plan/confirm", new GetAiPlanRequest(id)), "PLAN.EXCEPTION.EDIT_RESULT_NOT_FOUND");
+
+        // 같은 확정 요청이 다시 와도 일정을 다시 쓰지 않고 같은 응답을 돌려준다
+        JsonNode reconfirmed = success(postApi("/edit-plan/confirm", new GetAiPlanRequest(id)));
+        TravelPlanAssertions.assertSameDays(confirmed.path("planDays"), reconfirmed.path("planDays"));
+        assertThat(counts())
+                .isEqualTo(before);
         TravelPlanAssertions.assertSameDays(saved.path("planDays"), stored(id)
                 .path("planDays"));
     }
