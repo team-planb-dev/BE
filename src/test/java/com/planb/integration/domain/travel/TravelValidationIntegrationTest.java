@@ -79,6 +79,8 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     @Autowired
     private HealthRepository healths;
 
+    private static final String THREE_DAY_DECIDED_LOCATION = "여행 출발지";
+
     private final LocalDate date = LocalDate.of(2026, 10, 10);
     private LoginResult session;
     private CreateTravelRequest request;
@@ -681,6 +683,256 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                 request.localFoods(),
                 request.recommendFoods(),
                 healthIds);
+    }
+
+    @Test
+    @DisplayName("2일차만 재구성 시 첫 장소 이동시간의 전날 마지막 장소 기준 계산")
+    void rebuiltSecondDayAnchorsTravelMinutesToPreviousDayLastPlace() throws Exception {
+
+        // given
+        request = threeDayRequest();
+
+        when(handler.createPlanByAi(any(), any()))
+                .thenAnswer(invocation -> threeDayFixture(1, 2, 3, invocation.getArgument(1)));
+
+        success(postApi("/add-with-recommend", request));
+
+        Long id = travelId();
+
+        // 출발지에서 재는 경로와 전날 마지막 장소에서 재는 경로를 구분
+        when(kakao.getRoute(anyString(), anyString(), any()))
+                .thenAnswer(invocation -> Mono.just(new KakaoRouteResult(
+                        null,
+                        null,
+                        null,
+                        THREE_DAY_DECIDED_LOCATION.equals(invocation.<String>getArgument(0))
+                                ? 999
+                                : 30)));
+
+        when(handler.classifyEditScope(any()))
+                .thenReturn(new PlanEditScope(List.of(2)));
+
+        // 2일차만 다른 장소로 교체, 1·3일차는 그대로
+        when(handler.editPlanByAi(any(), any()))
+                .thenAnswer(invocation -> new EditPlanAiResponse(
+                        request.travelName(),
+                        threeDayFixture(1, 4, 3, invocation.getArgument(1))
+                                .planDays(),
+                        List.of("2일차 장소 변경"),
+                        true));
+
+        // when
+        JsonNode after = success(postApi(
+                "/edit-plan/preview",
+                new EditPlanRequest(id, "2일차만 다시 짜주세요.")))
+                .path("after");
+
+        // then
+        assertThat(after
+                .path("planDays")
+                .get(1)
+                .path("schedules")
+                .get(0)
+                .path("travelMinutes")
+                .asInt())
+                .isEqualTo(30);
+    }
+
+    @Test
+    @DisplayName("재구성 날짜 다음 보존 날짜 첫 장소의 이동시간 갱신")
+    void preservedDayAfterRebuildRecalculatesFirstTravelMinutes() throws Exception {
+
+        // given
+        request = threeDayRequest();
+
+        when(handler.createPlanByAi(any(), any()))
+                .thenAnswer(invocation -> threeDayFixture(1, 2, 3, invocation.getArgument(1)));
+
+        success(postApi("/add-with-recommend", request));
+
+        Long id = travelId();
+
+        // 재구성으로 2일차 마지막 장소가 바뀌면 3일차 첫 이동시간도 달라져야 한다
+        when(kakao.getRoute(anyString(), anyString(), any()))
+                .thenAnswer(invocation -> Mono.just(new KakaoRouteResult(
+                        null,
+                        null,
+                        null,
+                        "장소-45".equals(invocation.<String>getArgument(0))
+                                ? 77
+                                : 30)));
+
+        when(handler.classifyEditScope(any()))
+                .thenReturn(new PlanEditScope(List.of(2)));
+
+        when(handler.editPlanByAi(any(), any()))
+                .thenAnswer(invocation -> new EditPlanAiResponse(
+                        request.travelName(),
+                        threeDayFixture(1, 4, 3, invocation.getArgument(1))
+                                .planDays(),
+                        List.of("2일차 장소 변경"),
+                        true));
+
+        // when
+        JsonNode after = success(postApi(
+                "/edit-plan/preview",
+                new EditPlanRequest(id, "2일차만 다시 짜주세요.")))
+                .path("after");
+
+        // then
+        assertThat(after
+                .path("planDays")
+                .get(2)
+                .path("schedules")
+                .get(0)
+                .path("travelMinutes")
+                .asInt())
+                .isEqualTo(77);
+    }
+
+    @Test
+    @DisplayName("재구성 날짜 첫 장소가 그대로일 때도 이동시간의 전날 마지막 장소 기준 계산")
+    void unchangedFirstPlaceOfRebuiltDayStillAnchorsToPreviousDay() throws Exception {
+
+        // given
+        request = threeDayRequest();
+
+        when(handler.createPlanByAi(any(), any()))
+                .thenAnswer(invocation -> threeDayFixture(1, 2, 3, invocation.getArgument(1)));
+
+        success(postApi("/add-with-recommend", request));
+
+        Long id = travelId();
+
+        when(kakao.getRoute(anyString(), anyString(), any()))
+                .thenAnswer(invocation -> Mono.just(new KakaoRouteResult(
+                        null,
+                        null,
+                        null,
+                        THREE_DAY_DECIDED_LOCATION.equals(invocation.<String>getArgument(0))
+                                ? 999
+                                : 30)));
+
+        when(handler.classifyEditScope(any()))
+                .thenReturn(new PlanEditScope(List.of(2)));
+
+        // 2일차 첫 장소는 그대로 두고 나머지 슬롯만 교체
+        when(handler.editPlanByAi(any(), any()))
+                .thenAnswer(invocation -> {
+                    PlaceCandidateContext candidates = invocation.getArgument(1);
+
+                    return new EditPlanAiResponse(
+                            request.travelName(),
+                            List.of(
+                                    day(1, 1, candidates, false),
+                                    dayKeepingFirstPlace(2, 4, candidates),
+                                    day(3, 3, candidates, false)),
+                            List.of("2일차 장소 변경"),
+                            true);
+                });
+
+        // when
+        JsonNode after = success(postApi(
+                "/edit-plan/preview",
+                new EditPlanRequest(id, "2일차 나머지 장소만 바꿔주세요.")))
+                .path("after");
+
+        // then
+        assertThat(after
+                .path("planDays")
+                .get(1)
+                .path("schedules")
+                .get(0)
+                .path("travelMinutes")
+                .asInt())
+                .isEqualTo(30);
+    }
+
+    // 첫 슬롯은 기존 저장 장소와 동일하고 이동시간이 비어 있는 날짜
+    private CreatePlanAiResponse.PlanDayDetail dayKeepingFirstPlace(
+            int number,
+            int source,
+            PlaceCandidateContext candidates
+    ) {
+
+        return new CreatePlanAiResponse.PlanDayDetail(
+                number,
+                date.plusDays(number - 1),
+                List.of(
+                        unchangedFirstSlot(number * 10 + 1, candidates),
+                        slot(source * 10 + 2, CourseType.RESTAURANT, 12, candidates, false),
+                        slot(source * 10 + 3, CourseType.CAFE_REST, 14, candidates, false),
+                        slot(source * 10 + 4, CourseType.ATTRACTION, 16, candidates, false),
+                        slot(source * 10 + 5, CourseType.ATTRACTION, 18, candidates, false)));
+    }
+
+    // 검색 원본과 동일한 장소 정보를 그대로 담아 장소 변경으로 판정되지 않는 슬롯
+    private CreatePlanAiResponse.PlanScheduleDetail unchangedFirstSlot(
+            int id,
+            PlaceCandidateContext candidates
+    ) {
+
+        if (candidates != null) {
+            candidates.record(new PlaceWithRouteResult(
+                    true,
+                    "장소-" + id,
+                    "부산 " + id,
+                    "129." + id,
+                    "35.1",
+                    10,
+                    "kakao:" + id,
+                    "AT4",
+                    "관광"));
+        }
+
+        return new CreatePlanAiResponse.PlanScheduleDetail(
+                ScheduleType.ACTIVITY,
+                CourseType.ATTRACTION,
+                LocalTime.of(9, 0),
+                LocalTime.of(10, 0),
+                "장소-" + id,
+                "부산 " + id,
+                "129." + id,
+                "35.1",
+                null,
+                null,
+                60,
+                null,
+                Set.of(),
+                null,
+                null,
+                "kakao:" + id);
+    }
+
+    private CreateTravelRequest threeDayRequest() {
+
+        return new CreateTravelRequest(
+                "경계 검증 여행-" + UUID.randomUUID(),
+                "부산",
+                "해운대구",
+                date,
+                DateType.TWO_NIGHTS_THREE_DAYS,
+                Transportation.CAR,
+                THREE_DAY_DECIDED_LOCATION,
+                List.of(),
+                TravelStyle.MATCH_MEAL_TIME,
+                TravelTheme.TASTE,
+                List.of(),
+                List.of(),
+                List.of(selectedHealthId));
+    }
+
+    private CreatePlanAiResponse threeDayFixture(
+            int firstSource,
+            int secondSource,
+            int thirdSource,
+            PlaceCandidateContext candidates
+    ) {
+
+        return new CreatePlanAiResponse(List.of(
+                day(1, firstSource, candidates, false),
+                day(2, secondSource, candidates, false),
+                day(3, thirdSource, candidates, false)));
     }
 
     private void stubCreate(boolean optionalCoordinates) {

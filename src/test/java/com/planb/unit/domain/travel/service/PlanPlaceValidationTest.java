@@ -1774,7 +1774,7 @@ class PlanPlaceValidationTest {
     }
 
     @Test
-    @DisplayName("변경되지 않은 요청 날짜만 재구성하고 다른 날짜 보존")
+    @DisplayName("변경되지 않은 요청 날짜만 재구성과 직후 날짜 첫 이동시간 갱신")
     void rebuildsOnlyUnchangedRequestedDayThroughService() {
 
         PlanEditContext context = rebuildContext();
@@ -1900,11 +1900,12 @@ class PlanPlaceValidationTest {
                         anyString(),
                         any());
 
+        // 재구성 날짜 직후 보존 날짜의 첫 장소는 바뀐 마지막 장소 기준으로 다시 계산한다
         verify(
                 kakao,
-                never())
+                times(1))
                 .getRoute(
-                        anyString(),
+                        eq("동백섬"),
                         eq("이기대"),
                         any());
     }
