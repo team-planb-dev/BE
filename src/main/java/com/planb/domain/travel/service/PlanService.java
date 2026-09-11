@@ -131,7 +131,8 @@ public class PlanService {
             evaluations = nutritionEvaluationCollector.finish();
         }
 
-        return finishPlan(validated, context, evaluations);
+        return finishPlan(validated, context, evaluations,
+                RouteAnchor.from(context.createTravelRequest().decidedLocation()));
     }
 
     // AI 일정 수정 및 검증된 기존 슬롯 복구
@@ -173,10 +174,13 @@ public class PlanService {
             evaluations = nutritionEvaluationCollector.finish();
         }
 
-        CreatePlanAiResponse toFinish = !preserveOtherDays ? validated : new CreatePlanAiResponse(
-                validated.planDays().stream().filter(day -> rebuildDays.contains(day.dayNumber())).toList());
+        CreatePlanAiResponse toFinish = !preserveOtherDays ? validated
+                : new CreatePlanAiResponse(finishTargets(validated, rebuildDays));
 
-        CreatePlanAiResponse finished = finishPlan(toFinish, travelContext, evaluations);
+        CreatePlanAiResponse finished = finishPlan(toFinish, travelContext, evaluations,
+                preserveOtherDays
+                        ? rebuildAnchor(context, rebuildDays)
+                        : RouteAnchor.from(context.createTravelRequest().decidedLocation()));
 
         CreatePlanAiResponse result = !preserveOtherDays ? finished : new CreatePlanAiResponse(
                 validated.planDays().stream().map(day -> finished.planDays().stream()
@@ -256,7 +260,7 @@ public class PlanService {
                 try {
                     checked = validatePlaces(replacement, candidates,
                             new TravelPlanContext(context.createTravelRequest(), context.healthContexts()),
-                            context.currentPlan(), places, menus);
+                            context.currentPlan(), places, menus, rebuildAnchor(context, Set.of(dayNumber)));
                 } catch (BaseException exception) {
                     if (!PlanEditExceptionEnum.INVALID_AI_PLACE.getCode().equals(exception.getErrorCode())) {
                         throw exception;
@@ -350,17 +354,117 @@ public class PlanService {
 
         CreatePlanAiResponse checked = validatePlaces(new CreatePlanAiResponse(targets), candidates,
                 new TravelPlanContext(context.createTravelRequest(), context.healthContexts()),
-                context.currentPlan(), places, menus);
+                context.currentPlan(), places, menus, rebuildAnchor(context, rebuildDays));
 
         return new CreatePlanAiResponse(Stream.concat(preserved.stream(), checked.planDays().stream())
                 .sorted(Comparator.comparing(CreatePlanAiResponse.PlanDayDetail::dayNumber)).toList());
     }
 
+    // 재구성 구간과 그 직후 보존 날짜를 함께 계산 대상으로 삼는다
+    // 직후 날짜의 첫 이동시간은 재구성 전 장소를 기준으로 계산된 값이라 그대로 두면 어긋난다
+    private List<CreatePlanAiResponse.PlanDayDetail> finishTargets(
+            CreatePlanAiResponse validated,
+            Set<Integer> rebuildDays
+    ) {
+
+        int trailing = rebuildDays
+                .stream()
+                .max(Integer::compareTo)
+                .orElse(0) + 1;
+
+        return validated
+                .planDays()
+                .stream()
+                .filter(day -> rebuildDays.contains(day.dayNumber())
+                        || Objects.equals(day.dayNumber(), trailing))
+                .map(day -> rebuildDays.contains(day.dayNumber())
+                        ? day
+                        : clearFirstTravelMinutes(day))
+                .toList();
+    }
+
+    // 직후 보존 날짜의 첫 장소만 이동시간을 비워 재계산 대상으로 만든다
+    private CreatePlanAiResponse.PlanDayDetail clearFirstTravelMinutes(
+            CreatePlanAiResponse.PlanDayDetail day
+    ) {
+
+        boolean cleared = false;
+
+        List<CreatePlanAiResponse.PlanScheduleDetail> schedules = new ArrayList<>();
+
+        for (CreatePlanAiResponse.PlanScheduleDetail slot : day.schedules()) {
+            if (!cleared && planPlaceHelper.requiresPlace(slot)) {
+                cleared = true;
+
+                schedules.add(withTravelMinutes(slot, null));
+
+                continue;
+            }
+
+            schedules.add(slot);
+        }
+
+        return new CreatePlanAiResponse.PlanDayDetail(
+                day.dayNumber(),
+                day.date(),
+                schedules
+        );
+    }
+
+    private CreatePlanAiResponse.PlanScheduleDetail withTravelMinutes(
+            CreatePlanAiResponse.PlanScheduleDetail slot,
+            Integer travelMinutes
+    ) {
+
+        return new CreatePlanAiResponse.PlanScheduleDetail(
+                slot.scheduleType(),
+                slot.courseType(),
+                slot.startTime(),
+                slot.endTime(),
+                slot.locationName(),
+                slot.location(),
+                slot.longitude(),
+                slot.latitude(),
+                slot.imageUrl(),
+                slot.thumbNailImageUrl(),
+                slot.stayMinutes(),
+                travelMinutes,
+                slot.tags(),
+                slot.medication(),
+                slot.restaurantDetail(),
+                slot.candidateId()
+        );
+    }
+
+
+    // 재구성 구간에서 가장 빠른 날짜의 직전 날짜를 이동시간 기준점으로 삼는다
+    private RouteAnchor rebuildAnchor(
+            PlanEditContext context,
+            Set<Integer> rebuildDays
+    ) {
+
+        String decidedLocation = context.createTravelRequest().decidedLocation();
+
+        return rebuildDays
+                .stream()
+                .min(Integer::compareTo)
+                .map(first -> context.currentPlan()
+                        .planDays()
+                        .stream()
+                        .filter(day -> Objects.equals(day.dayNumber(), first - 1))
+                        .findFirst()
+                        .map(previousDay -> RouteAnchor.after(previousDay, decidedLocation))
+                        .orElseGet(() -> RouteAnchor.from(decidedLocation)))
+                .orElseGet(() -> RouteAnchor.from(decidedLocation));
+    }
+
+
     // 확정 장소와 시간에 따른 복약·태그·누락 이동시간 보정
     private CreatePlanAiResponse finishPlan(
             CreatePlanAiResponse response,
             TravelPlanContext context,
-            List<NutritionEvaluationCollector.FoodNutritionEvaluation> evaluations
+            List<NutritionEvaluationCollector.FoodNutritionEvaluation> evaluations,
+            RouteAnchor anchor
     ) {
 
         CreatePlanAiResponse medicationFixed = ensureMedicationSchedules(
@@ -370,7 +474,8 @@ public class PlanService {
 
         CreatePlanAiResponse travelFixed = fillMissingTravelMinutes(
                 medicationFixed,
-                context.createTravelRequest()
+                context.createTravelRequest(),
+                anchor
         );
 
         validateTravelMinutes(travelFixed);
@@ -425,17 +530,20 @@ public class PlanService {
             GetAiPlanResponse existing
     ) {
 
-        return validatePlaces(response, candidates, context, existing, new HashSet<>(), new HashSet<>());
+        return validatePlaces(response, candidates, context, existing, new HashSet<>(), new HashSet<>(),
+                RouteAnchor.from(context.createTravelRequest().decidedLocation()));
     }
 
     // 다른 날짜의 예약 장소·메뉴를 포함한 장소 검증
+    // anchor는 이 응답 앞에 잘려나간 구간의 마지막 장소로, 일정 전체를 검증할 때는 여행 출발지
     private CreatePlanAiResponse validatePlaces(
             CreatePlanAiResponse response,
             PlaceCandidateContext candidates,
             TravelPlanContext context,
             GetAiPlanResponse existing,
             Set<String> usedPlaces,
-            Set<String> usedMenus
+            Set<String> usedMenus,
+            RouteAnchor anchor
     ) {
 
         if (response == null || response.planDays() == null || response.planDays().isEmpty()) {
@@ -488,8 +596,8 @@ public class PlanService {
         int validationIndex = 0;
 
         List<CreatePlanAiResponse.PlanDayDetail> days = new ArrayList<>();
-        String previousLocation = context.createTravelRequest().decidedLocation();
-        CreatePlanAiResponse.PlanScheduleDetail previousPlace = null;
+        String previousLocation = anchor.previousLocation();
+        CreatePlanAiResponse.PlanScheduleDetail previousPlace = anchor.previousPlace();
 
         for (CreatePlanAiResponse.PlanDayDetail day : response.planDays()) {
             List<CreatePlanAiResponse.PlanScheduleDetail> schedules = new ArrayList<>();
@@ -1584,12 +1692,13 @@ public class PlanService {
     // 여행 전체 기간이 이어지는 동안 직전 확정 장소를 유지하며 누락된 이동시간을 채움
     private CreatePlanAiResponse fillMissingTravelMinutes(
             CreatePlanAiResponse response,
-            CreateTravelRequest createTravelRequest
+            CreateTravelRequest createTravelRequest,
+            RouteAnchor anchor
     ) {
 
         List<CreatePlanAiResponse.PlanDayDetail> filledPlanDays = new ArrayList<>();
-        String previousLocation = createTravelRequest.decidedLocation();
-        CreatePlanAiResponse.PlanScheduleDetail previousPlace = null;
+        String previousLocation = anchor.previousLocation();
+        CreatePlanAiResponse.PlanScheduleDetail previousPlace = anchor.previousPlace();
 
         for (CreatePlanAiResponse.PlanDayDetail planDay : response.planDays()) {
             List<CreatePlanAiResponse.PlanScheduleDetail> schedules = new ArrayList<>();
