@@ -8,12 +8,23 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class PlaceCandidateContext {
 
+    // TourAPI 후보의 candidateId 접두사. 외부 API는 접두사 없는 contentId만 받는다.
+    private static final String TOUR_PREFIX = "tour:";
+
     private final Map<String, Candidate> candidates = new ConcurrentHashMap<>();
+
+    // candidateId를 TourAPI가 받는 contentId로 되돌린다. 접두사가 없으면 그대로 둔다.
+    public static String contentId(String candidateId) {
+
+        return candidateId != null && candidateId.startsWith(TOUR_PREFIX)
+                ? candidateId.substring(TOUR_PREFIX.length())
+                : candidateId;
+    }
 
     public Candidate record(Kor2KeywordSearchResponse.Item item) {
 
         Candidate candidate = new Candidate(
-                "tour:" + item.contentid(),
+                TOUR_PREFIX + item.contentid(),
                 item.contenttypeid(),
                 null,
                 item.title(),

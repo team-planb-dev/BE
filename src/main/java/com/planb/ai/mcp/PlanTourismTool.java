@@ -193,10 +193,13 @@ public class PlanTourismTool {
                         destination.latitude());
     }
 
-    @Tool(description = "TourAPI 음식점 상세 조회. tour: 접두사를 제외한 contentId 사용")
+    // AI에게 노출되는 식별자는 candidateId뿐이므로 접두사 제거를 프롬프트에 맡기지 않고 여기서 처리한다.
+    @Tool(description = "TourAPI 음식점 상세 조회. 후보의 candidateId를 그대로 전달")
     public Kor2RestaurantIntroResponse getRestaurantDetail(String contentId) {
 
-        return tourismTool.getRestaurantDetail(contentId);
+        return tourismTool.getRestaurantDetail(
+                PlaceCandidateContext.contentId(contentId)
+        );
     }
 
     @Tool(description = "질환별 음식 영양 평가")
