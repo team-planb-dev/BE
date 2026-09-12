@@ -43,6 +43,9 @@ public class ScheduleNormalizer {
 
     private static final long MEAL_TIME_TOLERANCE_MINUTES = 30;
 
+    // 설정 식사시각에는 종료시각이 없다. 식후 복약의 기준을 만들기 위한 기본 식사 소요시간.
+    private static final long DEFAULT_MEAL_MINUTES = 60;
+
     private final PlanPlaceResolver planPlaceResolver;
 
     public CreatePlanAiResponse normalizeScheduleTimes(
@@ -399,7 +402,7 @@ public class ScheduleNormalizer {
                         .filter(schedule -> schedule.courseType() != CourseType.MEDICATION)
                         .toList();
 
-        Map<ScheduleType, LocalTime> dayMealTimes =
+        Map<ScheduleType, MealWindow> dayMealTimes =
                 dayMealTimes(nonMedicationSchedules);
 
         List<CreatePlanAiResponse.PlanScheduleDetail> medicationSchedules =
@@ -425,8 +428,8 @@ public class ScheduleNormalizer {
         );
     }
 
-    // 그 날짜 실제 식사 일정(BREAKFAST/LUNCH/DINNER)의 시작시간
-    private Map<ScheduleType, LocalTime> dayMealTimes(
+    // 그 날짜 실제 식사 일정(BREAKFAST/LUNCH/DINNER)의 시작·종료시간
+    private Map<ScheduleType, MealWindow> dayMealTimes(
             List<CreatePlanAiResponse.PlanScheduleDetail> nonMedicationSchedules
     ) {
 
@@ -436,16 +439,40 @@ public class ScheduleNormalizer {
                 .collect(
                         Collectors.toMap(
                                 CreatePlanAiResponse.PlanScheduleDetail::scheduleType,
-                                CreatePlanAiResponse.PlanScheduleDetail::startTime,
+                                ScheduleNormalizer::mealWindow,
                                 (first, second) -> first
                         )
                 );
     }
 
+    // 식사 슬롯의 시간대. 종료시각이 비어 있으면 기본 소요시간으로 채운다.
+    private static MealWindow mealWindow(CreatePlanAiResponse.PlanScheduleDetail schedule) {
+
+        return new MealWindow(
+                schedule.startTime(),
+                schedule.endTime() == null
+                        ? schedule.startTime().plusMinutes(DEFAULT_MEAL_MINUTES)
+                        : schedule.endTime()
+        );
+    }
+
+    /**
+     * 복약 기준이 되는 식사 시간대.
+     *
+     * 식전은 시작시각, 식후는 종료시각을 기준으로 삼아야 뜻이 맞는다.
+     * 두 값을 함께 들고 다녀야 mealTiming마다 올바른 쪽을 고를 수 있다.
+     */
+    private record MealWindow(
+
+            LocalTime start,
+            LocalTime end
+    ) {
+    }
+
     // 한 여행자의 모든 복약 정보를 그 날짜의 복약 슬롯 목록으로 변환
     private List<CreatePlanAiResponse.PlanScheduleDetail> medicationSchedulesFor(
             TravelHealthContext healthContext,
-            Map<ScheduleType, LocalTime> dayMealTimes
+            Map<ScheduleType, MealWindow> dayMealTimes
     ) {
 
         return healthContext.medicationInfos()
@@ -460,7 +487,7 @@ public class ScheduleNormalizer {
     private List<CreatePlanAiResponse.PlanScheduleDetail> medicationSchedulesFor(
             TravelHealthContext healthContext,
             TravelHealthContext.MedicationInfoContext medicationInfo,
-            Map<ScheduleType, LocalTime> dayMealTimes
+            Map<ScheduleType, MealWindow> dayMealTimes
     ) {
 
         boolean usesMealRules =
@@ -489,7 +516,7 @@ public class ScheduleNormalizer {
             TravelHealthContext healthContext,
             TravelHealthContext.MedicationInfoContext medicationInfo,
             TravelHealthContext.MedicationInfoContext.MealMedicationRuleContext rule,
-            Map<ScheduleType, LocalTime> dayMealTimes
+            Map<ScheduleType, MealWindow> dayMealTimes
     ) {
 
         if (rule.mealTiming() == MealTiming.REGARDLESS_OF_MEAL) {
@@ -500,15 +527,15 @@ public class ScheduleNormalizer {
             );
         }
 
-        LocalTime mealTime =
+        MealWindow mealWindow =
                 mealTimeFor(healthContext, rule.relatedMeal(), dayMealTimes);
 
-        if (mealTime == null) {
+        if (mealWindow == null) {
             throw invalidPlace("복약 기준 식사시간 누락");
         }
 
         LocalTime medicationTime =
-                applyMealTiming(mealTime, rule.mealTiming(), rule.intervalMinutes());
+                applyMealTiming(mealWindow, rule.mealTiming(), rule.intervalMinutes());
 
         String description =
                 medicationInfo.drugName()
@@ -527,10 +554,10 @@ public class ScheduleNormalizer {
 
     // relatedMeal에 해당하는 그 날짜의 실제 식사시간, 그 날 식사 일정이 없으면
     // 여행자가 등록한 기준 식사시간(mealInfo)으로 대체
-    private LocalTime mealTimeFor(
+    private MealWindow mealTimeFor(
             TravelHealthContext healthContext,
             RelatedMeal relatedMeal,
-            Map<ScheduleType, LocalTime> dayMealTimes
+            Map<ScheduleType, MealWindow> dayMealTimes
     ) {
 
         ScheduleType scheduleType =
@@ -556,12 +583,24 @@ public class ScheduleNormalizer {
                             case DINNER -> mealInfo.dinnerTime();
                         };
 
-        return dayMealTimes.getOrDefault(scheduleType, configuredMealTime);
+        MealWindow actual = dayMealTimes.get(scheduleType);
+
+        if (actual != null) {
+            return actual;
+        }
+
+        return configuredMealTime == null
+                ? null
+                : new MealWindow(
+                        configuredMealTime,
+                        configuredMealTime.plusMinutes(DEFAULT_MEAL_MINUTES)
+                );
     }
 
-    // mealTiming/intervalMinutes를 기준시간에 적용한 실제 복약시각
+    // mealTiming/intervalMinutes를 식사 시간대에 적용한 실제 복약시각.
+    // 식후는 식사가 끝난 뒤를 뜻하므로 종료시각을 기준으로 잡는다.
     private LocalTime applyMealTiming(
-            LocalTime mealTime,
+            MealWindow mealWindow,
             MealTiming mealTiming,
             Integer intervalMinutes
     ) {
@@ -569,11 +608,11 @@ public class ScheduleNormalizer {
         int minutes = intervalMinutes == null ? 0 : intervalMinutes;
 
         return switch (mealTiming) {
-            case BEFORE_MEAL -> mealTime.minusMinutes(minutes);
+            case BEFORE_MEAL -> mealWindow.start().minusMinutes(minutes);
 
-            case AFTER_MEAL -> mealTime.plusMinutes(minutes);
+            case AFTER_MEAL -> mealWindow.end().plusMinutes(minutes);
 
-            case DURING_MEAL, REGARDLESS_OF_MEAL -> mealTime;
+            case DURING_MEAL, REGARDLESS_OF_MEAL -> mealWindow.start();
         };
     }
 
