@@ -122,7 +122,11 @@ final class TravelPlanAssertions {
                         .asInt())
                         .isNotNegative();
 
-                if (candidateIdsExpected) {
+                // 보존 날짜 슬롯은 이번 호출의 검색 후보가 아니라 candidateId를 갖지 않는다.
+                // 값이 있다면 반드시 검색 원본 식별자 형식이어야 한다.
+                if (candidateIdsExpected && !slot.path("candidateId")
+                        .asText()
+                        .isEmpty()) {
                     assertThat(slot.path("candidateId")
                             .asText())
                             .matches("(tour|kakao):.+");

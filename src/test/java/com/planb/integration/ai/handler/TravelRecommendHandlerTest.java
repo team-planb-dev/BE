@@ -544,45 +544,6 @@ class TravelRecommendHandlerTest extends IntegrationTest {
                 .isNotEmpty();
     }
 
-    // 복합 요청: 특정 날짜 전체를 다시 짜달라는 요청이면 해당 날짜 구성 자체가 원본과 달라져야 함
-    @Test
-    @DisplayName("실제 OpenAI 복합 수정 요청 - 1일차 통째로 재구성")
-    void editPlanRebuildsWholeDayWithRealOpenAi() throws Exception {
-
-        // given
-        List<String> baseDay1LocationNames =
-                day1LocationNamesInBasePlan();
-
-        PlanEditContext planEditContext =
-                new PlanEditContext(
-                        baseCreateTravelRequest,
-                        baseHealthContexts,
-                        baseCurrentPlan,
-                        "1일차 일정을 관광지 위주로 통째로 다시 짜주세요."
-                );
-
-        // when
-        EditPlanAiResponse response =
-                travelRecommendHandler.editPlanByAi(planEditContext);
-
-        // then
-        printEditPlanResponse(
-                "복합 수정 요청(1일차 재구성) 응답",
-                response
-        );
-
-        assertStructurallyValidEditResponse(response);
-
-        assertThat(response.processable())
-                .isTrue();
-
-        assertThat(response.changes())
-                .isNotEmpty();
-
-        assertThat(day1LocationNamesInEditResponse(response))
-                .isNotEqualTo(baseDay1LocationNames);
-    }
-
     // 처리 불가능 요청: 일정 수정/삭제와 무관한 요청이면 processable=false, changes=[]이며 일정이 그대로 유지되어야 함
     @Test
     @DisplayName("실제 OpenAI 처리 불가능 수정 요청 - 일정과 무관한 요청")

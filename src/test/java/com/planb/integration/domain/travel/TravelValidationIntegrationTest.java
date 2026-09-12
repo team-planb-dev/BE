@@ -423,7 +423,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     }
 
     @Test
-    @DisplayName("수정 장소와 기존 장소 모두 검증 불가 시 오류 반환과 원본 DB 유지")
+    @DisplayName("수정 장소 검증 불가 시 검증된 원본 복원과 원본 DB 유지")
     void invalidEditDoesNotReplaceStoredPlan() throws Exception {
 
         success(postApi("/add-with-recommend", request));
@@ -440,15 +440,19 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         when(kakao.searchPlace(anyString()))
                 .thenReturn(Mono.empty());
 
-        assertError(
-                postApi("/edit-plan/preview", new EditPlanRequest(id, "장소를 변경해주세요.")),
-                "PLAN.EXCEPTION.INVALID_AI_PLACE");
-        verify(handler, times(2))
+        // 확정 저장된 일정은 외부 검색 없이 그대로 보존되므로 미리보기 자체는 실패하지 않는다.
+        // AI가 제시한 장소를 검증하지 못하면 슬롯마다 재선택을 시도하고, 그래도 안 되면 검증된 원본으로 되돌린다.
+        JsonNode after = success(postApi("/edit-plan/preview", new EditPlanRequest(id, "장소를 변경해주세요.")))
+                .path("after");
+
+        verify(handler, atLeastOnce())
                 .reselectPlace(any(), any());
+
+        TravelPlanAssertions.assertSameDays(original.path("planDays"), after.path("planDays"));
+
+        // 미리보기는 확정이 아니므로 저장된 일정은 그대로여야 한다
         assertThat(counts())
                 .isEqualTo(before);
-        assertThat(cache.findEditResult(id))
-                .isEmpty();
         TravelPlanAssertions.assertSameDays(original.path("planDays"), stored(id).path("planDays"));
     }
 

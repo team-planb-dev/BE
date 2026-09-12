@@ -22,12 +22,14 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 class ScheduleNormalizerTest {
 
     private final ScheduleNormalizer scheduleNormalizer =
-            new ScheduleNormalizer(new PlanPlaceResolver(mock(KakaoMapServiceHandler.class)));
+            new ScheduleNormalizer(new PlanPlaceResolver());
 
     private final LocalDate date = LocalDate.of(2026, 9, 10);
 
@@ -80,6 +82,58 @@ class ScheduleNormalizerTest {
                 );
 
         assertEquals(once, twice);
+    }
+
+    @Test
+    @DisplayName("이동시간으로 식사시간을 맞출 수 없는 일정의 예외 없는 최선 배치")
+    void keepsPlanWhenMealTimeCannotBeMet() {
+
+        // 아침(08:00~09:30) 직후 곧바로 점심이고, 이동시간 200분이라
+        // 점심을 허용 상한 12:30 이내로 넣을 수 없고 앞당길 장소도 없다.
+        CreatePlanAiResponse response = response(
+                restaurant("아침 식당", ScheduleType.BREAKFAST, LocalTime.of(8, 0), null),
+                restaurant("점심 식당", ScheduleType.LUNCH, LocalTime.of(12, 0), 200)
+        );
+
+        CreatePlanAiResponse normalized = scheduleNormalizer
+                .normalizeScheduleTimes(
+                        response,
+                        healthContexts()
+                );
+
+        CreatePlanAiResponse.PlanScheduleDetail breakfast = normalized
+                .planDays()
+                .getFirst()
+                .schedules()
+                .getFirst();
+
+        CreatePlanAiResponse.PlanScheduleDetail lunch = normalized
+                .planDays()
+                .getFirst()
+                .schedules()
+                .get(1);
+
+        // 이동시간을 무시한 시각으로 당기지 않는다
+        assertEquals(
+                breakfast.endTime().plusMinutes(200),
+                lunch.startTime()
+        );
+
+        // 맞추지 못한 식사는 MEAL_TIME_APPLIED 대상이 아니다
+        assertFalse(
+                scheduleNormalizer.mealTimeSatisfied(
+                        lunch,
+                        healthContexts()
+                )
+        );
+
+        // 맞춘 식사는 대상이다
+        assertTrue(
+                scheduleNormalizer.mealTimeSatisfied(
+                        breakfast,
+                        healthContexts()
+                )
+        );
     }
 
     private List<TravelHealthContext> healthContexts() {

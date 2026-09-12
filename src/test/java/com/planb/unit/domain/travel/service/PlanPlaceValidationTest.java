@@ -48,13 +48,14 @@ import java.util.ArrayList;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 class PlanPlaceValidationTest {
     private final TravelRecommendHandler handler = mock(TravelRecommendHandler.class);
 
     private final KakaoMapServiceHandler kakao = mock(KakaoMapServiceHandler.class);
 
-    private final PlanPlaceResolver helper = new PlanPlaceResolver(kakao);
+    private final PlanPlaceResolver helper = new PlanPlaceResolver();
 
     private final NutritionEvaluationCollector nutrition = new NutritionEvaluationCollector();
 
@@ -1697,7 +1698,7 @@ class PlanPlaceValidationTest {
                                 "첫날 수정"));
 
         assertEquals(
-                original,
+                preserved(original),
                 result
                         .planDays()
                         .get(0)
@@ -1721,8 +1722,8 @@ class PlanPlaceValidationTest {
     }
 
     @Test
-    @DisplayName("관광지로 잘못 분류된 기존 음식점 복원 거부")
-    void editCannotRestoreRestaurantMislabelledAsAttraction() {
+    @DisplayName("유형이 잘못 저장된 기존 슬롯의 편집 중단 없는 통과")
+    void editKeepsGoingWhenPersistedSlotTypeIsWrong() {
 
         PlanScheduleDetail invalid = slot(
                 "tour:2784321",
@@ -1754,27 +1755,28 @@ class PlanPlaceValidationTest {
                                     true);
                         });
 
-        when(
-                kakao
-                        .searchPlace("개금밀면"))
-                .thenReturn(
-                        Mono
-                                .just(
-                                        kakaoPlace(
-                                                "FD6",
-                                                "개금밀면")));
+        // 확정 저장된 슬롯은 외부 검색으로 다시 확인하지 않는다.
+        // 저장 시점 검증을 통과한 값이므로, 유형이 어긋나 있어도 편집을 실패시키지 않고 그대로 보존한다.
+        EditPlanAiResponse result = service
+                .makeEditPlanByAi(
+                        new PlanEditContext(
+                                travel
+                                        .createTravelRequest(),
+                                List
+                                        .of(),
+                                existing(invalid),
+                                "수정"));
 
-        assertThrows(
-                BaseException.class,
-                () -> service
-                        .makeEditPlanByAi(
-                                new PlanEditContext(
-                                        travel
-                                                .createTravelRequest(),
-                                        List
-                                                .of(),
-                                        existing(invalid),
-                                        "수정")));
+        assertEquals(
+                "개금밀면",
+                result
+                        .planDays()
+                        .getFirst()
+                        .schedules()
+                        .getFirst()
+                        .locationName());
+
+        verifyNoInteractions(kakao);
     }
 
     @Test
@@ -1880,10 +1882,10 @@ class PlanPlaceValidationTest {
                                 .plusDays(1),
                         List
                                 .of(
-                                        slot(
+                                        preserved(slot(
                                                 "kakao:old",
                                                 "이기대",
-                                                9))),
+                                                9)))),
                 result
                         .planDays()
                         .get(1));
@@ -2581,6 +2583,29 @@ class PlanPlaceValidationTest {
                                 "5",
                                 "12",
                                 "경포대"));
+    }
+
+    // 보존·복원된 슬롯은 이번 호출의 검색 후보가 아니므로 candidateId를 갖지 않는다
+    private PlanScheduleDetail preserved(PlanScheduleDetail original) {
+
+        return new PlanScheduleDetail(
+                original.scheduleType(),
+                original.courseType(),
+                original.startTime(),
+                original.endTime(),
+                original.locationName(),
+                original.location(),
+                original.longitude(),
+                original.latitude(),
+                original.imageUrl(),
+                original.thumbNailImageUrl(),
+                original.stayMinutes(),
+                original.travelMinutes(),
+                original.tags(),
+                original.medication(),
+                original.restaurantDetail(),
+                null
+        );
     }
 
     private PlanScheduleDetail slot(
