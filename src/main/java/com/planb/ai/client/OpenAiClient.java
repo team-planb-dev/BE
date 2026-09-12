@@ -76,7 +76,11 @@ public class OpenAiClient {
                     e.toString()
             );
 
-            return callEntity(prompt, responseType, tools);
+            try {
+                return callEntity(prompt, responseType, tools);
+            } catch (RuntimeException retryFailure) {
+                throw upstreamFailure(retryFailure);
+            }
         }
     }
 
@@ -162,15 +166,19 @@ public class OpenAiClient {
                     e.toString()
             );
 
-            return callAndValidate(
-                    prompt,
-                    outputConverter,
-                    validation,
-                    List.of(),
-                    null,
-                    invalidResponses,
-                    tools
-            );
+            try {
+                return callAndValidate(
+                        prompt,
+                        outputConverter,
+                        validation,
+                        List.of(),
+                        null,
+                        invalidResponses,
+                        tools
+                );
+            } catch (RuntimeException retryFailure) {
+                throw upstreamFailure(retryFailure);
+            }
         }
 
         List<String> failures = validationFailures(
@@ -451,6 +459,16 @@ public class OpenAiClient {
 
             throw new AiOrchestrationException(AiFailure.RESPONSE_UNPARSABLE, e);
         }
+    }
+
+    // 재시도까지 실패하면 AI 호출 자체의 실패로 분류한다.
+    // 분류되지 않은 SDK 예외(429, 타임아웃, 인증)를 그대로 올리면
+    // BASE.EXCEPTION.EXCEPTION_ISSUED로 나가 프론트가 원인을 구분할 수 없다.
+    private RuntimeException upstreamFailure(RuntimeException exception) {
+
+        return exception instanceof AiOrchestrationException
+                ? exception
+                : new AiOrchestrationException(AiFailure.UPSTREAM_CALL_FAILED, exception);
     }
 
     // 같은 요청을 다시 보냈을 때 결과가 달라질 수 있는 실패만 재시도한다.
