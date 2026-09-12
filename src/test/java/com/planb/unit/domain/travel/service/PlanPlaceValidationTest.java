@@ -92,6 +92,13 @@ class PlanPlaceValidationTest {
     @BeforeEach
     void ordinaryEditScope() {
 
+        // travelMinutes가 0인 슬롯도 재조회 대상이라 기본 응답이 필요하다.
+        // 조회 실패(이동시간 없음)를 기본으로 두어 각 테스트가 필요할 때만 값을 덮어쓴다.
+        org.mockito.Mockito
+                .lenient()
+                .when(kakao.getRoute(any(), any(), any()))
+                .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, null)));
+
         org.mockito.Mockito
                 .lenient()
                 .when(kakao.getRoute(any(), any(), any(), any(), any(), any(), any()))
@@ -412,7 +419,7 @@ class PlanPlaceValidationTest {
     }
 
     @Test
-    @DisplayName("카카오 원본 유형과 일정 유형 조합의 독립 검증")
+    @DisplayName("카카오 원본 유형의 독립 검증과 어긋난 조합의 교정")
     void kakaoExistenceAloneCannotCertifyAttractionAndCombinationIsIndependent() {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();
@@ -475,15 +482,17 @@ class PlanPlaceValidationTest {
                 "tour:1"
         );
 
-        assertTrue(
+        // 조합이 어긋나면 거부가 아니라 courseType 기준으로 교정한다.
+        assertEquals(
+                ScheduleType.ACTIVITY,
                 helper
                         .validate(
                                 wrongCombination,
                                 candidates,
                                 Set.of(),
                                 Set.of())
-                        .reason()
-                        .contains("조합"));
+                        .schedule()
+                        .scheduleType());
     }
 
     @Test
@@ -784,12 +793,12 @@ class PlanPlaceValidationTest {
                 .orElseThrow();
 
         assertEquals(
-                LocalTime.of(12, 30),
+                LocalTime.of(13, 30),
                 medication.startTime()
         );
 
         assertEquals(
-                LocalTime.of(12, 40),
+                LocalTime.of(13, 40),
                 medication.endTime()
         );
 
@@ -946,12 +955,12 @@ class PlanPlaceValidationTest {
                         .orElseThrow();
 
         assertEquals(
-                LocalTime.of(12, 30),
+                LocalTime.of(13, 30),
                 medication.startTime()
         );
 
         assertEquals(
-                LocalTime.of(12, 40),
+                LocalTime.of(13, 40),
                 medication.endTime()
         );
 
@@ -1133,7 +1142,7 @@ class PlanPlaceValidationTest {
         );
 
         assertEquals(
-                LocalTime.of(13, 0),
+                LocalTime.of(14, 0),
                 medication.startTime()
         );
     }
@@ -2097,12 +2106,12 @@ class PlanPlaceValidationTest {
                         .orElseThrow();
 
         assertEquals(
-                LocalTime.of(12, 30),
+                LocalTime.of(13, 30),
                 medication.startTime()
         );
 
         assertEquals(
-                LocalTime.of(12, 40),
+                LocalTime.of(13, 40),
                 medication.endTime()
         );
 
@@ -2588,10 +2597,102 @@ class PlanPlaceValidationTest {
 
     // 보존·복원된 슬롯은 이번 호출의 검색 후보가 아니므로 candidateId를 갖지 않는다
     @Test
+    @DisplayName("장소 슬롯의 어긋난 조합을 ACTIVITY로 교정")
+    void alignsNonMealScheduleTypeFromCourseType() {
+
+        // 장소 유형을 쥔 쪽은 courseType이다. scheduleType은 ACTIVITY 하나로
+        // ATTRACTION/CAFE_REST/PARK_WALK/MUST_HAVE를 구분할 수 없어 반대 방향은 불가능하다.
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(tour("1", "12", "경포대"));
+
+        PlanScheduleDetail original = slot("tour:1", "경포대", 9);
+
+        PlanScheduleDetail mismatched = new PlanScheduleDetail(
+                ScheduleType.BREAKFAST,
+                original.courseType(),
+                original.startTime(),
+                original.endTime(),
+                original.locationName(),
+                original.location(),
+                original.longitude(),
+                original.latitude(),
+                original.imageUrl(),
+                original.thumbNailImageUrl(),
+                original.stayMinutes(),
+                original.travelMinutes(),
+                original.tags(),
+                original.medication(),
+                original.restaurantDetail(),
+                original.candidateId());
+
+        PlanPlaceResolver.Validation validation = helper.validate(
+                mismatched,
+                candidates,
+                new HashSet<>(),
+                new HashSet<>());
+
+        assertTrue(validation.valid(), validation.reason());
+
+        assertEquals(
+                ScheduleType.ACTIVITY,
+                validation.schedule().scheduleType());
+    }
+
+    @Test
+    @DisplayName("음식점 슬롯의 어긋난 조합을 시각 기준 식사로 교정")
+    void alignsMealScheduleTypeFromStartTime() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(tour("2", "39", "개금밀면"));
+
+        PlanScheduleDetail mismatched = new PlanScheduleDetail(
+                ScheduleType.ACTIVITY,
+                CourseType.LOCAL_FOOD,
+                LocalTime.of(19, 0),
+                LocalTime.of(20, 0),
+                "개금밀면",
+                "부산",
+                "129.1",
+                "35.1",
+                "원본 사진",
+                "원본 썸네일",
+                60,
+                10,
+                Set.of(),
+                null,
+                new CreatePlanAiResponse.RestaurantDetail(
+                        "밀면",
+                        null,
+                        null,
+                        null,
+                        null,
+                        "부산",
+                        "129.1",
+                        "35.1",
+                        "원본 사진"),
+                "tour:2");
+
+        PlanPlaceResolver.Validation validation = helper.validate(
+                mismatched,
+                candidates,
+                new HashSet<>(),
+                new HashSet<>());
+
+        assertTrue(validation.valid(), validation.reason());
+
+        assertEquals(
+                ScheduleType.DINNER,
+                validation.schedule().scheduleType());
+    }
+
+    @Test
     @DisplayName("조합 검증 실패 사유의 실제 scheduleType/courseType 노출")
     void reportsActualTypesOnCombinationFailure() {
 
         // 사유에 값이 없으면 어떤 조합이 잘못됐는지 로그만으로 좁힐 수 없다.
+        // 시각이 없으면 식사 구분을 정할 근거가 없어 교정하지 못하고 사유만 남는다.
         PlanScheduleDetail original = slot(
                 "tour:1",
                 "개금밀면",
@@ -2600,7 +2701,7 @@ class PlanPlaceValidationTest {
         PlanScheduleDetail mismatched = new PlanScheduleDetail(
                 ScheduleType.ACTIVITY,
                 CourseType.LOCAL_FOOD,
-                original.startTime(),
+                null,
                 original.endTime(),
                 original.locationName(),
                 original.location(),

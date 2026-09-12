@@ -186,15 +186,15 @@ final class TravelPlanAssertions {
     ) {
 
         for (JsonNode day : plan.path("planDays")) {
-            LocalTime actualMealTime = null;
+            LocalTime actualMealEndTime = null;
 
             List<JsonNode> medications = new ArrayList<>();
 
             for (JsonNode slot : day.path("schedules")) {
-                if (actualMealTime == null
+                if (actualMealEndTime == null
                         && "LUNCH".equals(code(slot.path("scheduleType")))) {
-                    actualMealTime = LocalTime.parse(
-                            slot.path("startTime")
+                    actualMealEndTime = LocalTime.parse(
+                            slot.path("endTime")
                                     .asText()
                     );
                 }
@@ -204,10 +204,11 @@ final class TravelPlanAssertions {
                 }
             }
 
-            LocalTime expected = (actualMealTime == null
-                    ? fallbackLunchTime
-                    : actualMealTime)
-                    .plusMinutes(30);
+            // 식후 복약은 식사 종료 기준이다.
+            // 식사 슬롯이 없으면 설정 식사시각에 기본 소요시간(60분)을 더한 값이 기준이 된다.
+            LocalTime expected = actualMealEndTime == null
+                    ? fallbackLunchTime.plusMinutes(90)
+                    : actualMealEndTime.plusMinutes(30);
 
             assertThat(medications)
                     .anySatisfy(slot -> {

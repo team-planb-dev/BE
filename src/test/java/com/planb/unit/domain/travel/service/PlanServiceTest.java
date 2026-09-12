@@ -98,6 +98,13 @@ class PlanServiceTest {
                 nutritionEvaluationCollector
         );
 
+        // travelMinutes가 0인 슬롯도 재조회 대상이라 기본 응답이 필요하다.
+        // 조회 실패(이동시간 없음)를 기본으로 두어 각 테스트가 필요할 때만 값을 덮어쓴다.
+        org.mockito.Mockito
+                .lenient()
+                .when(kakaoMapServiceHandler.getRoute(any(), any(), any()))
+                .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, null)));
+
         org.mockito.Mockito
                 .lenient()
                 .when(kakaoMapServiceHandler.getRoute(any(), any(), any(), any(), any(), any(), any()))
@@ -284,6 +291,133 @@ class PlanServiceTest {
                         "129.16",
                         "35.16"
                 );
+    }
+
+    @Test
+    @DisplayName("다음 날짜 첫 장소 이동시간 0의 이전 날짜 마지막 장소 기준 재계산")
+    void makePlanByAiRecalculatesZeroTravelMinutesAcrossDays() {
+
+        // AI가 0을 채워 넣으면 날짜 경계 이동이 사라진 것처럼 보인다.
+        // travelMinutes는 직전 확정 장소로부터의 inbound이므로 0도 확인 대상이다.
+        TravelPlanContext context =
+                travelPlanContext();
+
+        CreatePlanAiResponse response =
+                new CreatePlanAiResponse(
+                        List.of(
+                                planDay(
+                                        1,
+                                        List.of(attraction("첫날 마지막 장소"))
+                                ),
+                                planDay(
+                                        2,
+                                        List.of(attraction("둘째날 첫 장소", 0))
+                                )
+                        )
+                );
+
+        when(
+                travelRecommendHandler
+                        .createPlanByAi(
+                                eq(context),
+                                any(PlaceCandidateContext.class)
+                        )
+        ).thenReturn(response);
+
+        when(
+                kakaoMapServiceHandler
+                        .getRoute(
+                                anyString(),
+                                anyString(),
+                                any(Transportation.class)
+                        )
+        ).thenReturn(
+                Mono.just(
+                        new KakaoRouteResult(
+                                null,
+                                null,
+                                null,
+                                25
+                        )
+                )
+        );
+
+        CreatePlanAiResponse result =
+                planService
+                        .makePlanByAi(context);
+
+        assertEquals(
+                25,
+                result
+                        .planDays()
+                        .get(1)
+                        .schedules()
+                        .getFirst()
+                        .travelMinutes()
+        );
+    }
+
+    @Test
+    @DisplayName("이동시간 재조회 실패 시 원래 값 유지")
+    void makePlanByAiKeepsOriginalTravelMinutesWhenRouteLookupFails() {
+
+        // 조회에 실패했다고 지금까지 통과하던 일정을 실패로 바꾸지 않는다.
+        TravelPlanContext context =
+                travelPlanContext();
+
+        CreatePlanAiResponse response =
+                new CreatePlanAiResponse(
+                        List.of(
+                                planDay(
+                                        1,
+                                        List.of(attraction("첫날 마지막 장소"))
+                                ),
+                                planDay(
+                                        2,
+                                        List.of(attraction("둘째날 첫 장소", 0))
+                                )
+                        )
+                );
+
+        when(
+                travelRecommendHandler
+                        .createPlanByAi(
+                                eq(context),
+                                any(PlaceCandidateContext.class)
+                        )
+        ).thenReturn(response);
+
+        when(
+                kakaoMapServiceHandler
+                        .getRoute(
+                                anyString(),
+                                anyString(),
+                                any(Transportation.class)
+                        )
+        ).thenReturn(
+                Mono.just(
+                        new KakaoRouteResult(
+                                null,
+                                null,
+                                null,
+                                null
+                        )
+                )
+        );
+
+        CreatePlanAiResponse result =
+                planService
+                        .makePlanByAi(context);
+
+        assertEquals(
+                0,
+                result
+                        .planDays()
+                        .get(1)
+                        .schedules()
+                        .getFirst()
+                        .travelMinutes()
+        );
     }
 
     @Test
@@ -699,8 +833,8 @@ class PlanServiceTest {
 
         CreatePlanAiResponse.PlanScheduleDetail medicationSchedule = medicationSchedules.get(0);
 
-        assertEquals(LocalTime.of(12, 30), medicationSchedule.startTime());
-        assertEquals(LocalTime.of(12, 40), medicationSchedule.endTime());
+        assertEquals(LocalTime.of(13, 30), medicationSchedule.startTime());
+        assertEquals(LocalTime.of(13, 40), medicationSchedule.endTime());
         assertTrue(medicationSchedule.medication().description().contains("점심"));
         assertTrue(medicationSchedule.medication().description().contains("식후"));
         assertTrue(medicationSchedule.medication().description().contains("30분"));
@@ -827,7 +961,7 @@ class PlanServiceTest {
         );
 
         assertEquals(
-                LocalTime.of(12, 30),
+                LocalTime.of(13, 30),
                 medications
                         .getFirst()
                         .startTime()

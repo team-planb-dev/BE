@@ -136,6 +136,57 @@ class ScheduleNormalizerTest {
         );
     }
 
+    @Test
+    @DisplayName("식후 복약의 식사 종료 기준 배치")
+    void placesAfterMealMedicationFromMealEnd() {
+
+        // 식사 슬롯이 90분이라 시작 기준으로 잡으면 "식후 30분"이 식사 도중이 된다.
+        CreatePlanAiResponse response = response(
+                restaurant("점심 식당", ScheduleType.LUNCH, LocalTime.of(12, 0), 0)
+        );
+
+        CreatePlanAiResponse result = scheduleNormalizer.ensureMedicationSchedules(
+                scheduleNormalizer.normalizeScheduleTimes(response, healthContexts()),
+                healthContexts());
+
+        assertEquals(
+                LocalTime.of(14, 0),
+                medicationStartTime(result)
+        );
+    }
+
+    @Test
+    @DisplayName("식사 슬롯 없는 날의 설정 식사시간 기준 식후 복약 배치")
+    void placesAfterMealMedicationWithoutMealSlot() {
+
+        // 설정 식사시각에는 종료시각이 없으므로 기본 식사 소요시간을 더해 "식후"를 지킨다.
+        CreatePlanAiResponse response = response(
+                attraction("해운대해수욕장", LocalTime.of(9, 0), 0)
+        );
+
+        CreatePlanAiResponse result = scheduleNormalizer.ensureMedicationSchedules(
+                scheduleNormalizer.normalizeScheduleTimes(response, healthContexts()),
+                healthContexts());
+
+        assertEquals(
+                LocalTime.of(13, 30),
+                medicationStartTime(result)
+        );
+    }
+
+    private LocalTime medicationStartTime(CreatePlanAiResponse response) {
+
+        return response
+                .planDays()
+                .getFirst()
+                .schedules()
+                .stream()
+                .filter(schedule -> schedule.courseType() == CourseType.MEDICATION)
+                .map(CreatePlanAiResponse.PlanScheduleDetail::startTime)
+                .findFirst()
+                .orElseThrow();
+    }
+
     private List<TravelHealthContext> healthContexts() {
 
         return List.of(

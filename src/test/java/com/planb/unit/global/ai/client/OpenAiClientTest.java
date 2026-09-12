@@ -133,10 +133,10 @@ class OpenAiClientTest {
     }
 
     @Test
-    @DisplayName("파싱 2회 연속 실패 시 예외 전파")
+    @DisplayName("파싱 2회 연속 실패의 AI 호출 실패 분류")
     void call_withClassResponseType_throwsWhenBothAttemptsFail() {
 
-
+        // 분류되지 않은 SDK 예외가 그대로 올라가면 BASE.EXCEPTION.EXCEPTION_ISSUED로 나간다.
         when(
                 chatClient.prompt()
                         .system(prompt.system())
@@ -150,9 +150,14 @@ class OpenAiClientTest {
                 new RuntimeException("2차 파싱 실패")
         );
 
-        assertThrows(
-                RuntimeException.class,
+        AiOrchestrationException exception = assertThrows(
+                AiOrchestrationException.class,
                 () -> openAiClient.call(prompt, TestDto.class)
+        );
+
+        assertEquals(
+                AiFailure.UPSTREAM_CALL_FAILED,
+                exception.getFailure()
         );
     }
 
