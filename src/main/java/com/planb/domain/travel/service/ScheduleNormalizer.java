@@ -92,10 +92,12 @@ public class ScheduleNormalizer {
                     healthContexts
             );
 
+            LocalTime earliestStart = null;
+
             if (previousPlaceEnd != null && schedule.travelMinutes() != null
                     && schedule.travelMinutes() >= 0) {
 
-                LocalTime earliestStart = previousPlaceEnd
+                earliestStart = previousPlaceEnd
                         .plusMinutes(schedule.travelMinutes());
 
                 if (mealTimeRange != null && earliestStart.isAfter(mealTimeRange.latest())) {
@@ -106,15 +108,17 @@ public class ScheduleNormalizer {
                             )
                             .toMinutes();
 
-                    shiftPreviousPlaces(
+                    // 앞 장소를 당겨 식사시간을 맞출 수 있을 때만 당긴다.
+                    // 당길 수 없어도 일정 생성을 실패시키지 않고 가능한 가장 이른 시각에 배치한다.
+                    if (tryShiftPreviousPlaces(
                             schedules,
                             movableStartIndex,
                             shiftMinutes,
                             previousMealEnd
-                    );
-
-                    previousPlaceEnd = previousPlaceEnd.minusMinutes(shiftMinutes);
-                    earliestStart = previousPlaceEnd.plusMinutes(schedule.travelMinutes());
+                    )) {
+                        previousPlaceEnd = previousPlaceEnd.minusMinutes(shiftMinutes);
+                        earliestStart = previousPlaceEnd.plusMinutes(schedule.travelMinutes());
+                    }
                 }
 
                 if (earliestStart.isAfter(startTime)) {
@@ -129,6 +133,11 @@ public class ScheduleNormalizer {
 
                 if (startTime.isAfter(mealTimeRange.latest())) {
                     startTime = mealTimeRange.latest();
+                }
+
+                // 식사시간 창으로 당긴 결과가 이동시간을 무시하게 되면 물리적 제약을 우선한다.
+                if (earliestStart != null && startTime.isBefore(earliestStart)) {
+                    startTime = earliestStart;
                 }
             }
 
@@ -196,7 +205,9 @@ public class ScheduleNormalizer {
         );
     }
 
-    private void shiftPreviousPlaces(
+    // 식사시간을 맞추기 위해 직전 식사 이후의 장소들을 앞당긴다.
+    // 앞당길 수 없는 조건이면 아무것도 바꾸지 않고 false를 돌려준다. 실패는 호출부가 판단한다.
+    private boolean tryShiftPreviousPlaces(
             List<CreatePlanAiResponse.PlanScheduleDetail> schedules,
             int fromIndex,
             long shiftMinutes,
@@ -215,26 +226,16 @@ public class ScheduleNormalizer {
         }
 
         if (firstPlaceIndex < 0) {
-            throw invalidPlace(
-                    "식사시간을 만족할 수 없는 일정: 앞당길 장소가 없음"
-                            + " / fromIndex=" + fromIndex
-                            + " / shiftMinutes=" + shiftMinutes
-                            + " / scheduleSize=" + schedules.size()
-            );
+            return false;
         }
 
         CreatePlanAiResponse.PlanScheduleDetail firstPlace = schedules.get(firstPlaceIndex);
 
         LocalTime shiftedFirstStart = firstPlace.startTime().minusMinutes(shiftMinutes);
 
+        // 자정을 넘겨 되감긴 경우
         if (shiftedFirstStart.isAfter(firstPlace.startTime())) {
-            throw invalidPlace(
-                    "식사시간을 만족할 수 없는 일정: 앞당긴 시작시간이 원래 시작시간보다 늦음"
-                            + " / locationName=" + firstPlace.locationName()
-                            + " / originalStart=" + firstPlace.startTime()
-                            + " / shiftedStart=" + shiftedFirstStart
-                            + " / shiftMinutes=" + shiftMinutes
-            );
+            return false;
         }
 
         if (previousMealEnd != null) {
@@ -245,15 +246,7 @@ public class ScheduleNormalizer {
             );
 
             if (shiftedFirstStart.isBefore(earliestStart)) {
-                throw invalidPlace(
-                        "식사시간을 만족할 수 없는 일정: 이전 식사 종료 시각 이전으로 앞당겨짐"
-                                + " / locationName=" + firstPlace.locationName()
-                                + " / shiftedStart=" + shiftedFirstStart
-                                + " / earliestStart=" + earliestStart
-                                + " / previousMealEnd=" + previousMealEnd
-                                + " / travelMinutes=" + firstPlace.travelMinutes()
-                                + " / shiftMinutes=" + shiftMinutes
-                );
+                return false;
             }
         }
 
@@ -273,6 +266,8 @@ public class ScheduleNormalizer {
                     )
             );
         }
+
+        return true;
     }
 
     private record MealTimeRange(
@@ -306,49 +301,49 @@ public class ScheduleNormalizer {
                 schedule.candidateId());
     }
 
-    public void validateMealTimes(
-            CreatePlanAiResponse response,
+    // 식사시간 판정 대상인 슬롯인지 여부. 카페 같은 비식사 슬롯은 판정하지 않는다.
+    public boolean mealSlot(CreatePlanAiResponse.PlanScheduleDetail schedule) {
+
+        return schedule != null && MEAL_SCHEDULE_TYPES.contains(schedule.scheduleType());
+    }
+
+    /**
+     * 이 슬롯이 여행자들이 설정한 식사시간을 실제로 만족하는지 판단한다.
+     *
+     * 식사시간을 설정한 여행자가 한 명도 없으면 "반영했다"고 말할 근거가 없으므로 false다.
+     * MEAL_TIME_APPLIED 태그는 이 결과로만 결정한다.
+     */
+    public boolean mealTimeSatisfied(
+            CreatePlanAiResponse.PlanScheduleDetail schedule,
             List<TravelHealthContext> healthContexts
     ) {
 
-        if (response == null || response.planDays() == null) {
-            return;
+        if (schedule == null || schedule.startTime() == null || healthContexts == null
+                || !MEAL_SCHEDULE_TYPES.contains(schedule.scheduleType())) {
+            return false;
         }
 
-        for (CreatePlanAiResponse.PlanDayDetail planDay : response.planDays()) {
-            if (planDay == null || planDay.schedules() == null) {
-                continue;
-            }
+        List<LocalTime> configuredTimes = healthContexts
+                .stream()
+                .map(TravelHealthContext::mealInfo)
+                .map(mealInfo -> configuredMealTime(mealInfo, schedule.scheduleType()))
+                .filter(Objects::nonNull)
+                .toList();
 
-            for (CreatePlanAiResponse.PlanScheduleDetail schedule : planDay.schedules()) {
-                if (schedule == null || schedule.startTime() == null
-                        || !MEAL_SCHEDULE_TYPES.contains(schedule.scheduleType())) {
-                    continue;
-                }
-
-                for (TravelHealthContext healthContext : healthContexts) {
-                    LocalTime configuredMealTime = configuredMealTime(
-                            healthContext.mealInfo(),
-                            schedule.scheduleType()
-                    );
-
-                    if (configuredMealTime == null) {
-                        continue;
-                    }
-
-                    long difference = Math.abs(
-                            Duration.between(
-                                    configuredMealTime,
-                                    schedule.startTime()
-                            ).toMinutes()
-                    );
-
-                    if (difference > MEAL_TIME_TOLERANCE_MINUTES) {
-                        throw invalidPlace("식사시간 허용 범위 초과");
-                    }
-                }
-            }
+        if (configuredTimes.isEmpty()) {
+            return false;
         }
+
+        return configuredTimes
+                .stream()
+                .allMatch(configuredTime -> Math.abs(
+                        Duration
+                                .between(
+                                        configuredTime,
+                                        schedule.startTime()
+                                )
+                                .toMinutes()
+                ) <= MEAL_TIME_TOLERANCE_MINUTES);
     }
 
     private LocalTime configuredMealTime(

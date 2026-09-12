@@ -315,13 +315,23 @@ public class PlanService {
             for (GetAiPlanResponse.PlanScheduleDetail slot : day.schedules()) {
                 Validation validation = planPlaceResolver.verifyExisting(slot, places, menus);
 
+                // 보존 날짜는 사용자가 이미 받아본 확정 일정이므로 검증 실패로 편집을 막지 않는다.
+                // 남은 실패 사유는 저장된 데이터의 구조 결함이라 로그로만 드러낸다.
                 if (!validation.valid()) {
-                    throw invalidPlace(validation.reason());
+                    log.warn(
+                            "[PRESERVED SLOT] dayNumber={}, locationName={}, reason={}",
+                            day.dayNumber(),
+                            slot.locationName(),
+                            validation.reason());
                 }
 
-                schedules.add(validation.schedule());
+                CreatePlanAiResponse.PlanScheduleDetail preservedSlot = validation.valid()
+                        ? validation.schedule()
+                        : planPlaceResolver.fromExisting(slot);
 
-                planPlaceResolver.track(validation.schedule(), places, menus);
+                schedules.add(preservedSlot);
+
+                planPlaceResolver.track(preservedSlot, places, menus);
             }
 
             preserved.add(new CreatePlanAiResponse.PlanDayDetail(day.dayNumber(), day.date(), schedules));
@@ -481,11 +491,6 @@ public class PlanService {
                 evaluations
         );
 
-        scheduleNormalizer.validateMealTimes(
-                tagged,
-                context.healthContexts()
-        );
-
         return tagged;
     }
 
@@ -551,11 +556,6 @@ public class PlanService {
         );
 
         response = scheduleNormalizer.ensureMedicationSchedules(
-                response,
-                context.healthContexts()
-        );
-
-        scheduleNormalizer.validateMealTimes(
                 response,
                 context.healthContexts()
         );
@@ -872,7 +872,8 @@ public class PlanService {
                                                                 schedule,
                                                                 createTravelRequest,
                                                                 resultsByFoodName,
-                                                                hasAllergyOrAvoidFood
+                                                                hasAllergyOrAvoidFood,
+                                                                travelPlanContext.healthContexts()
                                                         )
                                                 )
                                                 .toList()
@@ -888,7 +889,8 @@ public class PlanService {
             CreatePlanAiResponse.PlanScheduleDetail schedule,
             CreateTravelRequest createTravelRequest,
             Map<String, List<NutritionEvaluationResult>> resultsByFoodName,
-            boolean hasAllergyOrAvoidFood
+            boolean hasAllergyOrAvoidFood,
+            List<TravelHealthContext> healthContexts
     ) {
 
         Set<RecommendationTag> deterministicTags =
@@ -899,13 +901,22 @@ public class PlanService {
                         hasAllergyOrAvoidFood
                 );
 
-        if (deterministicTags.isEmpty()) {
-            return schedule;
-        }
-
         Set<RecommendationTag> mergedTags = new HashSet<>(nullSafeTags(schedule));
 
         mergedTags.addAll(deterministicTags);
+
+        // 식사시간 반영 여부는 확정된 시간표가 결정한다. AI가 붙인 태그는 근거로 삼지 않는다.
+        if (scheduleNormalizer.mealSlot(schedule)) {
+            if (scheduleNormalizer.mealTimeSatisfied(schedule, healthContexts)) {
+                mergedTags.add(RecommendationTag.MEAL_TIME_APPLIED);
+            } else {
+                mergedTags.remove(RecommendationTag.MEAL_TIME_APPLIED);
+            }
+        }
+
+        if (mergedTags.equals(nullSafeTags(schedule))) {
+            return schedule;
+        }
 
         return new CreatePlanAiResponse.PlanScheduleDetail(
                 schedule.scheduleType(),
