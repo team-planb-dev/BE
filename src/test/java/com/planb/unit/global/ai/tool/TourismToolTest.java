@@ -217,7 +217,9 @@ class TourismToolTest {
                                 "첨성대",
                                 Transportation.TRANSIT,
                                 List.of(),
-                                "CE7"
+                                "CE7",
+                                "129.2",
+                                "35.8"
                         )
         ).thenReturn(Mono.just(response));
 
@@ -228,7 +230,9 @@ class TourismToolTest {
                         "첨성대",
                         Transportation.TRANSIT,
                         List.of(),
-                        "CE7"
+                        "CE7",
+                        "129.2",
+                        "35.8"
                 )
         );
     }

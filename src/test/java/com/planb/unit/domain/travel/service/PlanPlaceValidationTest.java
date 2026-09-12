@@ -44,6 +44,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Set;
 import java.util.ArrayList;
+import java.util.HashSet;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -2586,6 +2587,47 @@ class PlanPlaceValidationTest {
     }
 
     // 보존·복원된 슬롯은 이번 호출의 검색 후보가 아니므로 candidateId를 갖지 않는다
+    @Test
+    @DisplayName("조합 검증 실패 사유의 실제 scheduleType/courseType 노출")
+    void reportsActualTypesOnCombinationFailure() {
+
+        // 사유에 값이 없으면 어떤 조합이 잘못됐는지 로그만으로 좁힐 수 없다.
+        PlanScheduleDetail original = slot(
+                "tour:1",
+                "개금밀면",
+                19);
+
+        PlanScheduleDetail mismatched = new PlanScheduleDetail(
+                ScheduleType.ACTIVITY,
+                CourseType.LOCAL_FOOD,
+                original.startTime(),
+                original.endTime(),
+                original.locationName(),
+                original.location(),
+                original.longitude(),
+                original.latitude(),
+                original.imageUrl(),
+                original.thumbNailImageUrl(),
+                original.stayMinutes(),
+                original.travelMinutes(),
+                original.tags(),
+                original.medication(),
+                original.restaurantDetail(),
+                original.candidateId());
+
+        PlanPlaceResolver.Validation validation = helper.validate(
+                mismatched,
+                new PlaceCandidateContext(),
+                new HashSet<>(),
+                new HashSet<>());
+
+        assertFalse(validation.valid());
+
+        assertTrue(validation.reason().contains("ACTIVITY"));
+
+        assertTrue(validation.reason().contains("LOCAL_FOOD"));
+    }
+
     private PlanScheduleDetail preserved(PlanScheduleDetail original) {
 
         return new PlanScheduleDetail(
