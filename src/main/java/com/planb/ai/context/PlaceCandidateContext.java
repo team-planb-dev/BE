@@ -3,6 +3,7 @@ package com.planb.ai.context;
 import com.planb.ai.dto.response.PlaceWithRouteResult;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,7 +13,9 @@ public class PlaceCandidateContext {
     // TourAPI 후보의 candidateId 접두사. 외부 API는 접두사 없는 contentId만 받는다.
     private static final String TOUR_PREFIX = "tour:";
 
-    // TourAPI 음식점 contentTypeId.
+    // TourAPI contentTypeId. 관광지와 음식점을 가른다.
+    private static final String ATTRACTION_CONTENT_TYPE_ID = "12";
+
     private static final String RESTAURANT_CONTENT_TYPE_ID = "39";
 
     private final Map<String, Candidate> candidates = new ConcurrentHashMap<>();
@@ -62,17 +65,33 @@ public class PlaceCandidateContext {
     }
 
     /**
-     * 이번 호출에서 음식점 후보를 한 곳이라도 찾았는지 확인한다.
+     * 이번 호출에서 검색한 관광지 후보.
      *
-     * 식사 슬롯을 요구할 수 있는지 가르는 근거다. 후보가 없으면 지역에 음식점이 없다는
-     * 뜻이므로 식사 슬롯을 요구하지 않는다.
+     * AI가 채우지 못한 관광 슬롯을 Java가 대신 채울 때 쓴다.
      */
-    public boolean hasRestaurantCandidate() {
+    public List<Candidate> attractionCandidates() {
+
+        return byType(ATTRACTION_CONTENT_TYPE_ID);
+    }
+
+    /**
+     * 이번 호출에서 검색한 음식점 후보.
+     *
+     * 비어 있으면 지역에 음식점이 없다는 뜻이므로 식사 슬롯을 만들지 않는다.
+     */
+    public List<Candidate> restaurantCandidates() {
+
+        return byType(RESTAURANT_CONTENT_TYPE_ID);
+    }
+
+    private List<Candidate> byType(String contentTypeId) {
 
         return candidates
                 .values()
                 .stream()
-                .anyMatch(candidate -> RESTAURANT_CONTENT_TYPE_ID.equals(candidate.type()));
+                .filter(candidate -> contentTypeId.equals(candidate.type()))
+                .sorted(Comparator.comparing(Candidate::candidateId))
+                .toList();
     }
 
     public Candidate find(String id) {

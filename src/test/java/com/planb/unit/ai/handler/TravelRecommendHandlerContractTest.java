@@ -3,6 +3,7 @@ package com.planb.unit.ai.handler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.planb.ai.client.OpenAiClient;
 import com.planb.ai.context.PlaceCandidateContext;
+import com.planb.ai.handler.MissingSlotFiller;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
 import com.planb.ai.context.PlanEditContext;
 import com.planb.ai.context.TravelHealthContext;
@@ -43,6 +44,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -140,12 +142,13 @@ class TravelRecommendHandlerContractTest {
     }
 
     @Test
-    @DisplayName("음식점 후보를 찾은 일정의 식사 슬롯 누락을 교정 사유로 전달")
-    void describesMissingMealSlotWhenRestaurantCandidateExists() {
+    @DisplayName("후보로 채울 수 있는 식사 슬롯 누락은 재시도 대상 아님")
+    void allowsMissingMealSlotWhenCandidatesCanFillIt() {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();
 
-        candidates.record(restaurantItem());
+        candidates.record(restaurantItem("134712", "토속촌삼계탕"));
+        candidates.record(restaurantItem("133854", "고려삼계탕"));
 
         handler()
                 .createPlanByAi(
@@ -153,30 +156,33 @@ class TravelRecommendHandlerContractTest {
                         candidates
                 );
 
-        List<String> failures = capturedPlanValidation()
-                .apply(planWithAttractions(3, 3));
-
-        assertTrue(failures.stream().anyMatch(failure ->
-                failure.contains("day1].schedules: LUNCH 식사 슬롯 필요")));
-        assertTrue(failures.stream().anyMatch(failure ->
-                failure.contains("day2].schedules: LUNCH 식사 슬롯 필요")));
-    }
-
-    @Test
-    @DisplayName("음식점 후보를 찾지 못한 일정의 식사 슬롯 미요구")
-    void allowsMissingMealSlotWhenNoRestaurantCandidate() {
-
-        handler()
-                .createPlanByAi(
-                        mealAppliedContext(),
-                        new PlaceCandidateContext()
-                );
-
+        // 이틀치 LUNCH가 비어 있지만 미사용 후보가 두 곳이라 Java가 채운다.
         assertTrue(
                 capturedPlanValidation()
                         .apply(planWithAttractions(3, 3))
                         .isEmpty()
         );
+    }
+
+    @Test
+    @DisplayName("후보로 채울 수 없는 식사 슬롯 누락만 교정 사유로 전달")
+    void describesMealSlotFailureBeyondCandidates() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(restaurantItem("134712", "토속촌삼계탕"));
+
+        handler()
+                .createPlanByAi(
+                        mealAppliedContext(),
+                        candidates
+                );
+
+        // 후보가 한 곳뿐이라 하루치만 채울 수 있고, 남은 하루는 AI가 실제 음식점으로 채워야 한다.
+        assertThat(capturedPlanValidation().apply(planWithAttractions(3, 3)))
+                .singleElement()
+                .satisfies(failure ->
+                        assertTrue(failure.contains("LUNCH 식사 슬롯 필요")));
     }
 
     private Function<CreatePlanAiResponse, List<String>> capturedPlanValidation() {
@@ -223,13 +229,16 @@ class TravelRecommendHandlerContractTest {
         );
     }
 
-    private Kor2KeywordSearchResponse.Item restaurantItem() {
+    private Kor2KeywordSearchResponse.Item restaurantItem(
+            String contentId,
+            String title
+    ) {
 
         return new Kor2KeywordSearchResponse.Item(
                 "서울특별시 종로구",
                 "",
                 null,
-                "134712",
+                contentId,
                 "39",
                 null,
                 null,
@@ -240,7 +249,7 @@ class TravelRecommendHandlerContractTest {
                 null,
                 null,
                 null,
-                "토속촌삼계탕",
+                title,
                 null,
                 null,
                 null,
@@ -424,7 +433,8 @@ class TravelRecommendHandlerContractTest {
                 createPlanAiResponseConverter,
                 editPlanAiResponseConverter,
                 rebuildPlanDayResponseConverter,
-                tourismTool);
+                tourismTool,
+                new MissingSlotFiller(tourismTool));
     }
 
     private PlaceWithRouteResult place(

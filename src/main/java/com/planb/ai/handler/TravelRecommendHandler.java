@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import lombok.RequiredArgsConstructor;
@@ -64,6 +65,8 @@ public class TravelRecommendHandler {
     Tool
      */
     private final TourismTool tourismTool;
+
+    private final MissingSlotFiller missingSlotFiller;
 
     // 지역에 따른 음식 추천 받기
     public MakeRecommendFoodResponse makeRecommendFood
@@ -105,9 +108,13 @@ public class TravelRecommendHandler {
                         new PlanTourismTool(tourismTool, candidates)
                 );
 
-        return trimExcessTouristPlaces(
-                response,
-                travelPlanContext.healthContexts()
+        return missingSlotFiller.fill(
+                trimExcessTouristPlaces(
+                        response,
+                        travelPlanContext.healthContexts()
+                ),
+                travelPlanContext.healthContexts(),
+                candidates
         );
     }
 
@@ -332,19 +339,26 @@ public class TravelRecommendHandler {
                 );
             }
 
+            // 부족분을 이번 호출의 검색 후보로 채울 수 있으면 재시도 대상이 아니다.
+            // Java가 확정 후보로 채우는 편이 재시도보다 확실하고, 재시도 예산을 아낀다.
             failures.addAll(
-                    touristPlaceCountFailures(
-                            response,
-                            context.healthContexts(),
-                            expectedDayCount
+                    unfillable(
+                            touristPlaceCountFailures(
+                                    response,
+                                    context.healthContexts(),
+                                    expectedDayCount
+                            ),
+                            unusedCandidateCount(response, candidates, true)
                     )
             );
 
             failures.addAll(
-                    mealSlotFailures(
-                            response,
-                            context.healthContexts(),
-                            candidates
+                    unfillable(
+                            mealSlotFailures(
+                                    response,
+                                    context.healthContexts()
+                            ),
+                            unusedCandidateCount(response, candidates, false)
                     )
             );
 
@@ -352,21 +366,11 @@ public class TravelRecommendHandler {
         };
     }
 
-    /**
-     * 등록 식사시각을 지나는데 식사 슬롯이 없는 날짜를 교정 사유로 만든다.
-     *
-     * 이번 호출에서 음식점 후보를 한 곳도 찾지 못했으면 요구하지 않는다.
-     * 지역에 음식점이 없어 만들 수 없는 일정을 요구하면 재시도가 끝없이 실패한다.
-     */
+    // 등록 식사시각을 지나는데 식사 슬롯이 없는 날짜를 교정 사유로 만든다.
     private static List<String> mealSlotFailures(
             CreatePlanAiResponse response,
-            List<TravelHealthContext> healthContexts,
-            PlaceCandidateContext candidates
+            List<TravelHealthContext> healthContexts
     ) {
-
-        if (candidates == null || !candidates.hasRestaurantCandidate()) {
-            return List.of();
-        }
 
         return response
                 .planDays()
@@ -377,6 +381,55 @@ public class TravelRecommendHandler {
                         .stream()
                         .map(mealType -> mealSlotFailure(day, mealType)))
                 .toList();
+    }
+
+    /**
+     * 후보로 채우고도 남는 부족분만 교정 사유로 남긴다.
+     *
+     * 사유 하나가 슬롯 하나에 대응하므로, 채울 수 있는 수만큼 앞에서 덜어낸다.
+     */
+    private static List<String> unfillable(
+            List<String> failures,
+            int fillableCount
+    ) {
+
+        return failures.size() <= fillableCount
+                ? List.of()
+                : failures.subList(fillableCount, failures.size());
+    }
+
+    // 응답에 아직 쓰이지 않은 후보 수. 이만큼은 Java가 채울 수 있다.
+    private static int unusedCandidateCount(
+            CreatePlanAiResponse response,
+            PlaceCandidateContext candidates,
+            boolean attraction
+    ) {
+
+        if (candidates == null) {
+            return 0;
+        }
+
+        Set<String> usedNames = response
+                .planDays()
+                .stream()
+                .filter(Objects::nonNull)
+                .filter(day -> day.schedules() != null)
+                .flatMap(day -> day.schedules().stream())
+                .filter(Objects::nonNull)
+                .map(CreatePlanAiResponse.PlanScheduleDetail::locationName)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        List<PlaceCandidateContext.Candidate> pool = attraction
+                ? candidates.attractionCandidates()
+                : candidates.restaurantCandidates();
+
+        return (int) pool
+                .stream()
+                .map(PlaceCandidateContext.Candidate::name)
+                .filter(Objects::nonNull)
+                .filter(name -> !usedNames.contains(name))
+                .count();
     }
 
     private static String mealSlotFailure(

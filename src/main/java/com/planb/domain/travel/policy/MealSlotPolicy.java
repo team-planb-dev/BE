@@ -88,6 +88,31 @@ public final class MealSlotPolicy {
         return missing;
     }
 
+    /**
+     * 동행인이 등록한 식사시각.
+     *
+     * 여러 명이 서로 다른 시각을 등록했으면 가장 이른 시각을 쓴다.
+     * 늦은 쪽에 맞추면 이른 사람의 식사가 등록 시각을 지나버린다.
+     */
+    public static LocalTime configuredMealTime(
+            ScheduleType mealType,
+            List<TravelHealthContext> healthContexts
+    ) {
+
+        if (healthContexts == null) {
+            return null;
+        }
+
+        return healthContexts
+                .stream()
+                .filter(Objects::nonNull)
+                .map(TravelHealthContext::mealInfo)
+                .map(mealInfo -> configuredMealTime(mealInfo, mealType))
+                .filter(Objects::nonNull)
+                .min(LocalTime::compareTo)
+                .orElse(null);
+    }
+
     // 등록 식사시각 중 하나라도 하루 시간대 안에 들어오면 그 식사를 요구한다.
     private static boolean spansConfiguredMeal(
             ScheduleType mealType,

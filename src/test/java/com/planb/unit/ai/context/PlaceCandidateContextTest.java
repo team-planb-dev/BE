@@ -3,13 +3,13 @@ package com.planb.unit.ai.context;
 import com.planb.ai.context.PlaceCandidateContext;
 import com.planb.ai.dto.response.PlaceWithRouteResult;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
+
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PlaceCandidateContextTest {
 
@@ -50,18 +50,29 @@ class PlaceCandidateContextTest {
     }
 
     @Test
-    @DisplayName("음식점 후보를 검색한 호출의 식사 슬롯 요구 근거")
-    void reportsRestaurantCandidate() {
+    @DisplayName("관광지 후보와 음식점 후보를 구분해 조회")
+    void separatesCandidatesByContentType() {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();
 
         candidates.record(tourItem("126508", "12", "경복궁"));
-
-        assertFalse(candidates.hasRestaurantCandidate());
-
         candidates.record(tourItem("134712", "39", "토속촌삼계탕"));
 
-        assertTrue(candidates.hasRestaurantCandidate());
+        assertEquals(
+                List.of("경복궁"),
+                candidates.attractionCandidates()
+                        .stream()
+                        .map(PlaceCandidateContext.Candidate::name)
+                        .toList()
+        );
+
+        assertEquals(
+                List.of("토속촌삼계탕"),
+                candidates.restaurantCandidates()
+                        .stream()
+                        .map(PlaceCandidateContext.Candidate::name)
+                        .toList()
+        );
     }
 
     private Kor2KeywordSearchResponse.Item tourItem(
