@@ -12,6 +12,9 @@ public class PlaceCandidateContext {
     // TourAPI 후보의 candidateId 접두사. 외부 API는 접두사 없는 contentId만 받는다.
     private static final String TOUR_PREFIX = "tour:";
 
+    // TourAPI 음식점 contentTypeId.
+    private static final String RESTAURANT_CONTENT_TYPE_ID = "39";
+
     private final Map<String, Candidate> candidates = new ConcurrentHashMap<>();
 
     // candidateId를 TourAPI가 받는 contentId로 되돌린다. 접두사가 없으면 그대로 둔다.
@@ -56,6 +59,20 @@ public class PlaceCandidateContext {
                     null
             ));
         }
+    }
+
+    /**
+     * 이번 호출에서 음식점 후보를 한 곳이라도 찾았는지 확인한다.
+     *
+     * 식사 슬롯을 요구할 수 있는지 가르는 근거다. 후보가 없으면 지역에 음식점이 없다는
+     * 뜻이므로 식사 슬롯을 요구하지 않는다.
+     */
+    public boolean hasRestaurantCandidate() {
+
+        return candidates
+                .values()
+                .stream()
+                .anyMatch(candidate -> RESTAURANT_CONTENT_TYPE_ID.equals(candidate.type()));
     }
 
     public Candidate find(String id) {

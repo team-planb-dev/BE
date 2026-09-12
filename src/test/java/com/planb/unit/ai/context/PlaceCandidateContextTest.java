@@ -2,11 +2,14 @@ package com.planb.unit.ai.context;
 
 import com.planb.ai.context.PlaceCandidateContext;
 import com.planb.ai.dto.response.PlaceWithRouteResult;
+import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PlaceCandidateContextTest {
 
@@ -44,6 +47,51 @@ class PlaceCandidateContextTest {
     void ignoresUnknownName() {
 
         assertNull(new PlaceCandidateContext().findByName("강릉역"));
+    }
+
+    @Test
+    @DisplayName("음식점 후보를 검색한 호출의 식사 슬롯 요구 근거")
+    void reportsRestaurantCandidate() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(tourItem("126508", "12", "경복궁"));
+
+        assertFalse(candidates.hasRestaurantCandidate());
+
+        candidates.record(tourItem("134712", "39", "토속촌삼계탕"));
+
+        assertTrue(candidates.hasRestaurantCandidate());
+    }
+
+    private Kor2KeywordSearchResponse.Item tourItem(
+            String contentId,
+            String contentTypeId,
+            String title
+    ) {
+
+        return new Kor2KeywordSearchResponse.Item(
+                "서울특별시 종로구",
+                "",
+                null,
+                contentId,
+                contentTypeId,
+                null,
+                null,
+                null,
+                null,
+                "126.9",
+                "37.5",
+                null,
+                null,
+                null,
+                title,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
     }
 
     private PlaceWithRouteResult candidate(

@@ -3,6 +3,7 @@ package com.planb.unit.ai.handler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.planb.ai.client.OpenAiClient;
 import com.planb.ai.context.PlaceCandidateContext;
+import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
 import com.planb.ai.context.PlanEditContext;
 import com.planb.ai.context.TravelHealthContext;
 import com.planb.ai.context.TravelPlanContext;
@@ -136,6 +137,116 @@ class TravelRecommendHandlerContractTest {
         assertTrue(combinedFailures.stream().anyMatch(failure ->
                 failure.contains("day2].schedules: 관광지 3개 필요 / 실제 0개")));
         assertTrue(validation.getValue().apply(planWithAttractions(3, 3)).isEmpty());
+    }
+
+    @Test
+    @DisplayName("음식점 후보를 찾은 일정의 식사 슬롯 누락을 교정 사유로 전달")
+    void describesMissingMealSlotWhenRestaurantCandidateExists() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(restaurantItem());
+
+        handler()
+                .createPlanByAi(
+                        mealAppliedContext(),
+                        candidates
+                );
+
+        List<String> failures = capturedPlanValidation()
+                .apply(planWithAttractions(3, 3));
+
+        assertTrue(failures.stream().anyMatch(failure ->
+                failure.contains("day1].schedules: LUNCH 식사 슬롯 필요")));
+        assertTrue(failures.stream().anyMatch(failure ->
+                failure.contains("day2].schedules: LUNCH 식사 슬롯 필요")));
+    }
+
+    @Test
+    @DisplayName("음식점 후보를 찾지 못한 일정의 식사 슬롯 미요구")
+    void allowsMissingMealSlotWhenNoRestaurantCandidate() {
+
+        handler()
+                .createPlanByAi(
+                        mealAppliedContext(),
+                        new PlaceCandidateContext()
+                );
+
+        assertTrue(
+                capturedPlanValidation()
+                        .apply(planWithAttractions(3, 3))
+                        .isEmpty()
+        );
+    }
+
+    private Function<CreatePlanAiResponse, List<String>> capturedPlanValidation() {
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Function<CreatePlanAiResponse, List<String>>> validation =
+                ArgumentCaptor.forClass(Function.class);
+
+        verify(openAiClient)
+                .call(
+                        any(AiPrompt.class),
+                        eq(createPlanAiResponseConverter),
+                        validation.capture(),
+                        any(Object[].class)
+                );
+
+        return validation.getValue();
+    }
+
+    private TravelPlanContext mealAppliedContext() {
+
+        TravelPlanContext context = travelPlanContext(WalkType.ACTIVE);
+
+        return new TravelPlanContext(
+                context.createTravelRequest(),
+                List.of(
+                        new TravelHealthContext(
+                                "여행자",
+                                DiseaseType.DIABETES,
+                                WalkType.ACTIVE,
+                                new TravelHealthContext.MealInfoContext(
+                                        true,
+                                        false,
+                                        null,
+                                        true,
+                                        LocalTime.of(12, 0),
+                                        false,
+                                        null
+                                ),
+                                List.of(),
+                                List.of()
+                        )
+                )
+        );
+    }
+
+    private Kor2KeywordSearchResponse.Item restaurantItem() {
+
+        return new Kor2KeywordSearchResponse.Item(
+                "서울특별시 종로구",
+                "",
+                null,
+                "134712",
+                "39",
+                null,
+                null,
+                null,
+                null,
+                "126.9",
+                "37.5",
+                null,
+                null,
+                null,
+                "토속촌삼계탕",
+                null,
+                null,
+                null,
+                null,
+                null
+        );
     }
 
     @Test
