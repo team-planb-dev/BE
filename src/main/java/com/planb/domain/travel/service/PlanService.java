@@ -1127,8 +1127,15 @@ public class PlanService {
         return new CreatePlanAiResponse(filledPlanDays);
     }
 
-    // travelMinutes가 비어 있고 실제 장소(locationName)와 직전 장소가 모두 있는 슬롯만 대상
-    // (MEDICATION처럼 장소가 없는 슬롯, 이미 값이 채워진 슬롯은 자동으로 제외됨)
+    /**
+     * 직전 확정 장소로부터의 이동시간을 확인한다.
+     *
+     * 값이 비어 있을 때뿐 아니라 0일 때도 확인한다.
+     * AI가 이동이 없다는 뜻으로 0을 채워 넣으면 날짜 경계를 넘는 이동까지 사라진 것처럼 보이고,
+     * 시간표 계산이 물리적 제약 없이 앞당겨지기 때문이다.
+     * 조회에 실패하면 원래 값을 그대로 둔다. 지금까지 통과하던 일정을 실패로 바꾸지 않기 위해서다.
+     * (MEDICATION처럼 장소가 없는 슬롯은 자동으로 제외됨)
+     */
     private CreatePlanAiResponse.PlanScheduleDetail fillScheduleTravelMinutes(
             CreatePlanAiResponse.PlanScheduleDetail schedule,
             String previousLocation,
@@ -1137,7 +1144,7 @@ public class PlanService {
     ) {
 
         boolean needsTravelMinutes =
-                schedule.travelMinutes() == null
+                (schedule.travelMinutes() == null || schedule.travelMinutes() == 0)
                         && !isBlank(schedule.locationName())
                         && !isBlank(previousLocation);
 
@@ -1149,6 +1156,10 @@ public class PlanService {
 
         Integer travelMinutes =
                 route == null ? null : route.travelMinutes();
+
+        if (travelMinutes == null) {
+            return schedule;
+        }
 
         return new CreatePlanAiResponse.PlanScheduleDetail(
                 schedule.scheduleType(),
