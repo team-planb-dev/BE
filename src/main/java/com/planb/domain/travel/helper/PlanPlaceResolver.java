@@ -26,8 +26,12 @@ public class PlanPlaceResolver {
             Set<String> usedMenus
     ) {
 
-        if (slot == null || slot.courseType() == null || !validCombination(slot)) {
-            return Validation.failure("허용되지 않은 scheduleType/courseType 조합");
+        if (slot == null) {
+            return Validation.failure("일정 슬롯 없음");
+        }
+
+        if (slot.courseType() == null || !validCombination(slot)) {
+            return Validation.failure(invalidCombinationReason(slot));
         }
 
         if (slot.startTime() == null || slot.endTime() == null || slot.stayMinutes() == null
@@ -161,7 +165,7 @@ public class PlanPlaceResolver {
         }
 
         if (!validCombination(slot)) {
-            return Validation.failure("허용되지 않은 scheduleType/courseType 조합");
+            return Validation.failure(invalidCombinationReason(slot));
         }
 
         if (blank(slot.locationName()) || blank(slot.location())) {
@@ -258,6 +262,15 @@ public class PlanPlaceResolver {
                 medication,
                 restaurant
         );
+    }
+
+    // 실패 사유에 실제 조합을 남긴다. 값이 없으면 어느 조합이 어긋났는지 로그만으로 좁힐 수 없다.
+    private String invalidCombinationReason(PlanScheduleDetail slot) {
+
+        return "허용되지 않은 scheduleType/courseType 조합: "
+                + slot.scheduleType()
+                + "/"
+                + slot.courseType();
     }
 
     private boolean validCombination(PlanScheduleDetail slot) {
