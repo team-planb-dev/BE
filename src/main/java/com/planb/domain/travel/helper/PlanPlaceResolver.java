@@ -8,21 +8,16 @@ import com.planb.ai.dto.response.CreatePlanAiResponse.MedicationSchedule;
 import com.planb.domain.travel.dto.response.GetAiPlanResponse;
 import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.ScheduleType;
-import com.planb.global.client.kakaoMapService.dto.response.KakaoPlaceSearchResponse;
-import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
 public class PlanPlaceResolver {
-
-    private final KakaoMapServiceHandler kakaoMapServiceHandler;
 
     public Validation validate(
             PlanScheduleDetail slot,
@@ -134,7 +129,9 @@ public class PlanPlaceResolver {
             return;
         }
 
-        places.add(slot.candidateId());
+        if (slot.candidateId() != null) {
+            places.add(slot.candidateId());
+        }
 
         places.add(slot.locationName().strip());
 
@@ -143,6 +140,14 @@ public class PlanPlaceResolver {
         }
     }
 
+    /**
+     * 이미 확정해 저장한 슬롯을 편집 대상 밖에서 다시 사용할 수 있는지 확인한다.
+     *
+     * 장소 자체는 생성 시점에 검증해 저장한 것이므로 외부 검색으로 다시 확인하지 않는다.
+     * 저장 출처(TourAPI)와 재검증 출처(카카오)의 장소명 표기와 좌표가 서로 달라
+     * 같은 장소를 다른 장소로 판정하던 문제를 없애기 위해서다.
+     * 여기서는 저장된 값만으로 판단할 수 있는 구조 정합과 중복 사용만 본다.
+     */
     public Validation verifyExisting(
             GetAiPlanResponse.PlanScheduleDetail old,
             Set<String> places,
@@ -155,51 +160,39 @@ public class PlanPlaceResolver {
             return validate(slot, new PlaceCandidateContext(), places, menus);
         }
 
+        if (!validCombination(slot)) {
+            return Validation.failure("허용되지 않은 scheduleType/courseType 조합");
+        }
+
         if (blank(slot.locationName()) || blank(slot.location())) {
             return Validation.failure("기존 장소명 누락");
         }
 
-        KakaoPlaceSearchResponse response = kakaoMapServiceHandler.searchPlace(slot.locationName()).block();
+        if (slot.startTime() == null || slot.endTime() == null || slot.stayMinutes() == null
+                || slot.stayMinutes() <= 0 || !slot.endTime().isAfter(slot.startTime())) {
+            return Validation.failure("유효하지 않은 일정 시간");
+        }
 
-        List<KakaoPlaceSearchResponse.Document> documents = response == null || response.documents() == null
-                ? List.of() : response.documents();
+        if (Duration
+                .between(
+                        slot.startTime(),
+                        slot.endTime())
+                .toMinutes() != slot.stayMinutes()) {
+            return Validation.failure("일정 시간과 체류시간 불일치");
+        }
 
-        return documents.stream()
-                .filter(place -> Objects.equals(slot.locationName(), place.place_name()))
-                .filter(place -> sameExistingPlace(slot, place))
-                .map(place -> {
-                    PlaceCandidateContext context = new PlaceCandidateContext();
+        if (places.contains(slot.locationName().strip())) {
+            return Validation.failure("이미 사용한 장소: " + slot.locationName());
+        }
 
-                    String id = "kakao:" + place.id();
+        RestaurantDetail restaurant = slot.restaurantDetail();
 
-                    context.record(new com.planb.ai.dto.response.PlaceWithRouteResult(
-                            true,
-                            place.place_name(),
-                            blank(place.road_address_name()) ? place.address_name() : place.road_address_name(),
-                            place.x(),
-                            place.y(),
-                            null,
-                            id,
-                            place.category_group_code(),
-                            place.category_name()
-                    ));
+        if (isMeal(slot.courseType()) && (restaurant == null || blank(restaurant.menuName())
+                || menus.contains(restaurant.menuName().strip()))) {
+            return Validation.failure("음식점 메뉴 누락 또는 중복");
+        }
 
-                    Validation result = validate(withCandidate(slot, id), context, places, menus);
-
-                    return result.valid() ? new Validation(withCandidate(slot, id), null) : result;
-                })
-                .filter(Validation::valid)
-                .findFirst()
-                .orElseGet(() -> Validation.failure(
-                        "기존 슬롯의 동일 장소/유형 재검증 실패"
-                                + " / locationName=" + slot.locationName()
-                                + " / courseType=" + slot.courseType()
-                                + " / 카카오 검색결과=" + documents.size() + "건"
-                                + " / 이름일치=" + documents
-                                        .stream()
-                                        .filter(place -> Objects.equals(slot.locationName(), place.place_name()))
-                                        .count() + "건"
-                ));
+        return new Validation(slot, null);
     }
 
     public PlanScheduleDetail select(PlanScheduleDetail original, PlanScheduleDetail choice) {
@@ -228,29 +221,8 @@ public class PlanPlaceResolver {
         );
     }
 
-    private PlanScheduleDetail withCandidate(PlanScheduleDetail slot, String id) {
-
-        return new PlanScheduleDetail(
-                slot.scheduleType(),
-                slot.courseType(),
-                slot.startTime(),
-                slot.endTime(),
-                slot.locationName(),
-                slot.location(),
-                slot.longitude(),
-                slot.latitude(),
-                slot.imageUrl(),
-                slot.thumbNailImageUrl(),
-                slot.stayMinutes(),
-                slot.travelMinutes(),
-                slot.tags(),
-                slot.medication(),
-                slot.restaurantDetail(),
-                id
-        );
-    }
-
-    private PlanScheduleDetail fromExisting(GetAiPlanResponse.PlanScheduleDetail old) {
+    // 저장된 일정 슬롯을 AI 응답과 같은 형태로 옮긴다. 값은 그대로 두고 형태만 맞춘다.
+    public PlanScheduleDetail fromExisting(GetAiPlanResponse.PlanScheduleDetail old) {
 
         GetAiPlanResponse.RestaurantDetail r = old.restaurantDetail();
 
@@ -354,32 +326,6 @@ public class PlanPlaceResolver {
 
             return Double.isFinite(x) && Double.isFinite(y) && Math.abs(x) <= 180 && Math.abs(y) <= 90
                     && x != 0 && y != 0;
-        } catch (NullPointerException | NumberFormatException exception) {
-            return false;
-        }
-    }
-
-    private boolean sameExistingPlace(
-            PlanScheduleDetail slot,
-            KakaoPlaceSearchResponse.Document place
-    ) {
-
-        if (!isMeal(slot.courseType()) && blank(slot.longitude()) && blank(slot.latitude())) {
-            return Objects.equals(slot.location(), place.road_address_name())
-                    || Objects.equals(slot.location(), place.address_name());
-        }
-
-        return sameCoordinates(slot, place);
-    }
-
-    private boolean sameCoordinates(
-            PlanScheduleDetail slot,
-            KakaoPlaceSearchResponse.Document place
-    ) {
-
-        try {
-            return Math.abs(Double.parseDouble(slot.longitude()) - Double.parseDouble(place.x())) < 0.0001
-                    && Math.abs(Double.parseDouble(slot.latitude()) - Double.parseDouble(place.y())) < 0.0001;
         } catch (NullPointerException | NumberFormatException exception) {
             return false;
         }
