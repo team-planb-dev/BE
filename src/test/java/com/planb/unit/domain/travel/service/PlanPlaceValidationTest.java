@@ -792,13 +792,14 @@ class PlanPlaceValidationTest {
                 .findFirst()
                 .orElseThrow();
 
+        // 식후 30분인 13:30은 마지막 관광지 13:00-14:00 안이라 그 장소가 끝난 뒤로 밀린다.
         assertEquals(
-                LocalTime.of(13, 30),
+                LocalTime.of(14, 0),
                 medication.startTime()
         );
 
         assertEquals(
-                LocalTime.of(13, 40),
+                LocalTime.of(14, 10),
                 medication.endTime()
         );
 
@@ -954,13 +955,14 @@ class PlanPlaceValidationTest {
                         .findFirst()
                         .orElseThrow();
 
+        // 식후 30분인 13:30은 마지막 관광지 13:00-14:00 안이라 그 장소가 끝난 뒤로 밀린다.
         assertEquals(
-                LocalTime.of(13, 30),
+                LocalTime.of(14, 0),
                 medication.startTime()
         );
 
         assertEquals(
-                LocalTime.of(13, 40),
+                LocalTime.of(14, 10),
                 medication.endTime()
         );
 
@@ -2105,13 +2107,14 @@ class PlanPlaceValidationTest {
                         .findFirst()
                         .orElseThrow();
 
+        // 식후 30분인 13:30은 마지막 관광지 13:00-14:00 안이라 그 장소가 끝난 뒤로 밀린다.
         assertEquals(
-                LocalTime.of(13, 30),
+                LocalTime.of(14, 0),
                 medication.startTime()
         );
 
         assertEquals(
-                LocalTime.of(13, 40),
+                LocalTime.of(14, 10),
                 medication.endTime()
         );
 

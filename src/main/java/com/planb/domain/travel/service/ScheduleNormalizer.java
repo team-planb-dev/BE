@@ -405,9 +405,13 @@ public class ScheduleNormalizer {
         Map<ScheduleType, MealWindow> dayMealTimes =
                 dayMealTimes(nonMedicationSchedules);
 
+        List<CreatePlanAiResponse.PlanScheduleDetail> placeSlots =
+                nonMealPlaceSlots(nonMedicationSchedules);
+
         List<CreatePlanAiResponse.PlanScheduleDetail> medicationSchedules =
                 healthContexts.stream()
                         .flatMap(healthContext -> medicationSchedulesFor(healthContext, dayMealTimes).stream())
+                        .map(medication -> moveOutOfPlaceSlots(medication, placeSlots))
                         .collect(Collectors.groupingBy(CreatePlanAiResponse.PlanScheduleDetail::startTime))
                         .values()
                         .stream()
@@ -425,6 +429,58 @@ public class ScheduleNormalizer {
                 planDay.dayNumber(),
                 planDay.date(),
                 mergedSchedules
+        );
+    }
+
+    /**
+     * 겹침 판정 대상이 되는 장소 슬롯.
+     *
+     * 식사 슬롯은 제외한다. 식중 복약은 식사 시간대 안에 있는 것이 정의이므로
+     * 밀어내면 뜻이 뒤집힌다.
+     */
+    private List<CreatePlanAiResponse.PlanScheduleDetail> nonMealPlaceSlots(
+            List<CreatePlanAiResponse.PlanScheduleDetail> nonMedicationSchedules
+    ) {
+
+        return nonMedicationSchedules
+                .stream()
+                .filter(Objects::nonNull)
+                .filter(schedule -> !MEAL_SCHEDULE_TYPES.contains(schedule.scheduleType()))
+                .filter(schedule -> schedule.startTime() != null
+                        && schedule.endTime() != null)
+                .sorted(Comparator.comparing(CreatePlanAiResponse.PlanScheduleDetail::startTime))
+                .toList();
+    }
+
+    /**
+     * 장소 시간대 안으로 들어간 복약을 그 장소가 끝난 뒤로 옮긴다.
+     *
+     * 앞으로 당기지 않는 이유는 식후 복약이 식사 도중이 되어버리기 때문이다.
+     * 시작 시각이 이른 장소부터 훑으므로, 밀린 결과가 다음 장소와 다시 겹쳐도
+     * 같은 순회에서 이어서 밀린다.
+     */
+    private CreatePlanAiResponse.PlanScheduleDetail moveOutOfPlaceSlots(
+            CreatePlanAiResponse.PlanScheduleDetail medication,
+            List<CreatePlanAiResponse.PlanScheduleDetail> placeSlots
+    ) {
+
+        LocalTime startTime = medication.startTime();
+
+        for (CreatePlanAiResponse.PlanScheduleDetail place : placeSlots) {
+            if (!startTime.isBefore(place.startTime())
+                    && startTime.isBefore(place.endTime())) {
+                startTime = place.endTime();
+            }
+        }
+
+        if (startTime.equals(medication.startTime())) {
+            return medication;
+        }
+
+        return medicationSchedule(
+                startTime,
+                medication.medication().intervalMinutes(),
+                medication.medication().description()
         );
     }
 

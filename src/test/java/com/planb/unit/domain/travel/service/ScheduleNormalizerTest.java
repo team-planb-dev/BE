@@ -174,6 +174,47 @@ class ScheduleNormalizerTest {
         );
     }
 
+    @Test
+    @DisplayName("장소 시간대 안에 들어간 복약의 장소 종료시각 배치")
+    void movesMedicationOutOfPlaceSlot() {
+
+        // 식후 30분은 14:00이지만 그 시각은 다음 관광지 13:40-15:10 한가운데다.
+        CreatePlanAiResponse response = response(
+                restaurant("점심 식당", ScheduleType.LUNCH, LocalTime.of(12, 0), 0),
+                attraction("해운대해수욕장", LocalTime.of(13, 40), 10)
+        );
+
+        CreatePlanAiResponse result = scheduleNormalizer.ensureMedicationSchedules(
+                scheduleNormalizer.normalizeScheduleTimes(response, healthContexts()),
+                healthContexts());
+
+        assertEquals(
+                LocalTime.of(15, 10),
+                medicationStartTime(result)
+        );
+    }
+
+    @Test
+    @DisplayName("식중 복약의 식사 시간대 유지")
+    void keepsDuringMealMedicationInsideMealSlot() {
+
+        // 식사 슬롯은 식중 복약의 기준이므로 겹쳐도 밀지 않는다.
+        List<TravelHealthContext> duringMeal = healthContexts(MealTiming.DURING_MEAL, 0);
+
+        CreatePlanAiResponse response = response(
+                restaurant("점심 식당", ScheduleType.LUNCH, LocalTime.of(12, 0), 0)
+        );
+
+        CreatePlanAiResponse result = scheduleNormalizer.ensureMedicationSchedules(
+                scheduleNormalizer.normalizeScheduleTimes(response, duringMeal),
+                duringMeal);
+
+        assertEquals(
+                LocalTime.of(12, 0),
+                medicationStartTime(result)
+        );
+    }
+
     private LocalTime medicationStartTime(CreatePlanAiResponse response) {
 
         return response
@@ -188,6 +229,14 @@ class ScheduleNormalizerTest {
     }
 
     private List<TravelHealthContext> healthContexts() {
+
+        return healthContexts(MealTiming.AFTER_MEAL, 30);
+    }
+
+    private List<TravelHealthContext> healthContexts(
+            MealTiming mealTiming,
+            Integer intervalMinutes
+    ) {
 
         return List.of(
                 new TravelHealthContext(
@@ -208,8 +257,8 @@ class ScheduleNormalizerTest {
                                         Set.of(
                                                 new TravelHealthContext.MedicationInfoContext.MealMedicationRuleContext(
                                                         RelatedMeal.LUNCH,
-                                                        MealTiming.AFTER_MEAL,
-                                                        30
+                                                        mealTiming,
+                                                        intervalMinutes
                                                 )
                                         )
                                 )
