@@ -3,6 +3,7 @@ package com.planb.ai.context;
 import com.planb.ai.dto.response.PlaceWithRouteResult;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -60,6 +61,31 @@ public class PlaceCandidateContext {
     public Candidate find(String id) {
 
         return id == null ? null : candidates.get(id);
+    }
+
+    /**
+     * 이번 호출에서 검색한 후보 중 이 이름을 가진 하나를 찾는다.
+     *
+     * 같은 이름이 둘 이상이면 고를 근거가 없으므로 좌표를 확정하지 않는다.
+     * 임의로 하나를 고르면 이름 재검색이 엉뚱한 장소를 잡던 문제와 같은 실수가 된다.
+     */
+    public Candidate findByName(String name) {
+
+        if (name == null || name.isBlank()) {
+            return null;
+        }
+
+        String target = name.strip();
+
+        List<Candidate> matches = candidates
+                .values()
+                .stream()
+                .filter(candidate -> candidate.name() != null
+                        && target.equals(candidate.name().strip()))
+                .limit(2)
+                .toList();
+
+        return matches.size() == 1 ? matches.getFirst() : null;
     }
 
     public void clear() {

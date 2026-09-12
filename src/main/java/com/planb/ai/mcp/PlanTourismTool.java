@@ -142,13 +142,19 @@ public class PlanTourismTool {
             );
         }
 
+        // 직전 장소가 이번 호출에서 검색한 후보면 확정 좌표가 있다.
+        // 이름만 넘기면 카카오가 전국에서 동명 장소를 다시 찾아 엉뚱한 좌표를 쓴다.
+        PlaceCandidateContext.Candidate previous = candidates.findByName(previousLocation);
+
         PlaceWithRouteResult result = tourismTool
                 .findPlaceWithRoute(
                         keyword,
                         previousLocation,
                         transportation,
                         excludeNames,
-                        categoryCode
+                        categoryCode,
+                        previous == null ? null : previous.longitude(),
+                        previous == null ? null : previous.latitude()
                 );
 
         candidates.record(result);

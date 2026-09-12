@@ -20,7 +20,9 @@ public record RouteAnchor(
         CreatePlanAiResponse.PlanScheduleDetail previousPlace
 ) {
 
-    // 일정 전체를 계산할 때의 기준점
+    // 일정 전체를 계산할 때의 기준점.
+    // decidedLocation은 사용자 입력 문자열이라 좌표를 모르고, 경로 조회에서 이름으로 검색된다.
+    // 동명 장소가 여러 곳이면 엉뚱한 출발지가 잡힐 수 있다.
     public static RouteAnchor from(String decidedLocation) {
 
         return new RouteAnchor(decidedLocation, null);

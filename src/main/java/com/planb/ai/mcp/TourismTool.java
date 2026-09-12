@@ -292,7 +292,9 @@ public class TourismTool {
             String previousLocation,
             Transportation transportation,
             List<String> excludeNames,
-            String categoryCode
+            String categoryCode,
+            String previousLongitude,
+            String previousLatitude
     ) {
 
         log.info(
@@ -310,7 +312,9 @@ public class TourismTool {
                         previousLocation,
                         transportation,
                         excludeNames,
-                        categoryCode
+                        categoryCode,
+                        previousLongitude,
+                        previousLatitude
                 )
                 .block();
     }
