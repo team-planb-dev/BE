@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.time.LocalTime;
 import java.util.Objects;
 import java.util.Set;
 
@@ -30,7 +31,13 @@ public class PlanPlaceResolver {
             return Validation.failure("일정 슬롯 없음");
         }
 
-        if (slot.courseType() == null || !validCombination(slot)) {
+        if (slot.courseType() == null) {
+            return Validation.failure(invalidCombinationReason(slot));
+        }
+
+        slot = alignCombination(slot);
+
+        if (!validCombination(slot)) {
             return Validation.failure(invalidCombinationReason(slot));
         }
 
@@ -262,6 +269,71 @@ public class PlanPlaceResolver {
                 medication,
                 restaurant
         );
+    }
+
+    /**
+     * 어긋난 scheduleType/courseType 조합을 courseType 기준으로 맞춘다.
+     *
+     * 장소 유형과 묶여 있는 쪽은 courseType이다. scheduleType은 ACTIVITY 하나로
+     * ATTRACTION/CAFE_REST/PARK_WALK/MUST_HAVE를 구분할 수 없어 반대 방향은 불가능하다.
+     * 재선택은 장소만 바꾸고 유형은 원본을 그대로 들고 가므로, 여기서 맞추지 않으면
+     * 같은 조합 오류로 재시도가 전부 실패하고 일정 생성 자체가 무너진다.
+     */
+    private PlanScheduleDetail alignCombination(PlanScheduleDetail slot) {
+
+        if (validCombination(slot)) {
+            return slot;
+        }
+
+        ScheduleType aligned = switch (slot.courseType()) {
+            case MEDICATION -> ScheduleType.CHECK_IN;
+
+            case RESTAURANT, LOCAL_FOOD -> mealTypeAt(slot.startTime());
+
+            default -> ScheduleType.ACTIVITY;
+        };
+
+        return aligned == null ? slot : withScheduleType(slot, aligned);
+    }
+
+    // 시각으로 판단하는 식사 구분. 시각이 없으면 판단 근거가 없으므로 교정하지 않는다.
+    private ScheduleType mealTypeAt(LocalTime startTime) {
+
+        if (startTime == null) {
+            return null;
+        }
+
+        if (startTime.isBefore(LocalTime.of(11, 0))) {
+            return ScheduleType.BREAKFAST;
+        }
+
+        return startTime.isBefore(LocalTime.of(16, 0))
+                ? ScheduleType.LUNCH
+                : ScheduleType.DINNER;
+    }
+
+    private PlanScheduleDetail withScheduleType(
+            PlanScheduleDetail slot,
+            ScheduleType scheduleType
+    ) {
+
+        return new PlanScheduleDetail(
+                scheduleType,
+                slot.courseType(),
+                slot.startTime(),
+                slot.endTime(),
+                slot.locationName(),
+                slot.location(),
+                slot.longitude(),
+                slot.latitude(),
+                slot.imageUrl(),
+                slot.thumbNailImageUrl(),
+                slot.stayMinutes(),
+                slot.travelMinutes(),
+                slot.tags(),
+                slot.medication(),
+                slot.restaurantDetail(),
+                slot.candidateId());
     }
 
     // 실패 사유에 실제 조합을 남긴다. 값이 없으면 어느 조합이 어긋났는지 로그만으로 좁힐 수 없다.
