@@ -30,7 +30,6 @@ import com.planb.domain.travel.entity.constant.DateType;
 import com.planb.domain.travel.entity.constant.ScheduleType;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -65,8 +64,6 @@ public class TravelRecommendHandler {
     Tool
      */
     private final TourismTool tourismTool;
-
-    private final MissingSlotCompleter missingSlotCompleter;
 
     // 지역에 따른 음식 추천 받기
     public MakeRecommendFoodResponse makeRecommendFood
@@ -108,106 +105,9 @@ public class TravelRecommendHandler {
                         new PlanTourismTool(tourismTool, candidates)
                 );
 
-        return missingSlotCompleter.complete(
-                trimExcessTouristPlaces(
-                        response,
-                        travelPlanContext.healthContexts()
-                ),
-                travelPlanContext.healthContexts(),
-                candidates
-        );
-    }
-
-    // 관광지 초과분은 AI 재시도 없이 뒤에서부터 제거한다. 사용자가 지정한 MUST_HAVE는 남긴다.
-    // ponytail: 제거 이후 남은 슬롯의 travelMinutes는 이전 장소 기준 그대로 둔다.
-    // 일정 시간이 앞당겨지지 않을 뿐 순서와 시간 검증은 통과하며, 정확한 이동시간이 필요해지면 재계산을 붙인다.
-    private static CreatePlanAiResponse trimExcessTouristPlaces(
-            CreatePlanAiResponse response,
-            List<TravelHealthContext> healthContexts
-    ) {
-
-        if (response == null || response.planDays() == null) {
-            return response;
-        }
-
-        int expectedCount = TouristPlaceCountPolicy.expectedCount(healthContexts);
-
-        if (expectedCount <= 0) {
-            return response;
-        }
-
-        return new CreatePlanAiResponse(
-                response
-                        .planDays()
-                        .stream()
-                        .map(day ->
-                                trimDayTouristPlaces(
-                                        day,
-                                        expectedCount
-                                )
-                        )
-                        .toList()
-        );
-    }
-
-    // 하루치 관광지 초과분 제거
-    private static CreatePlanAiResponse.PlanDayDetail trimDayTouristPlaces(
-            CreatePlanAiResponse.PlanDayDetail day,
-            int expectedCount
-    ) {
-
-        if (day == null || day.schedules() == null) {
-            return day;
-        }
-
-        List<CreatePlanAiResponse.PlanScheduleDetail> schedules = day.schedules();
-
-        List<Integer> touristIndexes = IntStream
-                .range(0, schedules.size())
-                .filter(index -> {
-                    CreatePlanAiResponse.PlanScheduleDetail schedule = schedules.get(index);
-
-                    return schedule != null
-                            && (schedule.courseType() == CourseType.ATTRACTION
-                                    || schedule.courseType() == CourseType.MUST_HAVE);
-                })
-                .boxed()
-                .toList();
-
-        int excess = touristIndexes.size() - expectedCount;
-
-        if (excess <= 0) {
-            return day;
-        }
-
-        Set<Integer> removeIndexes = new HashSet<>();
-
-        for (int cursor = touristIndexes.size() - 1;
-                cursor >= 0 && removeIndexes.size() < excess;
-                cursor--) {
-
-            int index = touristIndexes.get(cursor);
-
-            if (schedules.get(index).courseType() == CourseType.MUST_HAVE) {
-                continue;
-            }
-
-            removeIndexes.add(index);
-        }
-
-        if (removeIndexes.isEmpty()) {
-            return day;
-        }
-
-        return new CreatePlanAiResponse.PlanDayDetail(
-                day.dayNumber(),
-                day.date(),
-                IntStream
-                        .range(0, schedules.size())
-                        .filter(index -> !removeIndexes.contains(index))
-                        .mapToObj(schedules::get)
-                        .toList()
-        );
+        // 관광지 개수 보정과 빈 슬롯 채우기는 검증 직전에 PlanService가 한 번만 한다.
+        // 생성·편집·재구성 응답이 모두 같은 검증을 지나므로 보정도 그 지점에 두어야 갈라지지 않는다.
+        return response;
     }
 
     // AI로 기존 일정을 자연어 수정 요청에 맞춰 부분 수정
@@ -238,23 +138,7 @@ public class TravelRecommendHandler {
                         new PlanTourismTool(tourismTool, candidates)
                 );
 
-        if (response == null || response.planDays() == null) {
-            return response;
-        }
-
-        // 생성과 같은 장소 개수 검증을 거치므로 편집 응답도 같은 기준으로 채운다.
-        CreatePlanAiResponse filled = missingSlotCompleter.complete(
-                new CreatePlanAiResponse(response.planDays()),
-                planEditContext.healthContexts(),
-                candidates
-        );
-
-        return new EditPlanAiResponse(
-                response.planName(),
-                filled.planDays(),
-                response.changes(),
-                response.processable()
-        );
+        return response;
     }
 
     // 사용자 요청의 전체 날짜 재구성 범위 해석
@@ -494,7 +378,7 @@ public class TravelRecommendHandler {
 
                     int actualCount = touristPlaces.size();
 
-                    // 초과분은 trimExcessTouristPlaces가 제거하므로 부족한 경우만 재시도 대상
+                    // 초과분은 TouristPlaceCountPolicy.trimExcess가 제거하므로 부족한 경우만 재시도 대상
                     if (actualCount >= expectedCount) {
                         return null;
                     }

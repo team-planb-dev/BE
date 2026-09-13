@@ -45,10 +45,21 @@ public class MissingSlotCompleter {
 
     private final TourismTool tourismTool;
 
+    /**
+     * 비어 있는 관광·식사 슬롯을 이번 호출의 검색 후보로 채운다.
+     *
+     * @param response       채울 일정
+     * @param healthContexts 관광지 개수와 식사시각의 기준
+     * @param candidates     이번 호출에서 검색한 후보
+     * @param usedNames      이 응답 밖에서 이미 쓴 장소명. 날짜 일부만 넘길 때 나머지 날짜를 알려준다.
+     *                       변형하지 않으므로 불변 집합을 넘겨도 된다.
+     * @return 채워 넣은 일정
+     */
     public CreatePlanAiResponse complete(
             CreatePlanAiResponse response,
             List<TravelHealthContext> healthContexts,
-            PlaceCandidateContext candidates
+            PlaceCandidateContext candidates,
+            Set<String> usedNames
     ) {
 
         if (response == null || response.planDays() == null) {
@@ -56,7 +67,16 @@ public class MissingSlotCompleter {
         }
 
         // 여행 전체에서 이미 쓴 장소는 다시 고르지 않는다.
-        Set<String> usedNames = usedNames(response);
+        // 호출부가 알려준 응답 밖의 장소와 응답 안의 장소를 합쳐서 본다.
+        Set<String> selectedNames = usedNames(response);
+
+        if (usedNames != null) {
+            usedNames
+                    .stream()
+                    .map(MissingSlotCompleter::normalized)
+                    .filter(Objects::nonNull)
+                    .forEach(selectedNames::add);
+        }
 
         List<CreatePlanAiResponse.PlanDayDetail> days = new ArrayList<>();
 
@@ -66,7 +86,7 @@ public class MissingSlotCompleter {
                             day,
                             healthContexts,
                             candidates,
-                            usedNames
+                            selectedNames
                     )
             );
         }
@@ -147,7 +167,7 @@ public class MissingSlotCompleter {
                     )
             );
 
-            usedNames.add(candidate.name());
+            usedNames.add(normalized(candidate.name()));
 
             log.info(
                     "[SLOT FILL] 관광 슬롯 보정 - locationName: {}, startTime: {}",
@@ -194,7 +214,7 @@ public class MissingSlotCompleter {
 
             schedules.add(mealSlot);
 
-            usedNames.add(mealSlot.locationName());
+            usedNames.add(normalized(mealSlot.locationName()));
 
             log.info(
                     "[SLOT FILL] 식사 슬롯 보정 - scheduleType: {}, locationName: {}, startTime: {}",
@@ -219,7 +239,7 @@ public class MissingSlotCompleter {
     ) {
 
         for (PlaceCandidateContext.Candidate candidate : candidates.restaurantCandidates()) {
-            if (usedNames.contains(candidate.name())) {
+            if (usedNames.contains(normalized(candidate.name()))) {
                 continue;
             }
 
@@ -307,7 +327,7 @@ public class MissingSlotCompleter {
         List<PlaceCandidateContext.Candidate> unused = pool
                 .stream()
                 .filter(candidate -> candidate.name() != null)
-                .filter(candidate -> !usedNames.contains(candidate.name()))
+                .filter(candidate -> !usedNames.contains(normalized(candidate.name())))
                 .toList();
 
         if (unused.isEmpty()) {
@@ -432,6 +452,18 @@ public class MissingSlotCompleter {
                 .orElse(null);
     }
 
+    // 장소명 비교 기준. 호출부(PlanPlaceResolver)가 strip한 이름을 넣으므로 여기서도 맞춘다.
+    private static String normalized(String name) {
+
+        if (name == null) {
+            return null;
+        }
+
+        String stripped = name.strip();
+
+        return stripped.isEmpty() ? null : stripped;
+    }
+
     private Set<String> usedNames(CreatePlanAiResponse response) {
 
         Set<String> names = new HashSet<>();
@@ -445,7 +477,8 @@ public class MissingSlotCompleter {
                     .stream()
                     .filter(Objects::nonNull)
                     .map(CreatePlanAiResponse.PlanScheduleDetail::locationName)
-                    .filter(name -> name != null && !name.isBlank())
+                    .map(MissingSlotCompleter::normalized)
+                    .filter(Objects::nonNull)
                     .forEach(names::add);
         }
 

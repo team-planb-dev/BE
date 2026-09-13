@@ -10,6 +10,7 @@ import com.planb.ai.dto.response.RebuildPlanDayResponse;
 import com.planb.ai.dto.response.KakaoRouteResult;
 import com.planb.ai.dto.response.PlanEditScope;
 import com.planb.domain.travel.helper.PlanEditValidator;
+import com.planb.ai.handler.MissingSlotCompleter;
 import com.planb.ai.handler.TravelRecommendHandler;
 import com.planb.ai.mcp.NutritionEvaluationCollector;
 import com.planb.ai.prompt.PlaceReselectPrompt;
@@ -88,6 +89,8 @@ public class PlanService {
     Tool 호출 결과 수집기
      */
     private final NutritionEvaluationCollector nutritionEvaluationCollector;
+
+    private final MissingSlotCompleter missingSlotCompleter;
 
     public Plan createPlan(CreatePlanRequest createPlanRequest){
 
@@ -543,6 +546,21 @@ public class PlanService {
         validatePlanDays(
                 response,
                 context.createTravelRequest()
+        );
+
+        // 빈 슬롯 채우기와 초과분 제거는 개수 검증 직전에 한 번만 한다.
+        // 생성·편집·재구성 응답이 모두 이 지점을 지나므로 여기 두어야 경로마다 갈라지지 않는다.
+        // usedPlaces에는 이 응답 밖 날짜의 장소가 들어있어, 날짜 일부만 검증할 때도 중복을 피한다.
+        response = missingSlotCompleter.complete(
+                response,
+                context.healthContexts(),
+                candidates,
+                usedPlaces
+        );
+
+        response = TouristPlaceCountPolicy.trimExcess(
+                response,
+                context.healthContexts()
         );
 
         validateTouristPlaceCounts(
