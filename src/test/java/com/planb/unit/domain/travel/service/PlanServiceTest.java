@@ -5,6 +5,7 @@ import com.planb.ai.context.TravelHealthContext;
 import com.planb.ai.context.TravelPlanContext;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
 import com.planb.ai.dto.response.KakaoRouteResult;
+import com.planb.ai.handler.MissingSlotCompleter;
 import com.planb.ai.handler.TravelRecommendHandler;
 import com.planb.ai.mcp.NutritionEvaluationCollector;
 import com.planb.domain.health.entity.constant.DiseaseType;
@@ -61,6 +62,7 @@ import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -95,7 +97,8 @@ class PlanServiceTest {
                 new ScheduleNormalizer(planPlaceResolver),
                 travelRecommendHandler,
                 kakaoMapServiceHandler,
-                nutritionEvaluationCollector
+                nutritionEvaluationCollector,
+                new MissingSlotCompleter(mock(com.planb.ai.mcp.TourismTool.class))
         );
 
         // travelMinutes가 0인 슬롯도 재조회 대상이라 기본 응답이 필요하다.

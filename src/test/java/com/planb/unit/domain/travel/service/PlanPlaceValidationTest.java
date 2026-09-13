@@ -14,6 +14,7 @@ import com.planb.domain.travel.helper.PlanEditValidator;
 import org.junit.jupiter.api.BeforeEach;
 import com.planb.ai.dto.response.KakaoRouteResult;
 import com.planb.ai.dto.response.PlaceWithRouteResult;
+import com.planb.ai.handler.MissingSlotCompleter;
 import com.planb.ai.handler.TravelRecommendHandler;
 import com.planb.ai.mcp.NutritionEvaluationCollector;
 import com.planb.ai.mcp.PlanTourismTool;
@@ -69,7 +70,8 @@ class PlanPlaceValidationTest {
             scheduleNormalizer,
             handler,
             kakao,
-            nutrition
+            nutrition,
+            new MissingSlotCompleter(mock(TourismTool.class))
     );
 
     private final LocalDate date = LocalDate.of(2026, 9, 10);
@@ -2558,6 +2560,110 @@ class PlanPlaceValidationTest {
 
                             return response;
                         });
+    }
+
+    @Test
+    @DisplayName("수정 응답의 관광 장소 초과분을 검증 전에 제거")
+    void trimsExcessTouristPlacesOnEditPath() {
+
+        PlanScheduleDetail place = slot("tour:1", "해운대", 9);
+
+        when(handler.editPlanByAi(any(), any()))
+                .thenAnswer(invocation -> {
+                    recordCandidates(invocation.getArgument(1));
+
+                    return new EditPlanAiResponse(
+                            "부산",
+                            List.of(new PlanDayDetail(
+                                    1,
+                                    date,
+                                    List.of(
+                                            place,
+                                            slot("tour:3", "이기대", 11),
+                                            slot("tour:4", "오죽헌", 13),
+                                            slot("tour:5", "경포대", 15)))),
+                            List.of("수정"),
+                            true);
+                });
+
+        when(kakao.getRoute(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
+
+        EditPlanAiResponse result = service.makeEditPlanByAi(new PlanEditContext(
+                travel.createTravelRequest(),
+                List.of(walkOnlyHealthContext()),
+                existing(place),
+                "첫날 수정"));
+
+        assertEquals(
+                List.of("해운대", "이기대", "오죽헌"),
+                touristPlaceNames(result));
+    }
+
+    @Test
+    @DisplayName("수정 응답의 부족한 관광 슬롯을 검증 전에 후보로 채움")
+    void fillsMissingTouristPlacesOnEditPath() {
+
+        PlanScheduleDetail place = slot("tour:1", "해운대", 9);
+
+        when(handler.editPlanByAi(any(), any()))
+                .thenAnswer(invocation -> {
+                    recordCandidates(invocation.getArgument(1));
+
+                    return new EditPlanAiResponse(
+                            "부산",
+                            List.of(new PlanDayDetail(
+                                    1,
+                                    date,
+                                    List.of(place))),
+                            List.of("수정"),
+                            true);
+                });
+
+        when(kakao.getRoute(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
+
+        EditPlanAiResponse result = service.makeEditPlanByAi(new PlanEditContext(
+                travel.createTravelRequest(),
+                List.of(walkOnlyHealthContext()),
+                existing(place),
+                "첫날 수정"));
+
+        assertEquals(
+                3,
+                touristPlaceNames(result).size());
+
+        assertTrue(touristPlaceNames(result).contains("해운대"));
+    }
+
+    // 하루 관광지 개수 규칙만 걸리도록 식사시각을 일정 시간대 밖에 둔 동행인
+    private TravelHealthContext walkOnlyHealthContext() {
+
+        return new TravelHealthContext(
+                "테스트 여행자",
+                DiseaseType.DIABETES,
+                WalkType.MODERATE,
+                new TravelHealthContext.MealInfoContext(
+                        LocalTime.of(5, 0),
+                        LocalTime.of(5, 30),
+                        LocalTime.of(5, 45)
+                ),
+                List.of(),
+                List.of()
+        );
+    }
+
+    private List<String> touristPlaceNames(EditPlanAiResponse response) {
+
+        return response
+                .planDays()
+                .getFirst()
+                .schedules()
+                .stream()
+                .filter(schedule -> schedule.courseType() == CourseType.ATTRACTION
+                        || schedule.courseType() == CourseType.MUST_HAVE)
+                .map(PlanScheduleDetail::locationName)
+                .toList();
     }
 
     private void recordCandidates(PlaceCandidateContext candidates) {

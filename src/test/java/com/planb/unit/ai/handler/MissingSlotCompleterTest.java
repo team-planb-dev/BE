@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -59,7 +60,8 @@ class MissingSlotCompleterTest {
         CreatePlanAiResponse filled = missingSlotCompleter.complete(
                 response(attraction("첨성대", LocalTime.of(9, 0))),
                 List.of(healthContext()),
-                candidates
+                candidates,
+                Set.of()
         );
 
         List<CreatePlanAiResponse.PlanScheduleDetail> schedules = schedules(filled);
@@ -85,12 +87,59 @@ class MissingSlotCompleterTest {
         CreatePlanAiResponse filled = missingSlotCompleter.complete(
                 response(attraction("첨성대", LocalTime.of(9, 0))),
                 List.of(healthContext()),
-                candidates
+                candidates,
+                Set.of()
         );
 
         assertThat(schedules(filled))
                 .extracting(CreatePlanAiResponse.PlanScheduleDetail::locationName)
                 .containsExactly("첨성대", "대릉원");
+    }
+
+    @Test
+    @DisplayName("응답 밖에서 이미 쓴 장소는 채우지 않음")
+    void skipsPlacesUsedOutsideResponse() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(attractionItem("1", "첨성대", "129.22", "35.83"));
+        candidates.record(attractionItem("2", "대릉원", "129.21", "35.83"));
+        candidates.record(attractionItem("3", "동궁과 월지", "129.22", "35.83"));
+
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
+                response(attraction("첨성대", LocalTime.of(9, 0))),
+                List.of(healthContext()),
+                candidates,
+                Set.of("대릉원")
+        );
+
+        assertThat(schedules(filled))
+                .extracting(CreatePlanAiResponse.PlanScheduleDetail::locationName)
+                .doesNotContain("대릉원")
+                .contains("동궁과 월지");
+    }
+
+    @Test
+    @DisplayName("호출부가 넘긴 사용 장소 집합을 변형하지 않음")
+    void keepsCallerUsedNamesUntouched() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(attractionItem("1", "첨성대", "129.22", "35.83"));
+        candidates.record(attractionItem("2", "대릉원", "129.21", "35.83"));
+        candidates.record(attractionItem("3", "동궁과 월지", "129.22", "35.83"));
+
+        Set<String> usedNames = new HashSet<>(Set.of("불국사"));
+
+        missingSlotCompleter.complete(
+                response(attraction("첨성대", LocalTime.of(9, 0))),
+                List.of(healthContext()),
+                candidates,
+                usedNames
+        );
+
+        assertThat(usedNames)
+                .containsExactly("불국사");
     }
 
     @Test
@@ -108,7 +157,8 @@ class MissingSlotCompleterTest {
                         attraction("동궁과 월지", LocalTime.of(13, 0))
                 ),
                 List.of(healthContext()),
-                candidates
+                candidates,
+                Set.of()
         );
 
         assertThat(schedules(filled))
@@ -138,7 +188,8 @@ class MissingSlotCompleterTest {
         CreatePlanAiResponse filled = missingSlotCompleter.complete(
                 response(attraction("첨성대", LocalTime.of(9, 0))),
                 List.of(healthContext()),
-                candidates
+                candidates,
+                Set.of()
         );
 
         assertThat(schedules(filled))
@@ -160,7 +211,8 @@ class MissingSlotCompleterTest {
         CreatePlanAiResponse filled = missingSlotCompleter.complete(
                 original,
                 List.of(healthContext()),
-                new PlaceCandidateContext()
+                new PlaceCandidateContext(),
+                Set.of()
         );
 
         assertThat(schedules(filled))
