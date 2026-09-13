@@ -1,14 +1,19 @@
 package com.planb.unit.domain.travel.policy;
 
 import com.planb.ai.context.TravelHealthContext;
+import com.planb.ai.dto.response.CreatePlanAiResponse;
 import com.planb.domain.health.entity.constant.DiseaseType;
 import com.planb.domain.health.entity.constant.WalkType;
+import com.planb.domain.travel.entity.constant.CourseType;
+import com.planb.domain.travel.entity.constant.ScheduleType;
 import com.planb.domain.travel.policy.TouristPlaceCountPolicy;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -43,6 +48,147 @@ class TouristPlaceCountPolicyTest {
                 healthContext(WalkType.ACTIVE),
                 healthContext(WalkType.MINIMAL))))
                 .isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("관광 장소 초과분을 뒤에서부터 제거해 기준 개수에 맞춤")
+    void trimsExcessTouristPlacesFromTail() {
+
+        CreatePlanAiResponse trimmed = TouristPlaceCountPolicy.trimExcess(
+                response(day(
+                        attraction("가"),
+                        attraction("나"),
+                        attraction("다"),
+                        attraction("라"))),
+                List.of(healthContext(WalkType.MODERATE)));
+
+        assertThat(locationNames(trimmed))
+                .containsExactly("가", "나", "다");
+    }
+
+    @Test
+    @DisplayName("초과분 제거 대상에서 사용자가 지정한 MUST_HAVE 슬롯 제외")
+    void keepsMustHaveWhileTrimming() {
+
+        CreatePlanAiResponse trimmed = TouristPlaceCountPolicy.trimExcess(
+                response(day(
+                        attraction("가"),
+                        attraction("나"),
+                        attraction("다"),
+                        mustHave("라"))),
+                List.of(healthContext(WalkType.MODERATE)));
+
+        assertThat(locationNames(trimmed))
+                .containsExactly("가", "나", "라");
+    }
+
+    @Test
+    @DisplayName("관광 장소가 기준 개수 이하이면 그대로 유지")
+    void keepsScheduleWhenNotExcessive() {
+
+        CreatePlanAiResponse response = response(day(
+                attraction("가"),
+                attraction("나")));
+
+        assertThat(locationNames(TouristPlaceCountPolicy.trimExcess(
+                response,
+                List.of(healthContext(WalkType.MODERATE)))))
+                .containsExactly("가", "나");
+    }
+
+    @Test
+    @DisplayName("동행인이 없으면 관광 장소 개수를 건드리지 않음")
+    void keepsScheduleWithoutCompanion() {
+
+        CreatePlanAiResponse response = response(day(
+                attraction("가"),
+                attraction("나"),
+                attraction("다"),
+                attraction("라")));
+
+        assertThat(locationNames(TouristPlaceCountPolicy.trimExcess(
+                response,
+                List.of())))
+                .containsExactly("가", "나", "다", "라");
+    }
+
+    @Test
+    @DisplayName("MUST_HAVE만 초과하면 제거할 대상이 없어 그대로 유지")
+    void keepsScheduleWhenOnlyMustHaveExceeds() {
+
+        CreatePlanAiResponse response = response(day(
+                mustHave("가"),
+                mustHave("나"),
+                mustHave("다"),
+                mustHave("라")));
+
+        assertThat(locationNames(TouristPlaceCountPolicy.trimExcess(
+                response,
+                List.of(healthContext(WalkType.MODERATE)))))
+                .containsExactly("가", "나", "다", "라");
+    }
+
+    private List<String> locationNames(CreatePlanAiResponse response) {
+
+        return response
+                .planDays()
+                .stream()
+                .flatMap(day -> day
+                        .schedules()
+                        .stream())
+                .map(CreatePlanAiResponse.PlanScheduleDetail::locationName)
+                .toList();
+    }
+
+    private CreatePlanAiResponse response(CreatePlanAiResponse.PlanDayDetail day) {
+
+        return new CreatePlanAiResponse(List.of(day));
+    }
+
+    private CreatePlanAiResponse.PlanDayDetail day(
+            CreatePlanAiResponse.PlanScheduleDetail... schedules
+    ) {
+
+        return new CreatePlanAiResponse.PlanDayDetail(
+                1,
+                LocalDate.of(2026, 9, 20),
+                List.of(schedules)
+        );
+    }
+
+    private CreatePlanAiResponse.PlanScheduleDetail attraction(String locationName) {
+
+        return slot(CourseType.ATTRACTION, locationName);
+    }
+
+    private CreatePlanAiResponse.PlanScheduleDetail mustHave(String locationName) {
+
+        return slot(CourseType.MUST_HAVE, locationName);
+    }
+
+    private CreatePlanAiResponse.PlanScheduleDetail slot(
+            CourseType courseType,
+            String locationName
+    ) {
+
+        return new CreatePlanAiResponse.PlanScheduleDetail(
+                ScheduleType.ACTIVITY,
+                courseType,
+                LocalTime.of(9, 0),
+                LocalTime.of(10, 0),
+                locationName,
+                "주소",
+                "127.0",
+                "37.0",
+                null,
+                null,
+                60,
+                10,
+                Set.of(),
+                null,
+                null,
+                null
+        );
     }
 
     private TravelHealthContext healthContext(WalkType walkType) {
