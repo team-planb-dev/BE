@@ -66,7 +66,7 @@ public class TravelRecommendHandler {
      */
     private final TourismTool tourismTool;
 
-    private final MissingSlotFiller missingSlotFiller;
+    private final MissingSlotCompleter missingSlotCompleter;
 
     // 지역에 따른 음식 추천 받기
     public MakeRecommendFoodResponse makeRecommendFood
@@ -108,7 +108,7 @@ public class TravelRecommendHandler {
                         new PlanTourismTool(tourismTool, candidates)
                 );
 
-        return missingSlotFiller.fill(
+        return missingSlotCompleter.complete(
                 trimExcessTouristPlaces(
                         response,
                         travelPlanContext.healthContexts()
@@ -223,7 +223,7 @@ public class TravelRecommendHandler {
             PlaceCandidateContext candidates
     ) {
 
-        return openAiClient
+        EditPlanAiResponse response = openAiClient
                 .call(
                         new VerifiedPlacePrompt(new EditPlanPrompt(
                                 planEditContext,
@@ -237,6 +237,24 @@ public class TravelRecommendHandler {
                         ),
                         new PlanTourismTool(tourismTool, candidates)
                 );
+
+        if (response == null || response.planDays() == null) {
+            return response;
+        }
+
+        // 생성과 같은 장소 개수 검증을 거치므로 편집 응답도 같은 기준으로 채운다.
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
+                new CreatePlanAiResponse(response.planDays()),
+                planEditContext.healthContexts(),
+                candidates
+        );
+
+        return new EditPlanAiResponse(
+                response.planName(),
+                filled.planDays(),
+                response.changes(),
+                response.processable()
+        );
     }
 
     // 사용자 요청의 전체 날짜 재구성 범위 해석

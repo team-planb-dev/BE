@@ -3,11 +3,12 @@ package com.planb.unit.ai.handler;
 import com.planb.ai.context.PlaceCandidateContext;
 import com.planb.ai.context.TravelHealthContext;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
-import com.planb.ai.handler.MissingSlotFiller;
+import com.planb.ai.handler.MissingSlotCompleter;
 import com.planb.ai.mcp.TourismTool;
 import com.planb.domain.health.entity.constant.DiseaseType;
 import com.planb.domain.health.entity.constant.WalkType;
 import com.planb.domain.travel.entity.constant.CourseType;
+import com.planb.domain.travel.entity.constant.RecommendationTag;
 import com.planb.domain.travel.entity.constant.ScheduleType;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
 import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
@@ -28,17 +29,17 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
-class MissingSlotFillerTest {
+class MissingSlotCompleterTest {
 
     @Mock
     private TourismTool tourismTool;
 
-    private MissingSlotFiller missingSlotFiller;
+    private MissingSlotCompleter missingSlotCompleter;
 
     @BeforeEach
     void setUp() {
 
-        missingSlotFiller = new MissingSlotFiller(tourismTool);
+        missingSlotCompleter = new MissingSlotCompleter(tourismTool);
 
         lenient()
                 .when(tourismTool.getRestaurantDetail(anyString()))
@@ -55,7 +56,7 @@ class MissingSlotFillerTest {
         candidates.record(attractionItem("2", "대릉원", "129.21", "35.83"));
         candidates.record(attractionItem("3", "동궁과 월지", "129.22", "35.83"));
 
-        CreatePlanAiResponse filled = missingSlotFiller.fill(
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
                 response(attraction("첨성대", LocalTime.of(9, 0))),
                 List.of(healthContext()),
                 candidates
@@ -81,7 +82,7 @@ class MissingSlotFillerTest {
         candidates.record(attractionItem("1", "첨성대", "129.22", "35.83"));
         candidates.record(attractionItem("2", "대릉원", "129.21", "35.83"));
 
-        CreatePlanAiResponse filled = missingSlotFiller.fill(
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
                 response(attraction("첨성대", LocalTime.of(9, 0))),
                 List.of(healthContext()),
                 candidates
@@ -100,7 +101,7 @@ class MissingSlotFillerTest {
 
         candidates.record(restaurantItem("9", "교리김밥", "129.21", "35.83"));
 
-        CreatePlanAiResponse filled = missingSlotFiller.fill(
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
                 response(
                         attraction("첨성대", LocalTime.of(9, 0)),
                         attraction("대릉원", LocalTime.of(11, 0)),
@@ -126,6 +127,29 @@ class MissingSlotFillerTest {
     }
 
     @Test
+    @DisplayName("채워 넣은 관광 슬롯의 분류 기반 태그")
+    void tagsFilledTouristPlaceByCategory() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(attractionItem("1", "첨성대", "129.22", "35.83"));
+        candidates.record(attractionItem("2", "대릉원", "129.21", "35.83"));
+
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
+                response(attraction("첨성대", LocalTime.of(9, 0))),
+                List.of(healthContext()),
+                candidates
+        );
+
+        assertThat(schedules(filled))
+                .filteredOn(slot -> "대릉원".equals(slot.locationName()))
+                .singleElement()
+                .satisfies(slot ->
+                        assertThat(slot.tags())
+                                .containsExactly(RecommendationTag.HISTORY_CULTURE));
+    }
+
+    @Test
     @DisplayName("채울 후보가 없으면 일정을 그대로 둠")
     void keepsPlanWhenNoCandidate() {
 
@@ -133,7 +157,7 @@ class MissingSlotFillerTest {
                 attraction("첨성대", LocalTime.of(9, 0))
         );
 
-        CreatePlanAiResponse filled = missingSlotFiller.fill(
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
                 original,
                 List.of(healthContext()),
                 new PlaceCandidateContext()
@@ -239,7 +263,7 @@ class MissingSlotFillerTest {
             String mapY
     ) {
 
-        return item(contentId, "12", title, mapX, mapY);
+        return item(contentId, "12", title, mapX, mapY, "HS01");
     }
 
     private Kor2KeywordSearchResponse.Item restaurantItem(
@@ -249,7 +273,7 @@ class MissingSlotFillerTest {
             String mapY
     ) {
 
-        return item(contentId, "39", title, mapX, mapY);
+        return item(contentId, "39", title, mapX, mapY, "FD01");
     }
 
     private Kor2KeywordSearchResponse.Item item(
@@ -257,7 +281,8 @@ class MissingSlotFillerTest {
             String contentTypeId,
             String title,
             String mapX,
-            String mapY
+            String mapY,
+            String categoryCode
     ) {
 
         return new Kor2KeywordSearchResponse.Item(
@@ -279,7 +304,7 @@ class MissingSlotFillerTest {
                 null,
                 null,
                 null,
-                null,
+                categoryCode,
                 null
         );
     }

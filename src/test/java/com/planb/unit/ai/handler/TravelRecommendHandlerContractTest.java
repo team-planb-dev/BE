@@ -3,7 +3,7 @@ package com.planb.unit.ai.handler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.planb.ai.client.OpenAiClient;
 import com.planb.ai.context.PlaceCandidateContext;
-import com.planb.ai.handler.MissingSlotFiller;
+import com.planb.ai.handler.MissingSlotCompleter;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
 import com.planb.ai.context.PlanEditContext;
 import com.planb.ai.context.TravelHealthContext;
@@ -434,7 +434,7 @@ class TravelRecommendHandlerContractTest {
                 editPlanAiResponseConverter,
                 rebuildPlanDayResponseConverter,
                 tourismTool,
-                new MissingSlotFiller(tourismTool));
+                new MissingSlotCompleter(tourismTool));
     }
 
     private PlaceWithRouteResult place(

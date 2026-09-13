@@ -5,7 +5,9 @@ import com.planb.ai.context.TravelHealthContext;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
 import com.planb.ai.mcp.TourismTool;
 import com.planb.domain.travel.entity.constant.CourseType;
+import com.planb.domain.travel.entity.constant.RecommendationTag;
 import com.planb.domain.travel.entity.constant.ScheduleType;
+import com.planb.domain.travel.policy.AttractionTagPolicy;
 import com.planb.domain.travel.policy.MealSlotPolicy;
 import com.planb.domain.travel.policy.TouristPlaceCountPolicy;
 import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
@@ -13,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -31,16 +34,18 @@ import java.util.Set;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class MissingSlotFiller {
+public class MissingSlotCompleter {
 
     private static final int FILLED_STAY_MINUTES = 60;
 
-    // 채워 넣은 관광지를 마지막 일정 뒤에 붙일 때의 최소 간격. 실제 값은 이후 정규화가 다시 잡는다.
+    // 채워 넣은 관광지 앞뒤로 남기는 최소 간격. 실제 값은 이후 정규화가 다시 잡는다.
     private static final int FILLED_GAP_MINUTES = 20;
+
+    private static final LocalTime DEFAULT_DAY_START = LocalTime.of(9, 0);
 
     private final TourismTool tourismTool;
 
-    public CreatePlanAiResponse fill(
+    public CreatePlanAiResponse complete(
             CreatePlanAiResponse response,
             List<TravelHealthContext> healthContexts,
             PlaceCandidateContext candidates
@@ -136,7 +141,9 @@ public class MissingSlotFiller {
                             CourseType.ATTRACTION,
                             candidate,
                             startTime,
-                            null
+                            null,
+                            // AI가 만들지 않은 슬롯이라 태그도 Java가 정한다.
+                            AttractionTagPolicy.tagsOf(candidate.categoryCode())
                     )
             );
 
@@ -222,6 +229,7 @@ public class MissingSlotFiller {
                 continue;
             }
 
+            // 식사 태그는 메뉴와 영양 정보로 결정되므로 이후 단계가 계산한다.
             return placeSlot(
                     mealType,
                     CourseType.RESTAURANT,
@@ -237,7 +245,8 @@ public class MissingSlotFiller {
                             candidate.longitude(),
                             candidate.latitude(),
                             candidate.imageUrl()
-                    )
+                    ),
+                    Set.of()
             );
         }
 
@@ -340,7 +349,8 @@ public class MissingSlotFiller {
             CourseType courseType,
             PlaceCandidateContext.Candidate candidate,
             LocalTime startTime,
-            CreatePlanAiResponse.RestaurantDetail restaurantDetail
+            CreatePlanAiResponse.RestaurantDetail restaurantDetail,
+            Set<RecommendationTag> tags
     ) {
 
         return new CreatePlanAiResponse.PlanScheduleDetail(
@@ -357,27 +367,55 @@ public class MissingSlotFiller {
                 FILLED_STAY_MINUTES,
                 // 이동시간은 확정 좌표로 뒤에서 조회한다.
                 null,
-                Set.of(),
+                tags,
                 null,
                 restaurantDetail,
                 candidate.candidateId()
         );
     }
 
+    /**
+     * 채워 넣을 슬롯의 시작시각.
+     *
+     * 하루의 빈틈 중 가장 이른 곳에 넣는다. 마지막 일정 뒤에만 붙이면
+     * 저녁 식사 다음으로 밀려 심야 관광이 되어버린다.
+     * 낮에 들어갈 틈이 없을 때만 마지막 일정 뒤에 붙인다.
+     */
     private LocalTime nextStartTime(
             List<CreatePlanAiResponse.PlanScheduleDetail> schedules
     ) {
 
-        return schedules
+        List<CreatePlanAiResponse.PlanScheduleDetail> ordered = schedules
                 .stream()
                 .filter(Objects::nonNull)
-                .map(schedule -> schedule.endTime() == null
-                        ? schedule.startTime()
-                        : schedule.endTime())
-                .filter(Objects::nonNull)
-                .max(LocalTime::compareTo)
-                .map(end -> end.plusMinutes(FILLED_GAP_MINUTES))
-                .orElse(LocalTime.of(9, 0));
+                .filter(schedule -> schedule.startTime() != null)
+                .sorted(Comparator.comparing(CreatePlanAiResponse.PlanScheduleDetail::startTime))
+                .toList();
+
+        if (ordered.isEmpty()) {
+            return DEFAULT_DAY_START;
+        }
+
+        int neededMinutes = FILLED_STAY_MINUTES + FILLED_GAP_MINUTES * 2;
+
+        for (int index = 0; index < ordered.size() - 1; index++) {
+            LocalTime previousEnd = endOf(ordered.get(index));
+
+            LocalTime nextStart = ordered.get(index + 1).startTime();
+
+            if (Duration.between(previousEnd, nextStart).toMinutes() >= neededMinutes) {
+                return previousEnd.plusMinutes(FILLED_GAP_MINUTES);
+            }
+        }
+
+        return endOf(ordered.getLast()).plusMinutes(FILLED_GAP_MINUTES);
+    }
+
+    private LocalTime endOf(CreatePlanAiResponse.PlanScheduleDetail schedule) {
+
+        return schedule.endTime() == null
+                ? schedule.startTime()
+                : schedule.endTime();
     }
 
     private CreatePlanAiResponse.PlanScheduleDetail lastPlace(

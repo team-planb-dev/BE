@@ -33,6 +33,7 @@ public class PlaceCandidateContext {
         Candidate candidate = new Candidate(
                 TOUR_PREFIX + item.contentid(),
                 item.contenttypeid(),
+                item.lclsSystm2(),
                 null,
                 item.title(),
                 String.join(" ", text(item.addr1()), text(item.addr2())).trim(),
@@ -53,6 +54,7 @@ public class PlaceCandidateContext {
             candidates.put(result.candidateId(), new Candidate(
                     result.candidateId(),
                     result.categoryCode(),
+                    null,
                     result.categoryName(),
                     result.placeName(),
                     result.address(),
@@ -137,6 +139,8 @@ public class PlaceCandidateContext {
     public record Candidate(
             String candidateId,
             String type,
+            // TourAPI 분류 코드(lclsSystm2). 카카오 후보에는 없다.
+            String categoryCode,
             String categoryName,
             String name,
             String address,
