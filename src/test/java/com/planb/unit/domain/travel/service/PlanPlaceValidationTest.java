@@ -2563,6 +2563,56 @@ class PlanPlaceValidationTest {
     }
 
     @Test
+    @DisplayName("장소 유형에 허용되지 않은 AI 태그를 최종 응답에서 제거")
+    void dropsTagsNotAllowedForCourseType() {
+
+        PlanScheduleDetail tagged = new PlanScheduleDetail(
+                ScheduleType.ACTIVITY,
+                CourseType.ATTRACTION,
+                LocalTime.of(9, 0),
+                LocalTime.of(10, 0),
+                "해운대",
+                "부산",
+                "129.1",
+                "35.1",
+                "원본 사진",
+                "원본 썸네일",
+                60,
+                10,
+                Set.of(
+                        RecommendationTag.NATURAL_SCENERY,
+                        RecommendationTag.LOCAL_FOOD),
+                null,
+                null,
+                "tour:1");
+
+        when(handler.createPlanByAi(any(), any()))
+                .thenAnswer(invocation -> {
+                    recordCandidates(invocation.getArgument(1));
+
+                    return new CreatePlanAiResponse(List.of(new PlanDayDetail(
+                            1,
+                            date,
+                            List.of(tagged))));
+                });
+
+        when(kakao.getRoute(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
+
+        Set<RecommendationTag> tags = service
+                .makePlanByAi(travel)
+                .planDays()
+                .getFirst()
+                .schedules()
+                .getFirst()
+                .tags();
+
+        assertTrue(tags.contains(RecommendationTag.NATURAL_SCENERY), tags.toString());
+
+        assertFalse(tags.contains(RecommendationTag.LOCAL_FOOD), tags.toString());
+    }
+
+    @Test
     @DisplayName("수정 응답의 관광 장소 초과분을 검증 전에 제거")
     void trimsExcessTouristPlacesOnEditPath() {
 

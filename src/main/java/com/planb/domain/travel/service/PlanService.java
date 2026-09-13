@@ -932,6 +932,10 @@ public class PlanService {
             }
         }
 
+        // 장소 유형에 허용되지 않은 태그는 남기지 않는다.
+        // 프롬프트가 CourseType별 후보를 알려주지만 AI 응답이 그걸 항상 지킨다는 보장은 없다.
+        mergedTags.retainAll(RecommendationTag.candidates(schedule.courseType()));
+
         if (mergedTags.equals(nullSafeTags(schedule))) {
             return schedule;
         }
