@@ -27,7 +27,7 @@ import com.planb.domain.user.dto.response.UserCreateResponse;
 import com.planb.domain.user.dto.response.UserDeleteResponse;
 import com.planb.domain.user.facade.UserFacade;
 import com.planb.global.config.exception.dto.ApiResult;
-import com.planb.global.security.dto.UserAuthCache;
+import com.planb.domain.user.dto.response.UserReadResponse;
 
 import java.util.List;
 
@@ -67,11 +67,11 @@ public class UserController {
 
     @Operation(
             summary = "내 인증 정보 조회",
-            description = "로그인한 사용자의 ID, 이메일과 권한 정보를 반환합니다. Access Token을 전달해 주세요."
+            description = "로그인한 사용자의 ID, 이메일, 닉네임과 권한 정보를 반환합니다. Access Token을 전달해 주세요."
     )
     @SecurityRequirement(name = "JWT")
     @GetMapping("/me")
-    public ResponseEntity<ApiResult<UserAuthCache>> read
+    public ResponseEntity<ApiResult<UserReadResponse>> read
             (@AuthenticationPrincipal UserDetails userDetails){
 
         return ResponseEntity
