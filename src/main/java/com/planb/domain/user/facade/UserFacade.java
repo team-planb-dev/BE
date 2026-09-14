@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import com.planb.domain.user.dto.request.UserCreateRequest;
 import com.planb.domain.user.dto.response.UserCreateResponse;
+import com.planb.domain.user.dto.response.UserReadResponse;
 import com.planb.domain.user.dto.response.UserDeleteResponse;
 import com.planb.domain.user.entity.User;
 import com.planb.domain.user.service.UserService;
@@ -112,16 +113,20 @@ public class UserFacade {
     }
 
     /**
-     * 인증 과정에서 재사용할 사용자 정보를 캐시에서 조회한다.
+     * 마이페이지에 보여줄 사용자 정보를 조회한다.
+     *
+     * 닉네임은 인증 캐시에 없고, 캐시에 넣으면 인증 요청마다 읽히는 값이 넓어진다.
+     * 마이페이지는 호출이 드물어 저장소에서 바로 읽는 편이 싸다.
      *
      * @param username 조회할 사용자의 username
-     * @return 캐시된 사용자 인증 정보
+     * @return 마이페이지용 사용자 정보
      */
     @Transactional(readOnly = true)
-    public UserAuthCache findByUsername(String username){
+    public UserReadResponse findByUsername(String username){
 
-        return userQueryService
-                .findByUsernameInCache(username);
+        return UserReadResponse
+                .from(userQueryService
+                        .findByUsername(username));
     }
 
     /**
