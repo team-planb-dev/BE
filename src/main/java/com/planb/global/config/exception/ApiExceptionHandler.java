@@ -17,7 +17,11 @@ import com.planb.global.config.exception.domain.BaseException;
 import com.planb.global.config.exception.domain.ForbiddenException;
 import com.planb.global.config.exception.dto.ApiResult;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+
 import java.nio.file.AccessDeniedException;
+import java.util.stream.Collectors;
 
 import static com.planb.global.config.exception.BaseExceptionEnum.*;
 
@@ -70,6 +74,30 @@ public class ApiExceptionHandler {
             MethodArgumentNotValidException e) {
 
         String errorMessage = extractValidationMessage(e.getBindingResult());
+
+        logWarnException(e, EXCEPTION_VALIDATION);
+
+        return ApiResult.fail(
+                EXCEPTION_VALIDATION.getCode(),
+                errorMessage
+        );
+    }
+
+    /**
+     * Validation 실패 (@RequestParam, @PathVariable 등 메서드 파라미터)
+     *
+     * @Valid가 붙은 본문과 달리 메서드 파라미터 검증은 ConstraintViolationException으로 올라온다.
+     * 잡지 않으면 RuntimeException 핸들러가 시스템 에러로 응답해 원인을 가린다.
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ApiResult<Void> handleConstraintViolationException(
+            ConstraintViolationException e) {
+
+        String errorMessage = e
+                .getConstraintViolations()
+                .stream()
+                .map(ConstraintViolation::getMessage)
+                .collect(Collectors.joining(", "));
 
         logWarnException(e, EXCEPTION_VALIDATION);
 

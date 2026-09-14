@@ -10,6 +10,8 @@ import com.planb.domain.user.dto.response.FindUsernameResponse;
 import com.planb.domain.user.dto.response.RecoveryQuestionResponse;
 import com.planb.domain.user.dto.response.ResetPasswordResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import org.springframework.validation.annotation.Validated;
+import jakarta.validation.constraints.NotBlank;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,6 +32,7 @@ import com.planb.global.security.dto.UserAuthCache;
 import java.util.List;
 
 @Tag(name = "사용자 API", description = "회원가입, 사용자 조회, 계정 복구를 처리합니다.")
+@Validated
 @RestController
 @RequestMapping("/api/v1/user")
 @RequiredArgsConstructor
@@ -102,34 +105,36 @@ public class UserController {
 
     @Operation(
             summary = "이메일 중복 확인",
-            description = "회원가입 ID로 사용할 이메일을 요청 본문에 전달해 주세요. `duplicate`로 중복 여부를 반환합니다."
+            description = "회원가입 ID로 사용할 이메일을 `username` 쿼리 파라미터로 전달해 주세요. `duplicate`로 중복 여부를 반환합니다."
     )
     @GetMapping("/check/duplication/username")
     public ResponseEntity<ApiResult<CheckUsernameDuplicationResponse>> checkUsernameDuplication
-            (@RequestBody CheckUsernameDuplicationRequest checkUsernameDuplicationRequest){
+            (@RequestParam @NotBlank(message = "이메일은 필수 입니다.") String username){
 
         return ResponseEntity
                 .status(HttpStatus
                         .OK)
                 .body(ApiResult
                         .success(userFacade
-                                .checkUsernameDuplication(checkUsernameDuplicationRequest)));
+                                .checkUsernameDuplication(
+                                        new CheckUsernameDuplicationRequest(username))));
     }
 
     @Operation(
             summary = "닉네임 중복 확인",
-            description = "사용할 닉네임을 요청 본문에 전달해 주세요. `duplicate`로 중복 여부를 반환합니다."
+            description = "사용할 닉네임을 `nickname` 쿼리 파라미터로 전달해 주세요. `duplicate`로 중복 여부를 반환합니다."
     )
     @GetMapping("/check/duplication/nickname")
     public ResponseEntity<ApiResult<CheckNicknameDuplicationResponse>> checkNicknameDuplication
-            (@RequestBody CheckNicknameDuplicationRequest checkNicknameDuplicationRequest){
+            (@RequestParam @NotBlank(message = "닉네임은 필수 입니다.") String nickname){
 
         return ResponseEntity
                 .status(HttpStatus
                         .OK)
                 .body(ApiResult
                         .success(userFacade
-                                .checkNicknameDuplication(checkNicknameDuplicationRequest)));
+                                .checkNicknameDuplication(
+                                        new CheckNicknameDuplicationRequest(nickname))));
     }
 
     @Operation(summary = "계정 복구 질문 목록 조회",
