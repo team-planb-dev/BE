@@ -6,6 +6,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.planb.integration.IntegrationTest;
+import com.planb.global.security.repository.UserAuthCacheRepository;
 import com.planb.integration.domain.user.dto.LoginResult;
 import tools.jackson.databind.ObjectMapper;
 
@@ -61,6 +62,9 @@ public class UserIntegrationTest extends IntegrationTest {
     private static final String LOGOUT_URL =
             "/logout";
 
+    private static final String FIND_USERNAME_URL =
+            "/api/v1/user/recovery/username";
+
     private static final String CHECK_USERNAME_DUPLICATION_URL =
             "/api/v1/user/check/duplication/username";
 
@@ -76,6 +80,9 @@ public class UserIntegrationTest extends IntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private UserAuthCacheRepository userAuthCacheRepository;
+
 
     @Test
     @DisplayName("회원가입 성공")
@@ -86,7 +93,7 @@ public class UserIntegrationTest extends IntegrationTest {
 
         UserCreateRequest request =
                 new UserCreateRequest(username,
-                        NICKNAME,
+                        createUniqueNickname(),
                         PASSWORD,
                         RecoveryQuestion.FIRST_PET,
                         "콩이",
@@ -114,7 +121,7 @@ public class UserIntegrationTest extends IntegrationTest {
         String username = createUniqueUsername();
 
         createUser(username,
-                NICKNAME,
+                createUniqueNickname(),
                 PASSWORD);
 
         LoginRequest request =
@@ -179,7 +186,7 @@ public class UserIntegrationTest extends IntegrationTest {
 
         createUser(
                 username,
-                NICKNAME,
+                createUniqueNickname(),
                 PASSWORD
         );
 
@@ -223,7 +230,7 @@ public class UserIntegrationTest extends IntegrationTest {
 
         createUser(
                 username,
-                NICKNAME,
+                createUniqueNickname(),
                 PASSWORD
         );
 
@@ -265,7 +272,7 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String username = createUniqueUsername();
 
-        createUser(username, NICKNAME, PASSWORD);
+        createUser(username, createUniqueNickname(), PASSWORD);
 
         LoginResult loginResult = login(username, PASSWORD);
 
@@ -298,7 +305,7 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String username = createUniqueUsername();
 
-        createUser(username, NICKNAME, PASSWORD);
+        createUser(username, createUniqueNickname(), PASSWORD);
 
         LoginResult loginResult = login(username, PASSWORD);
 
@@ -332,7 +339,7 @@ public class UserIntegrationTest extends IntegrationTest {
 
         createUser(
                 username,
-                NICKNAME,
+                createUniqueNickname(),
                 PASSWORD
         );
 
@@ -401,13 +408,32 @@ public class UserIntegrationTest extends IntegrationTest {
             String password
     ) throws Exception {
 
+        createUser(username, nickname, password, "콩이");
+    }
+
+    // 닉네임은 계정마다 유일해야 하므로 픽스처도 매번 다른 값을 쓴다.
+    private String createUniqueNickname() {
+
+        return NICKNAME + "-" + UUID
+                .randomUUID()
+                .toString()
+                .substring(0, 8);
+    }
+
+    private void createUser(
+            String username,
+            String nickname,
+            String password,
+            String recoveryAnswer
+    ) throws Exception {
+
         UserCreateRequest request =
                 new UserCreateRequest(
                         username,
                         nickname,
                         password,
                         RecoveryQuestion.FIRST_PET,
-                        "콩이",
+                        recoveryAnswer,
                         true,
                         true,
                         true);
@@ -432,7 +458,7 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String username = createUniqueUsername();
 
-        createUser(username, NICKNAME, PASSWORD);
+        createUser(username, createUniqueNickname(), PASSWORD);
 
         LoginRequest request = new LoginRequest(
                 username,
@@ -575,18 +601,11 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String username = createUniqueUsername();
 
-        createUser(username, NICKNAME, PASSWORD);
-
-        String requestBody = """
-            {
-              "username": "%s"
-            }
-            """.formatted(username);
+        createUser(username, createUniqueNickname(), PASSWORD);
 
         // when & then
         mockMvc.perform(get(CHECK_USERNAME_DUPLICATION_URL)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
+                        .param("username", username))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.duplicate").value(true))
@@ -602,16 +621,9 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String username = createUniqueUsername();
 
-        String requestBody = """
-            {
-              "username": "%s"
-            }
-            """.formatted(username);
-
         // when & then
         mockMvc.perform(get(CHECK_USERNAME_DUPLICATION_URL)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
+                        .param("username", username))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.duplicate").value(false))
@@ -627,18 +639,13 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String username = createUniqueUsername();
 
-        createUser(username, NICKNAME, PASSWORD);
+        String nickname = createUniqueNickname();
 
-        String requestBody = """
-            {
-              "nickname": "%s"
-            }
-            """.formatted(NICKNAME);
+        createUser(username, nickname, PASSWORD);
 
         // when & then
         mockMvc.perform(get(CHECK_NICKNAME_DUPLICATION_URL)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
+                        .param("nickname", nickname))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.duplicate").value(true))
@@ -656,16 +663,9 @@ public class UserIntegrationTest extends IntegrationTest {
                 .toString()
                 .substring(0, 8);
 
-        String requestBody = """
-            {
-              "nickname": "%s"
-            }
-            """.formatted(nickname);
-
         // when & then
         mockMvc.perform(get(CHECK_NICKNAME_DUPLICATION_URL)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
+                        .param("nickname", nickname))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.duplicate").value(false))
@@ -681,7 +681,7 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String username = createUniqueUsername();
 
-        createUser(username, NICKNAME, PASSWORD);
+        createUser(username, createUniqueNickname(), PASSWORD);
 
         LoginResult first = login(username, PASSWORD);
 
@@ -709,7 +709,7 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String username = createUniqueUsername();
 
-        createUser(username, NICKNAME, PASSWORD);
+        createUser(username, createUniqueNickname(), PASSWORD);
 
         LoginResult first = login(username, PASSWORD);
 
@@ -736,7 +736,7 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String username = createUniqueUsername();
 
-        createUser(username, NICKNAME, PASSWORD);
+        createUser(username, createUniqueNickname(), PASSWORD);
 
         LoginResult loginResult = login(username, PASSWORD);
 
@@ -752,6 +752,276 @@ public class UserIntegrationTest extends IntegrationTest {
                                 .header("Authorization", loginResult.accessToken()))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    @DisplayName("재발급한 access 토큰으로 내 정보 조회 성공")
+    void reissuedAccessTokenAuthenticates() throws Exception {
+
+        // given
+        String username = createUniqueUsername();
+
+        createUser(username, createUniqueNickname(), PASSWORD);
+
+        LoginResult loginResult = login(username, PASSWORD);
+
+        // when
+        MvcResult reissued = mockMvc
+                .perform(post(REISSUE_URL)
+                        .cookie(loginResult.refreshTokenCookie()))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String reissuedAccessToken = objectMapper
+                .readTree(reissued
+                        .getResponse()
+                        .getContentAsString())
+                .path("data")
+                .path("accessToken")
+                .asString();
+
+        // then
+        mockMvc.perform(
+                        get(USER_ME_URL)
+                                .header("Authorization", "Bearer " + reissuedAccessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    @DisplayName("다른 계정의 로그인은 기존 계정 세션에 영향 없음")
+    void loginOfOtherAccountKeepsExistingSession() throws Exception {
+
+        // given
+        String username = createUniqueUsername();
+        String otherUsername = createUniqueUsername();
+
+        createUser(username, createUniqueNickname(), PASSWORD);
+        createUser(otherUsername, createUniqueNickname(), PASSWORD);
+
+        LoginResult loginResult = login(username, PASSWORD);
+
+        // when
+        login(otherUsername, PASSWORD);
+
+        // then
+        mockMvc.perform(
+                        get(USER_ME_URL)
+                                .header("Authorization", loginResult.accessToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    @DisplayName("인증 캐시가 만료된 뒤 재발급한 access 토큰으로 조회 성공")
+    void reissueRestoresExpiredAuthCache() throws Exception {
+
+        // given
+        String username = createUniqueUsername();
+
+        createUser(username, createUniqueNickname(), PASSWORD);
+
+        LoginResult loginResult = login(username, PASSWORD);
+
+        // 인증 캐시는 access 토큰과 같은 수명을 갖는다.
+        // 그 뒤 refresh로 재발급하는 상황을 만들려면 캐시만 먼저 지워야 한다.
+        userAuthCacheRepository.delete(username);
+
+        mockMvc.perform(
+                        get(USER_ME_URL)
+                                .header("Authorization", loginResult.accessToken()))
+                .andExpect(status().isUnauthorized());
+
+        // when
+        MvcResult reissued = mockMvc
+                .perform(post(REISSUE_URL)
+                        .cookie(loginResult.refreshTokenCookie()))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String reissuedAccessToken = objectMapper
+                .readTree(reissued
+                        .getResponse()
+                        .getContentAsString())
+                .path("data")
+                .path("accessToken")
+                .asString();
+
+        // then
+        mockMvc.perform(
+                        get(USER_ME_URL)
+                                .header("Authorization", "Bearer " + reissuedAccessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    @DisplayName("닉네임과 한글 복구 답변으로 이메일 찾기 성공")
+    void findUsernameWithKoreanAnswer() throws Exception {
+
+        // given
+        String username = createUniqueUsername();
+        String nickname = createUniqueNickname();
+
+        String koreanAnswer = "나비" + UUID.randomUUID()
+                .toString()
+                .substring(0, 8);
+
+        createUser(username, nickname, PASSWORD, koreanAnswer);
+
+        String requestBody = """
+            {
+              "nickname": "%s",
+              "recoveryQuestion": "FIRST_PET",
+              "recoveryAnswer": "%s"
+            }
+            """.formatted(nickname, koreanAnswer);
+
+        // when & then
+        mockMvc.perform(post(FIND_USERNAME_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.maskedUsername")
+                        .value(startsWith(username.substring(0, 2) + "***")));
+    }
+
+    @Test
+    @DisplayName("같은 복구 답변을 쓴 계정이 여럿이어도 닉네임으로 한 건만 특정")
+    void findUsernameWhenAnswerSharedByMultipleAccounts() throws Exception {
+
+        // given
+        String sharedAnswer = "나비" + UUID.randomUUID()
+                .toString()
+                .substring(0, 8);
+
+        String username = createUniqueUsername();
+        String nickname = createUniqueNickname();
+
+        createUser(username, nickname, PASSWORD, sharedAnswer);
+        createUser(createUniqueUsername(), createUniqueNickname(), PASSWORD, sharedAnswer);
+
+        String requestBody = """
+            {
+              "nickname": "%s",
+              "recoveryQuestion": "FIRST_PET",
+              "recoveryAnswer": "%s"
+            }
+            """.formatted(nickname, sharedAnswer);
+
+        // when & then
+        mockMvc.perform(post(FIND_USERNAME_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.maskedUsername")
+                        .value(startsWith(username.substring(0, 2) + "***")));
+    }
+
+    @Test
+    @DisplayName("닉네임은 맞지만 복구 답변이 다르면 이메일 찾기 실패")
+    void findUsernameWithWrongAnswer() throws Exception {
+
+        // given
+        String nickname = createUniqueNickname();
+
+        createUser(createUniqueUsername(), nickname, PASSWORD, "나비");
+
+        String requestBody = """
+            {
+              "nickname": "%s",
+              "recoveryQuestion": "FIRST_PET",
+              "recoveryAnswer": "%s"
+            }
+            """.formatted(nickname, "없는답변" + UUID.randomUUID());
+
+        // when & then
+        mockMvc.perform(post(FIND_USERNAME_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.errorCode")
+                        .value("BASE.EXCEPTION.RECOVERY_ANSWER_MISMATCH"));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 닉네임이면 이메일 찾기 실패")
+    void findUsernameWithUnknownNickname() throws Exception {
+
+        // given
+        String requestBody = """
+            {
+              "nickname": "%s",
+              "recoveryQuestion": "FIRST_PET",
+              "recoveryAnswer": "나비"
+            }
+            """.formatted(createUniqueNickname());
+
+        // when & then
+        mockMvc.perform(post(FIND_USERNAME_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.errorCode")
+                        .value("BASE.EXCEPTION.RECOVERY_ANSWER_MISMATCH"));
+    }
+
+    @Test
+    @DisplayName("이미 사용 중인 닉네임으로 가입 시 실패")
+    void createUserRejectsDuplicateNickname() throws Exception {
+
+        // given
+        String nickname = createUniqueNickname();
+
+        createUser(createUniqueUsername(), nickname, PASSWORD);
+
+        UserCreateRequest request =
+                new UserCreateRequest(createUniqueUsername(),
+                        nickname,
+                        PASSWORD,
+                        RecoveryQuestion.FIRST_PET,
+                        "콩이",
+                        true,
+                        true,
+                        true);
+
+        // when & then
+        mockMvc.perform(post(CREATE_USER_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.errorCode")
+                        .value("BASE.EXCEPTION.DUPLICATE_NICKNAME"));
+    }
+
+    @Test
+    @DisplayName("이미 사용 중인 이메일로 가입 시 실패")
+    void createUserRejectsDuplicateUsername() throws Exception {
+
+        // given
+        String username = createUniqueUsername();
+
+        createUser(username, createUniqueNickname(), PASSWORD);
+
+        UserCreateRequest request =
+                new UserCreateRequest(username,
+                        createUniqueNickname(),
+                        PASSWORD,
+                        RecoveryQuestion.FIRST_PET,
+                        "콩이",
+                        true,
+                        true,
+                        true);
+
+        // when & then
+        mockMvc.perform(post(CREATE_USER_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.errorCode")
+                        .value("BASE.EXCEPTION.DUPLICATE_USERNAME"));
     }
 
 }

@@ -233,9 +233,7 @@ class UserControllerTest {
         // when & then
         mockMvc.perform(
                         get("/api/v1/user/check/duplication/username")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper
-                                        .writeValueAsString(request)))
+                                .param("username", request.username()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success")
                         .value(true))
@@ -270,9 +268,7 @@ class UserControllerTest {
         // when & then
         mockMvc.perform(
                         get("/api/v1/user/check/duplication/nickname")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper
-                                        .writeValueAsString(request)))
+                                .param("nickname", request.nickname()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success")
                         .value(true))
@@ -284,6 +280,40 @@ class UserControllerTest {
         verify(userFacade)
                 .checkNicknameDuplication(
                         any(CheckNicknameDuplicationRequest.class));
+    }
+
+    @Test
+    @DisplayName("빈 username으로 중복 조회 시 검증 실패")
+    void checkUsernameDuplicationRejectsBlank() throws Exception {
+
+        // when & then
+        mockMvc.perform(
+                        get("/api/v1/user/check/duplication/username")
+                                .param("username", " "))
+                .andExpect(jsonPath("$.success")
+                        .value(false))
+                .andExpect(jsonPath("$.error.errorCode")
+                        .value("BASE.EXCEPTION.EXCEPTION_VALIDATION"));
+
+        verify(userFacade, never())
+                .checkUsernameDuplication(any());
+    }
+
+    @Test
+    @DisplayName("빈 nickname으로 중복 조회 시 검증 실패")
+    void checkNicknameDuplicationRejectsBlank() throws Exception {
+
+        // when & then
+        mockMvc.perform(
+                        get("/api/v1/user/check/duplication/nickname")
+                                .param("nickname", " "))
+                .andExpect(jsonPath("$.success")
+                        .value(false))
+                .andExpect(jsonPath("$.error.errorCode")
+                        .value("BASE.EXCEPTION.EXCEPTION_VALIDATION"));
+
+        verify(userFacade, never())
+                .checkNicknameDuplication(any());
     }
 
 }
