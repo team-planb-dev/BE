@@ -256,6 +256,14 @@ class JwtFilterTest {
                 .role())
                 .thenReturn(role);
 
+        when(jwtUtil
+                .getSessionId(accessToken))
+                .thenReturn("sess-1");
+
+        when(userAuthCache
+                .sessionId())
+                .thenReturn("sess-1");
+
         when(userAuthCacheRepository
                 .findByUsername(username))
                 .thenReturn(Optional.of(userAuthCache));
@@ -281,6 +289,61 @@ class JwtFilterTest {
 
     }
 
+    @Test
+    @DisplayName("세션 식별자가 최신 로그인과 다른 access 토큰은 거부")
+    void doFilterInternal_staleSession()
+            throws Exception{
 
+        // given
+        String accessToken = "staleAccessToken";
+        String username = "testUser@example.com";
+
+        UserAuthCache userAuthCache =
+                mock(UserAuthCache.class);
+
+        MockHttpServletRequest request =
+                new MockHttpServletRequest();
+
+        request
+                .addHeader("Authorization", "Bearer "+accessToken);
+
+        MockHttpServletResponse response =
+                new MockHttpServletResponse();
+
+        when(jwtUtil
+                .isExpired(accessToken))
+                .thenReturn(false);
+
+        when(jwtUtil
+                .getCategory(accessToken))
+                .thenReturn("access");
+
+        when(jwtUtil
+                .getUsername(accessToken))
+                .thenReturn(username);
+
+        when(jwtUtil
+                .getSessionId(accessToken))
+                .thenReturn("sess-old");
+
+        when(userAuthCache
+                .sessionId())
+                .thenReturn("sess-new");
+
+        when(userAuthCacheRepository
+                .findByUsername(username))
+                .thenReturn(Optional.of(userAuthCache));
+
+        // when
+        jwtFilter
+                .doFilter(request, response, filterChain);
+
+        // then
+        assertThat(response.getStatus())
+                .isEqualTo(401);
+
+        verify(filterChain, never())
+                .doFilter(request, response);
+    }
 
 }

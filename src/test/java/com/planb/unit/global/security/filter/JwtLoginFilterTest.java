@@ -8,6 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -27,6 +28,7 @@ import com.planb.global.security.filter.JwtLoginFilter;
 import com.planb.global.security.service.RefreshService;
 import com.planb.global.security.service.UserAuthCacheService;
 import com.planb.global.security.util.JwtUtil;
+import com.planb.global.security.util.SessionIdGenerator;
 import com.planb.global.utils.web.CookieUtil;
 
 
@@ -59,6 +61,9 @@ class JwtLoginFilterTest {
 
     @Mock
     private CookieUtil cookieUtil;
+
+    @Mock
+    private SessionIdGenerator sessionIdGenerator;
 
     @Mock
     private FilterChain filterChain;
@@ -107,9 +112,6 @@ class JwtLoginFilterTest {
         // then
         assertThat(result)
                 .isSameAs(authentication);
-
-        verify(refreshService, times(1))
-                .validateAlreadyLogin(username);
 
         ArgumentCaptor<UsernamePasswordAuthenticationToken> captor =
                 ArgumentCaptor.forClass(
@@ -168,19 +170,26 @@ class JwtLoginFilterTest {
         when(userDetails.getUserId())
                 .thenReturn(userId);
 
+        when(sessionIdGenerator.generate())
+                .thenReturn("sess-new");
+
         when(jwtUtil
                 .createJwt(
                         eq("access"),
+                        eq(userId),
                         eq(username),
                         eq(role),
+                        eq("sess-new"),
                         any(Long.class)))
                 .thenReturn("accessToken");
 
         when(jwtUtil
                 .createJwt(
                         eq("refresh"),
+                        eq(userId),
                         eq(username),
                         eq(role),
+                        eq("sess-new"),
                         any(Long.class)))
                 .thenReturn("refreshToken");
 
@@ -243,22 +252,36 @@ class JwtLoginFilterTest {
         assertThat(savedCache.role())
                 .isEqualTo(role);
 
-        verify(refreshService, times(1))
+        assertThat(savedCache.sessionId())
+                .isEqualTo("sess-new");
+
+        // 옛 세션 정리가 새 refresh 저장보다 먼저 일어나야 한다.
+        // 순서가 뒤집히면 방금 발급한 refresh를 지운다.
+        InOrder inOrder = inOrder(refreshService);
+
+        inOrder.verify(refreshService)
+                .deleteRefreshByUsername(username);
+
+        inOrder.verify(refreshService)
                 .addRefresh(username, "refreshToken");
 
         verify(jwtUtil, times(1))
                 .createJwt(
                         eq("access"),
+                        eq(userId),
                         eq(username),
                         eq(role),
+                        eq("sess-new"),
                         any(Long.class)
                 );
 
         verify(jwtUtil, times(1))
                 .createJwt(
                         eq("refresh"),
+                        eq(userId),
                         eq(username),
                         eq(role),
+                        eq("sess-new"),
                         any(Long.class)
                 );
 
@@ -312,14 +335,16 @@ class JwtLoginFilterTest {
                  JwtUtil jwtUtil,
                  RefreshService refreshService,
                  UserAuthCacheService userAuthCacheService,
-                 CookieUtil cookieUtil) {
+                 CookieUtil cookieUtil,
+                 SessionIdGenerator sessionIdGenerator) {
 
             super(objectMapper,
                     authenticationManager,
                     jwtUtil,
                     refreshService,
                     userAuthCacheService,
-                    cookieUtil);
+                    cookieUtil,
+                    sessionIdGenerator);
         }
 
 

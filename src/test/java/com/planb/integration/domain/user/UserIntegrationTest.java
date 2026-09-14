@@ -674,8 +674,84 @@ public class UserIntegrationTest extends IntegrationTest {
                 .andExpect(jsonPath("$.error").isEmpty());
     }
 
+    @Test
+    @DisplayName("재로그인 시 이전 로그인의 access 토큰 거부")
+    void reLoginRevokesPreviousAccessToken() throws Exception {
 
+        // given
+        String username = createUniqueUsername();
 
+        createUser(username, NICKNAME, PASSWORD);
 
+        LoginResult first = login(username, PASSWORD);
+
+        // when
+        LoginResult second = login(username, PASSWORD);
+
+        // then
+        mockMvc.perform(
+                        get(USER_ME_URL)
+                                .header("Authorization", first.accessToken()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false));
+
+        mockMvc.perform(
+                        get(USER_ME_URL)
+                                .header("Authorization", second.accessToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    @DisplayName("로그아웃 후 같은 계정으로 재로그인 성공")
+    void reLoginAfterLogoutSucceeds() throws Exception {
+
+        // given
+        String username = createUniqueUsername();
+
+        createUser(username, NICKNAME, PASSWORD);
+
+        LoginResult first = login(username, PASSWORD);
+
+        mockMvc.perform(
+                        post(LOGOUT_URL)
+                                .cookie(first.refreshTokenCookie()))
+                .andExpect(status().isOk());
+
+        // when
+        LoginResult second = login(username, PASSWORD);
+
+        // then
+        mockMvc.perform(
+                        get(USER_ME_URL)
+                                .header("Authorization", second.accessToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    @DisplayName("refresh 쿠키 없이 로그아웃해도 서버 세션 정리")
+    void logoutWithoutRefreshCookieClearsServerSession() throws Exception {
+
+        // given
+        String username = createUniqueUsername();
+
+        createUser(username, NICKNAME, PASSWORD);
+
+        LoginResult loginResult = login(username, PASSWORD);
+
+        // when
+        mockMvc.perform(
+                        post(LOGOUT_URL)
+                                .header("Authorization", loginResult.accessToken()))
+                .andExpect(status().isOk());
+
+        // then
+        mockMvc.perform(
+                        get(USER_ME_URL)
+                                .header("Authorization", loginResult.accessToken()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false));
+    }
 
 }
