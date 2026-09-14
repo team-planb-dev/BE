@@ -650,6 +650,7 @@ class PlanServiceTest {
                                         1,
                                         List.of(
                                                 attraction("첫날 관광지", 0),
+                                                restaurant("첫날 점심"),
                                                 mustHave("첫날 필수 장소")
                                         )
                                 ),
@@ -657,6 +658,7 @@ class PlanServiceTest {
                                         2,
                                         List.of(
                                                 attraction("둘째날 관광지", 0),
+                                                restaurant("둘째날 점심"),
                                                 mustHave("둘째날 필수 장소")
                                         )
                                 )
@@ -674,7 +676,10 @@ class PlanServiceTest {
                         .planDays()
                         .getFirst()
                         .schedules()
-                        .size()
+                        .stream()
+                        .filter(schedule -> schedule.courseType() == CourseType.ATTRACTION
+                                || schedule.courseType() == CourseType.MUST_HAVE)
+                        .count()
         );
     }
 
@@ -713,7 +718,7 @@ class PlanServiceTest {
         CreatePlanAiResponse.PlanDayDetail day1 =
                 planDay(
                         1,
-                        withRequiredAttractions(medicationWithoutTag())
+                        withRequiredSlots(medicationWithoutTag())
                 );
 
         CreatePlanAiResponse response =
@@ -808,7 +813,7 @@ class PlanServiceTest {
         CreatePlanAiResponse.PlanDayDetail day1 =
                 planDay(
                         1,
-                        withRequiredAttractions(
+                        withRequiredSlots(
                                 lunch,
                                 medicationWithoutTag()
                         )
@@ -942,7 +947,7 @@ class PlanServiceTest {
                         List.of(
                                 planDay(
                                         1,
-                                        withRequiredAttractions(transportationSchedule())
+                                        withRequiredSlots(transportationSchedule())
                                 )
                         )
                 )
@@ -1277,7 +1282,7 @@ class PlanServiceTest {
         CreatePlanAiResponse.PlanDayDetail day1 =
                 planDay(
                         1,
-                        withRequiredAttractions(restaurant("제육볶음"))
+                        withRequiredSlots(restaurant("제육볶음"))
                 );
 
         CreatePlanAiResponse response =
@@ -1534,7 +1539,8 @@ class PlanServiceTest {
         );
     }
 
-    private List<CreatePlanAiResponse.PlanScheduleDetail> withRequiredAttractions(
+    // 관광 장소 개수와 식사 슬롯은 최종 검증 대상이므로 계약을 만족하는 하루를 만든다.
+    private List<CreatePlanAiResponse.PlanScheduleDetail> withRequiredSlots(
             CreatePlanAiResponse.PlanScheduleDetail... schedules
     ) {
 
@@ -1545,7 +1551,8 @@ class PlanServiceTest {
                 List.of(
                         attraction("계약 관광지 1", 0),
                         attraction("계약 관광지 2", 0),
-                        attraction("계약 관광지 3", 0)
+                        attraction("계약 관광지 3", 0),
+                        restaurant("계약 점심")
                 )
         );
 
@@ -1694,8 +1701,9 @@ class PlanServiceTest {
 
     private CreatePlanAiResponse.PlanScheduleDetail restaurant(String menuName) {
 
+        // 12시 음식점은 점심 슬롯이다. scheduleType이 어긋나면 식사 슬롯으로 세어지지 않는다.
         return new CreatePlanAiResponse.PlanScheduleDetail(
-                ScheduleType.ACTIVITY,
+                ScheduleType.LUNCH,
                 CourseType.RESTAURANT,
                 LocalTime.of(12, 0),
                 LocalTime.of(13, 0),

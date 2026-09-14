@@ -35,6 +35,7 @@ import com.planb.domain.travel.service.ScheduleNormalizer;
 import com.planb.global.client.kakaoMapService.dto.response.KakaoPlaceSearchResponse;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
+import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
 import com.planb.global.config.exception.domain.BaseException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
@@ -57,6 +58,8 @@ class PlanPlaceValidationTest {
 
     private final KakaoMapServiceHandler kakao = mock(KakaoMapServiceHandler.class);
 
+    private final TourismTool tourismTool = mock(TourismTool.class);
+
     private final PlanPlaceResolver helper = new PlanPlaceResolver();
 
     private final NutritionEvaluationCollector nutrition = new NutritionEvaluationCollector();
@@ -71,7 +74,7 @@ class PlanPlaceValidationTest {
             handler,
             kakao,
             nutrition,
-            new MissingSlotCompleter(mock(TourismTool.class))
+            new MissingSlotCompleter(tourismTool)
     );
 
     private final LocalDate date = LocalDate.of(2026, 9, 10);
@@ -711,9 +714,13 @@ class PlanPlaceValidationTest {
                         DiseaseType.DIABETES,
                         WalkType.MODERATE,
                         new TravelHealthContext.MealInfoContext(
+                                true,
+                                true,
                                 LocalTime.of(8, 0),
+                                true,
                                 LocalTime.of(12, 0),
-                                LocalTime.of(18, 0)
+                                false,
+                                null
                         ),
                         List.of(),
                         List.of(
@@ -772,6 +779,7 @@ class PlanPlaceValidationTest {
                                                         "이기대",
                                                         11
                                                 ),
+                                                lunchSlot(),
                                                 slot(
                                                         "tour:4",
                                                         "오죽헌",
@@ -794,14 +802,14 @@ class PlanPlaceValidationTest {
                 .findFirst()
                 .orElseThrow();
 
-        // 식후 30분인 13:30은 마지막 관광지 13:00-14:00 안이라 그 장소가 끝난 뒤로 밀린다.
+        // 점심 13:00 식후 30분인 13:30은 마지막 관광지 13:10-14:10 안이라 그 장소가 끝난 뒤로 밀린다.
         assertEquals(
-                LocalTime.of(14, 0),
+                LocalTime.of(14, 10),
                 medication.startTime()
         );
 
         assertEquals(
-                LocalTime.of(14, 10),
+                LocalTime.of(14, 20),
                 medication.endTime()
         );
 
@@ -836,9 +844,13 @@ class PlanPlaceValidationTest {
                         DiseaseType.DIABETES,
                         WalkType.MODERATE,
                         new TravelHealthContext.MealInfoContext(
+                                true,
+                                true,
                                 LocalTime.of(8, 0),
+                                true,
                                 LocalTime.of(12, 0),
-                                LocalTime.of(18, 0)
+                                false,
+                                null
                         ),
                         List.of(),
                         List.of(
@@ -904,6 +916,7 @@ class PlanPlaceValidationTest {
                                                         "이기대",
                                                         11
                                                 ),
+                                                    lunchSlot(),
                                                     slot(
                                                         "tour:4",
                                                         "오죽헌",
@@ -957,14 +970,14 @@ class PlanPlaceValidationTest {
                         .findFirst()
                         .orElseThrow();
 
-        // 식후 30분인 13:30은 마지막 관광지 13:00-14:00 안이라 그 장소가 끝난 뒤로 밀린다.
+        // 점심 13:10 식후 30분인 13:40은 마지막 관광지 13:20-14:20 안이라 그 장소가 끝난 뒤로 밀린다.
         assertEquals(
-                LocalTime.of(14, 0),
+                LocalTime.of(14, 20),
                 medication.startTime()
         );
 
         assertEquals(
-                LocalTime.of(14, 10),
+                LocalTime.of(14, 30),
                 medication.endTime()
         );
 
@@ -994,9 +1007,13 @@ class PlanPlaceValidationTest {
                         DiseaseType.DIABETES,
                         WalkType.MODERATE,
                         new TravelHealthContext.MealInfoContext(
+                                true,
+                                true,
                                 LocalTime.of(8, 0),
+                                true,
                                 LocalTime.of(12, 0),
-                                LocalTime.of(18, 0)
+                                false,
+                                null
                         ),
                         List.of(),
                         List.of(
@@ -1947,9 +1964,13 @@ class PlanPlaceValidationTest {
                         DiseaseType.DIABETES,
                         WalkType.MODERATE,
                         new TravelHealthContext.MealInfoContext(
+                                true,
+                                true,
                                 LocalTime.of(8, 0),
+                                true,
                                 LocalTime.of(12, 0),
-                                LocalTime.of(18, 0)
+                                false,
+                                null
                         ),
                         List.of(),
                         List.of(
@@ -2083,6 +2104,7 @@ class PlanPlaceValidationTest {
                                                             "오죽헌",
                                                             11
                                                     ),
+                                                    lunchSlot(),
                                                     slot(
                                                             "tour:5",
                                                             "경포대",
@@ -2109,14 +2131,14 @@ class PlanPlaceValidationTest {
                         .findFirst()
                         .orElseThrow();
 
-        // 식후 30분인 13:30은 마지막 관광지 13:00-14:00 안이라 그 장소가 끝난 뒤로 밀린다.
+        // 점심 13:10 식후 30분인 13:40은 마지막 관광지 13:20-14:20 안이라 그 장소가 끝난 뒤로 밀린다.
         assertEquals(
-                LocalTime.of(14, 0),
+                LocalTime.of(14, 20),
                 medication.startTime()
         );
 
         assertEquals(
-                LocalTime.of(14, 10),
+                LocalTime.of(14, 30),
                 medication.endTime()
         );
 
@@ -2545,6 +2567,31 @@ class PlanPlaceValidationTest {
                 .valid());
     }
 
+    // 점심시각을 지나는 하루는 식사 슬롯이 있어야 유효한 일정이다.
+    private PlanScheduleDetail lunchSlot() {
+
+        return new PlanScheduleDetail(
+                ScheduleType.LUNCH,
+                CourseType.RESTAURANT,
+                LocalTime.of(12, 0),
+                LocalTime.of(13, 0),
+                "개금밀면",
+                "부산",
+                "129.1",
+                "35.1",
+                "원본 사진",
+                "원본 썸네일",
+                60,
+                0,
+                Set.of(),
+                null,
+                new CreatePlanAiResponse.RestaurantDetail(
+                        "밀면",
+                        null, null, null, null,
+                        "부산", "129.1", "35.1", "원본 사진"),
+                "tour:2784321");
+    }
+
     private void stubCreate(CreatePlanAiResponse response) {
 
         when(
@@ -2560,6 +2607,145 @@ class PlanPlaceValidationTest {
 
                             return response;
                         });
+    }
+
+    @Test
+    @DisplayName("정규화가 일정을 앞당겨 식사시각을 지나게 되면 그 식사 슬롯이 채워짐")
+    void keepsMealSlotsAfterNormalizationShiftsDayEarlier() {
+
+        TravelHealthContext health = new TravelHealthContext(
+                "테스트 여행자",
+                DiseaseType.DIABETES,
+                WalkType.MINIMAL,
+                new TravelHealthContext.MealInfoContext(
+                        LocalTime.of(8, 0),
+                        LocalTime.of(12, 0),
+                        LocalTime.of(18, 0)
+                ),
+                List.of(),
+                List.of());
+
+        // 점심을 등록 시간창에 넣으려면 앞 장소를 120분 당겨야 한다.
+        // 당긴 결과 하루 시작이 08:00 이전이 되어 아침이 하루 시간대 안으로 들어온다.
+        PlanScheduleDetail lunch = new PlanScheduleDetail(
+                ScheduleType.LUNCH,
+                CourseType.RESTAURANT,
+                LocalTime.of(14, 30),
+                LocalTime.of(15, 30),
+                "개금밀면",
+                "부산",
+                "129.1",
+                "35.1",
+                "원본 사진",
+                "원본 썸네일",
+                60,
+                195,
+                Set.of(),
+                null,
+                new CreatePlanAiResponse.RestaurantDetail(
+                        "밀면",
+                        null, null, null, null,
+                        "부산", "129.1", "35.1", "원본 사진"),
+                "tour:2784321");
+
+        when(handler.createPlanByAi(any(), any()))
+                .thenAnswer(invocation -> {
+                    PlaceCandidateContext candidates = invocation.getArgument(1);
+
+                    recordCandidates(candidates);
+
+                    // 점심이 쓰지 않은 여분 음식점, 아침 보정이 고를 대상
+                    candidates.record(tour("2784322", "39", "아침밀면"));
+
+                    return new CreatePlanAiResponse(List.of(new PlanDayDetail(
+                            1,
+                            date,
+                            List.of(
+                                    slot("tour:1", "해운대", 9),
+                                    slot("tour:3", "이기대", 10),
+                                    lunch))));
+                });
+
+        when(tourismTool.getRestaurantDetail(anyString()))
+                .thenReturn(intro("밀면"));
+
+        when(kakao.getRoute(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
+
+        PlanDayDetail day = service
+                .makePlanByAi(new TravelPlanContext(
+                        travel.createTravelRequest(),
+                        List.of(health)))
+                .planDays()
+                .getFirst();
+
+        assertEquals(
+                List.of(),
+                com.planb.domain.travel.policy.MealSlotPolicy.missingMeals(day, List.of(health)),
+                day.schedules().stream()
+                        .map(schedule -> schedule.scheduleType() + "@" + schedule.startTime())
+                        .toList()
+                        .toString());
+    }
+
+    @Test
+    @DisplayName("채울 음식점 후보가 없으면 식사 슬롯 누락으로 거부")
+    void rejectsPlanWhenMissingMealCannotBeFilled() {
+
+        TravelHealthContext health = new TravelHealthContext(
+                "테스트 여행자",
+                DiseaseType.DIABETES,
+                WalkType.MINIMAL,
+                new TravelHealthContext.MealInfoContext(
+                        LocalTime.of(8, 0),
+                        LocalTime.of(12, 0),
+                        LocalTime.of(18, 0)
+                ),
+                List.of(),
+                List.of());
+
+        // 점심이 유일한 음식점 후보를 이미 쓰고 있어 아침을 채울 후보가 남지 않는다.
+        PlanScheduleDetail lunch = new PlanScheduleDetail(
+                ScheduleType.LUNCH,
+                CourseType.RESTAURANT,
+                LocalTime.of(14, 30),
+                LocalTime.of(15, 30),
+                "개금밀면",
+                "부산",
+                "129.1",
+                "35.1",
+                "원본 사진",
+                "원본 썸네일",
+                60,
+                195,
+                Set.of(),
+                null,
+                new CreatePlanAiResponse.RestaurantDetail(
+                        "밀면",
+                        null, null, null, null,
+                        "부산", "129.1", "35.1", "원본 사진"),
+                "tour:2784321");
+
+        stubCreate(new CreatePlanAiResponse(List.of(new PlanDayDetail(
+                1,
+                date,
+                List.of(
+                        slot("tour:1", "해운대", 9),
+                        slot("tour:3", "이기대", 10),
+                        lunch)))));
+
+        when(kakao.getRoute(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
+
+        BaseException exception = assertThrows(
+                BaseException.class,
+                () -> service.makePlanByAi(new TravelPlanContext(
+                        travel.createTravelRequest(),
+                        List.of(health))));
+
+        assertTrue(
+                exception.getMessage().contains("식사 슬롯 누락"),
+                exception.getMessage());
     }
 
     @Test
@@ -2687,6 +2873,24 @@ class PlanPlaceValidationTest {
     }
 
     // 하루 관광지 개수 규칙만 걸리도록 식사시각을 일정 시간대 밖에 둔 동행인
+    private Kor2RestaurantIntroResponse intro(String firstMenu) {
+
+        return new Kor2RestaurantIntroResponse(
+                new Kor2RestaurantIntroResponse.Response(
+                        new Kor2RestaurantIntroResponse.Header("0000", "OK"),
+                        new Kor2RestaurantIntroResponse.Body(
+                                new Kor2RestaurantIntroResponse.Items(
+                                        List.of(
+                                                new Kor2RestaurantIntroResponse.Item(
+                                                        "9",
+                                                        "39",
+                                                        firstMenu,
+                                                        firstMenu))),
+                                1,
+                                1,
+                                1)));
+    }
+
     private TravelHealthContext walkOnlyHealthContext() {
 
         return new TravelHealthContext(
