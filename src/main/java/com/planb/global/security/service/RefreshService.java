@@ -6,8 +6,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.planb.global.config.exception.BaseExceptionEnum;
 import com.planb.global.config.exception.domain.BaseException;
+import com.planb.global.security.dto.UserAuthCache;
 import com.planb.global.security.dto.response.ReissueResponse;
 import com.planb.global.security.repository.UserTokenCacheRepository;
+import com.planb.global.security.util.TokenExpiration;
 import com.planb.global.security.util.JwtUtil;
 import com.planb.global.utils.web.CookieUtil;
 
@@ -20,6 +22,7 @@ public class RefreshService {
     private final JwtUtil jwtUtil;
     private final UserTokenCacheRepository userTokenCacheRepository;
     private final CookieUtil cookieUtil;
+    private final UserAuthCacheService userAuthCacheService;
 
     public ReissueResponse refreshCookies(HttpServletRequest request){
 
@@ -45,6 +48,10 @@ public class RefreshService {
                     BaseExceptionEnum.REFRESH_TOKEN_NOT_FOUND
             );
         }
+
+        // 인증 캐시는 로그인에서만 저장되므로 access 토큰보다 먼저 사라진다.
+        // 여기서 같은 세션으로 다시 채우지 않으면 새 access 토큰도 곧바로 거부된다.
+        restoreUserAuthCache(refresh);
 
         return new ReissueResponse(ReissueResponse.ReissueStatus.REFRESH_REISSUED,
                 LocalDateTime
@@ -72,6 +79,15 @@ public class RefreshService {
                 null);
     }
 
+    private void restoreUserAuthCache(String refresh){
+
+        userAuthCacheService.saveUserAuthCache(new UserAuthCache(
+                jwtUtil.getUserId(refresh),
+                jwtUtil.getUsername(refresh),
+                jwtUtil.getRole(refresh),
+                jwtUtil.getSessionId(refresh)));
+    }
+
     // access 토큰을 초기화 하는 메소드
     private String resetAccessToken
     (HttpServletRequest request){
@@ -83,9 +99,11 @@ public class RefreshService {
 
         return jwtUtil
                 .createJwt("access",
+                        jwtUtil.getUserId(refresh),
                         username,
                         role,
-                        600000*6*24L);
+                        jwtUtil.getSessionId(refresh),
+                        TokenExpiration.ACCESS_TOKEN_EXPIRED_MS);
     }
 
     private String reissueRefresh
@@ -97,10 +115,11 @@ public class RefreshService {
 
         String newRefresh = jwtUtil
                 .createJwt("refresh",
+                        jwtUtil.getUserId(refresh),
                         username,
-                        jwtUtil
-                                .getRole(refresh),
-                        7*600000*6*24L);
+                        jwtUtil.getRole(refresh),
+                        jwtUtil.getSessionId(refresh),
+                        TokenExpiration.REFRESH_TOKEN_EXPIRED_MS);
 
         deleteRefresh(refresh);
 
@@ -116,12 +135,12 @@ public class RefreshService {
         userTokenCacheRepository
                 .save("refresh:user:"+username,
                         refresh,
-                        7*600000*6*24L);
+                        TokenExpiration.REFRESH_TOKEN_EXPIRED_MS);
 
         userTokenCacheRepository
                 .save("refresh:refreshToken:"+refresh,
                         username,
-                        7*600000*6*24L);
+                        TokenExpiration.REFRESH_TOKEN_EXPIRED_MS);
 
     }
 
@@ -158,13 +177,6 @@ public class RefreshService {
         userTokenCacheRepository.delete(userKey);
     }
 
-
-    public void validateAlreadyLogin(String username){
-
-        if (userTokenCacheRepository.exists("refresh:user:" + username)){
-            throw new BaseException(BaseExceptionEnum.USER_ALREADY_LOGIN);
-        }
-    }
 
 
 

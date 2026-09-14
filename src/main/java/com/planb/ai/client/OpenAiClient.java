@@ -2,6 +2,8 @@ package com.planb.ai.client;
 
 import com.planb.ai.mcp.PlanTourismTool;
 import com.planb.ai.prompt.AiPrompt;
+import com.planb.global.config.exception.AiFailure;
+import com.planb.global.config.exception.domain.AiOrchestrationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -65,12 +67,20 @@ public class OpenAiClient {
         try {
             return callEntity(prompt, responseType, tools);
         } catch (RuntimeException e) {
+            if (!retryable(e)) {
+                throw e;
+            }
+
             log.warn(
                     "AI 응답 파싱에 실패하여 1회 재시도합니다. 원인: {}",
                     e.toString()
             );
 
-            return callEntity(prompt, responseType, tools);
+            try {
+                return callEntity(prompt, responseType, tools);
+            } catch (RuntimeException retryFailure) {
+                throw upstreamFailure(retryFailure);
+            }
         }
     }
 
@@ -147,22 +157,28 @@ public class OpenAiClient {
                     tools
             );
         } catch (RuntimeException e) {
+            if (!retryable(e)) {
+                throw e;
+            }
+
             log.warn(
                     "AI 구조화 응답 생성 또는 JSON 파싱 실패 (시도 1/2). 동일 요청으로 1회 재시도합니다. 원인: {}",
                     e.toString()
             );
 
-            prepareRetry(tools);
-
-            return callAndValidate(
-                    prompt,
-                    outputConverter,
-                    validation,
-                    List.of(),
-                    null,
-                    invalidResponses,
-                    tools
-            );
+            try {
+                return callAndValidate(
+                        prompt,
+                        outputConverter,
+                        validation,
+                        List.of(),
+                        null,
+                        invalidResponses,
+                        tools
+                );
+            } catch (RuntimeException retryFailure) {
+                throw upstreamFailure(retryFailure);
+            }
         }
 
         List<String> failures = validationFailures(
@@ -179,8 +195,6 @@ public class OpenAiClient {
                 "AI 구조화 응답 검증 실패 (시도 1/2). correction 요청으로 1회 재시도합니다. 사유: {}",
                 failures
         );
-
-        prepareRetry(tools);
 
         return callAndValidate(
                 prompt,
@@ -217,8 +231,9 @@ public class OpenAiClient {
 
         if (!failures.isEmpty()) {
             if (!invalidResponses.add(generated.content())) {
-                throw new IllegalStateException(
-                        "AI가 동일한 무효 응답을 반복했습니다: " + failures
+                throw new AiOrchestrationException(
+                        AiFailure.RESPONSE_REPEATED_INVALID,
+                        failures.toString()
                 );
             }
 
@@ -227,8 +242,9 @@ public class OpenAiClient {
                     failures
             );
 
-            throw new IllegalStateException(
-                    "AI 구조화 응답 검증 실패: " + failures
+            throw new AiOrchestrationException(
+                    AiFailure.RESPONSE_INVALID,
+                    failures.toString()
             );
         }
 
@@ -296,7 +312,8 @@ public class OpenAiClient {
 
         if (content == null || content.isBlank()) {
             log.warn("AI 구조화 응답이 비어 있습니다.");
-            throw new IllegalStateException("AI 구조화 응답이 비어 있습니다.");
+
+            throw new AiOrchestrationException(AiFailure.RESPONSE_EMPTY);
         }
 
         return content;
@@ -356,15 +373,6 @@ public class OpenAiClient {
         for (Object tool : tools) {
             if (tool instanceof PlanTourismTool planTool) {
                 planTool.resetCandidates();
-            }
-        }
-    }
-
-    private void prepareRetry(Object... tools) {
-
-        for (Object tool : tools) {
-            if (tool instanceof PlanTourismTool planTool) {
-                planTool.prepareRetry();
             }
         }
     }
@@ -449,8 +457,26 @@ public class OpenAiClient {
                     content
             );
 
-            throw e;
+            throw new AiOrchestrationException(AiFailure.RESPONSE_UNPARSABLE, e);
         }
+    }
+
+    // 재시도까지 실패하면 AI 호출 자체의 실패로 분류한다.
+    // 분류되지 않은 SDK 예외(429, 타임아웃, 인증)를 그대로 올리면
+    // BASE.EXCEPTION.EXCEPTION_ISSUED로 나가 프론트가 원인을 구분할 수 없다.
+    private RuntimeException upstreamFailure(RuntimeException exception) {
+
+        return exception instanceof AiOrchestrationException
+                ? exception
+                : new AiOrchestrationException(AiFailure.UPSTREAM_CALL_FAILED, exception);
+    }
+
+    // 같은 요청을 다시 보냈을 때 결과가 달라질 수 있는 실패만 재시도한다.
+    // 분류되지 않은 실패는 AI 호출 자체의 실패로 보고 재시도 대상에 넣는다.
+    private boolean retryable(RuntimeException exception) {
+
+        return !(exception instanceof AiOrchestrationException failure)
+                || failure.getFailure().isRetryable();
     }
 
 

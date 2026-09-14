@@ -53,6 +53,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -100,6 +101,12 @@ public class ChatAiEditPlanIntegrationTest
 
     private static final String EDITED_CAFE_CANDIDATE_ID =
             "kakao:starbucks-harbor-town";
+
+    private static final String RESTAURANT_NAME =
+            "해운대돼지국밥";
+
+    private static final String RESTAURANT_CANDIDATE_ID =
+            "kakao:haeundae-gukbap";
 
     @LocalServerPort
     private int port;
@@ -535,8 +542,8 @@ public class ChatAiEditPlanIntegrationTest
                     )
                     .andExpect(status().isOk())
                     .andExpect(
-                            jsonPath("$.data.planDays[0].schedules[2].locationName")
-                                    .value(EDITED_CAFE_NAME)
+                            jsonPath("$.data.planDays[0].schedules[?(@.courseType == 'CAFE_REST')].locationName")
+                                    .value(hasItem(EDITED_CAFE_NAME))
                     );
 
         } finally {
@@ -658,8 +665,8 @@ public class ChatAiEditPlanIntegrationTest
                     )
                     .andExpect(status().isOk())
                     .andExpect(
-                            jsonPath("$.data.planDays[0].schedules[2].locationName")
-                                    .value(ORIGINAL_CAFE_NAME)
+                            jsonPath("$.data.planDays[0].schedules[?(@.courseType == 'CAFE_REST')].locationName")
+                                    .value(hasItem(ORIGINAL_CAFE_NAME))
                     );
 
         } finally {
@@ -924,6 +931,55 @@ public class ChatAiEditPlanIntegrationTest
                 "CE7",
                 "음식점 > 카페"
         ));
+
+        // 등록 식사시각이 하루 시간대 안에 있으면 식사 슬롯이 반드시 있어야 한다.
+        // 채워 넣을 후보가 없으면 일정 저장 자체가 거부되므로 음식점 후보도 함께 둔다.
+        candidates.record(new PlaceWithRouteResult(
+                true,
+                RESTAURANT_NAME,
+                "부산광역시 해운대구",
+                "129.1595",
+                "35.1600",
+                null,
+                RESTAURANT_CANDIDATE_ID,
+                "FD6",
+                "음식점 > 한식 > 국밥"
+        ));
+    }
+
+    // 등록 점심시각(12:00)에 맞춘 식사 슬롯.
+    // 하루 시간대가 09:00~14:00이라 점심만 요구 대상이 된다.
+    private CreatePlanAiResponse.PlanScheduleDetail lunchSlot() {
+
+        return new CreatePlanAiResponse.PlanScheduleDetail(
+                ScheduleType.LUNCH,
+                CourseType.RESTAURANT,
+                LocalTime.of(12, 0),
+                LocalTime.of(13, 0),
+                RESTAURANT_NAME,
+                "부산광역시 해운대구",
+                null,
+                null,
+                null,
+                null,
+                60,
+                10,
+                Set.of(RecommendationTag.MEAL_TIME_APPLIED),
+                null,
+                // 식사 슬롯은 메뉴명이 있어야 검증을 통과한다.
+                new CreatePlanAiResponse.RestaurantDetail(
+                        "돼지국밥",
+                        null,
+                        null,
+                        null,
+                        null,
+                        "부산광역시 해운대구",
+                        "129.1595",
+                        "35.1600",
+                        null
+                ),
+                RESTAURANT_CANDIDATE_ID
+        );
     }
 
     // 초기 일정 AI 응답 고정값 (관광지 2곳·카페 1곳, 경로 조회 결과는 Kakao Handler Mock으로 고정)
@@ -994,7 +1050,7 @@ public class ChatAiEditPlanIntegrationTest
                 new CreatePlanAiResponse.PlanDayDetail(
                         1,
                         LocalDate.now().plusDays(7),
-                        List.of(attraction, secondAttraction, cafe)
+                        List.of(attraction, secondAttraction, lunchSlot(), cafe)
                 );
 
         return new CreatePlanAiResponse(
@@ -1081,7 +1137,7 @@ public class ChatAiEditPlanIntegrationTest
                 new CreatePlanAiResponse.PlanDayDetail(
                         1,
                         LocalDate.now().plusDays(7),
-                        List.of(attraction, secondAttraction, editedCafe)
+                        List.of(attraction, secondAttraction, lunchSlot(), editedCafe)
                 );
 
         return new EditPlanAiResponse(

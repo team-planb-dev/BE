@@ -25,6 +25,7 @@ import com.planb.global.security.repository.UserAuthCacheRepository;
 import com.planb.global.security.service.RefreshService;
 import com.planb.global.security.service.UserAuthCacheService;
 import com.planb.global.security.util.JwtUtil;
+import com.planb.global.security.util.SessionIdGenerator;
 import com.planb.global.security.validator.RefreshTokenValidator;
 import com.planb.global.utils.web.CookieUtil;
 
@@ -40,6 +41,7 @@ public class SecurityConfig {
     private final RefreshTokenValidator refreshTokenValidator;
     private final ObjectMapper objectMapper;
     private final UserAuthCacheRepository userAuthCacheRepository;
+    private final SessionIdGenerator sessionIdGenerator;
 
 
     @Bean
@@ -84,7 +86,8 @@ public class SecurityConfig {
                 jwtUtil,
                 refreshService,
                 userAuthCacheService,
-                cookieUtil);
+                cookieUtil,
+                sessionIdGenerator);
     }
 
     @Bean

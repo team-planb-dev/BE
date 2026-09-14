@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class KakaoMapRouteHelperTest {
@@ -113,7 +114,8 @@ class KakaoMapRouteHelperTest {
                 kakaoMapRouteHelper.makePublicTrafficRouteResult(
                         "경복궁",
                         "남산서울타워",
-                        response
+                        response,
+                        points()
                 );
 
         assertEquals(
@@ -155,7 +157,8 @@ class KakaoMapRouteHelperTest {
                                 .makePublicTrafficRouteResult(
                                         "경복궁",
                                         "남산서울타워",
-                                        response
+                                        response,
+                                        points()
                                 )
         );
     }
@@ -178,8 +181,94 @@ class KakaoMapRouteHelperTest {
                                 .makePublicTrafficRouteResult(
                                         "경복궁",
                                         "남산서울타워",
-                                        response
+                                        response,
+                                        points()
                                 )
+        );
+    }
+
+    @Test
+    @DisplayName("도보권 대중교통 경로 없음의 도보 시간 추정")
+    void estimatesWalkingWhenNoTransitRouteWithinWalkableDistance() {
+
+        // 경복궁 -> 스타벅스 경복궁역점. 직선 약 375m 구간이라 대중교통 경로가 없다.
+        KakaoRouteResult result =
+                kakaoMapRouteHelper.makePublicTrafficRouteResult(
+                        "경복궁",
+                        "스타벅스 경복궁역점",
+                        noResults(),
+                        new KakaoMapRouteHelper.RoutePoints(
+                                "126.97689786832184",
+                                "37.577613288258206",
+                                "126.972676532641",
+                                "37.5772042362666"
+                        )
+                );
+
+        assertEquals(
+                7,
+                result.travelMinutes()
+        );
+
+        assertTrue(
+                result.distanceMeters() >= 480
+                        && result.distanceMeters() <= 495,
+                "우회 보정 거리: " + result.distanceMeters()
+        );
+    }
+
+    @Test
+    @DisplayName("도보권을 넘는 대중교통 경로 없음의 추정 포기")
+    void failsWhenNoTransitRouteBeyondWalkableDistance() {
+
+        // 직선 약 2.6km. 도보로 제시하면 일정 자체가 비현실적이 된다.
+        assertThrows(
+                IllegalStateException.class,
+                () -> kakaoMapRouteHelper.makePublicTrafficRouteResult(
+                        "출발",
+                        "도착",
+                        noResults(),
+                        new KakaoMapRouteHelper.RoutePoints(
+                                "126.90",
+                                "37.50",
+                                "126.93",
+                                "37.50"
+                        )
+                )
+        );
+    }
+
+    @Test
+    @DisplayName("좌표 없는 대중교통 경로 없음의 추정 불가")
+    void failsWhenNoTransitRouteWithoutCoordinates() {
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> kakaoMapRouteHelper.makePublicTrafficRouteResult(
+                        "출발",
+                        "도착",
+                        noResults(),
+                        points()
+                )
+        );
+    }
+
+    private KakaoPublicTrafficRouteResponse noResults() {
+
+        return new KakaoPublicTrafficRouteResponse(
+                "NO_RESULTS",
+                null,
+                List.of()
+        );
+    }
+
+    private KakaoMapRouteHelper.RoutePoints points() {
+
+        return new KakaoMapRouteHelper.RoutePoints(
+                null,
+                null,
+                null,
+                null
         );
     }
 

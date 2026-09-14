@@ -73,8 +73,8 @@ public class HealthIntegrationTest extends IntegrationTest {
     /*
     테스트 User 정보
      */
-    private static final String NICKNAME =
-            "healthTestNickname";
+    private static final String NICKNAME_PREFIX =
+            "healthTestNickname-";
 
     private static final String PASSWORD =
             "test1234!";
@@ -652,7 +652,10 @@ public class HealthIntegrationTest extends IntegrationTest {
         UserCreateRequest request =
                 new UserCreateRequest(
                         username,
-                        NICKNAME,
+                        NICKNAME_PREFIX + UUID
+                                .randomUUID()
+                                .toString()
+                                .substring(0, 8),
                         PASSWORD,
                         RecoveryQuestion.FIRST_PET,
                         "콩이",

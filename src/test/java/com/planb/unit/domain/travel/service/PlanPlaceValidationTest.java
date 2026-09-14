@@ -10,10 +10,11 @@ import com.planb.ai.dto.response.CreatePlanAiResponse.PlanScheduleDetail;
 import com.planb.ai.dto.response.EditPlanAiResponse;
 import com.planb.ai.dto.response.RebuildPlanDayResponse;
 import com.planb.ai.dto.response.PlanEditScope;
-import com.planb.domain.travel.helper.PlanEditValidationHelper;
+import com.planb.domain.travel.helper.PlanEditValidator;
 import org.junit.jupiter.api.BeforeEach;
 import com.planb.ai.dto.response.KakaoRouteResult;
 import com.planb.ai.dto.response.PlaceWithRouteResult;
+import com.planb.ai.handler.MissingSlotCompleter;
 import com.planb.ai.handler.TravelRecommendHandler;
 import com.planb.ai.mcp.NutritionEvaluationCollector;
 import com.planb.ai.mcp.PlanTourismTool;
@@ -27,12 +28,14 @@ import com.planb.domain.health.entity.constant.WalkType;
 import com.planb.domain.travel.dto.request.CreateTravelRequest;
 import com.planb.domain.travel.dto.response.GetAiPlanResponse;
 import com.planb.domain.travel.entity.constant.*;
-import com.planb.domain.travel.helper.PlanPlaceHelper;
+import com.planb.domain.travel.helper.PlanPlaceResolver;
 import com.planb.domain.travel.repository.PlanRepository;
 import com.planb.domain.travel.service.PlanService;
+import com.planb.domain.travel.service.ScheduleNormalizer;
 import com.planb.global.client.kakaoMapService.dto.response.KakaoPlaceSearchResponse;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
+import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
 import com.planb.global.config.exception.domain.BaseException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
@@ -43,27 +46,35 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Set;
 import java.util.ArrayList;
+import java.util.HashSet;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 class PlanPlaceValidationTest {
     private final TravelRecommendHandler handler = mock(TravelRecommendHandler.class);
 
     private final KakaoMapServiceHandler kakao = mock(KakaoMapServiceHandler.class);
 
-    private final PlanPlaceHelper helper = new PlanPlaceHelper(kakao);
+    private final TourismTool tourismTool = mock(TourismTool.class);
+
+    private final PlanPlaceResolver helper = new PlanPlaceResolver();
 
     private final NutritionEvaluationCollector nutrition = new NutritionEvaluationCollector();
+
+    private final ScheduleNormalizer scheduleNormalizer = new ScheduleNormalizer(helper);
 
     private final PlanService service = new PlanService(
             mock(PlanRepository.class),
             helper,
-            new PlanEditValidationHelper(),
+            new PlanEditValidator(),
+            scheduleNormalizer,
             handler,
             kakao,
-            nutrition
+            nutrition,
+            new MissingSlotCompleter(tourismTool)
     );
 
     private final LocalDate date = LocalDate.of(2026, 9, 10);
@@ -85,6 +96,13 @@ class PlanPlaceValidationTest {
 
     @BeforeEach
     void ordinaryEditScope() {
+
+        // travelMinutes가 0인 슬롯도 재조회 대상이라 기본 응답이 필요하다.
+        // 조회 실패(이동시간 없음)를 기본으로 두어 각 테스트가 필요할 때만 값을 덮어쓴다.
+        org.mockito.Mockito
+                .lenient()
+                .when(kakao.getRoute(any(), any(), any()))
+                .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, null)));
 
         org.mockito.Mockito
                 .lenient()
@@ -111,7 +129,7 @@ class PlanPlaceValidationTest {
 
         candidates.record(tour("2784321", "39", "개금밀면"));
 
-        PlanPlaceHelper.Validation result = helper
+        PlanPlaceResolver.Validation result = helper
                 .validate(
                         slot(
                                 "tour:2784321",
@@ -142,7 +160,7 @@ class PlanPlaceValidationTest {
 
         candidates.record(tour("1", "12", "경복궁"));
 
-        PlanPlaceHelper.Validation result = helper
+        PlanPlaceResolver.Validation result = helper
                 .validate(
                         slot(
                                 "tour:missing",
@@ -329,7 +347,7 @@ class PlanPlaceValidationTest {
         candidates
                 .record(tour("1", "12", "해운대"));
 
-        PlanPlaceHelper.Validation result =
+        PlanPlaceResolver.Validation result =
                 helper
                         .validate(
                                 slot(
@@ -406,7 +424,7 @@ class PlanPlaceValidationTest {
     }
 
     @Test
-    @DisplayName("카카오 원본 유형과 일정 유형 조합의 독립 검증")
+    @DisplayName("카카오 원본 유형의 독립 검증과 어긋난 조합의 교정")
     void kakaoExistenceAloneCannotCertifyAttractionAndCombinationIsIndependent() {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();
@@ -469,15 +487,17 @@ class PlanPlaceValidationTest {
                 "tour:1"
         );
 
-        assertTrue(
+        // 조합이 어긋나면 거부가 아니라 courseType 기준으로 교정한다.
+        assertEquals(
+                ScheduleType.ACTIVITY,
                 helper
                         .validate(
                                 wrongCombination,
                                 candidates,
                                 Set.of(),
                                 Set.of())
-                        .reason()
-                        .contains("조합"));
+                        .schedule()
+                        .scheduleType());
     }
 
     @Test
@@ -694,9 +714,13 @@ class PlanPlaceValidationTest {
                         DiseaseType.DIABETES,
                         WalkType.MODERATE,
                         new TravelHealthContext.MealInfoContext(
+                                true,
+                                true,
                                 LocalTime.of(8, 0),
+                                true,
                                 LocalTime.of(12, 0),
-                                LocalTime.of(18, 0)
+                                false,
+                                null
                         ),
                         List.of(),
                         List.of(
@@ -755,6 +779,7 @@ class PlanPlaceValidationTest {
                                                         "이기대",
                                                         11
                                                 ),
+                                                lunchSlot(),
                                                 slot(
                                                         "tour:4",
                                                         "오죽헌",
@@ -777,13 +802,14 @@ class PlanPlaceValidationTest {
                 .findFirst()
                 .orElseThrow();
 
+        // 점심 13:00 식후 30분인 13:30은 마지막 관광지 13:10-14:10 안이라 그 장소가 끝난 뒤로 밀린다.
         assertEquals(
-                LocalTime.of(12, 30),
+                LocalTime.of(14, 10),
                 medication.startTime()
         );
 
         assertEquals(
-                LocalTime.of(12, 40),
+                LocalTime.of(14, 20),
                 medication.endTime()
         );
 
@@ -818,9 +844,13 @@ class PlanPlaceValidationTest {
                         DiseaseType.DIABETES,
                         WalkType.MODERATE,
                         new TravelHealthContext.MealInfoContext(
+                                true,
+                                true,
                                 LocalTime.of(8, 0),
+                                true,
                                 LocalTime.of(12, 0),
-                                LocalTime.of(18, 0)
+                                false,
+                                null
                         ),
                         List.of(),
                         List.of(
@@ -886,6 +916,7 @@ class PlanPlaceValidationTest {
                                                         "이기대",
                                                         11
                                                 ),
+                                                    lunchSlot(),
                                                     slot(
                                                         "tour:4",
                                                         "오죽헌",
@@ -939,13 +970,14 @@ class PlanPlaceValidationTest {
                         .findFirst()
                         .orElseThrow();
 
+        // 점심 13:10 식후 30분인 13:40은 마지막 관광지 13:20-14:20 안이라 그 장소가 끝난 뒤로 밀린다.
         assertEquals(
-                LocalTime.of(12, 30),
+                LocalTime.of(14, 20),
                 medication.startTime()
         );
 
         assertEquals(
-                LocalTime.of(12, 40),
+                LocalTime.of(14, 30),
                 medication.endTime()
         );
 
@@ -975,9 +1007,13 @@ class PlanPlaceValidationTest {
                         DiseaseType.DIABETES,
                         WalkType.MODERATE,
                         new TravelHealthContext.MealInfoContext(
+                                true,
+                                true,
                                 LocalTime.of(8, 0),
+                                true,
                                 LocalTime.of(12, 0),
-                                LocalTime.of(18, 0)
+                                false,
+                                null
                         ),
                         List.of(),
                         List.of(
@@ -1127,7 +1163,7 @@ class PlanPlaceValidationTest {
         );
 
         assertEquals(
-                LocalTime.of(13, 0),
+                LocalTime.of(14, 0),
                 medication.startTime()
         );
     }
@@ -1693,7 +1729,7 @@ class PlanPlaceValidationTest {
                                 "첫날 수정"));
 
         assertEquals(
-                original,
+                preserved(original),
                 result
                         .planDays()
                         .get(0)
@@ -1717,8 +1753,8 @@ class PlanPlaceValidationTest {
     }
 
     @Test
-    @DisplayName("관광지로 잘못 분류된 기존 음식점 복원 거부")
-    void editCannotRestoreRestaurantMislabelledAsAttraction() {
+    @DisplayName("유형이 잘못 저장된 기존 슬롯의 편집 중단 없는 통과")
+    void editKeepsGoingWhenPersistedSlotTypeIsWrong() {
 
         PlanScheduleDetail invalid = slot(
                 "tour:2784321",
@@ -1750,31 +1786,32 @@ class PlanPlaceValidationTest {
                                     true);
                         });
 
-        when(
-                kakao
-                        .searchPlace("개금밀면"))
-                .thenReturn(
-                        Mono
-                                .just(
-                                        kakaoPlace(
-                                                "FD6",
-                                                "개금밀면")));
+        // 확정 저장된 슬롯은 외부 검색으로 다시 확인하지 않는다.
+        // 저장 시점 검증을 통과한 값이므로, 유형이 어긋나 있어도 편집을 실패시키지 않고 그대로 보존한다.
+        EditPlanAiResponse result = service
+                .makeEditPlanByAi(
+                        new PlanEditContext(
+                                travel
+                                        .createTravelRequest(),
+                                List
+                                        .of(),
+                                existing(invalid),
+                                "수정"));
 
-        assertThrows(
-                BaseException.class,
-                () -> service
-                        .makeEditPlanByAi(
-                                new PlanEditContext(
-                                        travel
-                                                .createTravelRequest(),
-                                        List
-                                                .of(),
-                                        existing(invalid),
-                                        "수정")));
+        assertEquals(
+                "개금밀면",
+                result
+                        .planDays()
+                        .getFirst()
+                        .schedules()
+                        .getFirst()
+                        .locationName());
+
+        verifyNoInteractions(kakao);
     }
 
     @Test
-    @DisplayName("변경되지 않은 요청 날짜만 재구성하고 다른 날짜 보존")
+    @DisplayName("변경되지 않은 요청 날짜만 재구성과 직후 날짜 첫 이동시간 갱신")
     void rebuildsOnlyUnchangedRequestedDayThroughService() {
 
         PlanEditContext context = rebuildContext();
@@ -1876,10 +1913,10 @@ class PlanPlaceValidationTest {
                                 .plusDays(1),
                         List
                                 .of(
-                                        slot(
+                                        preserved(slot(
                                                 "kakao:old",
                                                 "이기대",
-                                                9))),
+                                                9)))),
                 result
                         .planDays()
                         .get(1));
@@ -1900,11 +1937,12 @@ class PlanPlaceValidationTest {
                         anyString(),
                         any());
 
+        // 재구성 날짜 직후 보존 날짜의 첫 장소는 바뀐 마지막 장소 기준으로 다시 계산한다
         verify(
                 kakao,
-                never())
+                times(1))
                 .getRoute(
-                        anyString(),
+                        eq("동백섬"),
                         eq("이기대"),
                         any());
     }
@@ -1926,9 +1964,13 @@ class PlanPlaceValidationTest {
                         DiseaseType.DIABETES,
                         WalkType.MODERATE,
                         new TravelHealthContext.MealInfoContext(
+                                true,
+                                true,
                                 LocalTime.of(8, 0),
+                                true,
                                 LocalTime.of(12, 0),
-                                LocalTime.of(18, 0)
+                                false,
+                                null
                         ),
                         List.of(),
                         List.of(
@@ -2062,6 +2104,7 @@ class PlanPlaceValidationTest {
                                                             "오죽헌",
                                                             11
                                                     ),
+                                                    lunchSlot(),
                                                     slot(
                                                             "tour:5",
                                                             "경포대",
@@ -2088,13 +2131,14 @@ class PlanPlaceValidationTest {
                         .findFirst()
                         .orElseThrow();
 
+        // 점심 13:10 식후 30분인 13:40은 마지막 관광지 13:20-14:20 안이라 그 장소가 끝난 뒤로 밀린다.
         assertEquals(
-                LocalTime.of(12, 30),
+                LocalTime.of(14, 20),
                 medication.startTime()
         );
 
         assertEquals(
-                LocalTime.of(12, 40),
+                LocalTime.of(14, 30),
                 medication.endTime()
         );
 
@@ -2272,7 +2316,7 @@ class PlanPlaceValidationTest {
     @DisplayName("불명확한 대상 날짜 및 장소 표기만 바꾼 응답 거부")
     void scopeAndPlaceComparisonRejectAmbiguousDayAndCosmeticChanges() {
 
-        PlanEditValidationHelper validation = new PlanEditValidationHelper();
+        PlanEditValidator validation = new PlanEditValidator();
 
         assertThrows(
                 BaseException.class,
@@ -2523,6 +2567,31 @@ class PlanPlaceValidationTest {
                 .valid());
     }
 
+    // 점심시각을 지나는 하루는 식사 슬롯이 있어야 유효한 일정이다.
+    private PlanScheduleDetail lunchSlot() {
+
+        return new PlanScheduleDetail(
+                ScheduleType.LUNCH,
+                CourseType.RESTAURANT,
+                LocalTime.of(12, 0),
+                LocalTime.of(13, 0),
+                "개금밀면",
+                "부산",
+                "129.1",
+                "35.1",
+                "원본 사진",
+                "원본 썸네일",
+                60,
+                0,
+                Set.of(),
+                null,
+                new CreatePlanAiResponse.RestaurantDetail(
+                        "밀면",
+                        null, null, null, null,
+                        "부산", "129.1", "35.1", "원본 사진"),
+                "tour:2784321");
+    }
+
     private void stubCreate(CreatePlanAiResponse response) {
 
         when(
@@ -2538,6 +2607,317 @@ class PlanPlaceValidationTest {
 
                             return response;
                         });
+    }
+
+    @Test
+    @DisplayName("정규화가 일정을 앞당겨 식사시각을 지나게 되면 그 식사 슬롯이 채워짐")
+    void keepsMealSlotsAfterNormalizationShiftsDayEarlier() {
+
+        TravelHealthContext health = new TravelHealthContext(
+                "테스트 여행자",
+                DiseaseType.DIABETES,
+                WalkType.MINIMAL,
+                new TravelHealthContext.MealInfoContext(
+                        LocalTime.of(8, 0),
+                        LocalTime.of(12, 0),
+                        LocalTime.of(18, 0)
+                ),
+                List.of(),
+                List.of());
+
+        // 점심을 등록 시간창에 넣으려면 앞 장소를 120분 당겨야 한다.
+        // 당긴 결과 하루 시작이 08:00 이전이 되어 아침이 하루 시간대 안으로 들어온다.
+        PlanScheduleDetail lunch = new PlanScheduleDetail(
+                ScheduleType.LUNCH,
+                CourseType.RESTAURANT,
+                LocalTime.of(14, 30),
+                LocalTime.of(15, 30),
+                "개금밀면",
+                "부산",
+                "129.1",
+                "35.1",
+                "원본 사진",
+                "원본 썸네일",
+                60,
+                195,
+                Set.of(),
+                null,
+                new CreatePlanAiResponse.RestaurantDetail(
+                        "밀면",
+                        null, null, null, null,
+                        "부산", "129.1", "35.1", "원본 사진"),
+                "tour:2784321");
+
+        when(handler.createPlanByAi(any(), any()))
+                .thenAnswer(invocation -> {
+                    PlaceCandidateContext candidates = invocation.getArgument(1);
+
+                    recordCandidates(candidates);
+
+                    // 점심이 쓰지 않은 여분 음식점, 아침 보정이 고를 대상
+                    candidates.record(tour("2784322", "39", "아침밀면"));
+
+                    return new CreatePlanAiResponse(List.of(new PlanDayDetail(
+                            1,
+                            date,
+                            List.of(
+                                    slot("tour:1", "해운대", 9),
+                                    slot("tour:3", "이기대", 10),
+                                    lunch))));
+                });
+
+        when(tourismTool.getRestaurantDetail(anyString()))
+                .thenReturn(intro("밀면"));
+
+        when(kakao.getRoute(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
+
+        PlanDayDetail day = service
+                .makePlanByAi(new TravelPlanContext(
+                        travel.createTravelRequest(),
+                        List.of(health)))
+                .planDays()
+                .getFirst();
+
+        assertEquals(
+                List.of(),
+                com.planb.domain.travel.policy.MealSlotPolicy.missingMeals(day, List.of(health)),
+                day.schedules().stream()
+                        .map(schedule -> schedule.scheduleType() + "@" + schedule.startTime())
+                        .toList()
+                        .toString());
+    }
+
+    @Test
+    @DisplayName("채울 음식점 후보가 없으면 식사 슬롯 누락으로 거부")
+    void rejectsPlanWhenMissingMealCannotBeFilled() {
+
+        TravelHealthContext health = new TravelHealthContext(
+                "테스트 여행자",
+                DiseaseType.DIABETES,
+                WalkType.MINIMAL,
+                new TravelHealthContext.MealInfoContext(
+                        LocalTime.of(8, 0),
+                        LocalTime.of(12, 0),
+                        LocalTime.of(18, 0)
+                ),
+                List.of(),
+                List.of());
+
+        // 점심이 유일한 음식점 후보를 이미 쓰고 있어 아침을 채울 후보가 남지 않는다.
+        PlanScheduleDetail lunch = new PlanScheduleDetail(
+                ScheduleType.LUNCH,
+                CourseType.RESTAURANT,
+                LocalTime.of(14, 30),
+                LocalTime.of(15, 30),
+                "개금밀면",
+                "부산",
+                "129.1",
+                "35.1",
+                "원본 사진",
+                "원본 썸네일",
+                60,
+                195,
+                Set.of(),
+                null,
+                new CreatePlanAiResponse.RestaurantDetail(
+                        "밀면",
+                        null, null, null, null,
+                        "부산", "129.1", "35.1", "원본 사진"),
+                "tour:2784321");
+
+        stubCreate(new CreatePlanAiResponse(List.of(new PlanDayDetail(
+                1,
+                date,
+                List.of(
+                        slot("tour:1", "해운대", 9),
+                        slot("tour:3", "이기대", 10),
+                        lunch)))));
+
+        when(kakao.getRoute(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
+
+        BaseException exception = assertThrows(
+                BaseException.class,
+                () -> service.makePlanByAi(new TravelPlanContext(
+                        travel.createTravelRequest(),
+                        List.of(health))));
+
+        assertTrue(
+                exception.getMessage().contains("식사 슬롯 누락"),
+                exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("장소 유형에 허용되지 않은 AI 태그를 최종 응답에서 제거")
+    void dropsTagsNotAllowedForCourseType() {
+
+        PlanScheduleDetail tagged = new PlanScheduleDetail(
+                ScheduleType.ACTIVITY,
+                CourseType.ATTRACTION,
+                LocalTime.of(9, 0),
+                LocalTime.of(10, 0),
+                "해운대",
+                "부산",
+                "129.1",
+                "35.1",
+                "원본 사진",
+                "원본 썸네일",
+                60,
+                10,
+                Set.of(
+                        RecommendationTag.NATURAL_SCENERY,
+                        RecommendationTag.LOCAL_FOOD),
+                null,
+                null,
+                "tour:1");
+
+        when(handler.createPlanByAi(any(), any()))
+                .thenAnswer(invocation -> {
+                    recordCandidates(invocation.getArgument(1));
+
+                    return new CreatePlanAiResponse(List.of(new PlanDayDetail(
+                            1,
+                            date,
+                            List.of(tagged))));
+                });
+
+        when(kakao.getRoute(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
+
+        Set<RecommendationTag> tags = service
+                .makePlanByAi(travel)
+                .planDays()
+                .getFirst()
+                .schedules()
+                .getFirst()
+                .tags();
+
+        assertTrue(tags.contains(RecommendationTag.NATURAL_SCENERY), tags.toString());
+
+        assertFalse(tags.contains(RecommendationTag.LOCAL_FOOD), tags.toString());
+    }
+
+    @Test
+    @DisplayName("수정 응답의 관광 장소 초과분을 검증 전에 제거")
+    void trimsExcessTouristPlacesOnEditPath() {
+
+        PlanScheduleDetail place = slot("tour:1", "해운대", 9);
+
+        when(handler.editPlanByAi(any(), any()))
+                .thenAnswer(invocation -> {
+                    recordCandidates(invocation.getArgument(1));
+
+                    return new EditPlanAiResponse(
+                            "부산",
+                            List.of(new PlanDayDetail(
+                                    1,
+                                    date,
+                                    List.of(
+                                            place,
+                                            slot("tour:3", "이기대", 11),
+                                            slot("tour:4", "오죽헌", 13),
+                                            slot("tour:5", "경포대", 15)))),
+                            List.of("수정"),
+                            true);
+                });
+
+        when(kakao.getRoute(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
+
+        EditPlanAiResponse result = service.makeEditPlanByAi(new PlanEditContext(
+                travel.createTravelRequest(),
+                List.of(walkOnlyHealthContext()),
+                existing(place),
+                "첫날 수정"));
+
+        assertEquals(
+                List.of("해운대", "이기대", "오죽헌"),
+                touristPlaceNames(result));
+    }
+
+    @Test
+    @DisplayName("수정 응답의 부족한 관광 슬롯을 검증 전에 후보로 채움")
+    void fillsMissingTouristPlacesOnEditPath() {
+
+        PlanScheduleDetail place = slot("tour:1", "해운대", 9);
+
+        when(handler.editPlanByAi(any(), any()))
+                .thenAnswer(invocation -> {
+                    recordCandidates(invocation.getArgument(1));
+
+                    return new EditPlanAiResponse(
+                            "부산",
+                            List.of(new PlanDayDetail(
+                                    1,
+                                    date,
+                                    List.of(place))),
+                            List.of("수정"),
+                            true);
+                });
+
+        when(kakao.getRoute(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
+
+        EditPlanAiResponse result = service.makeEditPlanByAi(new PlanEditContext(
+                travel.createTravelRequest(),
+                List.of(walkOnlyHealthContext()),
+                existing(place),
+                "첫날 수정"));
+
+        assertEquals(
+                3,
+                touristPlaceNames(result).size());
+
+        assertTrue(touristPlaceNames(result).contains("해운대"));
+    }
+
+    // 하루 관광지 개수 규칙만 걸리도록 식사시각을 일정 시간대 밖에 둔 동행인
+    private Kor2RestaurantIntroResponse intro(String firstMenu) {
+
+        return new Kor2RestaurantIntroResponse(
+                new Kor2RestaurantIntroResponse.Response(
+                        new Kor2RestaurantIntroResponse.Header("0000", "OK"),
+                        new Kor2RestaurantIntroResponse.Body(
+                                new Kor2RestaurantIntroResponse.Items(
+                                        List.of(
+                                                new Kor2RestaurantIntroResponse.Item(
+                                                        "9",
+                                                        "39",
+                                                        firstMenu,
+                                                        firstMenu))),
+                                1,
+                                1,
+                                1)));
+    }
+
+    private TravelHealthContext walkOnlyHealthContext() {
+
+        return new TravelHealthContext(
+                "테스트 여행자",
+                DiseaseType.DIABETES,
+                WalkType.MODERATE,
+                new TravelHealthContext.MealInfoContext(
+                        LocalTime.of(5, 0),
+                        LocalTime.of(5, 30),
+                        LocalTime.of(5, 45)
+                ),
+                List.of(),
+                List.of()
+        );
+    }
+
+    private List<String> touristPlaceNames(EditPlanAiResponse response) {
+
+        return response
+                .planDays()
+                .getFirst()
+                .schedules()
+                .stream()
+                .filter(schedule -> schedule.courseType() == CourseType.ATTRACTION
+                        || schedule.courseType() == CourseType.MUST_HAVE)
+                .map(PlanScheduleDetail::locationName)
+                .toList();
     }
 
     private void recordCandidates(PlaceCandidateContext candidates) {
@@ -2576,6 +2956,162 @@ class PlanPlaceValidationTest {
                                 "5",
                                 "12",
                                 "경포대"));
+    }
+
+    // 보존·복원된 슬롯은 이번 호출의 검색 후보가 아니므로 candidateId를 갖지 않는다
+    @Test
+    @DisplayName("장소 슬롯의 어긋난 조합을 ACTIVITY로 교정")
+    void alignsNonMealScheduleTypeFromCourseType() {
+
+        // 장소 유형을 쥔 쪽은 courseType이다. scheduleType은 ACTIVITY 하나로
+        // ATTRACTION/CAFE_REST/PARK_WALK/MUST_HAVE를 구분할 수 없어 반대 방향은 불가능하다.
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(tour("1", "12", "경포대"));
+
+        PlanScheduleDetail original = slot("tour:1", "경포대", 9);
+
+        PlanScheduleDetail mismatched = new PlanScheduleDetail(
+                ScheduleType.BREAKFAST,
+                original.courseType(),
+                original.startTime(),
+                original.endTime(),
+                original.locationName(),
+                original.location(),
+                original.longitude(),
+                original.latitude(),
+                original.imageUrl(),
+                original.thumbNailImageUrl(),
+                original.stayMinutes(),
+                original.travelMinutes(),
+                original.tags(),
+                original.medication(),
+                original.restaurantDetail(),
+                original.candidateId());
+
+        PlanPlaceResolver.Validation validation = helper.validate(
+                mismatched,
+                candidates,
+                new HashSet<>(),
+                new HashSet<>());
+
+        assertTrue(validation.valid(), validation.reason());
+
+        assertEquals(
+                ScheduleType.ACTIVITY,
+                validation.schedule().scheduleType());
+    }
+
+    @Test
+    @DisplayName("음식점 슬롯의 어긋난 조합을 시각 기준 식사로 교정")
+    void alignsMealScheduleTypeFromStartTime() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(tour("2", "39", "개금밀면"));
+
+        PlanScheduleDetail mismatched = new PlanScheduleDetail(
+                ScheduleType.ACTIVITY,
+                CourseType.LOCAL_FOOD,
+                LocalTime.of(19, 0),
+                LocalTime.of(20, 0),
+                "개금밀면",
+                "부산",
+                "129.1",
+                "35.1",
+                "원본 사진",
+                "원본 썸네일",
+                60,
+                10,
+                Set.of(),
+                null,
+                new CreatePlanAiResponse.RestaurantDetail(
+                        "밀면",
+                        null,
+                        null,
+                        null,
+                        null,
+                        "부산",
+                        "129.1",
+                        "35.1",
+                        "원본 사진"),
+                "tour:2");
+
+        PlanPlaceResolver.Validation validation = helper.validate(
+                mismatched,
+                candidates,
+                new HashSet<>(),
+                new HashSet<>());
+
+        assertTrue(validation.valid(), validation.reason());
+
+        assertEquals(
+                ScheduleType.DINNER,
+                validation.schedule().scheduleType());
+    }
+
+    @Test
+    @DisplayName("조합 검증 실패 사유의 실제 scheduleType/courseType 노출")
+    void reportsActualTypesOnCombinationFailure() {
+
+        // 사유에 값이 없으면 어떤 조합이 잘못됐는지 로그만으로 좁힐 수 없다.
+        // 시각이 없으면 식사 구분을 정할 근거가 없어 교정하지 못하고 사유만 남는다.
+        PlanScheduleDetail original = slot(
+                "tour:1",
+                "개금밀면",
+                19);
+
+        PlanScheduleDetail mismatched = new PlanScheduleDetail(
+                ScheduleType.ACTIVITY,
+                CourseType.LOCAL_FOOD,
+                null,
+                original.endTime(),
+                original.locationName(),
+                original.location(),
+                original.longitude(),
+                original.latitude(),
+                original.imageUrl(),
+                original.thumbNailImageUrl(),
+                original.stayMinutes(),
+                original.travelMinutes(),
+                original.tags(),
+                original.medication(),
+                original.restaurantDetail(),
+                original.candidateId());
+
+        PlanPlaceResolver.Validation validation = helper.validate(
+                mismatched,
+                new PlaceCandidateContext(),
+                new HashSet<>(),
+                new HashSet<>());
+
+        assertFalse(validation.valid());
+
+        assertTrue(validation.reason().contains("ACTIVITY"));
+
+        assertTrue(validation.reason().contains("LOCAL_FOOD"));
+    }
+
+    private PlanScheduleDetail preserved(PlanScheduleDetail original) {
+
+        return new PlanScheduleDetail(
+                original.scheduleType(),
+                original.courseType(),
+                original.startTime(),
+                original.endTime(),
+                original.locationName(),
+                original.location(),
+                original.longitude(),
+                original.latitude(),
+                original.imageUrl(),
+                original.thumbNailImageUrl(),
+                original.stayMinutes(),
+                original.travelMinutes(),
+                original.tags(),
+                original.medication(),
+                original.restaurantDetail(),
+                null
+        );
     }
 
     private PlanScheduleDetail slot(

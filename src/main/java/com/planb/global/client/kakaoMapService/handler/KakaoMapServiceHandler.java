@@ -140,7 +140,15 @@ public class KakaoMapServiceHandler {
 
                     return switch (transportation) {
                         case TRANSIT -> getPublicTrafficRoute(start.get(0), start.get(1), end.get(0), end.get(1))
-                                .map(response -> kakaoMapRouteHelper.makePublicTrafficRouteResult(origin, destination, response));
+                                .map(response -> kakaoMapRouteHelper.makePublicTrafficRouteResult(
+                                        origin,
+                                        destination,
+                                        response,
+                                        new KakaoMapRouteHelper.RoutePoints(
+                                                start.get(0),
+                                                start.get(1),
+                                                end.get(0),
+                                                end.get(1))));
                         case CAR -> getCarRoute(start.get(0), start.get(1), end.get(0), end.get(1))
                                 .map(response -> kakaoMobilityRouteHelper.makeCarRouteResult(origin, destination, response));
                     };
@@ -196,7 +204,9 @@ public class KakaoMapServiceHandler {
             String previousLocation,
             Transportation transportation,
             List<String> excludeNames,
-            String categoryCode
+            String categoryCode,
+            String previousLongitude,
+            String previousLatitude
     ) {
 
         return searchPlace(keyword)
@@ -207,7 +217,12 @@ public class KakaoMapServiceHandler {
                 .filter(kakaoPlaceSearchHelper::hasResult)
                 .filter(response -> !kakaoPlaceSearchHelper.isExcluded(response, excludeNames))
                 .flatMap(response ->
-                        travelMinutesFrom(previousLocation, response, transportation)
+                        travelMinutesFrom(
+                                previousLocation,
+                                previousLongitude,
+                                previousLatitude,
+                                response,
+                                transportation)
                                 .map(minutes -> kakaoPlaceSearchHelper.toResult(response, minutes))
                                 .switchIfEmpty(Mono.fromSupplier(() ->
                                         kakaoPlaceSearchHelper.toResult(response, null)))
@@ -215,10 +230,18 @@ public class KakaoMapServiceHandler {
                 .defaultIfEmpty(kakaoPlaceSearchHelper.notFound());
     }
 
-    // previousLocation이 있을 때만 실제 경로를 조회해 이동시간을 얻고,
-    // 없거나 조회에 실패하면 빈 Mono를 반환
+    /**
+     * previousLocation이 있을 때만 실제 경로를 조회해 이동시간을 얻고,
+     * 없거나 조회에 실패하면 빈 Mono를 반환한다.
+     *
+     * 출발지는 이번 호출에서 확정한 좌표를, 도착지는 방금 검색한 결과의 좌표를 그대로 쓴다.
+     * 이름으로 다시 검색하면 카카오가 전국에서 동명 장소를 잡아 엉뚱한 좌표가 되고,
+     * 검색 과정에서 장소명 자체가 바뀌어 있어 재검색 결과가 원래 장소와 달라진다.
+     */
     private Mono<Integer> travelMinutesFrom(
             String previousLocation,
+            String previousLongitude,
+            String previousLatitude,
             KakaoPlaceSearchResponse response,
             Transportation transportation
     ) {
@@ -226,7 +249,14 @@ public class KakaoMapServiceHandler {
         return Mono.justOrEmpty(previousLocation)
                 .filter(location -> !location.isBlank())
                 .flatMap(location ->
-                        getRoute(location, kakaoPlaceSearchHelper.firstPlaceName(response), transportation))
+                        getRoute(
+                                location,
+                                kakaoPlaceSearchHelper.firstPlaceName(response),
+                                transportation,
+                                previousLongitude,
+                                previousLatitude,
+                                kakaoPlaceSearchHelper.firstPlaceLongitude(response),
+                                kakaoPlaceSearchHelper.firstPlaceLatitude(response)))
                 .flatMap(route -> Mono.justOrEmpty(route.travelMinutes()))
                 .onErrorResume(e -> Mono.empty());
     }

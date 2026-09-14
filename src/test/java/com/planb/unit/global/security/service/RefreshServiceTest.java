@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -12,8 +13,11 @@ import com.planb.global.config.exception.BaseExceptionEnum;
 import com.planb.global.config.exception.domain.BaseException;
 import com.planb.global.security.dto.response.ReissueResponse;
 import com.planb.global.security.repository.UserTokenCacheRepository;
+import com.planb.global.security.dto.UserAuthCache;
 import com.planb.global.security.service.RefreshService;
+import com.planb.global.security.service.UserAuthCacheService;
 import com.planb.global.security.util.JwtUtil;
+import com.planb.global.security.util.TokenExpiration;
 import com.planb.global.utils.web.CookieUtil;
 
 import static org.assertj.core.api.Assertions.*;
@@ -31,6 +35,9 @@ class RefreshServiceTest {
 
     @Mock
     private CookieUtil cookieUtil;
+
+    @Mock
+    private UserAuthCacheService userAuthCacheService;
 
     @Mock
     private HttpServletRequest request;
@@ -143,17 +150,29 @@ class RefreshServiceTest {
                 .thenReturn(role);
 
         when(jwtUtil
+                .getUserId(oldRefresh))
+                .thenReturn(7L);
+
+        when(jwtUtil
+                .getSessionId(oldRefresh))
+                .thenReturn("sess-1");
+
+        when(jwtUtil
                 .createJwt("access",
+                        7L,
                         username,
                         role,
-                        600000 * 6 * 24L))
+                        "sess-1",
+                        TokenExpiration.ACCESS_TOKEN_EXPIRED_MS))
                 .thenReturn(newAccess);
 
         when(jwtUtil
                 .createJwt("refresh",
+                        7L,
                         username,
                         role,
-                        7 * 600000 * 6 * 24L))
+                        "sess-1",
+                        TokenExpiration.REFRESH_TOKEN_EXPIRED_MS))
                 .thenReturn(newRefresh);
 
         // when
@@ -182,30 +201,32 @@ class RefreshServiceTest {
                 .delete("refresh:user:" + username);
 
         verify(userTokenCacheRepository)
-                .save("refresh:user:" + username, newRefresh, 7 * 600000 * 6 * 24L);
+                .save("refresh:user:" + username, newRefresh, TokenExpiration.REFRESH_TOKEN_EXPIRED_MS);
 
         verify(userTokenCacheRepository)
-                .save("refresh:refreshToken:" + newRefresh, username, 7 * 600000 * 6 * 24L);
+                .save("refresh:refreshToken:" + newRefresh, username, TokenExpiration.REFRESH_TOKEN_EXPIRED_MS);
 
-    }
+        // 인증 캐시는 로그인에서만 저장되어 access 토큰보다 먼저 사라진다.
+        // 재발급이 같은 세션으로 다시 채워야 새 access 토큰이 실제로 쓸모가 있다.
+        ArgumentCaptor<UserAuthCache> cacheCaptor =
+                ArgumentCaptor.forClass(UserAuthCache.class);
 
-    @Test
-    @DisplayName("이미 로그인된 username인 경우 USER_ALREADY_LOGIN 예외 발생")
-    void validateAlreadyLogin_alreadyLogin() {
+        verify(userAuthCacheService)
+                .saveUserAuthCache(cacheCaptor.capture());
 
-        // given
-        String username = "wooju@example.com";
+        UserAuthCache restored = cacheCaptor.getValue();
 
-        when(userTokenCacheRepository.exists("refresh:user:" + username))
-                .thenReturn(true);
+        assertThat(restored.userId())
+                .isEqualTo(7L);
 
-        // when & then
-        assertThatThrownBy(() -> refreshService
-                .validateAlreadyLogin(username))
-                .isInstanceOf(BaseException.class)
-                .hasMessage(BaseExceptionEnum
-                        .USER_ALREADY_LOGIN
-                        .getMessage());
+        assertThat(restored.username())
+                .isEqualTo(username);
+
+        assertThat(restored.role())
+                .isEqualTo(role);
+
+        assertThat(restored.sessionId())
+                .isEqualTo("sess-1");
 
     }
 

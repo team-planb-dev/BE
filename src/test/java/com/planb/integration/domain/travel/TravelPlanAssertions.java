@@ -1,6 +1,8 @@
 package com.planb.integration.domain.travel;
 
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.JsonNodeFactory;
 import tools.jackson.databind.node.ObjectNode;
 
 import java.time.Duration;
@@ -14,6 +16,13 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 final class TravelPlanAssertions {
+
+    // 복약 겹침 판정에서 제외하는 식사 슬롯. 식중 복약은 식사 시간대 안에 있는 것이 정의다.
+    private static final Set<String> MEAL_SCHEDULE_TYPES = Set.of(
+            "BREAKFAST",
+            "LUNCH",
+            "DINNER"
+    );
 
     private TravelPlanAssertions() {
     }
@@ -122,7 +131,11 @@ final class TravelPlanAssertions {
                         .asInt())
                         .isNotNegative();
 
-                if (candidateIdsExpected) {
+                // 보존 날짜 슬롯은 이번 호출의 검색 후보가 아니라 candidateId를 갖지 않는다.
+                // 값이 있다면 반드시 검색 원본 식별자 형식이어야 한다.
+                if (candidateIdsExpected && !slot.path("candidateId")
+                        .asText()
+                        .isEmpty()) {
                     assertThat(slot.path("candidateId")
                             .asText())
                             .matches("(tour|kakao):.+");
@@ -180,40 +193,85 @@ final class TravelPlanAssertions {
     ) {
 
         for (JsonNode day : plan.path("planDays")) {
-            LocalTime actualMealTime = null;
+            LocalTime actualMealEndTime = null;
 
             List<JsonNode> medications = new ArrayList<>();
+            List<JsonNode> placeSlots = new ArrayList<>();
 
             for (JsonNode slot : day.path("schedules")) {
-                if (actualMealTime == null
+                if (actualMealEndTime == null
                         && "LUNCH".equals(code(slot.path("scheduleType")))) {
-                    actualMealTime = LocalTime.parse(
-                            slot.path("startTime")
+                    actualMealEndTime = LocalTime.parse(
+                            slot.path("endTime")
                                     .asText()
                     );
                 }
 
                 if ("MEDICATION".equals(code(slot.path("courseType")))) {
                     medications.add(slot);
+
+                    continue;
+                }
+
+                if (!MEAL_SCHEDULE_TYPES.contains(code(slot.path("scheduleType")))) {
+                    placeSlots.add(slot);
                 }
             }
 
-            LocalTime expected = (actualMealTime == null
-                    ? fallbackLunchTime
-                    : actualMealTime)
-                    .plusMinutes(30);
+            // 식후 복약은 식사 종료 기준이다.
+            // 식사 슬롯이 없으면 설정 식사시각에 기본 소요시간(60분)을 더한 값이 기준이 된다.
+            LocalTime mealBased = actualMealEndTime == null
+                    ? fallbackLunchTime.plusMinutes(90)
+                    : actualMealEndTime.plusMinutes(30);
+
+            // 기준시각이 장소 시간대 안이면 그 장소가 끝난 뒤로 밀린다.
+            // 밀린 결과도 앞당겨지지는 않으므로 기준시각 이상이어야 한다.
+            boolean overlapsPlace = placeSlots
+                    .stream()
+                    .anyMatch(slot -> covers(slot, mealBased));
 
             assertThat(medications)
                     .anySatisfy(slot -> {
-                assertThat(LocalTime.parse(slot.path("startTime")
-                        .asText()))
-                        .isEqualTo(expected);
+                LocalTime medicationTime = LocalTime.parse(slot.path("startTime")
+                        .asText());
+
+                if (overlapsPlace) {
+                    assertThat(medicationTime)
+                            .isAfterOrEqualTo(mealBased);
+
+                    assertThat(placeSlots)
+                            .noneMatch(place -> covers(place, medicationTime));
+                } else {
+                    assertThat(medicationTime)
+                            .isEqualTo(mealBased);
+                }
+
                 assertThat(slot.path("medication")
                         .path("intervalMinutes")
                         .asInt())
                         .isEqualTo(30);
             });
         }
+    }
+
+    // 장소 슬롯이 이 시각을 품고 있는지. 종료시각은 포함하지 않는다.
+    private static boolean covers(
+            JsonNode placeSlot,
+            LocalTime time
+    ) {
+
+        JsonNode startTime = placeSlot.path("startTime");
+        JsonNode endTime = placeSlot.path("endTime");
+
+        if (startTime.isMissingNode() || endTime.isMissingNode()
+                || startTime.isNull() || endTime.isNull()) {
+            return false;
+        }
+
+        LocalTime start = LocalTime.parse(startTime.asText());
+        LocalTime end = LocalTime.parse(endTime.asText());
+
+        return !time.isBefore(start) && time.isBefore(end);
     }
 
     static void assertSameDays(JsonNode expected, JsonNode actual) {
@@ -240,6 +298,44 @@ final class TravelPlanAssertions {
             assertThat(snapshots(found.path("schedules")))
                     .containsExactlyInAnyOrderElementsOf(snapshots(day.path("schedules")));
         }
+    }
+
+    /**
+     * 보존 날짜 비교. 첫 장소의 travelMinutes만 비교 대상에서 뺀다.
+     *
+     * travelMinutes는 직전 확정 장소에서 이 장소까지 걸리는 시간(inbound)이라 날짜 경계를 넘어 이어진다.
+     * 앞 날짜를 다시 구성하면 출발지가 바뀌므로 이 값은 반드시 다시 계산된다.
+     * 따라서 이 값의 변화는 보존 위반이 아니며, 나머지 필드는 그대로여야 한다.
+     */
+    static void assertSameDaysIgnoringInboundTravel(
+            JsonNode expected,
+            JsonNode actual
+    ) {
+
+        assertSameDays(withoutInboundTravel(expected), withoutInboundTravel(actual));
+    }
+
+    private static JsonNode withoutInboundTravel(JsonNode days) {
+
+        ArrayNode result = JsonNodeFactory.instance.arrayNode();
+
+        for (JsonNode day : days) {
+            ObjectNode copy = (ObjectNode) day.deepCopy();
+
+            for (JsonNode slot : copy.path("schedules")) {
+                JsonNode locationName = slot.path("locationName");
+
+                if (locationName.isString() && !locationName.asString().isBlank()) {
+                    ((ObjectNode) slot).remove("travelMinutes");
+
+                    break;
+                }
+            }
+
+            result.add(copy);
+        }
+
+        return result;
     }
 
     static Set<String> codes(JsonNode tags) {

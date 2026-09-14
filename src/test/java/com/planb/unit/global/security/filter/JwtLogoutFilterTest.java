@@ -88,13 +88,69 @@ class JwtLogoutFilterTest {
     }
 
     @Test
-    @DisplayName("유효하지 않은 refresh 토큰인 경우 다음 필터 위임")
-    void doFilterInternal_fail_invalidRefresh()
+    @DisplayName("refresh 쿠키가 없어도 access 토큰으로 서버 세션 정리")
+    void doFilterInternal_fallsBackToAccessToken()
             throws Exception {
 
         // given
-        String refresh = "refreshToken";
+        String accessToken = "accessToken";
+        String username = "testUser@example.com";
 
+        MockHttpServletRequest request =
+                new MockHttpServletRequest();
+
+        request
+                .addHeader("Authorization", "Bearer " + accessToken);
+
+        MockHttpServletResponse response =
+                new MockHttpServletResponse();
+
+        Cookie zeroCookie =
+                new Cookie("refreshToken", null);
+
+        when(cookieUtil
+                .findCookie(request))
+                .thenReturn(null);
+
+        when(refreshTokenValidator
+                .isInvalid(null))
+                .thenReturn(true);
+
+        when(jwtUtil
+                .getUsernameAllowingExpired(accessToken))
+                .thenReturn(username);
+
+        when(cookieUtil
+                .zeroCookie(response))
+                .thenReturn(zeroCookie);
+
+        // when
+        jwtLogoutFilter.callDoFilterInternal(
+                request,
+                response,
+                filterChain
+        );
+
+        // then
+        verify(refreshService, times(1))
+                .deleteRefreshByUsername(username);
+
+        verify(userAuthCacheService, times(1))
+                .deleteUserAuthCache(username);
+
+        verify(filterChain, never())
+                .doFilter(request, response);
+
+        assertThat(response.getStatus())
+                .isEqualTo(200);
+    }
+
+    @Test
+    @DisplayName("refresh 쿠키도 access 토큰도 없으면 401 응답")
+    void doFilterInternal_noCredential()
+            throws Exception {
+
+        // given
         MockHttpServletRequest request =
                 new MockHttpServletRequest();
 
@@ -103,10 +159,10 @@ class JwtLogoutFilterTest {
 
         when(cookieUtil
                 .findCookie(request))
-                .thenReturn(refresh);
+                .thenReturn(null);
 
         when(refreshTokenValidator
-                .isInvalid(refresh))
+                .isInvalid(null))
                 .thenReturn(true);
 
         // when
@@ -117,17 +173,14 @@ class JwtLogoutFilterTest {
         );
 
         // then
-        verify(filterChain, times(1))
+        assertThat(response.getStatus())
+                .isEqualTo(401);
+
+        verify(filterChain, never())
                 .doFilter(request, response);
 
         verify(refreshService, never())
-                .deleteRefresh(anyString());
-
-        verify(jwtUtil, never())
-                .getUsername(anyString());
-
-        verify(cookieUtil, never())
-                .zeroCookie(any());
+                .deleteRefreshByUsername(anyString());
     }
 
     @Test

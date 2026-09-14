@@ -136,6 +136,27 @@ public class JwtFilter extends OncePerRequestFilter {
         return "access".equals(category);
     }
 
+    private boolean isCurrentSession(String token,
+                                     UserAuthCache userAuthCache){
+
+        String sessionId = jwtUtil.getSessionId(token);
+
+        return sessionId != null
+                && sessionId.equals(userAuthCache.sessionId());
+    }
+
+    private void handleStaleSession
+            (HttpServletResponse httpServletResponse)
+            throws IOException{
+
+        ApiResult<?> result = ApiResult.fail(BaseExceptionEnum.SESSION_EXPIRED);
+
+        JsonResponseUtils
+                .writeJsonResponse(HttpStatus.UNAUTHORIZED,
+                        httpServletResponse,
+                        result);
+    }
+
     private Authentication makeAuthentication(String token,
                                               HttpServletResponse httpServletResponse)
             throws IOException {
@@ -147,6 +168,14 @@ public class JwtFilter extends OncePerRequestFilter {
 
         if (userAuthCache.isEmpty()){
             handleRedisMissToken(httpServletResponse);
+            return null;
+        }
+
+        // 캐시에는 마지막 로그인의 세션 식별자만 남는다.
+        // 다르면 이 토큰은 축출된 이전 세션의 것이다.
+        if (!isCurrentSession(token, userAuthCache.get())){
+            log.info("Stale Session Token: {}", LocalDateTime.now());
+            handleStaleSession(httpServletResponse);
             return null;
         }
 

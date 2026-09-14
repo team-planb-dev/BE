@@ -34,8 +34,10 @@ class JwtUtilTest {
         // when
         String token = jwtUtil
                 .createJwt(category,
+                        1L,
                         username,
                         role,
+                        "sess-1",
                         expiredMs);
 
         // then
@@ -51,8 +53,10 @@ class JwtUtilTest {
         // given
         String token = jwtUtil.createJwt(
                 "access",
+                1L,
                 "wooju@example.com",
                 "ROLE_USER",
+                "sess-1",
                 1000L * 60
         );
 
@@ -74,8 +78,10 @@ class JwtUtilTest {
         // given
         String token = jwtUtil.createJwt(
                 "access",
+                1L,
                 "wooju@example.com",
                 "ROLE_USER",
+                "sess-1",
                 1000L * 60
         );
 
@@ -95,8 +101,10 @@ class JwtUtilTest {
         // given
         String token = jwtUtil.createJwt(
                 "refresh",
+                1L,
                 "wooju@example.com",
                 "ROLE_USER",
+                "sess-1",
                 1000L * 60
         );
 
@@ -117,8 +125,10 @@ class JwtUtilTest {
         // given
         String token = jwtUtil.createJwt(
                 "access",
+                1L,
                 "wooju@example.com",
                 "ROLE_USER",
+                "sess-1",
                 1000L * 60
         );
 
@@ -140,8 +150,10 @@ class JwtUtilTest {
         // given
         String token = jwtUtil.createJwt(
                 "access",
+                1L,
                 "wooju@example.com",
                 "ROLE_USER",
+                "sess-1",
                 1L
 
         );
@@ -152,6 +164,52 @@ class JwtUtilTest {
         assertThatThrownBy(() -> jwtUtil
                 .isExpired(token))
                 .isInstanceOf(JwtException.class);
+    }
+
+    @Test
+    @DisplayName("JWT에서 userId 추출 성공")
+    void getUserId_Success() {
+
+        // given
+        String token = jwtUtil.createJwt(
+                "access",
+                42L,
+                "wooju@example.com",
+                "ROLE_USER",
+                "sess-1",
+                1000L * 60
+        );
+
+        // when
+        Long userId = jwtUtil
+                .getUserId(token);
+
+        // then
+        assertThat(userId)
+                .isEqualTo(42L);
+    }
+
+    @Test
+    @DisplayName("JWT에서 sessionId 추출 성공")
+    void getSessionId_Success() {
+
+        // given
+        String token = jwtUtil.createJwt(
+                "access",
+                42L,
+                "wooju@example.com",
+                "ROLE_USER",
+                "sess-abc",
+                1000L * 60
+        );
+
+        // when
+        String sessionId = jwtUtil
+                .getSessionId(token);
+
+        // then
+        assertThat(sessionId)
+                .isEqualTo("sess-abc");
     }
 
 }

@@ -17,7 +17,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Component
-public class PlanEditValidationHelper {
+public class PlanEditValidator {
 
     public Set<Integer> rebuildDays(PlanEditScope scope, PlanEditContext context) {
 

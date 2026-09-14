@@ -87,6 +87,40 @@ class PlanTourismToolTest {
     }
 
     @Test
+    @DisplayName("candidateId로 요청한 음식점 상세 조회의 tour 접두사 제거")
+    void stripsCandidateIdPrefixBeforeRestaurantDetailLookup() {
+
+        TourismTool tourismTool = mock(TourismTool.class);
+
+        PlanTourismTool tool = new PlanTourismTool(
+                tourismTool,
+                new PlaceCandidateContext()
+        );
+
+        tool.getRestaurantDetail("tour:126508");
+
+        verify(tourismTool)
+                .getRestaurantDetail("126508");
+    }
+
+    @Test
+    @DisplayName("접두사 없는 contentId의 음식점 상세 조회 그대로 전달")
+    void passesBareContentIdUnchanged() {
+
+        TourismTool tourismTool = mock(TourismTool.class);
+
+        PlanTourismTool tool = new PlanTourismTool(
+                tourismTool,
+                new PlaceCandidateContext()
+        );
+
+        tool.getRestaurantDetail("126508");
+
+        verify(tourismTool)
+                .getRestaurantDetail("126508");
+    }
+
+    @Test
     @DisplayName("같은 요청의 correction 재시도는 최초 관광지 후보를 재사용")
     void reusesInitialAttractionCandidatesDuringCorrectionRetry() {
 
@@ -123,8 +157,6 @@ class PlanTourismToolTest {
                         "서울",
                         "종로구"
                 );
-
-        tool.prepareRetry();
 
         List<PlaceCandidateContext.Candidate> correction = tool
                 .searchAttractionsByRegion(
@@ -172,7 +204,9 @@ class PlanTourismToolTest {
                                 "첨성대",
                                 Transportation.TRANSIT,
                                 List.of(),
-                                "CE7"
+                                "CE7",
+                                null,
+                                null
                         )
         ).thenReturn(expected);
 
@@ -191,6 +225,50 @@ class PlanTourismToolTest {
 
         assertSame(expected, result);
         assertNotNull(candidates.find("kakao:cafe"));
+    }
+
+    @Test
+    @DisplayName("직전 장소가 이번 호출 후보면 확정 좌표를 함께 전달")
+    void passesConfirmedCoordinatesOfPreviousCandidate() {
+
+        // 이름만 넘기면 카카오가 전국에서 동명 장소를 다시 찾아 엉뚱한 좌표를 쓴다.
+        TourismTool tourismTool = mock(TourismTool.class);
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(new PlaceWithRouteResult(
+                true,
+                "첨성대",
+                "경주시 인왕동",
+                "129.2",
+                "35.8",
+                null,
+                "kakao:previous",
+                "AT4",
+                "여행 > 관광명소"
+        ));
+
+        PlanTourismTool tool = new PlanTourismTool(
+                tourismTool,
+                candidates
+        );
+
+        tool.findPlaceWithRoute(
+                "경주 카페 황남다락",
+                "첨성대",
+                Transportation.TRANSIT,
+                List.of(),
+                CourseType.CAFE_REST
+        );
+
+        verify(tourismTool).findPlaceWithRoute(
+                "경주 카페 황남다락",
+                "첨성대",
+                Transportation.TRANSIT,
+                List.of(),
+                "CE7",
+                "129.2",
+                "35.8"
+        );
     }
 
     @Test

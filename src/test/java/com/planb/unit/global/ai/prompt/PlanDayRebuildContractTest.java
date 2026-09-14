@@ -7,7 +7,7 @@ import com.planb.ai.prompt.EditPlanPrompt;
 import com.planb.ai.prompt.RebuildPlanDayPrompt;
 import com.planb.ai.prompt.TravelPlanPrompt;
 import com.planb.domain.travel.dto.response.GetAiPlanResponse;
-import com.planb.domain.travel.helper.PlanEditValidationHelper;
+import com.planb.domain.travel.helper.PlanEditValidator;
 import com.planb.global.config.ai.AiOutputConverterConfig;
 import com.planb.global.config.app.AppConfig;
 import org.junit.jupiter.api.DisplayName;
@@ -26,7 +26,7 @@ class PlanDayRebuildContractTest {
 
     private final LocalDate date = LocalDate.of(2026, 9, 14);
 
-    private final PlanEditValidationHelper helper = new PlanEditValidationHelper();
+    private final PlanEditValidator helper = new PlanEditValidator();
 
     @Test
     @DisplayName("여행 일정 Prompt는 식사 복약 계산을 Java에 위임")

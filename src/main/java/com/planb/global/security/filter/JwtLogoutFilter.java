@@ -1,5 +1,6 @@
 package com.planb.global.security.filter;
 
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.filter.OncePerRequestFilter;
+import com.planb.global.config.exception.BaseExceptionEnum;
+import com.planb.global.config.exception.dto.ApiResult;
 import com.planb.global.security.dto.response.FilterSuccessResponse;
 import com.planb.global.security.service.RefreshService;
 import com.planb.global.security.service.UserAuthCacheService;
@@ -45,9 +48,10 @@ public class JwtLogoutFilter extends OncePerRequestFilter {
 
         String refresh = cookieUtil.findCookie(request);
 
-        // refresh 토큰 오류검사
+        // refresh 쿠키는 브라우저 설정·시크릿 모드·만료로 흔하게 사라진다.
+        // 그때 아무것도 안 하면 서버 세션이 남아 다음 로그인이 옛 세션을 이어받지 못한다.
         if (refreshTokenValidator.isInvalid(refresh)){
-            filterChain.doFilter(request, response);
+            logoutByAccessToken(request, response);
             return;
         }
 
@@ -73,5 +77,56 @@ public class JwtLogoutFilter extends OncePerRequestFilter {
                                 .toString()));
 
         log.info("[ 회원 로그아웃 ] : {}", username);
+    }
+
+    private void logoutByAccessToken(HttpServletRequest request,
+                                     HttpServletResponse response)
+            throws IOException {
+
+        String username = usernameFromAccessToken(request);
+
+        if (username == null) {
+
+            JsonResponseUtils.writeJsonResponse(HttpStatus.UNAUTHORIZED,
+                    response,
+                    ApiResult.fail(BaseExceptionEnum.LOGOUT_CREDENTIAL_NOT_FOUND));
+
+            return;
+        }
+
+        refreshService.deleteRefreshByUsername(username);
+
+        userAuthCacheService.deleteUserAuthCache(username);
+
+        response.addCookie(cookieUtil.zeroCookie(response));
+
+        JsonResponseUtils.writeJsonResponse(HttpStatus.OK,
+                response,
+                new FilterSuccessResponse(true,
+                        "Method : /logout ",
+                        "로그아웃에 성공하였습니다.",
+                        LocalDate
+                                .now()
+                                .toString()));
+
+        log.info("[ 회원 로그아웃 - refresh 쿠키 없음 ] : {}", username);
+    }
+
+    private String usernameFromAccessToken(HttpServletRequest request) {
+
+        String header = request.getHeader("Authorization");
+
+        if (header == null || !header.startsWith("Bearer ")) {
+            return null;
+        }
+
+        try {
+
+            return jwtUtil.getUsernameAllowingExpired(header.substring(7));
+
+        } catch (JwtException e) {
+
+            return null;
+        }
     }
 }

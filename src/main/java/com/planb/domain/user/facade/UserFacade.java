@@ -53,6 +53,10 @@ public class UserFacade {
     @Transactional
     public UserCreateResponse create(UserCreateRequest userCreateRequest){
 
+        // 어느 값이 겹쳤는지 알려주려면 저장 전에 확인해야 한다.
+        // DB의 uk_users_username, uk_users_nickname은 동시 가입을 막는 최종 방어선으로 남는다.
+        validateNotDuplicated(userCreateRequest);
+
         // 유저 생성
         User user = userService.create(userCreateRequest);
 
@@ -62,6 +66,26 @@ public class UserFacade {
         return new UserCreateResponse(user.getUsername(),
                 Instant.now(),
                 Instant.now());
+    }
+
+
+    private void validateNotDuplicated(UserCreateRequest userCreateRequest){
+
+        if (userQueryService
+                .checkDuplicateUsername(userCreateRequest
+                        .username())) {
+
+            throw new BaseException(BaseExceptionEnum
+                    .DUPLICATE_USERNAME);
+        }
+
+        if (userQueryService
+                .checkDuplicateNickname(userCreateRequest
+                        .nickname())) {
+
+            throw new BaseException(BaseExceptionEnum
+                    .DUPLICATE_NICKNAME);
+        }
     }
 
 
@@ -123,6 +147,8 @@ public class UserFacade {
 
         User user = userQueryService
                 .findByAccountRecovery(
+                        findUsernameRequest
+                                .nickname(),
                         findUsernameRequest
                                 .recoveryQuestion(),
                         findUsernameRequest

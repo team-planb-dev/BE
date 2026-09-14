@@ -62,6 +62,16 @@ public class KakaoPlaceSearchHelper {
         return firstPlace(response).place_name();
     }
 
+    // 검색 결과 첫 번째 장소의 경도. 이름 재검색 없이 경로 조회에 그대로 넘기기 위해 노출한다.
+    public String firstPlaceLongitude(KakaoPlaceSearchResponse response) {
+        return firstPlace(response).x();
+    }
+
+    // 검색 결과 첫 번째 장소의 위도
+    public String firstPlaceLatitude(KakaoPlaceSearchResponse response) {
+        return firstPlace(response).y();
+    }
+
     // 검색 결과가 없을 때 반환할 "존재하지 않음" 결과 생성
     public PlaceWithRouteResult notFound() {
         return new PlaceWithRouteResult(false, null, null, null, null, null);

@@ -105,7 +105,8 @@ public enum RecommendationTag implements CodeCommInterface {
 
         return switch (courseType) {
 
-            case RESTAURANT -> Set.of(
+            // PlanService.deterministicTagsFor가 두 유형을 같은 분기로 다루므로 허용 목록도 같아야 한다.
+            case RESTAURANT, LOCAL_FOOD -> Set.of(
                     MEAL_TIME_APPLIED,
                     LOCAL_FOOD,
                     FOOD_PREFERENCE,
@@ -145,11 +146,6 @@ public enum RecommendationTag implements CodeCommInterface {
 
             case MUST_HAVE -> Set.of(
                     MUST_VISIT
-            );
-
-            case LOCAL_FOOD -> Set.of(
-                    LOCAL_FOOD,
-                    FOOD_PREFERENCE
             );
         };
     }
