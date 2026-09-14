@@ -25,7 +25,9 @@ import com.planb.domain.travel.entity.constant.NutritionEvaluationStatus;
 import com.planb.domain.travel.entity.constant.NutritionLevel;
 import com.planb.domain.travel.entity.constant.NutritionType;
 import com.planb.domain.travel.entity.constant.RecommendationTag;
+import com.planb.domain.travel.policy.MealSlotPolicy;
 import com.planb.domain.travel.policy.TouristPlaceCountPolicy;
+import com.planb.domain.travel.entity.constant.ScheduleType;
 import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.domain.travel.helper.PlanPlaceResolver.Validation;
 import com.planb.domain.travel.helper.PlanPlaceResolver;
@@ -112,9 +114,10 @@ public class PlanService {
 
         List<NutritionEvaluationCollector.FoodNutritionEvaluation> evaluations;
 
-        try {
-            PlaceCandidateContext candidates = new PlaceCandidateContext();
+        // finishPlan의 식사 재보정도 같은 후보를 쓰므로 호출 단위 전체에서 살아 있어야 한다.
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
 
+        try {
             CreatePlanAiResponse response = travelRecommendHandler.createPlanByAi(context, candidates);
 
             validated = validatePlaces(response, candidates, context, null);
@@ -122,8 +125,12 @@ public class PlanService {
             evaluations = nutritionEvaluationCollector.finish();
         }
 
-        return finishPlan(validated, context, evaluations,
-                RouteAnchor.from(context.createTravelRequest().decidedLocation()));
+        return finishPlan(
+                validated,
+                context,
+                evaluations,
+                RouteAnchor.from(context.createTravelRequest().decidedLocation()),
+                candidates);
     }
 
     // AI 일정 수정 및 검증된 기존 슬롯 복구
@@ -143,9 +150,10 @@ public class PlanService {
 
         List<NutritionEvaluationCollector.FoodNutritionEvaluation> evaluations;
 
-        try {
-            PlaceCandidateContext candidates = new PlaceCandidateContext();
+        // finishPlan의 식사 재보정도 같은 후보를 쓰므로 호출 단위 전체에서 살아 있어야 한다.
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
 
+        try {
             PlanEditScope scope = travelRecommendHandler.classifyEditScope(context);
 
             rebuildDays = planEditValidator.rebuildDays(scope, context);
@@ -168,10 +176,14 @@ public class PlanService {
         CreatePlanAiResponse toFinish = !preserveOtherDays ? validated
                 : new CreatePlanAiResponse(finishTargets(validated, rebuildDays));
 
-        CreatePlanAiResponse finished = finishPlan(toFinish, travelContext, evaluations,
+        CreatePlanAiResponse finished = finishPlan(
+                toFinish,
+                travelContext,
+                evaluations,
                 preserveOtherDays
                         ? rebuildAnchor(context, rebuildDays)
-                        : RouteAnchor.from(context.createTravelRequest().decidedLocation()));
+                        : RouteAnchor.from(context.createTravelRequest().decidedLocation()),
+                candidates);
 
         CreatePlanAiResponse result = !preserveOtherDays ? finished : new CreatePlanAiResponse(
                 validated.planDays().stream().map(day -> finished.planDays().stream()
@@ -465,7 +477,8 @@ public class PlanService {
             CreatePlanAiResponse response,
             TravelPlanContext context,
             List<NutritionEvaluationCollector.FoodNutritionEvaluation> evaluations,
-            RouteAnchor anchor
+            RouteAnchor anchor,
+            PlaceCandidateContext candidates
     ) {
 
         // 복약 일정은 이동시간과 시간표가 확정된 뒤 한 번만 생성한다.
@@ -483,8 +496,23 @@ public class PlanService {
                 context.healthContexts()
         );
 
-        CreatePlanAiResponse medicationFixed = scheduleNormalizer.ensureMedicationSchedules(
+        // 정규화가 하루를 앞당기면 없던 식사시각이 하루 시간대 안으로 들어온다.
+        // 확정된 시각으로 한 번 더 보고, 그래도 빠져 있으면 내보내지 않는다.
+        CreatePlanAiResponse mealFixed = refillMissingMeals(
                 normalized,
+                context,
+                anchor,
+                candidates
+        );
+
+        validateMealSlots(
+                mealFixed,
+                context.healthContexts()
+        );
+
+        // 식후·식전 복약은 식사 슬롯을 기준으로 배치하므로 식사가 확정된 뒤에 만든다.
+        CreatePlanAiResponse medicationFixed = scheduleNormalizer.ensureMedicationSchedules(
+                mealFixed,
                 context.healthContexts()
         );
 
@@ -495,6 +523,80 @@ public class PlanService {
         );
 
         return tagged;
+    }
+
+    /**
+     * 확정 시각 기준으로 빠진 식사 슬롯을 한 번 더 채운다.
+     *
+     * 보정은 정규화보다 앞에서 도는데, 정규화는 식사를 등록 시간창에 맞추려고
+     * 앞 장소를 더 이른 시각으로 당길 수 있다. 그 결과 하루 시간대가 넓어지면
+     * 앞에서 요구되지 않았던 식사가 요구 대상이 된다.
+     *
+     * 채울 것이 없으면 그대로 돌려준다. 채운 뒤에는 이동시간과 시각을 다시 확정한다.
+     */
+    private CreatePlanAiResponse refillMissingMeals(
+            CreatePlanAiResponse response,
+            TravelPlanContext context,
+            RouteAnchor anchor,
+            PlaceCandidateContext candidates
+    ) {
+
+        if (missingMealDays(response, context.healthContexts()).isEmpty()) {
+            return response;
+        }
+
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
+                response,
+                context.healthContexts(),
+                candidates,
+                new HashSet<>()
+        );
+
+        return scheduleNormalizer.normalizeScheduleTimes(
+                fillMissingTravelMinutes(
+                        filled,
+                        context.createTravelRequest(),
+                        anchor
+                ),
+                context.healthContexts()
+        );
+    }
+
+    // 관광 장소 개수와 같은 기준으로 식사 슬롯 누락도 최종 응답에서 막는다.
+    private void validateMealSlots(
+            CreatePlanAiResponse response,
+            List<TravelHealthContext> healthContexts
+    ) {
+
+        for (CreatePlanAiResponse.PlanDayDetail day : response.planDays()) {
+            List<ScheduleType> missing = MealSlotPolicy.missingMeals(
+                    day,
+                    healthContexts
+            );
+
+            if (!missing.isEmpty()) {
+                throw invalidPlace(
+                        "식사 슬롯 누락: day=" + day.dayNumber()
+                                + ", meals=" + missing
+                );
+            }
+        }
+    }
+
+    // 식사가 빠진 날짜, 재보정이 필요한지 판단한다
+    private List<Integer> missingMealDays(
+            CreatePlanAiResponse response,
+            List<TravelHealthContext> healthContexts
+    ) {
+
+        return response
+                .planDays()
+                .stream()
+                .filter(day -> !MealSlotPolicy
+                        .missingMeals(day, healthContexts)
+                        .isEmpty())
+                .map(CreatePlanAiResponse.PlanDayDetail::dayNumber)
+                .toList();
     }
 
     // Plan 객체 단건 조회하기 (존재 검증은 호출부에서 이미 끝난 상태를 전제)
