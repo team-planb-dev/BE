@@ -117,7 +117,7 @@ class TravelHealthRepositoryTest
                 .username("travel-health" + System.nanoTime() + "@example.com")
                 .password("password")
                 .role("ROLE_USER")
-                .nickname("테스트유저")
+                .nickname("테스트유저" + System.nanoTime())
                 .termsAgreement(
                         new TermsAgreement(
                                 true,
