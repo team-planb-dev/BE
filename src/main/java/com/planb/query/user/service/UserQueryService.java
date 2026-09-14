@@ -53,31 +53,29 @@ public class UserQueryService {
     /**
      * 계정 복구 질문과 답변으로 사용자를 단건 조회한다.
      *
-     * 일치하는 사용자가 없을 때와 여러 명일 때를 모두 실패로 처리한다.
-     * 흔한 답변이 여러 계정에 걸릴 수 있으므로 임의의 계정을 돌려주면 다른 사람의 이메일이 노출된다.
+     * 닉네임으로 계정을 특정하고 질문/답변으로 본인을 확인한다.
      *
+     * @param nickname         계정을 특정하는 닉네임
      * @param recoveryQuestion 선택한 복구 질문
      * @param recoveryAnswer   사용자가 입력한 복구 답변
-     * @return 조건에 유일하게 일치하는 사용자
+     * @return 조건에 일치하는 사용자
      */
     public User findByAccountRecovery(
+            String nickname,
             RecoveryQuestion recoveryQuestion,
             String recoveryAnswer
     ) {
 
-        List<User> users = userQueryRepository
-                .findAllByAccountRecovery(
+        // 닉네임이 없을 때와 답변이 틀렸을 때를 같은 예외로 묶는다.
+        // 나누면 닉네임이 존재하는지를 알려주게 되어 계정 존재 여부가 새어 나간다.
+        return userQueryRepository
+                .findByAccountRecovery(
+                        nickname,
                         recoveryQuestion,
                         AccountRecovery.hashAnswer(recoveryAnswer)
-                );
-
-        if (users.size() != 1) {
-            throw new BaseException(BaseExceptionEnum
-                    .RECOVERY_ANSWER_MISMATCH);
-        }
-
-        return users
-                .getFirst();
+                )
+                .orElseThrow(() -> new BaseException(BaseExceptionEnum
+                        .RECOVERY_ANSWER_MISMATCH));
     }
 
     // nickname으로 중복 여부 조회하기
