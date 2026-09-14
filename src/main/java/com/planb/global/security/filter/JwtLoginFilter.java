@@ -22,6 +22,8 @@ import com.planb.global.security.dto.response.LoginResponse;
 import com.planb.global.security.service.RefreshService;
 import com.planb.global.security.service.UserAuthCacheService;
 import com.planb.global.security.util.JwtUtil;
+import com.planb.global.security.util.SessionIdGenerator;
+import com.planb.global.security.util.TokenExpiration;
 import com.planb.global.utils.app.JsonResponseUtils;
 import com.planb.global.utils.web.CookieUtil;
 
@@ -39,13 +41,15 @@ public class JwtLoginFilter extends UsernamePasswordAuthenticationFilter {
     private final RefreshService refreshService;
     private final UserAuthCacheService userAuthCacheService;
     private final CookieUtil cookieUtil;
+    private final SessionIdGenerator sessionIdGenerator;
 
     public JwtLoginFilter(ObjectMapper objectMapper,
                           AuthenticationManager authenticationManager,
                           JwtUtil jwtUtil,
                           RefreshService refreshService,
                           UserAuthCacheService userAuthCacheService,
-                          CookieUtil cookieUtil){
+                          CookieUtil cookieUtil,
+                          SessionIdGenerator sessionIdGenerator){
 
         this.objectMapper = objectMapper;
         this.authenticationManager = authenticationManager;
@@ -53,6 +57,7 @@ public class JwtLoginFilter extends UsernamePasswordAuthenticationFilter {
         this.refreshService = refreshService;
         this.cookieUtil = cookieUtil;
         this.userAuthCacheService = userAuthCacheService;
+        this.sessionIdGenerator = sessionIdGenerator;
         setAuthenticationManager(authenticationManager);
     }
 
@@ -70,9 +75,6 @@ public class JwtLoginFilter extends UsernamePasswordAuthenticationFilter {
                     .readValue(inputStream, LoginRequest.class);
 
             String username = loginRequest.username();
-
-            // 중복 로그인 체크
-            refreshService.validateAlreadyLogin(username);
 
             UsernamePasswordAuthenticationToken authenticationToken =
                     new UsernamePasswordAuthenticationToken(username, loginRequest.password());
@@ -106,19 +108,40 @@ public class JwtLoginFilter extends UsernamePasswordAuthenticationFilter {
         Long userId = userDetails.getUserId();
         String username = userDetails.getUsername();
 
+        // 이번 로그인을 직전 로그인과 구분하는 식별자.
+        // 두 토큰과 캐시에 같은 값이 들어가야 JwtFilter가 옛 세션을 가려낸다.
+        String sessionId = sessionIdGenerator.generate();
+
         // access 토큰 생성
-        String access = jwtUtil.createJwt("access", username, role, 600000*6*24L);
+        String access = jwtUtil.createJwt(
+                "access",
+                userId,
+                username,
+                role,
+                sessionId,
+                TokenExpiration.ACCESS_TOKEN_EXPIRED_MS);
 
         // refresh 토큰 생성
-        String refresh = jwtUtil.createJwt("refresh", username, role, 7*600000*6*24L);
+        String refresh = jwtUtil.createJwt(
+                "refresh",
+                userId,
+                username,
+                role,
+                sessionId,
+                TokenExpiration.REFRESH_TOKEN_EXPIRED_MS);
 
         UserAuthCache userAuthCache = new UserAuthCache(
                 userId,
                 username,
-                role);
+                role,
+                sessionId);
 
         // User의 간단한 정보를 담은 DTO를 Redis에 저장
         userAuthCacheService.saveUserAuthCache(userAuthCache);
+
+        // 같은 계정의 이전 세션을 끊는다. 비밀번호가 맞은 뒤에만 해야
+        // 남의 계정에 틀린 비밀번호를 넣어 로그아웃시키는 일이 생기지 않는다.
+        refreshService.deleteRefreshByUsername(username);
 
         // cache에 refresh 토큰 추가
         refreshService.addRefresh(username, refresh);
