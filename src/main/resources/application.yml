@@ -3,6 +3,12 @@ server:
   # Spring Boot는 PORT를 직접 읽지 않으므로 명시적으로 연결한다.
   port: ${PORT:8080}
 
+  # 프록시가 TLS를 종료하므로 앱에는 http로 들어온다.
+  # X-Forwarded-Proto를 읽지 않으면 Swagger 문서의 server URL이 http로 생성되어
+  # https로 열린 Swagger UI에서 Try it out이 혼합 콘텐츠로 차단된다.
+  # 로컬에는 해당 헤더가 없어 아무 영향이 없다.
+  forward-headers-strategy: framework
+
 spring:
   application:
     name: default-setting # 추후 변경
