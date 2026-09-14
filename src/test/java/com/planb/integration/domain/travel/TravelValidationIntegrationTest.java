@@ -11,6 +11,9 @@ import com.planb.ai.dto.response.PlaceWithRouteResult;
 import com.planb.ai.dto.response.PlanEditScope;
 import com.planb.ai.dto.response.RebuildPlanDayResponse;
 import com.planb.ai.handler.TravelRecommendHandler;
+import com.planb.ai.mcp.TourismTool;
+import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
+import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
 import com.planb.domain.travel.dto.request.CreateTravelRequest;
 import com.planb.domain.travel.dto.request.EditPlanRequest;
 import com.planb.domain.travel.dto.request.GetAiPlanRequest;
@@ -36,6 +39,7 @@ import tools.jackson.databind.JsonNode;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -54,6 +58,9 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
 
     @MockitoBean
     private KakaoMapServiceHandler kakao;
+
+    @MockitoBean
+    private TourismTool tourismTool;
 
     @Autowired
     private TravelRepository travels;
@@ -676,6 +683,155 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                 .isEqualTo(second);
     }
 
+    @Test
+    @DisplayName("채울 음식점 후보가 없는 식사 누락은 생성 실패와 DB 롤백")
+    void missingMealWithoutCandidateRollsBackCreation() throws Exception {
+
+        List<Long> before = counts();
+
+        // 하루가 등록 저녁시각(18:00)을 지나지만 저녁 슬롯이 없다.
+        // 카카오 후보만 있어 MissingSlotCompleter가 채울 음식점이 없다.
+        when(handler.createPlanByAi(any(), any()))
+                .thenAnswer(invocation -> {
+                    PlaceCandidateContext candidates = invocation.getArgument(1);
+
+                    return new CreatePlanAiResponse(List.of(
+                            dayWithoutDinner(1, 1, candidates),
+                            dayWithoutDinner(2, 2, candidates)));
+                });
+
+        assertError(postApi("/add-with-recommend", request), "PLAN.EXCEPTION.INVALID_AI_PLACE");
+
+        assertThat(counts())
+                .isEqualTo(before);
+    }
+
+    @Test
+    @DisplayName("보존 편집에서 재구성 날짜의 식사 누락을 편집 호출 후보로 채움")
+    void preservedEditFillsMissingMealFromEditCandidates() throws Exception {
+
+        request = threeDayRequest();
+
+        when(handler.createPlanByAi(any(), any()))
+                .thenAnswer(invocation -> threeDayFixture(1, 2, 3, invocation.getArgument(1)));
+
+        success(postApi("/add-with-recommend", request));
+
+        Long id = travelId();
+
+        when(handler.classifyEditScope(any()))
+                .thenReturn(new PlanEditScope(List.of(2)));
+
+        when(tourismTool.getRestaurantDetail(anyString()))
+                .thenReturn(restaurantIntro("보정 메뉴"));
+
+        // 2일차만 저녁 없이 돌려주고, 채울 음식점은 편집 호출의 후보로만 등록한다.
+        when(handler.editPlanByAi(any(), any()))
+                .thenAnswer(invocation -> {
+                    PlaceCandidateContext candidates = invocation.getArgument(1);
+
+                    candidates.record(tourRestaurant("9001", "보정 음식점"));
+
+                    return new EditPlanAiResponse(
+                            request.travelName(),
+                            List.of(
+                                    day(1, 1, candidates, false),
+                                    dayWithoutDinner(2, 4, candidates),
+                                    day(3, 3, candidates, false)),
+                            List.of("2일차 장소 변경"),
+                            true);
+                });
+
+        JsonNode after = success(postApi(
+                "/edit-plan/preview",
+                new EditPlanRequest(id, "2일차만 다시 짜주세요.")))
+                .path("after");
+
+        JsonNode secondDay = after
+                .path("planDays")
+                .get(1)
+                .path("schedules");
+
+        assertThat(scheduleTypes(secondDay))
+                .as(secondDay.toString())
+                .contains("DINNER");
+    }
+
+    private List<String> scheduleTypes(JsonNode schedules) {
+
+        List<String> types = new ArrayList<>();
+
+        schedules.forEach(schedule -> types.add(schedule
+                .path("scheduleType")
+                .asText()));
+
+        return types;
+    }
+
+    // 저녁시각을 지나지만 저녁 슬롯이 없는 하루
+    private PlanDayDetail dayWithoutDinner(
+            int number,
+            int source,
+            PlaceCandidateContext candidates
+    ) {
+
+        return new PlanDayDetail(
+                number,
+                date.plusDays(number - 1),
+                List.of(
+                        slot(source * 10 + 1, CourseType.ATTRACTION, 9, candidates, false),
+                        slot(source * 10 + 2, CourseType.RESTAURANT, 12, candidates, false),
+                        slot(source * 10 + 3, CourseType.CAFE_REST, 14, candidates, false),
+                        slot(source * 10 + 4, CourseType.ATTRACTION, 16, candidates, false),
+                        slot(source * 10 + 5, CourseType.ATTRACTION, 18, candidates, false)));
+    }
+
+    private Kor2KeywordSearchResponse.Item tourRestaurant(
+            String contentId,
+            String name
+    ) {
+
+        return new Kor2KeywordSearchResponse.Item(
+                "부산 보정로 1",
+                "",
+                null,
+                contentId,
+                "39",
+                null,
+                "보정 사진",
+                "보정 썸네일",
+                null,
+                "129.2",
+                "35.2",
+                null,
+                null,
+                null,
+                name,
+                null,
+                null,
+                "FD",
+                "FD01",
+                "FD010100");
+    }
+
+    private Kor2RestaurantIntroResponse restaurantIntro(String firstMenu) {
+
+        return new Kor2RestaurantIntroResponse(
+                new Kor2RestaurantIntroResponse.Response(
+                        new Kor2RestaurantIntroResponse.Header("0000", "OK"),
+                        new Kor2RestaurantIntroResponse.Body(
+                                new Kor2RestaurantIntroResponse.Items(
+                                        List.of(
+                                                new Kor2RestaurantIntroResponse.Item(
+                                                        "9",
+                                                        "39",
+                                                        firstMenu,
+                                                        firstMenu))),
+                                1,
+                                1,
+                                1)));
+    }
+
     private CreateTravelRequest withHealthIds(List<Long> healthIds) {
 
         return new CreateTravelRequest(
@@ -872,7 +1028,9 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                         slot(source * 10 + 2, CourseType.RESTAURANT, 12, candidates, false),
                         slot(source * 10 + 3, CourseType.CAFE_REST, 14, candidates, false),
                         slot(source * 10 + 4, CourseType.ATTRACTION, 16, candidates, false),
-                        slot(source * 10 + 5, CourseType.ATTRACTION, 18, candidates, false)));
+                        // day(...)와 같은 이유로 저녁 슬롯이 있어야 한다.
+                        slot(source * 10 + 6, CourseType.RESTAURANT, 18, candidates, false),
+                        slot(source * 10 + 5, CourseType.ATTRACTION, 20, candidates, false)));
     }
 
     // 검색 원본과 동일한 장소 정보를 그대로 담아 장소 변경으로 판정되지 않는 슬롯
@@ -1011,14 +1169,34 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                                 candidates,
                                 optionalCoordinates
                         ),
+                        // 하루가 등록 저녁시각(18:00)을 지나므로 저녁 슬롯이 있어야 유효한 일정이다.
+                        slot(
+                                source * 10 + 6,
+                                CourseType.RESTAURANT,
+                                18,
+                                candidates,
+                                false
+                        ),
                         slot(
                                 source * 10 + 5,
                                 CourseType.ATTRACTION,
-                                18,
+                                20,
                                 candidates,
                                 optionalCoordinates
                         )
                 ));
+    }
+
+    // 음식점 슬롯의 식사 종류는 시각이 정한다. 어긋나면 식사 슬롯으로 세어지지 않는다.
+    private ScheduleType mealScheduleType(int hour) {
+
+        if (hour < 11) {
+            return ScheduleType.BREAKFAST;
+        }
+
+        return hour < 16
+                ? ScheduleType.LUNCH
+                : ScheduleType.DINNER;
     }
 
     private PlanScheduleDetail slot(
@@ -1059,7 +1237,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                 null) : null;
 
         return new PlanScheduleDetail(
-                meal ? ScheduleType.LUNCH : ScheduleType.ACTIVITY,
+                meal ? mealScheduleType(hour) : ScheduleType.ACTIVITY,
                 type,
                 LocalTime.of(hour, 0),
                 LocalTime.of(hour + 1, 0),
