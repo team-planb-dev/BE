@@ -5,6 +5,7 @@ import com.planb.ai.context.TravelHealthContext;
 import com.planb.ai.context.TravelPlanContext;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
 import com.planb.ai.dto.response.KakaoRouteResult;
+import com.planb.ai.handler.MissingSlotCompleter;
 import com.planb.ai.handler.TravelRecommendHandler;
 import com.planb.ai.mcp.NutritionEvaluationCollector;
 import com.planb.domain.health.entity.constant.DiseaseType;
@@ -29,9 +30,11 @@ import com.planb.domain.travel.entity.constant.ScheduleType;
 import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.domain.travel.entity.constant.TravelStyle;
 import com.planb.domain.travel.entity.constant.TravelTheme;
-import com.planb.domain.travel.helper.PlanPlaceHelper;
+import com.planb.domain.travel.helper.PlanEditValidator;
+import com.planb.domain.travel.helper.PlanPlaceResolver;
 import com.planb.domain.travel.repository.PlanRepository;
 import com.planb.domain.travel.service.PlanService;
+import com.planb.domain.travel.service.ScheduleNormalizer;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.global.config.exception.domain.BaseException;
 import java.time.LocalDate;
@@ -44,7 +47,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
@@ -60,6 +62,7 @@ import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -80,13 +83,30 @@ class PlanServiceTest {
     private NutritionEvaluationCollector nutritionEvaluationCollector;
 
     @Mock
-    private PlanPlaceHelper planPlaceHelper;
+    private PlanPlaceResolver planPlaceResolver;
 
-    @InjectMocks
     private PlanService planService;
 
     @BeforeEach
     void acceptAlreadyValidatedSlots() {
+
+        planService = new PlanService(
+                planRepository,
+                planPlaceResolver,
+                new PlanEditValidator(),
+                new ScheduleNormalizer(planPlaceResolver),
+                travelRecommendHandler,
+                kakaoMapServiceHandler,
+                nutritionEvaluationCollector,
+                new MissingSlotCompleter(mock(com.planb.ai.mcp.TourismTool.class))
+        );
+
+        // travelMinutes가 0인 슬롯도 재조회 대상이라 기본 응답이 필요하다.
+        // 조회 실패(이동시간 없음)를 기본으로 두어 각 테스트가 필요할 때만 값을 덮어쓴다.
+        org.mockito.Mockito
+                .lenient()
+                .when(kakaoMapServiceHandler.getRoute(any(), any(), any()))
+                .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, null)));
 
         org.mockito.Mockito
                 .lenient()
@@ -97,8 +117,8 @@ class PlanServiceTest {
                         invocation.<com.planb.domain.travel.entity.constant.Transportation>getArgument(2)));
 
         // 복약·태그 후처리 단위 테스트의 장소 검증 경계 대역
-        lenient().when(planPlaceHelper.validate(any(), any(), anySet(), anySet()))
-                .thenAnswer(invocation -> new PlanPlaceHelper.Validation(invocation.getArgument(0), null));
+        lenient().when(planPlaceResolver.validate(any(), any(), anySet(), anySet()))
+                .thenAnswer(invocation -> new PlanPlaceResolver.Validation(invocation.getArgument(0), null));
     }
 
     @Test
@@ -274,6 +294,133 @@ class PlanServiceTest {
                         "129.16",
                         "35.16"
                 );
+    }
+
+    @Test
+    @DisplayName("다음 날짜 첫 장소 이동시간 0의 이전 날짜 마지막 장소 기준 재계산")
+    void makePlanByAiRecalculatesZeroTravelMinutesAcrossDays() {
+
+        // AI가 0을 채워 넣으면 날짜 경계 이동이 사라진 것처럼 보인다.
+        // travelMinutes는 직전 확정 장소로부터의 inbound이므로 0도 확인 대상이다.
+        TravelPlanContext context =
+                travelPlanContext();
+
+        CreatePlanAiResponse response =
+                new CreatePlanAiResponse(
+                        List.of(
+                                planDay(
+                                        1,
+                                        List.of(attraction("첫날 마지막 장소"))
+                                ),
+                                planDay(
+                                        2,
+                                        List.of(attraction("둘째날 첫 장소", 0))
+                                )
+                        )
+                );
+
+        when(
+                travelRecommendHandler
+                        .createPlanByAi(
+                                eq(context),
+                                any(PlaceCandidateContext.class)
+                        )
+        ).thenReturn(response);
+
+        when(
+                kakaoMapServiceHandler
+                        .getRoute(
+                                anyString(),
+                                anyString(),
+                                any(Transportation.class)
+                        )
+        ).thenReturn(
+                Mono.just(
+                        new KakaoRouteResult(
+                                null,
+                                null,
+                                null,
+                                25
+                        )
+                )
+        );
+
+        CreatePlanAiResponse result =
+                planService
+                        .makePlanByAi(context);
+
+        assertEquals(
+                25,
+                result
+                        .planDays()
+                        .get(1)
+                        .schedules()
+                        .getFirst()
+                        .travelMinutes()
+        );
+    }
+
+    @Test
+    @DisplayName("이동시간 재조회 실패 시 원래 값 유지")
+    void makePlanByAiKeepsOriginalTravelMinutesWhenRouteLookupFails() {
+
+        // 조회에 실패했다고 지금까지 통과하던 일정을 실패로 바꾸지 않는다.
+        TravelPlanContext context =
+                travelPlanContext();
+
+        CreatePlanAiResponse response =
+                new CreatePlanAiResponse(
+                        List.of(
+                                planDay(
+                                        1,
+                                        List.of(attraction("첫날 마지막 장소"))
+                                ),
+                                planDay(
+                                        2,
+                                        List.of(attraction("둘째날 첫 장소", 0))
+                                )
+                        )
+                );
+
+        when(
+                travelRecommendHandler
+                        .createPlanByAi(
+                                eq(context),
+                                any(PlaceCandidateContext.class)
+                        )
+        ).thenReturn(response);
+
+        when(
+                kakaoMapServiceHandler
+                        .getRoute(
+                                anyString(),
+                                anyString(),
+                                any(Transportation.class)
+                        )
+        ).thenReturn(
+                Mono.just(
+                        new KakaoRouteResult(
+                                null,
+                                null,
+                                null,
+                                null
+                        )
+                )
+        );
+
+        CreatePlanAiResponse result =
+                planService
+                        .makePlanByAi(context);
+
+        assertEquals(
+                0,
+                result
+                        .planDays()
+                        .get(1)
+                        .schedules()
+                        .getFirst()
+                        .travelMinutes()
+        );
     }
 
     @Test
@@ -503,6 +650,7 @@ class PlanServiceTest {
                                         1,
                                         List.of(
                                                 attraction("첫날 관광지", 0),
+                                                restaurant("첫날 점심"),
                                                 mustHave("첫날 필수 장소")
                                         )
                                 ),
@@ -510,6 +658,7 @@ class PlanServiceTest {
                                         2,
                                         List.of(
                                                 attraction("둘째날 관광지", 0),
+                                                restaurant("둘째날 점심"),
                                                 mustHave("둘째날 필수 장소")
                                         )
                                 )
@@ -527,7 +676,10 @@ class PlanServiceTest {
                         .planDays()
                         .getFirst()
                         .schedules()
-                        .size()
+                        .stream()
+                        .filter(schedule -> schedule.courseType() == CourseType.ATTRACTION
+                                || schedule.courseType() == CourseType.MUST_HAVE)
+                        .count()
         );
     }
 
@@ -566,7 +718,7 @@ class PlanServiceTest {
         CreatePlanAiResponse.PlanDayDetail day1 =
                 planDay(
                         1,
-                        withRequiredAttractions(medicationWithoutTag())
+                        withRequiredSlots(medicationWithoutTag())
                 );
 
         CreatePlanAiResponse response =
@@ -661,7 +813,7 @@ class PlanServiceTest {
         CreatePlanAiResponse.PlanDayDetail day1 =
                 planDay(
                         1,
-                        withRequiredAttractions(
+                        withRequiredSlots(
                                 lunch,
                                 medicationWithoutTag()
                         )
@@ -689,8 +841,8 @@ class PlanServiceTest {
 
         CreatePlanAiResponse.PlanScheduleDetail medicationSchedule = medicationSchedules.get(0);
 
-        assertEquals(LocalTime.of(12, 30), medicationSchedule.startTime());
-        assertEquals(LocalTime.of(12, 40), medicationSchedule.endTime());
+        assertEquals(LocalTime.of(13, 30), medicationSchedule.startTime());
+        assertEquals(LocalTime.of(13, 40), medicationSchedule.endTime());
         assertTrue(medicationSchedule.medication().description().contains("점심"));
         assertTrue(medicationSchedule.medication().description().contains("식후"));
         assertTrue(medicationSchedule.medication().description().contains("30분"));
@@ -795,7 +947,7 @@ class PlanServiceTest {
                         List.of(
                                 planDay(
                                         1,
-                                        withRequiredAttractions(transportationSchedule())
+                                        withRequiredSlots(transportationSchedule())
                                 )
                         )
                 )
@@ -817,7 +969,7 @@ class PlanServiceTest {
         );
 
         assertEquals(
-                LocalTime.of(12, 30),
+                LocalTime.of(13, 30),
                 medications
                         .getFirst()
                         .startTime()
@@ -1130,7 +1282,7 @@ class PlanServiceTest {
         CreatePlanAiResponse.PlanDayDetail day1 =
                 planDay(
                         1,
-                        withRequiredAttractions(restaurant("제육볶음"))
+                        withRequiredSlots(restaurant("제육볶음"))
                 );
 
         CreatePlanAiResponse response =
@@ -1387,7 +1539,8 @@ class PlanServiceTest {
         );
     }
 
-    private List<CreatePlanAiResponse.PlanScheduleDetail> withRequiredAttractions(
+    // 관광 장소 개수와 식사 슬롯은 최종 검증 대상이므로 계약을 만족하는 하루를 만든다.
+    private List<CreatePlanAiResponse.PlanScheduleDetail> withRequiredSlots(
             CreatePlanAiResponse.PlanScheduleDetail... schedules
     ) {
 
@@ -1398,7 +1551,8 @@ class PlanServiceTest {
                 List.of(
                         attraction("계약 관광지 1", 0),
                         attraction("계약 관광지 2", 0),
-                        attraction("계약 관광지 3", 0)
+                        attraction("계약 관광지 3", 0),
+                        restaurant("계약 점심")
                 )
         );
 
@@ -1547,8 +1701,9 @@ class PlanServiceTest {
 
     private CreatePlanAiResponse.PlanScheduleDetail restaurant(String menuName) {
 
+        // 12시 음식점은 점심 슬롯이다. scheduleType이 어긋나면 식사 슬롯으로 세어지지 않는다.
         return new CreatePlanAiResponse.PlanScheduleDetail(
-                ScheduleType.ACTIVITY,
+                ScheduleType.LUNCH,
                 CourseType.RESTAURANT,
                 LocalTime.of(12, 0),
                 LocalTime.of(13, 0),

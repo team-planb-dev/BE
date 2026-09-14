@@ -35,7 +35,7 @@ class PlanEditRebuildTest extends IntegrationTest {
     private KakaoMapServiceHandler kakaoMapServiceHandler;
 
     @Test
-    @DisplayName("실제 OpenAI 편집 - 1일차 재구성 및 2일차 전체 필드 보존")
+    @DisplayName("실제 OpenAI 편집 - 1일차 재구성 및 2일차 장소 보존과 첫 이동시간 재계산")
     void rebuildsFirstDayAndPreservesSecondDay() {
 
         LocalDate date = LocalDate.now().plusDays(7);
@@ -91,9 +91,15 @@ class PlanEditRebuildTest extends IntegrationTest {
                     assertThat(slot.candidateId()).isNotBlank();
                 });
 
+        // 2일차 첫 장소의 travelMinutes는 1일차 마지막 장소 기준 inbound 값이므로
+        // 1일차 재구성과 함께 다시 계산된다. 나머지 필드는 그대로 보존되어야 한다.
         assertThat(result.planDays().get(1)).usingRecursiveComparison()
-                .ignoringFields("schedules.candidateId")
+                .ignoringFields("schedules.candidateId", "schedules.travelMinutes")
                 .isEqualTo(original.planDays().get(1));
+
+        assertThat(result.planDays().get(1).schedules().getFirst().travelMinutes())
+                .isNotNull()
+                .isGreaterThanOrEqualTo(0);
 
         System.out.println("재구성 결과: " + result);
     }

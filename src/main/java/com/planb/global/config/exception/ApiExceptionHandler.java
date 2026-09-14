@@ -10,13 +10,18 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import com.planb.global.config.exception.domain.AiOrchestrationException;
 import com.planb.global.config.exception.domain.BadRequestException;
 import com.planb.global.config.exception.domain.BaseDataException;
 import com.planb.global.config.exception.domain.BaseException;
 import com.planb.global.config.exception.domain.ForbiddenException;
 import com.planb.global.config.exception.dto.ApiResult;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+
 import java.nio.file.AccessDeniedException;
+import java.util.stream.Collectors;
 
 import static com.planb.global.config.exception.BaseExceptionEnum.*;
 
@@ -69,6 +74,30 @@ public class ApiExceptionHandler {
             MethodArgumentNotValidException e) {
 
         String errorMessage = extractValidationMessage(e.getBindingResult());
+
+        logWarnException(e, EXCEPTION_VALIDATION);
+
+        return ApiResult.fail(
+                EXCEPTION_VALIDATION.getCode(),
+                errorMessage
+        );
+    }
+
+    /**
+     * Validation 실패 (@RequestParam, @PathVariable 등 메서드 파라미터)
+     *
+     * @Valid가 붙은 본문과 달리 메서드 파라미터 검증은 ConstraintViolationException으로 올라온다.
+     * 잡지 않으면 RuntimeException 핸들러가 시스템 에러로 응답해 원인을 가린다.
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ApiResult<Void> handleConstraintViolationException(
+            ConstraintViolationException e) {
+
+        String errorMessage = e
+                .getConstraintViolations()
+                .stream()
+                .map(ConstraintViolation::getMessage)
+                .collect(Collectors.joining(", "));
 
         logWarnException(e, EXCEPTION_VALIDATION);
 
@@ -155,6 +184,18 @@ public class ApiExceptionHandler {
         logErrorException(e, ENTITY_NOT_FOUND);
 
         return ApiResult.fail(ENTITY_NOT_FOUND);
+    }
+
+    /**
+     * AI 오케스트레이션 실패
+     * 도메인 사유는 로그에 남기고 클라이언트에는 대응 방법이 다른 3종만 노출
+     */
+    @ExceptionHandler(AiOrchestrationException.class)
+    public ApiResult<Void> aiOrchestrationExceptionHandler(AiOrchestrationException e) {
+
+        logErrorException(e, e.getFailure());
+
+        return ApiResult.fail(e.getFailure().getApiError());
     }
 
     /**

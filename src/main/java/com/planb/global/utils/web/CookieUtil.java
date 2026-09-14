@@ -22,6 +22,10 @@ public class CookieUtil {
         Cookie cookie = new Cookie(key, value);
         cookie.setMaxAge(24*60*60);
         cookie.setHttpOnly(true);
+
+        // zeroCookie가 Path "/"로 지우므로 발급도 같은 Path여야 삭제가 맞아떨어진다.
+        cookie.setPath("/");
+
         return cookie;
 
     }

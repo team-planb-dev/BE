@@ -9,15 +9,12 @@ import com.planb.ai.dto.response.EditPlanAiResponse;
 import com.planb.ai.dto.response.RebuildPlanDayResponse;
 import com.planb.ai.dto.response.KakaoRouteResult;
 import com.planb.ai.dto.response.PlanEditScope;
-import com.planb.domain.travel.helper.PlanEditValidationHelper;
+import com.planb.domain.travel.helper.PlanEditValidator;
+import com.planb.ai.handler.MissingSlotCompleter;
 import com.planb.ai.handler.TravelRecommendHandler;
 import com.planb.ai.mcp.NutritionEvaluationCollector;
 import com.planb.ai.prompt.PlaceReselectPrompt;
 import com.planb.domain.health.entity.constant.FoodType;
-import com.planb.domain.health.entity.constant.MealTiming;
-import com.planb.domain.health.entity.constant.MedicationBasis;
-import com.planb.domain.health.entity.constant.RelatedMeal;
-import com.planb.domain.health.entity.constant.WalkType;
 import com.planb.domain.travel.dto.nutrition.NutritionEvaluationResult;
 import com.planb.domain.travel.dto.request.CreatePlanRequest;
 import com.planb.domain.travel.dto.request.CreateTravelRequest;
@@ -28,16 +25,17 @@ import com.planb.domain.travel.entity.constant.NutritionEvaluationStatus;
 import com.planb.domain.travel.entity.constant.NutritionLevel;
 import com.planb.domain.travel.entity.constant.NutritionType;
 import com.planb.domain.travel.entity.constant.RecommendationTag;
+import com.planb.domain.travel.policy.MealSlotPolicy;
+import com.planb.domain.travel.policy.TouristPlaceCountPolicy;
 import com.planb.domain.travel.entity.constant.ScheduleType;
 import com.planb.domain.travel.entity.constant.Transportation;
-import com.planb.domain.travel.helper.PlanPlaceHelper.Validation;
-import com.planb.domain.travel.helper.PlanPlaceHelper;
+import com.planb.domain.travel.helper.PlanPlaceResolver.Validation;
+import com.planb.domain.travel.helper.PlanPlaceResolver;
 import com.planb.domain.travel.repository.PlanRepository;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.global.config.exception.PlanEditExceptionEnum;
 import com.planb.global.config.exception.domain.BaseException;
 
-import java.time.Duration;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -66,26 +64,19 @@ public class PlanService {
             NutritionType.SATURATED_FAT, RecommendationTag.SATURATED_FAT_REFERENCE
     );
 
-    // 복약 일정 계산 시 하루 중 식사 슬롯을 찾기 위한 scheduleType 집합
-    private static final Set<ScheduleType> MEAL_SCHEDULE_TYPES = Set.of(
-            ScheduleType.BREAKFAST,
-            ScheduleType.LUNCH,
-            ScheduleType.DINNER
-    );
-
-    private static final long MEAL_TIME_TOLERANCE_MINUTES = 30;
-
     /*
     Repository
      */
     private final PlanRepository planRepository;
 
     /*
-    Helper
+    장소 확정, 수정 반영 검증, 시간표 계산
      */
-    private final PlanPlaceHelper planPlaceHelper;
+    private final PlanPlaceResolver planPlaceResolver;
 
-    private final PlanEditValidationHelper planEditValidationHelper;
+    private final PlanEditValidator planEditValidator;
+
+    private final ScheduleNormalizer scheduleNormalizer;
 
     /*
     Handler
@@ -100,6 +91,8 @@ public class PlanService {
     Tool 호출 결과 수집기
      */
     private final NutritionEvaluationCollector nutritionEvaluationCollector;
+
+    private final MissingSlotCompleter missingSlotCompleter;
 
     public Plan createPlan(CreatePlanRequest createPlanRequest){
 
@@ -121,9 +114,10 @@ public class PlanService {
 
         List<NutritionEvaluationCollector.FoodNutritionEvaluation> evaluations;
 
-        try {
-            PlaceCandidateContext candidates = new PlaceCandidateContext();
+        // finishPlan의 식사 재보정도 같은 후보를 쓰므로 호출 단위 전체에서 살아 있어야 한다.
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
 
+        try {
             CreatePlanAiResponse response = travelRecommendHandler.createPlanByAi(context, candidates);
 
             validated = validatePlaces(response, candidates, context, null);
@@ -131,7 +125,12 @@ public class PlanService {
             evaluations = nutritionEvaluationCollector.finish();
         }
 
-        return finishPlan(validated, context, evaluations);
+        return finishPlan(
+                validated,
+                context,
+                evaluations,
+                RouteAnchor.from(context.createTravelRequest().decidedLocation()),
+                candidates);
     }
 
     // AI 일정 수정 및 검증된 기존 슬롯 복구
@@ -151,12 +150,13 @@ public class PlanService {
 
         List<NutritionEvaluationCollector.FoodNutritionEvaluation> evaluations;
 
-        try {
-            PlaceCandidateContext candidates = new PlaceCandidateContext();
+        // finishPlan의 식사 재보정도 같은 후보를 쓰므로 호출 단위 전체에서 살아 있어야 한다.
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
 
+        try {
             PlanEditScope scope = travelRecommendHandler.classifyEditScope(context);
 
-            rebuildDays = planEditValidationHelper.rebuildDays(scope, context);
+            rebuildDays = planEditValidator.rebuildDays(scope, context);
 
             preserveOtherDays = !rebuildDays.isEmpty() && scope.preserveOtherDays();
 
@@ -173,10 +173,17 @@ public class PlanService {
             evaluations = nutritionEvaluationCollector.finish();
         }
 
-        CreatePlanAiResponse toFinish = !preserveOtherDays ? validated : new CreatePlanAiResponse(
-                validated.planDays().stream().filter(day -> rebuildDays.contains(day.dayNumber())).toList());
+        CreatePlanAiResponse toFinish = !preserveOtherDays ? validated
+                : new CreatePlanAiResponse(finishTargets(validated, rebuildDays));
 
-        CreatePlanAiResponse finished = finishPlan(toFinish, travelContext, evaluations);
+        CreatePlanAiResponse finished = finishPlan(
+                toFinish,
+                travelContext,
+                evaluations,
+                preserveOtherDays
+                        ? rebuildAnchor(context, rebuildDays)
+                        : RouteAnchor.from(context.createTravelRequest().decidedLocation()),
+                candidates);
 
         CreatePlanAiResponse result = !preserveOtherDays ? finished : new CreatePlanAiResponse(
                 validated.planDays().stream().map(day -> finished.planDays().stream()
@@ -208,11 +215,11 @@ public class PlanService {
         for (Integer dayNumber : rebuildDays.stream().sorted().toList()) {
             CreatePlanAiResponse.PlanDayDetail target = current.planDays().stream()
                     .filter(day -> Objects.equals(day.dayNumber(), dayNumber)).findFirst()
-                    .orElseThrow(() -> planEditValidationHelper.failure("대상 날짜 누락"));
+                    .orElseThrow(() -> planEditValidator.failure("대상 날짜 누락"));
 
             String reason = "전체 재구성 요청에도 새로운 장소가 없는 " + dayNumber + "일차";
 
-            for (int attempt = 0; !planEditValidationHelper.rebuilt(context, target) && attempt < 2; attempt++) {
+            for (int attempt = 0; !planEditValidator.rebuilt(context, target) && attempt < 2; attempt++) {
                 PlaceCandidateContext candidates = new PlaceCandidateContext();
 
                 RebuildPlanDayResponse rebuildResponse = travelRecommendHandler
@@ -223,7 +230,7 @@ public class PlanService {
                                 reason,
                                 candidates);
 
-                Optional<String> responseFailure = planEditValidationHelper
+                Optional<String> responseFailure = planEditValidator
                         .rebuildFailure(
                                 context,
                                 dayNumber,
@@ -249,14 +256,14 @@ public class PlanService {
 
                 current.planDays().stream().filter(day -> !Objects.equals(day.dayNumber(), dayNumber))
                         .flatMap(day -> day.schedules().stream())
-                        .forEach(slot -> planPlaceHelper.track(slot, places, menus));
+                        .forEach(slot -> planPlaceResolver.track(slot, places, menus));
 
                 CreatePlanAiResponse checked;
 
                 try {
                     checked = validatePlaces(replacement, candidates,
                             new TravelPlanContext(context.createTravelRequest(), context.healthContexts()),
-                            context.currentPlan(), places, menus);
+                            context.currentPlan(), places, menus, rebuildAnchor(context, Set.of(dayNumber)));
                 } catch (BaseException exception) {
                     if (!PlanEditExceptionEnum.INVALID_AI_PLACE.getCode().equals(exception.getErrorCode())) {
                         throw exception;
@@ -277,7 +284,7 @@ public class PlanService {
 
                 reason = "원본 검증 후에도 새로운 장소가 없는 " + dayNumber + "일차";
 
-                if (!planEditValidationHelper.rebuilt(context, target)) {
+                if (!planEditValidator.rebuilt(context, target)) {
                     log.warn(
                             "[AI DAY REBUILD] attempt={}, targetDay={}, reason={}",
                             attempt + 1,
@@ -291,8 +298,8 @@ public class PlanService {
                         .map(day -> Objects.equals(day.dayNumber(), dayNumber) ? rebuilt : day).toList());
             }
 
-            if (!planEditValidationHelper.rebuilt(context, target)) {
-                throw planEditValidationHelper.failure(reason);
+            if (!planEditValidator.rebuilt(context, target)) {
+                throw planEditValidator.failure(reason);
             }
         }
 
@@ -321,15 +328,25 @@ public class PlanService {
             List<CreatePlanAiResponse.PlanScheduleDetail> schedules = new ArrayList<>();
 
             for (GetAiPlanResponse.PlanScheduleDetail slot : day.schedules()) {
-                Validation validation = planPlaceHelper.verifyExisting(slot, places, menus);
+                Validation validation = planPlaceResolver.verifyExisting(slot, places, menus);
 
+                // 보존 날짜는 사용자가 이미 받아본 확정 일정이므로 검증 실패로 편집을 막지 않는다.
+                // 남은 실패 사유는 저장된 데이터의 구조 결함이라 로그로만 드러낸다.
                 if (!validation.valid()) {
-                    throw invalidPlace(validation.reason());
+                    log.warn(
+                            "[PRESERVED SLOT] dayNumber={}, locationName={}, reason={}",
+                            day.dayNumber(),
+                            slot.locationName(),
+                            validation.reason());
                 }
 
-                schedules.add(validation.schedule());
+                CreatePlanAiResponse.PlanScheduleDetail preservedSlot = validation.valid()
+                        ? validation.schedule()
+                        : planPlaceResolver.fromExisting(slot);
 
-                planPlaceHelper.track(validation.schedule(), places, menus);
+                schedules.add(preservedSlot);
+
+                planPlaceResolver.track(preservedSlot, places, menus);
             }
 
             preserved.add(new CreatePlanAiResponse.PlanDayDetail(day.dayNumber(), day.date(), schedules));
@@ -341,8 +358,8 @@ public class PlanService {
 
             CreatePlanAiResponse single = new CreatePlanAiResponse(matches);
 
-            if (!planEditValidationHelper.sameDay(context, number, single)) {
-                throw planEditValidationHelper.failure("재구성 대상 일차/날짜 불일치");
+            if (!planEditValidator.sameDay(context, number, single)) {
+                throw planEditValidator.failure("재구성 대상 일차/날짜 불일치");
             }
 
             return matches.getFirst();
@@ -350,53 +367,240 @@ public class PlanService {
 
         CreatePlanAiResponse checked = validatePlaces(new CreatePlanAiResponse(targets), candidates,
                 new TravelPlanContext(context.createTravelRequest(), context.healthContexts()),
-                context.currentPlan(), places, menus);
+                context.currentPlan(), places, menus, rebuildAnchor(context, rebuildDays));
 
         return new CreatePlanAiResponse(Stream.concat(preserved.stream(), checked.planDays().stream())
                 .sorted(Comparator.comparing(CreatePlanAiResponse.PlanDayDetail::dayNumber)).toList());
     }
 
+    // 재구성 구간과 그 직후 보존 날짜를 함께 계산 대상으로 삼는다
+    // 직후 날짜의 첫 이동시간은 재구성 전 장소를 기준으로 계산된 값이라 그대로 두면 어긋난다
+    private List<CreatePlanAiResponse.PlanDayDetail> finishTargets(
+            CreatePlanAiResponse validated,
+            Set<Integer> rebuildDays
+    ) {
+
+        int trailing = rebuildDays
+                .stream()
+                .max(Integer::compareTo)
+                .orElse(0) + 1;
+
+        return validated
+                .planDays()
+                .stream()
+                .filter(day -> rebuildDays.contains(day.dayNumber())
+                        || Objects.equals(day.dayNumber(), trailing))
+                .map(day -> rebuildDays.contains(day.dayNumber())
+                        ? day
+                        : clearFirstTravelMinutes(day))
+                .toList();
+    }
+
+    // 직후 보존 날짜의 첫 장소만 이동시간을 비워 재계산 대상으로 만든다
+    private CreatePlanAiResponse.PlanDayDetail clearFirstTravelMinutes(
+            CreatePlanAiResponse.PlanDayDetail day
+    ) {
+
+        boolean cleared = false;
+
+        List<CreatePlanAiResponse.PlanScheduleDetail> schedules = new ArrayList<>();
+
+        for (CreatePlanAiResponse.PlanScheduleDetail slot : day.schedules()) {
+            if (!cleared && planPlaceResolver.requiresPlace(slot)) {
+                cleared = true;
+
+                schedules.add(withTravelMinutes(slot, null));
+
+                continue;
+            }
+
+            schedules.add(slot);
+        }
+
+        return new CreatePlanAiResponse.PlanDayDetail(
+                day.dayNumber(),
+                day.date(),
+                schedules
+        );
+    }
+
+    private CreatePlanAiResponse.PlanScheduleDetail withTravelMinutes(
+            CreatePlanAiResponse.PlanScheduleDetail slot,
+            Integer travelMinutes
+    ) {
+
+        return new CreatePlanAiResponse.PlanScheduleDetail(
+                slot.scheduleType(),
+                slot.courseType(),
+                slot.startTime(),
+                slot.endTime(),
+                slot.locationName(),
+                slot.location(),
+                slot.longitude(),
+                slot.latitude(),
+                slot.imageUrl(),
+                slot.thumbNailImageUrl(),
+                slot.stayMinutes(),
+                travelMinutes,
+                slot.tags(),
+                slot.medication(),
+                slot.restaurantDetail(),
+                slot.candidateId()
+        );
+    }
+
+
+    // 재구성 구간에서 가장 빠른 날짜의 직전 날짜를 이동시간 기준점으로 삼는다
+    private RouteAnchor rebuildAnchor(
+            PlanEditContext context,
+            Set<Integer> rebuildDays
+    ) {
+
+        String decidedLocation = context.createTravelRequest().decidedLocation();
+
+        return rebuildDays
+                .stream()
+                .min(Integer::compareTo)
+                .map(first -> context.currentPlan()
+                        .planDays()
+                        .stream()
+                        .filter(day -> Objects.equals(day.dayNumber(), first - 1))
+                        .findFirst()
+                        .map(previousDay -> RouteAnchor.after(previousDay, decidedLocation))
+                        .orElseGet(() -> RouteAnchor.from(decidedLocation)))
+                .orElseGet(() -> RouteAnchor.from(decidedLocation));
+    }
+
+
     // 확정 장소와 시간에 따른 복약·태그·누락 이동시간 보정
     private CreatePlanAiResponse finishPlan(
             CreatePlanAiResponse response,
             TravelPlanContext context,
-            List<NutritionEvaluationCollector.FoodNutritionEvaluation> evaluations
+            List<NutritionEvaluationCollector.FoodNutritionEvaluation> evaluations,
+            RouteAnchor anchor,
+            PlaceCandidateContext candidates
     ) {
 
-        CreatePlanAiResponse medicationFixed = ensureMedicationSchedules(
-                response,
-                context.healthContexts()
-        );
-
+        // 복약 일정은 이동시간과 시간표가 확정된 뒤 한 번만 생성한다.
+        // ScheduleNormalizer가 멱등이므로 이 시점의 선행 호출은 결과에 기여하지 않는다.
         CreatePlanAiResponse travelFixed = fillMissingTravelMinutes(
-                medicationFixed,
-                context.createTravelRequest()
+                response,
+                context.createTravelRequest(),
+                anchor
         );
 
         validateTravelMinutes(travelFixed);
 
-        CreatePlanAiResponse normalized = normalizeScheduleTimes(
+        CreatePlanAiResponse normalized = scheduleNormalizer.normalizeScheduleTimes(
                 travelFixed,
                 context.healthContexts()
         );
 
-        CreatePlanAiResponse finalMedicationFixed = ensureMedicationSchedules(
+        // 정규화가 하루를 앞당기면 없던 식사시각이 하루 시간대 안으로 들어온다.
+        // 확정된 시각으로 한 번 더 보고, 그래도 빠져 있으면 내보내지 않는다.
+        CreatePlanAiResponse mealFixed = refillMissingMeals(
                 normalized,
+                context,
+                anchor,
+                candidates
+        );
+
+        validateMealSlots(
+                mealFixed,
+                context.healthContexts()
+        );
+
+        // 식후·식전 복약은 식사 슬롯을 기준으로 배치하므로 식사가 확정된 뒤에 만든다.
+        CreatePlanAiResponse medicationFixed = scheduleNormalizer.ensureMedicationSchedules(
+                mealFixed,
                 context.healthContexts()
         );
 
         CreatePlanAiResponse tagged = applyDeterministicTags(
-                finalMedicationFixed,
+                medicationFixed,
                 context,
                 evaluations
         );
 
-        validateMealTimes(
-                tagged,
-                context.healthContexts()
+        return tagged;
+    }
+
+    /**
+     * 확정 시각 기준으로 빠진 식사 슬롯을 한 번 더 채운다.
+     *
+     * 보정은 정규화보다 앞에서 도는데, 정규화는 식사를 등록 시간창에 맞추려고
+     * 앞 장소를 더 이른 시각으로 당길 수 있다. 그 결과 하루 시간대가 넓어지면
+     * 앞에서 요구되지 않았던 식사가 요구 대상이 된다.
+     *
+     * 채울 것이 없으면 그대로 돌려준다. 채운 뒤에는 이동시간과 시각을 다시 확정한다.
+     *
+     * 보정은 한 번만 한다. 두 번째 정규화가 하루를 또 앞당겨 새 식사시각이 들어오면
+     * 이 메서드는 그것을 채우지 않고, 바로 뒤의 validateMealSlots가 거부한다.
+     * 반복하지 않는 이유는 수렴을 보장할 수 없기 때문이다. 조용히 빠뜨리는 대신 막는다.
+     */
+    private CreatePlanAiResponse refillMissingMeals(
+            CreatePlanAiResponse response,
+            TravelPlanContext context,
+            RouteAnchor anchor,
+            PlaceCandidateContext candidates
+    ) {
+
+        if (missingMealDays(response, context.healthContexts()).isEmpty()) {
+            return response;
+        }
+
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
+                response,
+                context.healthContexts(),
+                candidates,
+                new HashSet<>()
         );
 
-        return tagged;
+        return scheduleNormalizer.normalizeScheduleTimes(
+                fillMissingTravelMinutes(
+                        filled,
+                        context.createTravelRequest(),
+                        anchor
+                ),
+                context.healthContexts()
+        );
+    }
+
+    // 관광 장소 개수와 같은 기준으로 식사 슬롯 누락도 최종 응답에서 막는다.
+    private void validateMealSlots(
+            CreatePlanAiResponse response,
+            List<TravelHealthContext> healthContexts
+    ) {
+
+        for (CreatePlanAiResponse.PlanDayDetail day : response.planDays()) {
+            List<ScheduleType> missing = MealSlotPolicy.missingMeals(
+                    day,
+                    healthContexts
+            );
+
+            if (!missing.isEmpty()) {
+                throw invalidPlace(
+                        "식사 슬롯 누락: day=" + day.dayNumber()
+                                + ", meals=" + missing
+                );
+            }
+        }
+    }
+
+    // 식사가 빠진 날짜, 재보정이 필요한지 판단한다
+    private List<Integer> missingMealDays(
+            CreatePlanAiResponse response,
+            List<TravelHealthContext> healthContexts
+    ) {
+
+        return response
+                .planDays()
+                .stream()
+                .filter(day -> !MealSlotPolicy
+                        .missingMeals(day, healthContexts)
+                        .isEmpty())
+                .map(CreatePlanAiResponse.PlanDayDetail::dayNumber)
+                .toList();
     }
 
     // Plan 객체 단건 조회하기 (존재 검증은 호출부에서 이미 끝난 상태를 전제)
@@ -425,17 +629,20 @@ public class PlanService {
             GetAiPlanResponse existing
     ) {
 
-        return validatePlaces(response, candidates, context, existing, new HashSet<>(), new HashSet<>());
+        return validatePlaces(response, candidates, context, existing, new HashSet<>(), new HashSet<>(),
+                RouteAnchor.from(context.createTravelRequest().decidedLocation()));
     }
 
     // 다른 날짜의 예약 장소·메뉴를 포함한 장소 검증
+    // anchor는 이 응답 앞에 잘려나간 구간의 마지막 장소로, 일정 전체를 검증할 때는 여행 출발지
     private CreatePlanAiResponse validatePlaces(
             CreatePlanAiResponse response,
             PlaceCandidateContext candidates,
             TravelPlanContext context,
             GetAiPlanResponse existing,
             Set<String> usedPlaces,
-            Set<String> usedMenus
+            Set<String> usedMenus,
+            RouteAnchor anchor
     ) {
 
         if (response == null || response.planDays() == null || response.planDays().isEmpty()) {
@@ -447,22 +654,32 @@ public class PlanService {
                 context.createTravelRequest()
         );
 
+        // 빈 슬롯 채우기와 초과분 제거는 개수 검증 직전에 한 번만 한다.
+        // 생성·편집·재구성 응답이 모두 이 지점을 지나므로 여기 두어야 경로마다 갈라지지 않는다.
+        // usedPlaces에는 이 응답 밖 날짜의 장소가 들어있어, 날짜 일부만 검증할 때도 중복을 피한다.
+        response = missingSlotCompleter.complete(
+                response,
+                context.healthContexts(),
+                candidates,
+                usedPlaces
+        );
+
+        response = TouristPlaceCountPolicy.trimExcess(
+                response,
+                context.healthContexts()
+        );
+
         validateTouristPlaceCounts(
                 response,
                 context.healthContexts()
         );
 
-        response = normalizeScheduleTimes(
+        response = scheduleNormalizer.normalizeScheduleTimes(
                 response,
                 context.healthContexts()
         );
 
-        response = ensureMedicationSchedules(
-                response,
-                context.healthContexts()
-        );
-
-        validateMealTimes(
+        response = scheduleNormalizer.ensureMedicationSchedules(
                 response,
                 context.healthContexts()
         );
@@ -475,12 +692,12 @@ public class PlanService {
             }
 
             for (CreatePlanAiResponse.PlanScheduleDetail slot : day.schedules()) {
-                Validation validation = planPlaceHelper.validate(slot, candidates, usedPlaces, usedMenus);
+                Validation validation = planPlaceResolver.validate(slot, candidates, usedPlaces, usedMenus);
 
                 validations.add(validation);
 
                 if (validation.valid()) {
-                    planPlaceHelper.track(validation.schedule(), usedPlaces, usedMenus);
+                    planPlaceResolver.track(validation.schedule(), usedPlaces, usedMenus);
                 }
             }
         }
@@ -488,8 +705,8 @@ public class PlanService {
         int validationIndex = 0;
 
         List<CreatePlanAiResponse.PlanDayDetail> days = new ArrayList<>();
-        String previousLocation = context.createTravelRequest().decidedLocation();
-        CreatePlanAiResponse.PlanScheduleDetail previousPlace = null;
+        String previousLocation = anchor.previousLocation();
+        CreatePlanAiResponse.PlanScheduleDetail previousPlace = anchor.previousPlace();
 
         for (CreatePlanAiResponse.PlanDayDetail day : response.planDays()) {
             List<CreatePlanAiResponse.PlanScheduleDetail> schedules = new ArrayList<>();
@@ -511,15 +728,15 @@ public class PlanService {
 
                 changedRoute = changedRoute || changed;
 
-                if (changedRoute && planPlaceHelper.requiresPlace(resolved)) {
+                if (changedRoute && planPlaceResolver.requiresPlace(resolved)) {
                     resolved = recalculateSlot(resolved, previousLocation, previousPlace, previousEnd, context.createTravelRequest());
                 }
 
                 schedules.add(resolved);
 
-                planPlaceHelper.track(resolved, usedPlaces, usedMenus);
+                planPlaceResolver.track(resolved, usedPlaces, usedMenus);
 
-                if (planPlaceHelper.requiresPlace(resolved)) {
+                if (planPlaceResolver.requiresPlace(resolved)) {
                     previousLocation = resolved.locationName();
 
                     previousPlace = resolved;
@@ -563,15 +780,11 @@ public class PlanService {
             List<TravelHealthContext> healthContexts
     ) {
 
-        if (healthContexts == null || healthContexts.isEmpty()) {
+        int expectedCount = TouristPlaceCountPolicy.expectedCount(healthContexts);
+
+        if (expectedCount == 0) {
             return;
         }
-
-        boolean hasMinimalTraveler = healthContexts
-                .stream()
-                .anyMatch(context -> context.walkType() == WalkType.MINIMAL);
-
-        int expectedCount = hasMinimalTraveler ? 2 : 3;
 
         for (CreatePlanAiResponse.PlanDayDetail day : response.planDays()) {
             long touristPlaceCount = day.schedules() == null
@@ -603,345 +816,13 @@ public class PlanService {
                 .flatMap(day -> day
                         .schedules()
                         .stream())
-                .filter(planPlaceHelper::requiresPlace)
+                .filter(planPlaceResolver::requiresPlace)
                 .anyMatch(schedule -> schedule.travelMinutes() == null
                         || schedule.travelMinutes() < 0);
 
         if (invalid) {
             throw invalidPlace("이동시간 누락 또는 유효하지 않음");
         }
-    }
-
-    private CreatePlanAiResponse normalizeScheduleTimes(
-            CreatePlanAiResponse response,
-            List<TravelHealthContext> healthContexts
-    ) {
-
-        if (response == null || response.planDays() == null) {
-            return response;
-        }
-
-        return new CreatePlanAiResponse(
-                response
-                        .planDays()
-                        .stream()
-                        .map(day -> normalizeScheduleTimes(day, healthContexts))
-                        .toList());
-    }
-
-    private CreatePlanAiResponse.PlanDayDetail normalizeScheduleTimes(
-            CreatePlanAiResponse.PlanDayDetail day,
-            List<TravelHealthContext> healthContexts
-    ) {
-
-        if (day == null || day.schedules() == null) {
-            return day;
-        }
-
-        List<CreatePlanAiResponse.PlanScheduleDetail> schedules = new ArrayList<>();
-
-        LocalTime previousPlaceEnd = null;
-        LocalTime previousMealEnd = null;
-        int movableStartIndex = 0;
-
-        for (CreatePlanAiResponse.PlanScheduleDetail schedule : day.schedules()) {
-            if (schedule == null || schedule.startTime() == null || schedule.stayMinutes() == null
-                    || schedule.stayMinutes() <= 0 || !planPlaceHelper.requiresPlace(schedule)) {
-                schedules.add(schedule);
-
-                continue;
-            }
-
-            LocalTime startTime = schedule.startTime();
-
-            MealTimeRange mealTimeRange = mealTimeRange(
-                    schedule.scheduleType(),
-                    healthContexts
-            );
-
-            if (previousPlaceEnd != null && schedule.travelMinutes() != null
-                    && schedule.travelMinutes() >= 0) {
-
-                LocalTime earliestStart = previousPlaceEnd
-                        .plusMinutes(schedule.travelMinutes());
-
-                if (mealTimeRange != null && earliestStart.isAfter(mealTimeRange.latest())) {
-                    long shiftMinutes = Duration
-                            .between(
-                                    mealTimeRange.latest(),
-                                    earliestStart
-                            )
-                            .toMinutes();
-
-                    shiftPreviousPlaces(
-                            schedules,
-                            movableStartIndex,
-                            shiftMinutes,
-                            previousMealEnd
-                    );
-
-                    previousPlaceEnd = previousPlaceEnd.minusMinutes(shiftMinutes);
-                    earliestStart = previousPlaceEnd.plusMinutes(schedule.travelMinutes());
-                }
-
-                if (earliestStart.isAfter(startTime)) {
-                    startTime = earliestStart;
-                }
-            }
-
-            if (mealTimeRange != null) {
-                if (startTime.isBefore(mealTimeRange.earliest())) {
-                    startTime = mealTimeRange.earliest();
-                }
-
-                if (startTime.isAfter(mealTimeRange.latest())) {
-                    startTime = mealTimeRange.latest();
-                }
-            }
-
-            LocalTime endTime = startTime
-                    .plusMinutes(schedule.stayMinutes());
-
-            schedules.add(withScheduleTimes(
-                    schedule,
-                    startTime,
-                    endTime));
-
-            previousPlaceEnd = endTime;
-
-            if (mealTimeRange != null) {
-                previousMealEnd = endTime;
-                movableStartIndex = schedules.size();
-            }
-        }
-
-        return new CreatePlanAiResponse.PlanDayDetail(
-                day.dayNumber(),
-                day.date(),
-                schedules);
-    }
-
-    private MealTimeRange mealTimeRange(
-            ScheduleType scheduleType,
-            List<TravelHealthContext> healthContexts
-    ) {
-
-        if (!MEAL_SCHEDULE_TYPES.contains(scheduleType)) {
-            return null;
-        }
-
-        List<LocalTime> configuredTimes = healthContexts
-                .stream()
-                .map(TravelHealthContext::mealInfo)
-                .map(mealInfo -> configuredMealTime(mealInfo, scheduleType))
-                .filter(Objects::nonNull)
-                .toList();
-
-        if (configuredTimes.isEmpty()) {
-            return null;
-        }
-
-        LocalTime earliest = configuredTimes
-                .stream()
-                .map(time -> time.minusMinutes(MEAL_TIME_TOLERANCE_MINUTES))
-                .max(LocalTime::compareTo)
-                .orElseThrow();
-
-        LocalTime latest = configuredTimes
-                .stream()
-                .map(time -> time.plusMinutes(MEAL_TIME_TOLERANCE_MINUTES))
-                .min(LocalTime::compareTo)
-                .orElseThrow();
-
-        if (earliest.isAfter(latest)) {
-            throw invalidPlace("여행자 식사시간 허용 범위 불일치");
-        }
-
-        return new MealTimeRange(
-                earliest,
-                latest
-        );
-    }
-
-    private void shiftPreviousPlaces(
-            List<CreatePlanAiResponse.PlanScheduleDetail> schedules,
-            int fromIndex,
-            long shiftMinutes,
-            LocalTime previousMealEnd
-    ) {
-
-        int firstPlaceIndex = -1;
-
-        for (int index = fromIndex; index < schedules.size(); index++) {
-            CreatePlanAiResponse.PlanScheduleDetail schedule = schedules.get(index);
-
-            if (schedule != null && planPlaceHelper.requiresPlace(schedule)) {
-                firstPlaceIndex = index;
-                break;
-            }
-        }
-
-        if (firstPlaceIndex < 0) {
-            throw invalidPlace(
-                    "식사시간을 만족할 수 없는 일정: 앞당길 장소가 없음"
-                            + " / fromIndex=" + fromIndex
-                            + " / shiftMinutes=" + shiftMinutes
-                            + " / scheduleSize=" + schedules.size()
-            );
-        }
-
-        CreatePlanAiResponse.PlanScheduleDetail firstPlace = schedules.get(firstPlaceIndex);
-
-        LocalTime shiftedFirstStart = firstPlace.startTime().minusMinutes(shiftMinutes);
-
-        if (shiftedFirstStart.isAfter(firstPlace.startTime())) {
-            throw invalidPlace(
-                    "식사시간을 만족할 수 없는 일정: 앞당긴 시작시간이 원래 시작시간보다 늦음"
-                            + " / locationName=" + firstPlace.locationName()
-                            + " / originalStart=" + firstPlace.startTime()
-                            + " / shiftedStart=" + shiftedFirstStart
-                            + " / shiftMinutes=" + shiftMinutes
-            );
-        }
-
-        if (previousMealEnd != null) {
-            LocalTime earliestStart = previousMealEnd.plusMinutes(
-                    firstPlace.travelMinutes() == null
-                            ? 0
-                            : firstPlace.travelMinutes()
-            );
-
-            if (shiftedFirstStart.isBefore(earliestStart)) {
-                throw invalidPlace(
-                        "식사시간을 만족할 수 없는 일정: 이전 식사 종료 시각 이전으로 앞당겨짐"
-                                + " / locationName=" + firstPlace.locationName()
-                                + " / shiftedStart=" + shiftedFirstStart
-                                + " / earliestStart=" + earliestStart
-                                + " / previousMealEnd=" + previousMealEnd
-                                + " / travelMinutes=" + firstPlace.travelMinutes()
-                                + " / shiftMinutes=" + shiftMinutes
-                );
-            }
-        }
-
-        for (int index = firstPlaceIndex; index < schedules.size(); index++) {
-            CreatePlanAiResponse.PlanScheduleDetail schedule = schedules.get(index);
-
-            if (schedule == null || !planPlaceHelper.requiresPlace(schedule)) {
-                continue;
-            }
-
-            schedules.set(
-                    index,
-                    withScheduleTimes(
-                            schedule,
-                            schedule.startTime().minusMinutes(shiftMinutes),
-                            schedule.endTime().minusMinutes(shiftMinutes)
-                    )
-            );
-        }
-    }
-
-    private record MealTimeRange(
-            LocalTime earliest,
-            LocalTime latest
-    ) {
-    }
-
-    private CreatePlanAiResponse.PlanScheduleDetail withScheduleTimes(
-            CreatePlanAiResponse.PlanScheduleDetail schedule,
-            LocalTime startTime,
-            LocalTime endTime
-    ) {
-
-        return new CreatePlanAiResponse.PlanScheduleDetail(
-                schedule.scheduleType(),
-                schedule.courseType(),
-                startTime,
-                endTime,
-                schedule.locationName(),
-                schedule.location(),
-                schedule.longitude(),
-                schedule.latitude(),
-                schedule.imageUrl(),
-                schedule.thumbNailImageUrl(),
-                schedule.stayMinutes(),
-                schedule.travelMinutes(),
-                schedule.tags(),
-                schedule.medication(),
-                schedule.restaurantDetail(),
-                schedule.candidateId());
-    }
-
-    private void validateMealTimes(
-            CreatePlanAiResponse response,
-            List<TravelHealthContext> healthContexts
-    ) {
-
-        if (response == null || response.planDays() == null) {
-            return;
-        }
-
-        for (CreatePlanAiResponse.PlanDayDetail planDay : response.planDays()) {
-            if (planDay == null || planDay.schedules() == null) {
-                continue;
-            }
-
-            for (CreatePlanAiResponse.PlanScheduleDetail schedule : planDay.schedules()) {
-                if (schedule == null || schedule.startTime() == null
-                        || !MEAL_SCHEDULE_TYPES.contains(schedule.scheduleType())) {
-                    continue;
-                }
-
-                for (TravelHealthContext healthContext : healthContexts) {
-                    LocalTime configuredMealTime = configuredMealTime(
-                            healthContext.mealInfo(),
-                            schedule.scheduleType()
-                    );
-
-                    if (configuredMealTime == null) {
-                        continue;
-                    }
-
-                    long difference = Math.abs(
-                            Duration.between(
-                                    configuredMealTime,
-                                    schedule.startTime()
-                            ).toMinutes()
-                    );
-
-                    if (difference > MEAL_TIME_TOLERANCE_MINUTES) {
-                        throw invalidPlace("식사시간 허용 범위 초과");
-                    }
-                }
-            }
-        }
-    }
-
-    private LocalTime configuredMealTime(
-            TravelHealthContext.MealInfoContext mealInfo,
-            ScheduleType scheduleType
-    ) {
-
-        if (mealInfo == null || !mealInfo.applied()) {
-            return null;
-        }
-
-        return switch (scheduleType) {
-            case BREAKFAST -> mealInfo.breakfastApplied()
-                    ? mealInfo.breakfastTime()
-                    : null;
-
-            case LUNCH -> mealInfo.lunchApplied()
-                    ? mealInfo.lunchTime()
-                    : null;
-
-            case DINNER -> mealInfo.dinnerApplied()
-                    ? mealInfo.dinnerTime()
-                    : null;
-
-            default -> null;
-        };
     }
 
     // 편집 전 동일 슬롯과 장소 비교를 통한 기존 이동시간 무효화
@@ -951,7 +832,7 @@ public class PlanService {
             CreatePlanAiResponse.PlanScheduleDetail slot
     ) {
 
-        if (existing == null || !planPlaceHelper.requiresPlace(slot)) {
+        if (existing == null || !planPlaceResolver.requiresPlace(slot)) {
             return false;
         }
 
@@ -994,7 +875,7 @@ public class PlanService {
                     new PlaceReselectPrompt(context, slot, result.reason(), Set.copyOf(usedPlaces), Set.copyOf(usedMenus)),
                     retryCandidates);
 
-            result = planPlaceHelper.validate(planPlaceHelper.select(slot, choice), retryCandidates, usedPlaces, usedMenus);
+            result = planPlaceResolver.validate(planPlaceResolver.select(slot, choice), retryCandidates, usedPlaces, usedMenus);
 
             if (result.valid()) {
                 return result.schedule();
@@ -1027,7 +908,7 @@ public class PlanService {
                 .flatMap(oldDay -> oldDay.schedules().stream())
                 .filter(old -> old.scheduleType() == slot.scheduleType() && old.courseType() == slot.courseType()
                         && Objects.equals(old.startTime(), slot.startTime()))
-                .map(old -> planPlaceHelper.verifyExisting(old, usedPlaces, usedMenus))
+                .map(old -> planPlaceResolver.verifyExisting(old, usedPlaces, usedMenus))
                 .filter(Validation::valid)
                 .map(Validation::schedule)
                 .findFirst();
@@ -1085,272 +966,6 @@ public class PlanService {
         return new BaseException(PlanEditExceptionEnum.INVALID_AI_PLACE, new Object[]{reason});
     }
 
-    // AI 복약 일정을 제거하고 healthContexts 기준으로 Java가 다시 생성
-    private CreatePlanAiResponse ensureMedicationSchedules(
-            CreatePlanAiResponse response,
-            List<TravelHealthContext> healthContexts
-    ) {
-
-        List<CreatePlanAiResponse.PlanDayDetail> fixedPlanDays =
-                response.planDays()
-                        .stream()
-                        .map(planDay -> fixDayMedicationSchedules(planDay, healthContexts))
-                        .toList();
-
-        return new CreatePlanAiResponse(fixedPlanDays);
-    }
-
-    // 하루치 AI MEDICATION 슬롯을 제거하고 실제 식사시간 또는 등록 식사시간 기준으로 교체
-    private CreatePlanAiResponse.PlanDayDetail fixDayMedicationSchedules(
-            CreatePlanAiResponse.PlanDayDetail planDay,
-            List<TravelHealthContext> healthContexts
-    ) {
-
-        List<CreatePlanAiResponse.PlanScheduleDetail> nonMedicationSchedules =
-                planDay.schedules()
-                        .stream()
-                        .filter(schedule -> schedule.courseType() != CourseType.MEDICATION)
-                        .toList();
-
-        Map<ScheduleType, LocalTime> dayMealTimes =
-                dayMealTimes(nonMedicationSchedules);
-
-        List<CreatePlanAiResponse.PlanScheduleDetail> medicationSchedules =
-                healthContexts.stream()
-                        .flatMap(healthContext -> medicationSchedulesFor(healthContext, dayMealTimes).stream())
-                        .collect(Collectors.groupingBy(CreatePlanAiResponse.PlanScheduleDetail::startTime))
-                        .values()
-                        .stream()
-                        .map(this::mergeSameTimeMedicationSchedules)
-                        .toList();
-
-        List<CreatePlanAiResponse.PlanScheduleDetail> mergedSchedules =
-                new ArrayList<>(nonMedicationSchedules);
-
-        mergedSchedules.addAll(medicationSchedules);
-
-        mergedSchedules.sort(Comparator.comparing(CreatePlanAiResponse.PlanScheduleDetail::startTime));
-
-        return new CreatePlanAiResponse.PlanDayDetail(
-                planDay.dayNumber(),
-                planDay.date(),
-                mergedSchedules
-        );
-    }
-
-    // 그 날짜 실제 식사 일정(BREAKFAST/LUNCH/DINNER)의 시작시간
-    private Map<ScheduleType, LocalTime> dayMealTimes(
-            List<CreatePlanAiResponse.PlanScheduleDetail> nonMedicationSchedules
-    ) {
-
-        return nonMedicationSchedules.stream()
-                .filter(schedule -> MEAL_SCHEDULE_TYPES.contains(schedule.scheduleType()))
-                .filter(schedule -> schedule.startTime() != null)
-                .collect(
-                        Collectors.toMap(
-                                CreatePlanAiResponse.PlanScheduleDetail::scheduleType,
-                                CreatePlanAiResponse.PlanScheduleDetail::startTime,
-                                (first, second) -> first
-                        )
-                );
-    }
-
-    // 한 여행자의 모든 복약 정보를 그 날짜의 복약 슬롯 목록으로 변환
-    private List<CreatePlanAiResponse.PlanScheduleDetail> medicationSchedulesFor(
-            TravelHealthContext healthContext,
-            Map<ScheduleType, LocalTime> dayMealTimes
-    ) {
-
-        return healthContext.medicationInfos()
-                .stream()
-                .flatMap(medicationInfo ->
-                        medicationSchedulesFor(healthContext, medicationInfo, dayMealTimes).stream()
-                )
-                .toList();
-    }
-
-    // 복약 기준(medicationBasis)에 따라 한 복약 정보에서 그 날짜의 복약 슬롯(들)을 계산
-    private List<CreatePlanAiResponse.PlanScheduleDetail> medicationSchedulesFor(
-            TravelHealthContext healthContext,
-            TravelHealthContext.MedicationInfoContext medicationInfo,
-            Map<ScheduleType, LocalTime> dayMealTimes
-    ) {
-
-        boolean usesMealRules =
-                (medicationInfo.medicationBasis() == MedicationBasis.WITH_MEAL
-                        || medicationInfo.medicationBasis() == MedicationBasis.UNKNOWN)
-                        && !medicationInfo.mealMedicationRules().isEmpty();
-
-        if (!usesMealRules) {
-            return List.of(
-                    medicationSchedule(
-                            medicationInfo.medicationTime(),
-                            null,
-                            medicationInfo.drugName() + " 복용"
-                    )
-            );
-        }
-
-        return medicationInfo.mealMedicationRules()
-                .stream()
-                .map(rule -> medicationScheduleForRule(healthContext, medicationInfo, rule, dayMealTimes))
-                .toList();
-    }
-
-    // 식사 연동 복약 규칙 하나를 실제 시각의 복약 슬롯으로 변환
-    private CreatePlanAiResponse.PlanScheduleDetail medicationScheduleForRule(
-            TravelHealthContext healthContext,
-            TravelHealthContext.MedicationInfoContext medicationInfo,
-            TravelHealthContext.MedicationInfoContext.MealMedicationRuleContext rule,
-            Map<ScheduleType, LocalTime> dayMealTimes
-    ) {
-
-        if (rule.mealTiming() == MealTiming.REGARDLESS_OF_MEAL) {
-            return medicationSchedule(
-                    medicationInfo.medicationTime(),
-                    null,
-                    medicationInfo.drugName() + " 복용"
-            );
-        }
-
-        LocalTime mealTime =
-                mealTimeFor(healthContext, rule.relatedMeal(), dayMealTimes);
-
-        if (mealTime == null) {
-            throw invalidPlace("복약 기준 식사시간 누락");
-        }
-
-        LocalTime medicationTime =
-                applyMealTiming(mealTime, rule.mealTiming(), rule.intervalMinutes());
-
-        String description =
-                medicationInfo.drugName()
-                        + " " + rule.relatedMeal().getCodeName()
-                        + " " + rule.mealTiming().getCodeName()
-                        + (rule.intervalMinutes() != null && rule.intervalMinutes() > 0
-                                ? " " + rule.intervalMinutes() + "분"
-                                : "");
-
-        return medicationSchedule(
-                medicationTime,
-                rule.intervalMinutes(),
-                description
-        );
-    }
-
-    // relatedMeal에 해당하는 그 날짜의 실제 식사시간, 그 날 식사 일정이 없으면
-    // 여행자가 등록한 기준 식사시간(mealInfo)으로 대체
-    private LocalTime mealTimeFor(
-            TravelHealthContext healthContext,
-            RelatedMeal relatedMeal,
-            Map<ScheduleType, LocalTime> dayMealTimes
-    ) {
-
-        ScheduleType scheduleType =
-                switch (relatedMeal) {
-                    case BREAKFAST -> ScheduleType.BREAKFAST;
-
-                    case LUNCH -> ScheduleType.LUNCH;
-
-                    case DINNER -> ScheduleType.DINNER;
-                };
-
-        TravelHealthContext.MealInfoContext mealInfo =
-                healthContext.mealInfo();
-
-        LocalTime configuredMealTime =
-                mealInfo == null
-                        ? null
-                        : switch (relatedMeal) {
-                            case BREAKFAST -> mealInfo.breakfastTime();
-
-                            case LUNCH -> mealInfo.lunchTime();
-
-                            case DINNER -> mealInfo.dinnerTime();
-                        };
-
-        return dayMealTimes.getOrDefault(scheduleType, configuredMealTime);
-    }
-
-    // mealTiming/intervalMinutes를 기준시간에 적용한 실제 복약시각
-    private LocalTime applyMealTiming(
-            LocalTime mealTime,
-            MealTiming mealTiming,
-            Integer intervalMinutes
-    ) {
-
-        int minutes = intervalMinutes == null ? 0 : intervalMinutes;
-
-        return switch (mealTiming) {
-            case BEFORE_MEAL -> mealTime.minusMinutes(minutes);
-
-            case AFTER_MEAL -> mealTime.plusMinutes(minutes);
-
-            case DURING_MEAL, REGARDLESS_OF_MEAL -> mealTime;
-        };
-    }
-
-    // MEDICATION CourseType 슬롯 하나 생성 (체류시간 10분 고정)
-    private CreatePlanAiResponse.PlanScheduleDetail medicationSchedule(
-            LocalTime startTime,
-            Integer intervalMinutes,
-            String description
-    ) {
-
-        if (startTime == null) {
-            throw invalidPlace("복약 기준시간 누락");
-        }
-
-        return new CreatePlanAiResponse.PlanScheduleDetail(
-                ScheduleType.CHECK_IN,
-                CourseType.MEDICATION,
-                startTime,
-                startTime.plusMinutes(10),
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                10,
-                null,
-                Set.of(),
-                new CreatePlanAiResponse.MedicationSchedule(
-                        intervalMinutes,
-                        description
-                ),
-                null
-        );
-    }
-
-    // 같은 시각에 겹치는 여러 복약 슬롯(다른 여행자·다른 약)을 하나로 병합
-    private CreatePlanAiResponse.PlanScheduleDetail mergeSameTimeMedicationSchedules(
-            List<CreatePlanAiResponse.PlanScheduleDetail> sameTimeSchedules
-    ) {
-
-        if (sameTimeSchedules.size() == 1) {
-            return sameTimeSchedules.get(0);
-        }
-
-        String mergedDescription =
-                sameTimeSchedules.stream()
-                        .map(schedule -> schedule.medication().description())
-                        .collect(Collectors.joining(", "));
-
-        Integer representativeInterval =
-                sameTimeSchedules.stream()
-                        .map(schedule -> schedule.medication().intervalMinutes())
-                        .filter(Objects::nonNull)
-                        .findFirst()
-                        .orElse(null);
-
-        return medicationSchedule(
-                sameTimeSchedules.get(0).startTime(),
-                representativeInterval,
-                mergedDescription
-        );
-    }
-
     // STEP 6/STEP 9에서 AI 판단 없이 결정 가능한 RecommendationTag를 Java에서 보강
     // 기존 AI 판단 태그는 유지하고, 결정 가능한 태그만 합집합으로 추가
     private CreatePlanAiResponse applyDeterministicTags(
@@ -1381,7 +996,8 @@ public class PlanService {
                                                                 schedule,
                                                                 createTravelRequest,
                                                                 resultsByFoodName,
-                                                                hasAllergyOrAvoidFood
+                                                                hasAllergyOrAvoidFood,
+                                                                travelPlanContext.healthContexts()
                                                         )
                                                 )
                                                 .toList()
@@ -1397,7 +1013,8 @@ public class PlanService {
             CreatePlanAiResponse.PlanScheduleDetail schedule,
             CreateTravelRequest createTravelRequest,
             Map<String, List<NutritionEvaluationResult>> resultsByFoodName,
-            boolean hasAllergyOrAvoidFood
+            boolean hasAllergyOrAvoidFood,
+            List<TravelHealthContext> healthContexts
     ) {
 
         Set<RecommendationTag> deterministicTags =
@@ -1408,13 +1025,26 @@ public class PlanService {
                         hasAllergyOrAvoidFood
                 );
 
-        if (deterministicTags.isEmpty()) {
-            return schedule;
-        }
-
         Set<RecommendationTag> mergedTags = new HashSet<>(nullSafeTags(schedule));
 
         mergedTags.addAll(deterministicTags);
+
+        // 식사시간 반영 여부는 확정된 시간표가 결정한다. AI가 붙인 태그는 근거로 삼지 않는다.
+        if (scheduleNormalizer.mealSlot(schedule)) {
+            if (scheduleNormalizer.mealTimeSatisfied(schedule, healthContexts)) {
+                mergedTags.add(RecommendationTag.MEAL_TIME_APPLIED);
+            } else {
+                mergedTags.remove(RecommendationTag.MEAL_TIME_APPLIED);
+            }
+        }
+
+        // 장소 유형에 허용되지 않은 태그는 남기지 않는다.
+        // 프롬프트가 CourseType별 후보를 알려주지만 AI 응답이 그걸 항상 지킨다는 보장은 없다.
+        mergedTags.retainAll(RecommendationTag.candidates(schedule.courseType()));
+
+        if (mergedTags.equals(nullSafeTags(schedule))) {
+            return schedule;
+        }
 
         return new CreatePlanAiResponse.PlanScheduleDetail(
                 schedule.scheduleType(),
@@ -1584,12 +1214,13 @@ public class PlanService {
     // 여행 전체 기간이 이어지는 동안 직전 확정 장소를 유지하며 누락된 이동시간을 채움
     private CreatePlanAiResponse fillMissingTravelMinutes(
             CreatePlanAiResponse response,
-            CreateTravelRequest createTravelRequest
+            CreateTravelRequest createTravelRequest,
+            RouteAnchor anchor
     ) {
 
         List<CreatePlanAiResponse.PlanDayDetail> filledPlanDays = new ArrayList<>();
-        String previousLocation = createTravelRequest.decidedLocation();
-        CreatePlanAiResponse.PlanScheduleDetail previousPlace = null;
+        String previousLocation = anchor.previousLocation();
+        CreatePlanAiResponse.PlanScheduleDetail previousPlace = anchor.previousPlace();
 
         for (CreatePlanAiResponse.PlanDayDetail planDay : response.planDays()) {
             List<CreatePlanAiResponse.PlanScheduleDetail> schedules = new ArrayList<>();
@@ -1624,8 +1255,15 @@ public class PlanService {
         return new CreatePlanAiResponse(filledPlanDays);
     }
 
-    // travelMinutes가 비어 있고 실제 장소(locationName)와 직전 장소가 모두 있는 슬롯만 대상
-    // (MEDICATION처럼 장소가 없는 슬롯, 이미 값이 채워진 슬롯은 자동으로 제외됨)
+    /**
+     * 직전 확정 장소로부터의 이동시간을 확인한다.
+     *
+     * 값이 비어 있을 때뿐 아니라 0일 때도 확인한다.
+     * AI가 이동이 없다는 뜻으로 0을 채워 넣으면 날짜 경계를 넘는 이동까지 사라진 것처럼 보이고,
+     * 시간표 계산이 물리적 제약 없이 앞당겨지기 때문이다.
+     * 조회에 실패하면 원래 값을 그대로 둔다. 지금까지 통과하던 일정을 실패로 바꾸지 않기 위해서다.
+     * (MEDICATION처럼 장소가 없는 슬롯은 자동으로 제외됨)
+     */
     private CreatePlanAiResponse.PlanScheduleDetail fillScheduleTravelMinutes(
             CreatePlanAiResponse.PlanScheduleDetail schedule,
             String previousLocation,
@@ -1634,7 +1272,7 @@ public class PlanService {
     ) {
 
         boolean needsTravelMinutes =
-                schedule.travelMinutes() == null
+                (schedule.travelMinutes() == null || schedule.travelMinutes() == 0)
                         && !isBlank(schedule.locationName())
                         && !isBlank(previousLocation);
 
@@ -1646,6 +1284,10 @@ public class PlanService {
 
         Integer travelMinutes =
                 route == null ? null : route.travelMinutes();
+
+        if (travelMinutes == null) {
+            return schedule;
+        }
 
         return new CreatePlanAiResponse.PlanScheduleDetail(
                 schedule.scheduleType(),

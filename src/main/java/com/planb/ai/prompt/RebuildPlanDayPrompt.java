@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.planb.ai.context.PlanEditContext;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
 
+import com.planb.global.config.exception.AiFailure;
+import com.planb.global.config.exception.domain.AiOrchestrationException;
+
 public record RebuildPlanDayPrompt(
         PlanEditContext context,
         CreatePlanAiResponse current,
@@ -73,7 +76,7 @@ public record RebuildPlanDayPrompt(
                                     current,
                                     reason));
         } catch (JsonProcessingException exception) {
-            throw new IllegalStateException("재구성 요청 직렬화 실패", exception);
+            throw new AiOrchestrationException(AiFailure.CONTEXT_SERIALIZATION_FAILED, exception);
         }
     }
 

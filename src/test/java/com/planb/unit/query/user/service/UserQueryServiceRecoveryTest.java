@@ -14,12 +14,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,24 +37,25 @@ class UserQueryServiceRecoveryTest {
     private UserQueryService userQueryService;
 
     @Test
-    @DisplayName("복구 질문과 답변이 유일하게 일치하는 유저 반환")
-    void findsSingleMatchedUser() {
+    @DisplayName("닉네임과 복구 답변이 일치하는 유저 반환")
+    void findsMatchedUser() {
 
         // given
         User user = User
                 .builder()
                 .username("yeonwoo@gmail.com")
+                .nickname("우주")
                 .accountRecovery(AccountRecovery
                         .of(RecoveryQuestion.FIRST_PET, "콩이"))
                 .build();
 
         when(userQueryRepository
-                .findAllByAccountRecovery(any(), anyString()))
-                .thenReturn(List.of(user));
+                .findByAccountRecovery(anyString(), any(), anyString()))
+                .thenReturn(Optional.of(user));
 
         // when
         User found = userQueryService
-                .findByAccountRecovery(RecoveryQuestion.FIRST_PET, "콩이");
+                .findByAccountRecovery("우주", RecoveryQuestion.FIRST_PET, "콩이");
 
         // then
         assertThat(found
@@ -61,45 +64,42 @@ class UserQueryServiceRecoveryTest {
     }
 
     @Test
-    @DisplayName("복구 답변이 여러 계정에 일치하는 경우 실패 처리")
-    void failsWhenMultipleUsersMatch() {
+    @DisplayName("닉네임으로 계정을 특정하므로 조회 조건에 닉네임을 그대로 전달")
+    void passesNicknameToRepository() {
 
         // given
         when(userQueryRepository
-                .findAllByAccountRecovery(any(), anyString()))
-                .thenReturn(List.of(
-                        User.builder().username("a@gmail.com").accountRecovery(
-                                AccountRecovery.of(
-                                        RecoveryQuestion.FIRST_PET,
-                                        "콩이"
-                                ))
-                        .build(),
-                        User.builder().username("b@gmail.com").accountRecovery(
-                                AccountRecovery.of(
-                                        RecoveryQuestion.FIRST_PET,
-                                        "콩이"
-                                ))
-                        .build()
-                ));
+                .findByAccountRecovery(anyString(), any(), anyString()))
+                .thenReturn(Optional.of(User
+                        .builder()
+                        .username("yeonwoo@gmail.com")
+                        .nickname("우주")
+                        .build()));
 
-        // when & then
-        assertThatThrownBy(() -> userQueryService
-                .findByAccountRecovery(RecoveryQuestion.FIRST_PET, "콩이"))
-                .isInstanceOf(BaseException.class);
+        // when
+        userQueryService
+                .findByAccountRecovery("우주", RecoveryQuestion.FIRST_PET, "콩이");
+
+        // then
+        verify(userQueryRepository)
+                .findByAccountRecovery(
+                        eq("우주"),
+                        eq(RecoveryQuestion.FIRST_PET),
+                        eq(AccountRecovery.hashAnswer("콩이")));
     }
 
     @Test
-    @DisplayName("복구 답변이 일치하는 계정이 없는 경우 실패 처리")
+    @DisplayName("일치하는 계정이 없는 경우 실패 처리")
     void failsWhenNoUserMatches() {
 
         // given
         when(userQueryRepository
-                .findAllByAccountRecovery(any(), anyString()))
-                .thenReturn(List.of());
+                .findByAccountRecovery(anyString(), any(), anyString()))
+                .thenReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> userQueryService
-                .findByAccountRecovery(RecoveryQuestion.FIRST_PET, "콩이"))
+                .findByAccountRecovery("우주", RecoveryQuestion.FIRST_PET, "콩이"))
                 .isInstanceOf(BaseException.class);
     }
 }

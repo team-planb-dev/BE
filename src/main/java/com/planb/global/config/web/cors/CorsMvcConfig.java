@@ -19,7 +19,7 @@ public class CorsMvcConfig implements WebMvcConfigurer {
                 .allowedMethods("*")
                 .allowedHeaders("*")
                 .allowCredentials(true)
-                .exposedHeaders("AccessToken") // access토큰 접근 설정
+                .exposedHeaders("Authorization") // access토큰 접근 설정
                 .maxAge(3600);
     }
 }

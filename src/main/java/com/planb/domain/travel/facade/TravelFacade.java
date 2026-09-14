@@ -42,11 +42,14 @@ import com.planb.query.user.service.UserQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -543,14 +546,25 @@ public class TravelFacade {
             );
         }
 
-        // Redis에서 수정안 조회 (없거나 만료면 예외)
-        EditPlanAiResponse editPlanAiResponse =
-                planEditCacheService.findEditResult(travelId)
-                        .orElseThrow(() ->
-                                new BaseException(
-                                        PlanEditExceptionEnum.EDIT_RESULT_NOT_FOUND
-                                )
-                        );
+        // Redis에서 수정안을 조회와 동시에 소비 (동시 확정 요청 중 하나만 통과)
+        Optional<EditPlanAiResponse> consumed =
+                planEditCacheService.consumeEditResult(travelId);
+
+        // 수정안이 없다면 이미 확정된 요청의 재시도일 수 있다.
+        // 확정 표식이 남아 있으면 일정을 다시 쓰지 않고 같은 응답만 돌려준다.
+        if (consumed.isEmpty()) {
+            EditPlanAiResponse confirmed =
+                    planEditCacheService.findConfirmedResult(travelId)
+                            .orElseThrow(() ->
+                                    new BaseException(
+                                            PlanEditExceptionEnum.EDIT_RESULT_NOT_FOUND
+                                    )
+                            );
+
+            return confirmedResponse(travelId, confirmed);
+        }
+
+        EditPlanAiResponse editPlanAiResponse = consumed.get();
 
         PlanQueryResponse planQueryResponse =
                 planQueryService.getPlanByTravelId(travelId);
@@ -579,18 +593,49 @@ public class TravelFacade {
         // 수정안 기반으로 PlanDay, PlanSchedule, RestaurantDetail 재생성 후 저장
         materializePlanDays(plan, editPlanAiResponse.planDays());
 
-        // Redis 캐시 정리
-        planEditCacheService.deleteEditResult(travelId);
+        // 확정 표식 기록. 커밋된 뒤에만 남겨야 롤백된 확정이 성공으로 보이지 않는다.
+        markConfirmedAfterCommit(travelId, editPlanAiResponse);
 
-        // CreatePlanResponse 재사용을 위한 CreatePlanAiResponse 임시 래핑
-        CreatePlanAiResponse wrapped =
-                new CreatePlanAiResponse(editPlanAiResponse.planDays());
+        return confirmedResponse(travelId, editPlanAiResponse);
+    }
+
+    // 확정된 수정안을 CreatePlanResponse 형태로 되돌린다.
+    // 태그는 수정안에서 결정적으로 다시 계산되므로 저장 경로와 재시도 경로가 같은 값을 낸다.
+    private CreatePlanResponse confirmedResponse(
+            Long travelId,
+            EditPlanAiResponse editPlanAiResponse
+    ) {
 
         return CreatePlanResponse.of(
                 travelService
                         .findTravelById(travelId),
-                aggregatedTags,
-                wrapped
+                planService.aggregateTags(editPlanAiResponse.planDays()),
+                new CreatePlanAiResponse(editPlanAiResponse.planDays())
+        );
+    }
+
+    // 트랜잭션이 커밋된 뒤에 확정 표식을 남긴다.
+    // 트랜잭션 밖에서 호출되면(단위 테스트 등) 바로 기록한다.
+    private void markConfirmedAfterCommit(
+            Long travelId,
+            EditPlanAiResponse editPlanAiResponse
+    ) {
+
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            planEditCacheService.markConfirmed(travelId, editPlanAiResponse);
+
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+
+                    @Override
+                    public void afterCommit() {
+
+                        planEditCacheService.markConfirmed(travelId, editPlanAiResponse);
+                    }
+                }
         );
     }
 

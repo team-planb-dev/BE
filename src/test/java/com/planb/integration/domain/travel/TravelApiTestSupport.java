@@ -31,7 +31,7 @@ abstract class TravelApiTestSupport extends IntegrationTest {
     private static final String LOGIN_URL = "/login";
     private static final String ADD_COMPANION_URL = "/api/v1/health/add-traveler";
     private static final String COMPANION_SUMMARY_URL = "/api/v1/health/get-companion-summary";
-    private static final String NICKNAME = "travelTestNickname";
+    private static final String NICKNAME_PREFIX = "travelTestNickname-";
     private static final String PASSWORD = "test1234!";
 
     @Autowired
@@ -47,7 +47,10 @@ abstract class TravelApiTestSupport extends IntegrationTest {
         UserCreateRequest request =
                 new UserCreateRequest(
                         username,
-                        NICKNAME,
+                        NICKNAME_PREFIX + UUID
+                                .randomUUID()
+                                .toString()
+                                .substring(0, 8),
                         PASSWORD,
                         RecoveryQuestion.FIRST_PET,
                         "콩이",

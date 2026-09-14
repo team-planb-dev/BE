@@ -393,7 +393,7 @@ class TravelIntegrationTest extends TravelApiTestSupport {
         assertThat(after.path("planDays")
                 .get(1))
                 .isNotNull();
-        TravelPlanAssertions.assertSameDays(
+        TravelPlanAssertions.assertSameDaysIgnoringInboundTravel(
                 objectMapper.valueToTree(List.of(original.path("planDays")
                         .get(1))),
                 objectMapper.valueToTree(List.of(after.path("planDays")

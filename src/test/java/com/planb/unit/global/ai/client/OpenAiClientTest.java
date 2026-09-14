@@ -6,6 +6,8 @@ import com.planb.ai.dto.response.PlaceWithRouteResult;
 import com.planb.ai.mcp.PlanTourismTool;
 import com.planb.ai.mcp.TourismTool;
 import com.planb.ai.prompt.AiPrompt;
+import com.planb.global.config.exception.AiFailure;
+import com.planb.global.config.exception.domain.AiOrchestrationException;
 
 import java.util.List;
 import java.util.function.Function;
@@ -24,6 +26,7 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -72,26 +75,25 @@ class OpenAiClientTest {
     }
 
     @Test
-    @DisplayName("JSON 파싱 재시도 시 실패한 호출의 검색 후보 제거")
-    void parsingRetryClearsCandidatesFromFailedAttempt() {
+    @DisplayName("JSON 파싱 재시도에도 실패한 호출의 검색 후보 유지")
+    void parsingRetryKeepsCandidatesFromFailedAttempt() {
         PlaceCandidateContext candidates = new PlaceCandidateContext();
         PlanTourismTool tool = new PlanTourismTool(mock(TourismTool.class), candidates);
         when(chatClient.prompt().system(prompt.system()).user(prompt.user()).tools(tool)
-                .options(any()).call().content()).thenAnswer(invocation -> {
-                    assertNull(candidates.find("kakao:first"));
-                    return "raw";
-                });
+                .options(any()).call().content()).thenReturn("raw");
         when(outputConverter.convert("raw")).thenAnswer(invocation -> {
             candidates.record(new PlaceWithRouteResult(true, "카페", "부산", "129.1", "35.1", null,
                     "kakao:first", "CE7", "카페"));
             throw new IllegalArgumentException("잘못된 JSON");
         }).thenAnswer(invocation -> {
-            assertNull(candidates.find("kakao:first"));
+            // 후보는 외부 검색으로 확인한 사실이므로 응답 파싱 실패와 무관하게 남는다
+            assertNotNull(candidates.find("kakao:first"));
             candidates.record(new PlaceWithRouteResult(true, "두 번째 카페", "부산", "129.1", "35.1", null,
                     "kakao:second", "CE7", "카페"));
             return new TestDto("ok");
         });
         assertEquals(new TestDto("ok"), openAiClient.call(prompt, outputConverter, tool));
+        assertNotNull(candidates.find("kakao:first"));
         assertNotNull(candidates.find("kakao:second"));
         verify(outputConverter, times(2)).convert("raw");
     }
@@ -131,10 +133,10 @@ class OpenAiClientTest {
     }
 
     @Test
-    @DisplayName("파싱 2회 연속 실패 시 예외 전파")
+    @DisplayName("파싱 2회 연속 실패의 AI 호출 실패 분류")
     void call_withClassResponseType_throwsWhenBothAttemptsFail() {
 
-
+        // 분류되지 않은 SDK 예외가 그대로 올라가면 BASE.EXCEPTION.EXCEPTION_ISSUED로 나간다.
         when(
                 chatClient.prompt()
                         .system(prompt.system())
@@ -148,10 +150,88 @@ class OpenAiClientTest {
                 new RuntimeException("2차 파싱 실패")
         );
 
-        assertThrows(
-                RuntimeException.class,
+        AiOrchestrationException exception = assertThrows(
+                AiOrchestrationException.class,
                 () -> openAiClient.call(prompt, TestDto.class)
         );
+
+        assertEquals(
+                AiFailure.UPSTREAM_CALL_FAILED,
+                exception.getFailure()
+        );
+    }
+
+    @Test
+    @DisplayName("correction 재시도 시 이전 응답이 선택한 검색 후보 유지")
+    void correctionRetryKeepsCandidatesFromPreviousAttempt() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        PlanTourismTool tool = new PlanTourismTool(mock(TourismTool.class), candidates);
+
+        TestDto invalid = new TestDto(null);
+
+        TestDto valid = new TestDto("ok");
+
+        when(
+                chatClient.prompt()
+                        .system(prompt.system())
+                        .user(prompt.user())
+                        .tools(tool)
+                        .options(any())
+                        .call()
+                        .content()
+        ).thenReturn("raw-1");
+
+        when(
+                chatClient.prompt()
+                        .system(prompt.system())
+                        .user(contains("이전 실패 응답:\nraw-1"))
+                        .tools(tool)
+                        .options(any())
+                        .call()
+                        .content()
+        ).thenReturn("raw-2");
+
+        when(
+                outputConverter.convert("raw-1")
+        ).thenAnswer(invocation -> {
+            candidates.record(new PlaceWithRouteResult(
+                    true,
+                    "카페",
+                    "부산",
+                    "129.1",
+                    "35.1",
+                    null,
+                    "kakao:first",
+                    "CE7",
+                    "카페"));
+
+            return invalid;
+        });
+
+        // correction 응답은 이전 응답을 고친 것이므로 그 응답이 가리키던 후보가 남아 있어야 한다
+        when(
+                outputConverter.convert("raw-2")
+        ).thenAnswer(invocation -> {
+            assertNotNull(candidates.find("kakao:first"));
+
+            return valid;
+        });
+
+        Function<TestDto, List<String>> validation = value -> value.value() == null
+                ? List.of("value 누락")
+                : List.of();
+
+        TestDto result = openAiClient.call(
+                prompt,
+                outputConverter,
+                validation,
+                tool
+        );
+
+        assertEquals(valid, result);
+        assertNotNull(candidates.find("kakao:first"));
     }
 
     @Test
@@ -249,8 +329,8 @@ class OpenAiClientTest {
 
         Function<TestDto, List<String>> validation = dto -> List.of(reason);
 
-        IllegalStateException exception = assertThrows(
-                IllegalStateException.class,
+        AiOrchestrationException exception = assertThrows(
+                AiOrchestrationException.class,
                 () -> openAiClient.call(
                         prompt,
                         outputConverter,
@@ -258,7 +338,46 @@ class OpenAiClientTest {
                 )
         );
 
-        assertTrue(exception.getMessage().contains("동일한 무효 응답"));
+        assertEquals(
+                AiFailure.RESPONSE_REPEATED_INVALID,
+                exception.getFailure()
+        );
+
+        assertFalse(exception.getFailure().isRetryable());
+    }
+
+    @Test
+    @DisplayName("2회 연속 빈 응답의 재시도 가능 분류")
+    void call_withRepeatedEmptyResponse_classifiesAsRetryableFailure() {
+
+        when(
+                chatClient.prompt()
+                        .system(prompt.system())
+                        .user(anyString())
+                        .tools()
+                        .options(any())
+                        .call()
+                        .content()
+        ).thenReturn(
+                " ",
+                " "
+        );
+
+        Function<TestDto, List<String>> validation = dto -> List.of();
+
+        AiOrchestrationException exception = assertThrows(
+                AiOrchestrationException.class,
+                () -> openAiClient.call(
+                        prompt,
+                        outputConverter,
+                        validation
+                )
+        );
+
+        assertEquals(
+                AiFailure.RESPONSE_EMPTY,
+                exception.getFailure()
+        );
     }
 
     @Test
@@ -290,13 +409,18 @@ class OpenAiClientTest {
 
         Function<TestDto, List<String>> validation = dto -> List.of(reason);
 
-        IllegalStateException exception = assertThrows(
-                IllegalStateException.class,
+        AiOrchestrationException exception = assertThrows(
+                AiOrchestrationException.class,
                 () -> openAiClient.call(
                         prompt,
                         outputConverter,
                         validation
                 )
+        );
+
+        assertEquals(
+                AiFailure.RESPONSE_INVALID,
+                exception.getFailure()
         );
 
         assertTrue(exception.getMessage().contains(reason));
