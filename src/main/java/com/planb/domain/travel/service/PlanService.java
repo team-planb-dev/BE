@@ -533,6 +533,10 @@ public class PlanService {
      * 앞에서 요구되지 않았던 식사가 요구 대상이 된다.
      *
      * 채울 것이 없으면 그대로 돌려준다. 채운 뒤에는 이동시간과 시각을 다시 확정한다.
+     *
+     * 보정은 한 번만 한다. 두 번째 정규화가 하루를 또 앞당겨 새 식사시각이 들어오면
+     * 이 메서드는 그것을 채우지 않고, 바로 뒤의 validateMealSlots가 거부한다.
+     * 반복하지 않는 이유는 수렴을 보장할 수 없기 때문이다. 조용히 빠뜨리는 대신 막는다.
      */
     private CreatePlanAiResponse refillMissingMeals(
             CreatePlanAiResponse response,
