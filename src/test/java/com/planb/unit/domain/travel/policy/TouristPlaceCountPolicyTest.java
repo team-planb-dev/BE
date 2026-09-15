@@ -195,7 +195,7 @@ class TouristPlaceCountPolicyTest {
 
         return new TravelHealthContext(
                 "동행인",
-                DiseaseType.DIABETES,
+                List.of(DiseaseType.DIABETES),
                 walkType,
                 new TravelHealthContext.MealInfoContext(
                         LocalTime.of(8, 0),

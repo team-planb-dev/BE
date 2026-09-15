@@ -96,7 +96,7 @@ class TravelRecommendHandlerTest extends IntegrationTest {
         TravelHealthContext baseHealthContext =
                 new TravelHealthContext(
                         "테스트 여행자",
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         WalkType.MODERATE,
                         new TravelHealthContext.MealInfoContext(
                                 LocalTime.of(8, 0),
@@ -223,7 +223,7 @@ class TravelRecommendHandlerTest extends IntegrationTest {
         TravelHealthContext healthContext =
                 new TravelHealthContext(
                         "테스트 여행자",
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         WalkType.MODERATE,
 
                         new TravelHealthContext.MealInfoContext(
@@ -497,7 +497,7 @@ class TravelRecommendHandlerTest extends IntegrationTest {
         TravelHealthContext updatedHealthContext =
                 new TravelHealthContext(
                         "테스트 여행자",
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         WalkType.MODERATE,
                         new TravelHealthContext.MealInfoContext(
                                 LocalTime.of(8, 0),

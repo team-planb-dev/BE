@@ -268,7 +268,7 @@ class MissingSlotCompleterTest {
 
         return new TravelHealthContext(
                 "동행인",
-                DiseaseType.DIABETES,
+                List.of(DiseaseType.DIABETES),
                 WalkType.MODERATE,
                 new TravelHealthContext.MealInfoContext(
                         true,

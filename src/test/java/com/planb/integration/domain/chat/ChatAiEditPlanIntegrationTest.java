@@ -720,7 +720,7 @@ public class ChatAiEditPlanIntegrationTest
                         false,
 
                         new AddCompanionRequest.HealthInfo(
-                                DiseaseType.DIABETES,
+                                List.of(DiseaseType.DIABETES),
                                 WalkType.MINIMAL
                         ),
 

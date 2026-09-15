@@ -40,7 +40,7 @@ public record AddCompanionRequest(
      */
     public record HealthInfo(
             @Schema(description = "질환 유형", example = "DIABETES")
-            DiseaseType diseaseType,
+            List<DiseaseType> diseaseTypes,
 
             @Schema(description = "걷기 선호 수준", example = "MODERATE")
             WalkType walkType
@@ -106,7 +106,7 @@ public record AddCompanionRequest(
                     sensitiveAgree,
                     hasMedication,
                     new CreateHealthRequest.HealthInfo(
-                            healthInfo.diseaseType(),
+                            healthInfo.diseaseTypes(),
                             healthInfo.walkType()
                     ),
                     new CreateHealthRequest.MealInfo(

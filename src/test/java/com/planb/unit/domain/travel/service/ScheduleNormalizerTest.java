@@ -241,7 +241,7 @@ class ScheduleNormalizerTest {
         return List.of(
                 new TravelHealthContext(
                         "테스트 여행자",
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         WalkType.ACTIVE,
                         new TravelHealthContext.MealInfoContext(
                                 LocalTime.of(8, 0),
