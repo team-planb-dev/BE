@@ -282,6 +282,44 @@ class TravelQueryRepositoryTest
     }
 
     @Test
+    @DisplayName("저장하지 않은 여행은 목록에서 제외")
+    void findAllByUserIdExcludesUnsavedTravels() {
+
+        // given
+        LocalDate today = LocalDate.of(2026, 9, 10);
+
+        User owner = createUser();
+
+        Travel saved = createTravel("저장한 여행",
+                owner,
+                today.plusDays(7),
+                today.plusDays(8));
+
+        // 생성 직후 이탈해 저장을 누르지 않은 여행이다.
+        createUnsavedTravel("저장하지 않은 여행",
+                owner,
+                today.plusDays(1),
+                today.plusDays(2));
+
+        entityManager.flush();
+        entityManager.clear();
+
+        // when
+        List<TravelListItemQueryResponse> result =
+                travelQueryRepository
+                        .findAllByUserId(
+                                owner.getId(),
+                                TravelListFilter.UPCOMING,
+                                today
+                        );
+
+        // then
+        assertThat(result)
+                .extracting(TravelListItemQueryResponse::travelId)
+                .containsExactly(saved.getId());
+    }
+
+    @Test
     @DisplayName("PAST 탭은 이미 끝난 여행만 최근 순으로 조회")
     void findAllByUserIdReturnsPastTravels() {
 
@@ -480,6 +518,35 @@ class TravelQueryRepositoryTest
                 .isEqualTo("share-token-1");
     }
 
+    private Travel createUnsavedTravel(
+            String travelName,
+            User user,
+            LocalDate startDate,
+            LocalDate endDate
+    ) {
+
+        Travel travel = Travel.builder()
+                .user(user)
+                .travelName(travelName)
+                .locationDo("부산")
+                .locationSigungu("해운대구")
+                .startDate(startDate)
+                .endDate(endDate)
+                .dateType(DateType.ONE_NIGHT_TWO_DAYS)
+                .transportation(Transportation.TRANSIT)
+                .travelStyle(TravelStyle.LESS_WALK)
+                .travelTheme(TravelTheme.TASTE)
+                .localFoods(List.of("돼지국밥"))
+                .recommendFoods(List.of("돼지국밥"))
+                .decidedLocation("해운대")
+                .build();
+
+        entityManager.persist(travel);
+
+        return travel;
+    }
+
+    // 목록은 저장된 여행만 보여주므로 기본 픽스처도 저장된 여행이다.
     private Travel createTravel(
             String travelName,
             User user,
@@ -489,6 +556,7 @@ class TravelQueryRepositoryTest
 
         Travel travel = Travel.builder()
                 .user(user)
+                .saved(true)
                 .travelName(travelName)
                 .locationDo("부산")
                 .locationSigungu("해운대구")
