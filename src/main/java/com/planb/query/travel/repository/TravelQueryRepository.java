@@ -102,6 +102,9 @@ public class TravelQueryRepository {
                                 .user
                                 .id
                                 .eq(userId),
+                        travel
+                                .saved
+                                .isTrue(),
                         past
                                 ? travel.endDate.before(today)
                                 : travel.endDate.goe(today)
