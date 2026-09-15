@@ -934,4 +934,134 @@ public class HealthIntegrationTest extends IntegrationTest {
                         .value(hasItems("DIABETES", "HIGH_BLOOD_PRESSURE")));
     }
 
+
+    @Test
+    @DisplayName("민감정보에 동의하지 않은 동행인 등록")
+    void addCompanionWithoutSensitiveAgree() throws Exception {
+
+        // given
+        String username = createUniqueUsername();
+
+        createUser(username);
+
+        LoginResult loginResult = login(username);
+
+        // 동의하지 않으면 건강 정보와 식사 정보를 보내지 않는다.
+        AddCompanionRequest request =
+                new AddCompanionRequest(
+                        "미동의 동행인",
+                        false,
+                        false,
+                        null,
+                        null,
+                        List.of(),
+                        List.of()
+                );
+
+        // when
+        mockMvc.perform(
+                        post(ADD_COMPANION_URL)
+                                .header("Authorization", loginResult.accessToken())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.travelerName").value("미동의 동행인"));
+
+        // then
+        mockMvc.perform(
+                        get(COMPANION_SUMMARY_URL)
+                                .header("Authorization", loginResult.accessToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.companionList[0].travelerName")
+                        .value("미동의 동행인"))
+                .andExpect(jsonPath("$.data.companionList[0].diseaseTypes")
+                        .isEmpty());
+    }
+
+
+    @Test
+    @DisplayName("등록된 동행인을 민감정보 미동의로 수정")
+    void updateCompanionToWithoutSensitiveAgree() throws Exception {
+
+        // given
+        String username = createUniqueUsername();
+
+        createUser(username);
+
+        LoginResult loginResult = login(username);
+
+        addCompanion(loginResult.accessToken());
+
+        Long healthId = getHealthId(loginResult.accessToken());
+
+        // 동의를 철회하면 건강 정보와 식사 정보를 더 보내지 않는다.
+        UpdateCompanionRequest request =
+                new UpdateCompanionRequest(
+                        healthId,
+                        "동의 철회 동행인",
+                        false,
+                        false,
+                        null,
+                        null,
+                        List.of(),
+                        List.of()
+                );
+
+        // when
+        mockMvc.perform(
+                        put(UPDATE_COMPANION_URL)
+                                .header("Authorization", loginResult.accessToken())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        // then
+        mockMvc.perform(
+                        get(COMPANION_SUMMARY_URL)
+                                .header("Authorization", loginResult.accessToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.companionList[0].travelerName")
+                        .value("동의 철회 동행인"))
+                .andExpect(jsonPath("$.data.companionList[0].diseaseTypes")
+                        .isEmpty());
+    }
+
+
+    @Test
+    @DisplayName("민감정보에 동의했는데 건강 정보가 없으면 거부")
+    void addCompanionWithSensitiveAgreeAndMissingHealthInfo() throws Exception {
+
+        // given
+        String username = createUniqueUsername();
+
+        createUser(username);
+
+        LoginResult loginResult = login(username);
+
+        // 동의했다면 건강 정보와 식사 정보가 있어야 한다. 잘못 보낸 요청이다.
+        AddCompanionRequest request =
+                new AddCompanionRequest(
+                        "잘못된 요청",
+                        true,
+                        false,
+                        null,
+                        null,
+                        List.of(),
+                        List.of()
+                );
+
+        // when & then
+        mockMvc.perform(
+                        post(ADD_COMPANION_URL)
+                                .header("Authorization", loginResult.accessToken())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.errorCode")
+                        .value("HEALTH.EXCEPTION.SENSITIVE_INFO_REQUIRED"));
+    }
+
 }
