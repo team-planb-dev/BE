@@ -1,5 +1,7 @@
 package com.planb.query.travel.dto.response;
 
+import com.planb.domain.travel.entity.constant.TravelTheme;
+
 import java.time.LocalDate;
 
 public record TravelListItemQueryResponse(
@@ -8,6 +10,7 @@ public record TravelListItemQueryResponse(
         String locationDo,
         String locationSigungu,
         LocalDate startDate,
-        LocalDate endDate
+        LocalDate endDate,
+        TravelTheme travelTheme
 ) {
 }

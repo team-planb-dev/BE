@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.groups.Tuple.tuple;
 
 @DataJpaTest
 @Import({
@@ -235,6 +236,48 @@ class TravelQueryRepositoryTest
                 .containsExactly(
                         ongoing.getId(),
                         upcoming.getId()
+                );
+    }
+
+    @Test
+    @DisplayName("여행 목록에 여행 테마 포함")
+    void findAllByUserIdReturnsTravelTheme() {
+
+        // given
+        LocalDate today = LocalDate.of(2026, 9, 10);
+
+        User owner = createUser();
+
+        Travel upcoming = createTravel("예정 여행",
+                owner,
+                today.plusDays(7),
+                today.plusDays(8));
+
+        entityManager.flush();
+        entityManager.clear();
+
+        // when
+        List<TravelListItemQueryResponse> result =
+                travelQueryRepository
+                        .findAllByUserId(
+                                owner.getId(),
+                                TravelListFilter.UPCOMING,
+                                today
+                        );
+
+        // then - 프로젝션은 생성자 인자 순서로 맞추므로 자리를 잘못 넣어도 컴파일은 통과한다
+        assertThat(result)
+                .extracting(
+                        TravelListItemQueryResponse::travelId,
+                        TravelListItemQueryResponse::travelName,
+                        TravelListItemQueryResponse::travelTheme
+                )
+                .containsExactly(
+                        tuple(
+                                upcoming.getId(),
+                                "예정 여행",
+                                TravelTheme.TASTE
+                        )
                 );
     }
 
