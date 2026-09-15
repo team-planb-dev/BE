@@ -147,7 +147,7 @@ class HealthControllerTest {
                                         "동행인1",
                                         true,
                                         true,
-                                        DiseaseType.DIABETES
+                                        List.of(DiseaseType.DIABETES)
                                 )
                         )
                 );

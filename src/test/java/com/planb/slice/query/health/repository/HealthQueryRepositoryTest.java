@@ -70,14 +70,14 @@ class HealthQueryRepositoryTest
                 user,
                 "동행인1",
                 true,
-                DiseaseType.DIABETES
+                List.of(DiseaseType.DIABETES)
         );
 
         Health healthWithoutAllergy = createHealth(
                 user,
                 "동행인2",
                 false,
-                DiseaseType.HIGH_BLOOD_PRESSURE
+                List.of(DiseaseType.HIGH_BLOOD_PRESSURE)
         );
 
         createFoodInfo(
@@ -103,7 +103,7 @@ class HealthQueryRepositoryTest
                         HealthSummaryQueryResponse::healthId,
                         HealthSummaryQueryResponse::travelerName,
                         HealthSummaryQueryResponse::hasMedication,
-                        HealthSummaryQueryResponse::diseaseType,
+                        HealthSummaryQueryResponse::diseaseTypes,
                         HealthSummaryQueryResponse::hasAllergy
                 )
                 .containsExactlyInAnyOrder(
@@ -111,14 +111,14 @@ class HealthQueryRepositoryTest
                                 healthWithAllergy.getId(),
                                 "동행인1",
                                 true,
-                                DiseaseType.DIABETES,
+                                List.of(DiseaseType.DIABETES),
                                 true
                         ),
                         tuple(
                                 healthWithoutAllergy.getId(),
                                 "동행인2",
                                 false,
-                                DiseaseType.HIGH_BLOOD_PRESSURE,
+                                List.of(DiseaseType.HIGH_BLOOD_PRESSURE),
                                 false
                         )
                 );
@@ -149,14 +149,14 @@ class HealthQueryRepositoryTest
                 user1,
                 "동행인1",
                 false,
-                DiseaseType.DIABETES
+                List.of(DiseaseType.DIABETES)
         );
 
         createHealth(
                 user2,
                 "다른 사용자 동행인",
                 false,
-                DiseaseType.DYSLIPIDEMIA
+                List.of(DiseaseType.DYSLIPIDEMIA)
         );
 
         entityManager.flush();
@@ -202,7 +202,7 @@ class HealthQueryRepositoryTest
                 user,
                 "동행인1",
                 false,
-                DiseaseType.DIABETES
+                List.of(DiseaseType.DIABETES)
         );
 
         entityManager.flush();
@@ -245,7 +245,7 @@ class HealthQueryRepositoryTest
                 owner,
                 "동행인1",
                 false,
-                DiseaseType.DIABETES
+                List.of(DiseaseType.DIABETES)
         );
 
         entityManager.flush();
@@ -267,7 +267,7 @@ class HealthQueryRepositoryTest
             User user,
             String travelerName,
             boolean hasMedication,
-            DiseaseType diseaseType
+            List<DiseaseType> diseaseTypes
     ) {
 
         Health health = Health.builder()
@@ -275,7 +275,7 @@ class HealthQueryRepositoryTest
                 .sensitiveAgree(true)
                 .hasMedication(hasMedication)
                 .healthInfo(new HealthInfo(
-                        diseaseType,
+                        diseaseTypes,
                         WalkType.values()[0]
                 ))
                 .mealInfo(new MealInfo(

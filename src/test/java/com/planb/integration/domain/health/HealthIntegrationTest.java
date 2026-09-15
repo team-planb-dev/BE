@@ -31,6 +31,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
@@ -197,8 +199,8 @@ public class HealthIntegrationTest extends IntegrationTest {
                                 .value(true)
                 )
                 .andExpect(
-                        jsonPath("$.data.companionList[0].diseaseType")
-                                .value("DIABETES")
+                        jsonPath("$.data.companionList[0].diseaseTypes")
+                                .value(hasItem("DIABETES"))
                 )
                 .andExpect(
                         jsonPath("$.error")
@@ -329,7 +331,7 @@ public class HealthIntegrationTest extends IntegrationTest {
                         false,
 
                         new AddCompanionRequest.HealthInfo(
-                                DiseaseType.HIGH_BLOOD_PRESSURE,
+                                List.of(DiseaseType.HIGH_BLOOD_PRESSURE),
                                 WalkType.MINIMAL
                         ),
 
@@ -409,8 +411,8 @@ public class HealthIntegrationTest extends IntegrationTest {
                                 .value("동행인1 수정")
                 )
                 .andExpect(
-                        jsonPath("$.data.healthInfo.diseaseType")
-                                .value("HIGH_BLOOD_PRESSURE")
+                        jsonPath("$.data.healthInfo.diseaseTypes")
+                                .value(hasItem("HIGH_BLOOD_PRESSURE"))
                 )
                 .andExpect(
                         jsonPath("$.data.foodInfoList.length()")
@@ -573,7 +575,7 @@ public class HealthIntegrationTest extends IntegrationTest {
                 true,
 
                 new AddCompanionRequest.HealthInfo(
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         WalkType.MODERATE
                 ),
 
@@ -874,4 +876,62 @@ public class HealthIntegrationTest extends IntegrationTest {
             Cookie refreshTokenCookie
     ) {
     }
+
+    @Test
+    @DisplayName("관리 질환을 여러 개 등록하고 그대로 조회")
+    void addCompanionWithMultipleDiseases() throws Exception {
+
+        // given
+        String username = createUniqueUsername();
+
+        createUser(username);
+
+        LoginResult loginResult = login(username);
+
+        AddCompanionRequest request =
+                new AddCompanionRequest(
+                        "복수질환 동행인",
+                        true,
+                        false,
+
+                        new AddCompanionRequest.HealthInfo(
+                                List.of(
+                                        DiseaseType.DIABETES,
+                                        DiseaseType.HIGH_BLOOD_PRESSURE
+                                ),
+                                WalkType.MODERATE
+                        ),
+
+                        new AddCompanionRequest.MealInfo(
+                                true,
+                                true,
+                                LocalTime.of(8, 0),
+                                true,
+                                LocalTime.of(12, 0),
+                                true,
+                                LocalTime.of(18, 0)
+                        ),
+
+                        List.of(),
+                        List.of()
+                );
+
+        // when
+        mockMvc.perform(
+                        post(ADD_COMPANION_URL)
+                                .header("Authorization", loginResult.accessToken())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        // then
+        mockMvc.perform(
+                        get(COMPANION_SUMMARY_URL)
+                                .header("Authorization", loginResult.accessToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.companionList[0].diseaseTypes")
+                        .value(hasItems("DIABETES", "HIGH_BLOOD_PRESSURE")));
+    }
+
 }

@@ -19,6 +19,8 @@ import java.time.LocalTime;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.verify;
 
+import java.util.List;
+
 @ExtendWith(MockitoExtension.class)
 class HealthServiceTest {
 
@@ -41,8 +43,8 @@ class HealthServiceTest {
     void validSensitiveAgreeWithAgreeSuccess() {
 
         // given
-        DiseaseType diseaseType =
-                DiseaseType.DIABETES;
+        List<DiseaseType> diseaseTypes =
+                List.of(DiseaseType.DIABETES);
 
         WalkType walkType =
                 WalkType.values()[0];
@@ -53,7 +55,7 @@ class HealthServiceTest {
                         true,
                         true,
                         new CreateHealthRequest.HealthInfo(
-                                diseaseType,
+                                diseaseTypes,
                                 walkType
                         ),
                         new CreateHealthRequest.MealInfo(
