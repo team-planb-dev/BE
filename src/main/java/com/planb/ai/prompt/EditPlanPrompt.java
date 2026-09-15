@@ -129,7 +129,7 @@ public record EditPlanPrompt(
                 - 음식점(RESTAURANT) 슬롯을 새로 정하는 경우
                   searchRestaurantsByLocation(keyword, locationDo, locationSigungu)로
                   음식점을 확인한 뒤, 반드시 getRestaurantDetail(contentId)로 상세정보를
-                  조회하고, evaluateFoodNutrition(실제 메뉴, 여행자의 diseaseType)으로
+                  조회하고, evaluateFoodNutrition(실제 메뉴, 여행자의 diseaseTypes)으로
                   건강 조건을 평가합니다. healthContexts의 ALLERGY/AVOID 음식은 STEP 4의
                   규칙과 동일하게 전체 일행 기준으로 제외합니다.
                 - CAFE_REST 슬롯을 새로 정하는 경우
