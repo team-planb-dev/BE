@@ -711,7 +711,7 @@ class PlanPlaceValidationTest {
         TravelHealthContext healthContext =
                 new TravelHealthContext(
                         "테스트 여행자",
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         WalkType.MODERATE,
                         new TravelHealthContext.MealInfoContext(
                                 true,
@@ -841,7 +841,7 @@ class PlanPlaceValidationTest {
         TravelHealthContext healthContext =
                 new TravelHealthContext(
                         "테스트 여행자",
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         WalkType.MODERATE,
                         new TravelHealthContext.MealInfoContext(
                                 true,
@@ -1004,7 +1004,7 @@ class PlanPlaceValidationTest {
         TravelHealthContext healthContext =
                 new TravelHealthContext(
                         "테스트 여행자",
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         WalkType.MODERATE,
                         new TravelHealthContext.MealInfoContext(
                                 true,
@@ -1961,7 +1961,7 @@ class PlanPlaceValidationTest {
         TravelHealthContext healthContext =
                 new TravelHealthContext(
                         "테스트 여행자",
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         WalkType.MODERATE,
                         new TravelHealthContext.MealInfoContext(
                                 true,
@@ -2615,7 +2615,7 @@ class PlanPlaceValidationTest {
 
         TravelHealthContext health = new TravelHealthContext(
                 "테스트 여행자",
-                DiseaseType.DIABETES,
+                List.of(DiseaseType.DIABETES),
                 WalkType.MINIMAL,
                 new TravelHealthContext.MealInfoContext(
                         LocalTime.of(8, 0),
@@ -2694,7 +2694,7 @@ class PlanPlaceValidationTest {
 
         TravelHealthContext health = new TravelHealthContext(
                 "테스트 여행자",
-                DiseaseType.DIABETES,
+                List.of(DiseaseType.DIABETES),
                 WalkType.MINIMAL,
                 new TravelHealthContext.MealInfoContext(
                         LocalTime.of(8, 0),
@@ -2895,7 +2895,7 @@ class PlanPlaceValidationTest {
 
         return new TravelHealthContext(
                 "테스트 여행자",
-                DiseaseType.DIABETES,
+                List.of(DiseaseType.DIABETES),
                 WalkType.MODERATE,
                 new TravelHealthContext.MealInfoContext(
                         LocalTime.of(5, 0),

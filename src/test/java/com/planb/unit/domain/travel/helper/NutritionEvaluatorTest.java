@@ -10,6 +10,8 @@ import com.planb.domain.travel.helper.NutritionEvaluator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
 
@@ -37,13 +39,13 @@ class NutritionEvaluatorTest {
         // when
         NutritionEvaluationResult result =
                 nutritionEvaluator.evaluate(
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         nutritionInfo
                 );
 
         // then
-        assertThat(result.diseaseType())
-                .isEqualTo(DiseaseType.DIABETES);
+        assertThat(result.diseaseTypes())
+                .containsExactly(DiseaseType.DIABETES);
 
         assertThat(result.status())
                 .isEqualTo(NutritionEvaluationStatus.AVAILABLE);
@@ -89,13 +91,13 @@ class NutritionEvaluatorTest {
         // when
         NutritionEvaluationResult result =
                 nutritionEvaluator.evaluate(
-                        DiseaseType.HIGH_BLOOD_PRESSURE,
+                        List.of(DiseaseType.HIGH_BLOOD_PRESSURE),
                         nutritionInfo
                 );
 
         // then
-        assertThat(result.diseaseType())
-                .isEqualTo(DiseaseType.HIGH_BLOOD_PRESSURE);
+        assertThat(result.diseaseTypes())
+                .containsExactly(DiseaseType.HIGH_BLOOD_PRESSURE);
 
         assertThat(result.status())
                 .isEqualTo(NutritionEvaluationStatus.AVAILABLE);
@@ -133,13 +135,13 @@ class NutritionEvaluatorTest {
         // when
         NutritionEvaluationResult result =
                 nutritionEvaluator.evaluate(
-                        DiseaseType.DYSLIPIDEMIA,
+                        List.of(DiseaseType.DYSLIPIDEMIA),
                         nutritionInfo
                 );
 
         // then
-        assertThat(result.diseaseType())
-                .isEqualTo(DiseaseType.DYSLIPIDEMIA);
+        assertThat(result.diseaseTypes())
+                .containsExactly(DiseaseType.DYSLIPIDEMIA);
 
         assertThat(result.status())
                 .isEqualTo(NutritionEvaluationStatus.AVAILABLE);
@@ -189,13 +191,13 @@ class NutritionEvaluatorTest {
         // when
         NutritionEvaluationResult result =
                 nutritionEvaluator.evaluate(
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         nutritionInfo
                 );
 
         // then
-        assertThat(result.diseaseType())
-                .isEqualTo(DiseaseType.DIABETES);
+        assertThat(result.diseaseTypes())
+                .containsExactly(DiseaseType.DIABETES);
 
         assertThat(result.status())
                 .isEqualTo(NutritionEvaluationStatus.NOT_EVALUABLE);
@@ -223,13 +225,13 @@ class NutritionEvaluatorTest {
         // when
         NutritionEvaluationResult result =
                 nutritionEvaluator.evaluate(
-                        DiseaseType.HIGH_BLOOD_PRESSURE,
+                        List.of(DiseaseType.HIGH_BLOOD_PRESSURE),
                         nutritionInfo
                 );
 
         // then
-        assertThat(result.diseaseType())
-                .isEqualTo(DiseaseType.HIGH_BLOOD_PRESSURE);
+        assertThat(result.diseaseTypes())
+                .containsExactly(DiseaseType.HIGH_BLOOD_PRESSURE);
 
         assertThat(result.status())
                 .isEqualTo(NutritionEvaluationStatus.NOT_EVALUABLE);
@@ -257,13 +259,13 @@ class NutritionEvaluatorTest {
         // when
         NutritionEvaluationResult result =
                 nutritionEvaluator.evaluate(
-                        DiseaseType.DYSLIPIDEMIA,
+                        List.of(DiseaseType.DYSLIPIDEMIA),
                         nutritionInfo
                 );
 
         // then
-        assertThat(result.diseaseType())
-                .isEqualTo(DiseaseType.DYSLIPIDEMIA);
+        assertThat(result.diseaseTypes())
+                .containsExactly(DiseaseType.DYSLIPIDEMIA);
 
         assertThat(result.status())
                 .isEqualTo(NutritionEvaluationStatus.NOT_EVALUABLE);
@@ -292,25 +294,25 @@ class NutritionEvaluatorTest {
         // when
         NutritionEvaluationResult lowResult =
                 nutritionEvaluator.evaluate(
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         lowNutritionInfo
                 );
 
         NutritionEvaluationResult checkLowBoundaryResult =
                 nutritionEvaluator.evaluate(
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         checkLowBoundaryNutritionInfo
                 );
 
         NutritionEvaluationResult checkResult =
                 nutritionEvaluator.evaluate(
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         checkNutritionInfo
                 );
 
         NutritionEvaluationResult highBoundaryResult =
                 nutritionEvaluator.evaluate(
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         highBoundaryNutritionInfo
                 );
 
@@ -364,25 +366,25 @@ class NutritionEvaluatorTest {
         // when
         NutritionEvaluationResult highResult =
                 nutritionEvaluator.evaluate(
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         highNutritionInfo
                 );
 
         NutritionEvaluationResult checkLowBoundaryResult =
                 nutritionEvaluator.evaluate(
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         checkLowBoundaryNutritionInfo
                 );
 
         NutritionEvaluationResult checkResult =
                 nutritionEvaluator.evaluate(
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         checkNutritionInfo
                 );
 
         NutritionEvaluationResult lowBoundaryResult =
                 nutritionEvaluator.evaluate(
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         lowBoundaryNutritionInfo
                 );
 
@@ -462,4 +464,115 @@ class NutritionEvaluatorTest {
                 .orElseThrow()
                 .nutritionLevel();
     }
+
+    @Test
+    @DisplayName("질환이 여럿이면 각 질환의 평가 항목을 모두 담아 한 건으로 반환")
+    void mergesEvaluationsAcrossDiseases() {
+
+        // given
+        NutritionInfo nutritionInfo = new NutritionInfo(
+                50.0,
+                9.0,
+                3.0,
+                800.0,
+                6.0,
+                0.7,
+                150.0,
+                10.0
+        );
+
+        // when
+        NutritionEvaluationResult result =
+                nutritionEvaluator.evaluate(
+                        List.of(
+                                DiseaseType.DIABETES,
+                                DiseaseType.HIGH_BLOOD_PRESSURE
+                        ),
+                        nutritionInfo
+                );
+
+        // then
+        assertThat(result.diseaseTypes())
+                .containsExactly(
+                        DiseaseType.DIABETES,
+                        DiseaseType.HIGH_BLOOD_PRESSURE
+                );
+
+        assertThat(result.status())
+                .isEqualTo(NutritionEvaluationStatus.AVAILABLE);
+
+        assertThat(result.evaluations())
+                .extracting(evaluation -> evaluation.nutritionType())
+                .containsExactly(
+                        NutritionType.CARBOHYDRATE,
+                        NutritionType.SUGAR,
+                        NutritionType.DIETARY_FIBER,
+                        NutritionType.SODIUM
+                );
+    }
+
+    @Test
+    @DisplayName("한 질환이라도 평가 불가이면 전체 상태를 평가 불가로 반환")
+    void takesWorstStatusAcrossDiseases() {
+
+        // given - 나트륨이 없어 고혈압 평가가 불가능하다
+        NutritionInfo nutritionInfo = new NutritionInfo(
+                50.0,
+                9.0,
+                3.0,
+                null,
+                6.0,
+                0.7,
+                150.0,
+                10.0
+        );
+
+        // when
+        NutritionEvaluationResult result =
+                nutritionEvaluator.evaluate(
+                        List.of(
+                                DiseaseType.DIABETES,
+                                DiseaseType.HIGH_BLOOD_PRESSURE
+                        ),
+                        nutritionInfo
+                );
+
+        // then
+        assertThat(result.status())
+                .isEqualTo(NutritionEvaluationStatus.NOT_EVALUABLE);
+    }
+
+    @Test
+    @DisplayName("두 질환이 같은 영양성분을 보면 중복 없이 한 번만 담김")
+    void keepsSharedNutritionTypeOnce() {
+
+        // given - 식이섬유는 당뇨와 이상지질혈증이 모두 보는 성분이다
+        NutritionInfo nutritionInfo = new NutritionInfo(
+                50.0,
+                9.0,
+                3.0,
+                800.0,
+                6.0,
+                0.7,
+                150.0,
+                10.0
+        );
+
+        // when
+        NutritionEvaluationResult result =
+                nutritionEvaluator.evaluate(
+                        List.of(
+                                DiseaseType.DIABETES,
+                                DiseaseType.DYSLIPIDEMIA
+                        ),
+                        nutritionInfo
+                );
+
+        // then
+        assertThat(result.evaluations())
+                .extracting(evaluation -> evaluation.nutritionType())
+                .doesNotHaveDuplicates()
+                .contains(NutritionType.DIETARY_FIBER);
+    }
+
 }

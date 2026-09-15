@@ -173,7 +173,7 @@ class TravelHealthRepositoryTest
                 .hasMedication(false)
                 .healthInfo(
                         new HealthInfo(
-                                DiseaseType.DIABETES,
+                                List.of(DiseaseType.DIABETES),
                                 WalkType.MODERATE
                         )
                 )

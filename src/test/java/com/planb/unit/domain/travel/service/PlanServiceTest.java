@@ -430,7 +430,7 @@ class PlanServiceTest {
         TravelHealthContext healthContext =
                 new TravelHealthContext(
                         "테스트 여행자",
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         WalkType.MINIMAL,
                         new TravelHealthContext.MealInfoContext(
                                 LocalTime.of(8, 0),
@@ -493,7 +493,7 @@ class PlanServiceTest {
         TravelHealthContext healthContext =
                 new TravelHealthContext(
                         "테스트 여행자",
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         WalkType.ACTIVE,
                         new TravelHealthContext.MealInfoContext(
                                 LocalTime.of(8, 0),
@@ -555,7 +555,7 @@ class PlanServiceTest {
         TravelHealthContext healthContext =
                 new TravelHealthContext(
                         "테스트 여행자",
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         WalkType.ACTIVE,
                         new TravelHealthContext.MealInfoContext(
                                 LocalTime.of(8, 0),
@@ -620,7 +620,7 @@ class PlanServiceTest {
         TravelHealthContext healthContext =
                 new TravelHealthContext(
                         "테스트 여행자",
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         WalkType.MINIMAL,
                         new TravelHealthContext.MealInfoContext(
                                 LocalTime.of(8, 0),
@@ -698,7 +698,7 @@ class PlanServiceTest {
         TravelHealthContext healthContext =
                 new TravelHealthContext(
                         "테스트 여행자",
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         WalkType.MODERATE,
                         new TravelHealthContext.MealInfoContext(
                                 LocalTime.of(8, 0),
@@ -773,7 +773,7 @@ class PlanServiceTest {
         TravelHealthContext healthContext =
                 new TravelHealthContext(
                         "테스트 여행자",
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         WalkType.MODERATE,
                         new TravelHealthContext.MealInfoContext(
                                 LocalTime.of(8, 0),
@@ -906,7 +906,7 @@ class PlanServiceTest {
         TravelHealthContext healthContext =
                 new TravelHealthContext(
                         "테스트 여행자",
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         WalkType.MODERATE,
                         new TravelHealthContext.MealInfoContext(
                                 LocalTime.of(8, 0),
@@ -999,7 +999,7 @@ class PlanServiceTest {
         TravelHealthContext healthContext =
                 new TravelHealthContext(
                         "테스트 여행자",
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         WalkType.MODERATE,
                         new TravelHealthContext.MealInfoContext(
                                 true,
@@ -1092,7 +1092,7 @@ class PlanServiceTest {
         TravelHealthContext healthContext =
                 new TravelHealthContext(
                         "테스트 여행자",
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         WalkType.MODERATE,
                         new TravelHealthContext.MealInfoContext(
                                 LocalTime.of(8, 0),
@@ -1263,7 +1263,7 @@ class PlanServiceTest {
         TravelHealthContext healthContext =
                 new TravelHealthContext(
                         "우주",
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         WalkType.MODERATE,
                         new TravelHealthContext.MealInfoContext(
                                 LocalTime.of(8, 0),
@@ -1356,7 +1356,7 @@ class PlanServiceTest {
 
         NutritionEvaluationResult evaluationResult =
                 new NutritionEvaluationResult(
-                        DiseaseType.DIABETES,
+                        List.of(DiseaseType.DIABETES),
                         NutritionEvaluationStatus.AVAILABLE,
                         List.of(
                                 new NutritionEvaluationDetail(NutritionType.CARBOHYDRATE, NutritionLevel.HIGH),
