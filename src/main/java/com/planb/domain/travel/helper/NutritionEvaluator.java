@@ -10,12 +10,57 @@ import com.planb.domain.travel.entity.constant.NutritionThreshold;
 import com.planb.domain.travel.entity.constant.NutritionType;
 import org.springframework.stereotype.Component;
 
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class NutritionEvaluator {
 
+    private static final Map<NutritionEvaluationStatus, Integer> STATUS_SEVERITY = Map.of(
+            NutritionEvaluationStatus.AVAILABLE, 0,
+            NutritionEvaluationStatus.NOT_EVALUABLE, 1,
+            NutritionEvaluationStatus.UNAVAILABLE, 2
+    );
+
+    // 같은 성분을 두 질환이 서로 다른 기준으로 볼 때 어느 쪽이 더 나쁜지 정한다.
+    // 현재 임계값 표에서는 겹치는 성분(식이섬유)의 기준이 같아 실제로 갈리지 않는다.
+    private static final Map<NutritionLevel, Integer> LEVEL_SEVERITY = Map.of(
+            NutritionLevel.LOW, 0,
+            NutritionLevel.CHECK, 1,
+            NutritionLevel.HIGH, 2
+    );
+
+    /**
+     * 관리 질환별 기준으로 한 음식의 영양성분을 평가한다.
+     *
+     * 질환마다 보는 영양성분이 달라 각각 평가한 뒤 항목을 합친다. 같은 영양성분을
+     * 두 질환이 함께 보면 한 번만 남기며, 기준이 갈릴 경우에 대비해 나쁜 쪽을 취한다.
+     * 상태도 가장 나쁜 것을 취한다. 한 질환이라도 판단할 수 없으면
+     * 그 음식이 적합하다고 말할 수 없기 때문이다.
+     */
     public NutritionEvaluationResult evaluate(
+            List<DiseaseType> diseaseTypes,
+            NutritionInfo nutritionInfo
+    ) {
+
+        List<NutritionEvaluationResult> results = diseaseTypes
+                .stream()
+                .map(diseaseType -> evaluateOne(diseaseType, nutritionInfo))
+                .toList();
+
+        return new NutritionEvaluationResult(
+                List.copyOf(diseaseTypes),
+                worstStatus(results),
+                mergeEvaluations(results),
+                nutritionInfo.carbohydrate(),
+                nutritionInfo.sodium(),
+                nutritionInfo.fat()
+        );
+    }
+
+    private NutritionEvaluationResult evaluateOne(
             DiseaseType diseaseType,
             NutritionInfo nutritionInfo
     ) {
@@ -31,6 +76,50 @@ public class NutritionEvaluator {
             case DYSLIPIDEMIA ->
                     evaluateDyslipidemia(nutritionInfo);
         };
+    }
+
+    // 상태는 나쁜 쪽이 이긴다. 열거 순서가 곧 나쁨의 순서다.
+    private NutritionEvaluationStatus worstStatus(
+            List<NutritionEvaluationResult> results
+    ) {
+
+        return results
+                .stream()
+                .map(NutritionEvaluationResult::status)
+                .max(Comparator.comparingInt(STATUS_SEVERITY::get))
+                .orElse(NutritionEvaluationStatus.NOT_EVALUABLE);
+    }
+
+    // 같은 영양성분이 겹치면 나쁜 평가만 남긴다. 먼저 평가된 질환의 순서를 지킨다.
+    private List<NutritionEvaluationDetail> mergeEvaluations(
+            List<NutritionEvaluationResult> results
+    ) {
+
+        Map<NutritionType, NutritionEvaluationDetail> merged =
+                new LinkedHashMap<>();
+
+        results
+                .stream()
+                .flatMap(result -> result
+                        .evaluations()
+                        .stream())
+                .forEach(detail -> merged.merge(
+                        detail.nutritionType(),
+                        detail,
+                        this::worseDetail));
+
+        return List.copyOf(merged.values());
+    }
+
+    private NutritionEvaluationDetail worseDetail(
+            NutritionEvaluationDetail left,
+            NutritionEvaluationDetail right
+    ) {
+
+        return LEVEL_SEVERITY.get(right.nutritionLevel())
+                > LEVEL_SEVERITY.get(left.nutritionLevel())
+                ? right
+                : left;
     }
 
     // 당뇨병 영양성분 평가
@@ -49,7 +138,7 @@ public class NutritionEvaluator {
         }
 
         return new NutritionEvaluationResult(
-                DiseaseType.DIABETES,
+                List.of(DiseaseType.DIABETES),
                 NutritionEvaluationStatus.AVAILABLE,
                 List.of(
                         new NutritionEvaluationDetail(
@@ -93,7 +182,7 @@ public class NutritionEvaluator {
         }
 
         return new NutritionEvaluationResult(
-                DiseaseType.HIGH_BLOOD_PRESSURE,
+                List.of(DiseaseType.HIGH_BLOOD_PRESSURE),
                 NutritionEvaluationStatus.AVAILABLE,
                 List.of(
                         new NutritionEvaluationDetail(
@@ -127,7 +216,7 @@ public class NutritionEvaluator {
         }
 
         return new NutritionEvaluationResult(
-                DiseaseType.DYSLIPIDEMIA,
+                List.of(DiseaseType.DYSLIPIDEMIA),
                 NutritionEvaluationStatus.AVAILABLE,
                 List.of(
                         new NutritionEvaluationDetail(
@@ -172,7 +261,7 @@ public class NutritionEvaluator {
     ) {
 
         return new NutritionEvaluationResult(
-                diseaseType,
+                List.of(diseaseType),
                 NutritionEvaluationStatus.NOT_EVALUABLE,
                 List.of(),
                 nutritionInfo.carbohydrate(),
