@@ -71,6 +71,7 @@ import com.planb.query.user.service.UserQueryService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -84,6 +85,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -1854,6 +1856,189 @@ class TravelFacadeTest {
                         DiseaseType.DIABETES,
                         DiseaseType.HIGH_BLOOD_PRESSURE
                 );
+    }
+
+
+    @Test
+    @DisplayName("민감정보에 동의하지 않은 동행인은 AI 컨텍스트에서 제외")
+    void healthContextExcludesCompanionWithoutSensitiveAgree() {
+
+        // given
+        Long userId = 1L;
+        String username = "testUser@example.com";
+
+        UserAuthCache userAuthCache =
+                new UserAuthCache(
+                        userId,
+                        username,
+                        "ROLE_USER"
+                );
+
+        Health agreed =
+                Health.builder()
+                        .id(100L)
+                        .travelerName("동의 동행인")
+                        .sensitiveAgree(true)
+                        .hasMedication(false)
+                        .healthInfo(
+                                new HealthInfo(
+                                        List.of(DiseaseType.DIABETES),
+                                        WalkType.MODERATE
+                                )
+                        )
+                        .mealInfo(
+                                new MealInfo(
+                                        true,
+                                        true,
+                                        LocalTime.of(8, 0),
+                                        true,
+                                        LocalTime.of(12, 0),
+                                        true,
+                                        LocalTime.of(18, 0)
+                                )
+                        )
+                        .build();
+
+        // 동의하지 않은 구성원은 건강 정보와 식사 정보가 없다.
+        Health notAgreed =
+                Health.builder()
+                        .id(101L)
+                        .travelerName("미동의 동행인")
+                        .sensitiveAgree(false)
+                        .hasMedication(false)
+                        .build();
+
+        CreateTravelRequest createTravelRequest =
+                new CreateTravelRequest(
+                        "부산 여행",
+                        "부산",
+                        "해운대구",
+                        LocalDate.of(2026, 9, 1),
+                        DateType.ONE_NIGHT_TWO_DAYS,
+                        Transportation.CAR,
+                        "해운대해수욕장",
+                        List.of(
+                                new CreateTravelRequest.PlannedPlaceDetail(
+                                        "해운대해수욕장",
+                                        "부산광역시 해운대구"
+                                )
+                        ),
+                        TravelStyle.LESS_WALK,
+                        TravelTheme.TASTE,
+                        List.of("돼지국밥"),
+                        List.of("밀면"),
+                        List.of(100L, 101L)
+                );
+
+        Travel travel =
+                Travel.builder()
+                        .id(1L)
+                        .travelName("부산 여행")
+                        .build();
+
+        Plan plan =
+                Plan.builder()
+                        .id(10L)
+                        .travel(travel)
+                        .planName("부산 여행")
+                        .build();
+
+        when(
+                userQueryService
+                        .findByUsernameInCache(username)
+        ).thenReturn(
+                userAuthCache
+        );
+
+        when(
+                healthQueryService
+                        .checkHealthWithUser(100L, userId)
+        ).thenReturn(
+                true
+        );
+
+        when(
+                healthQueryService
+                        .checkHealthWithUser(101L, userId)
+        ).thenReturn(
+                true
+        );
+
+        when(
+                healthService
+                        .getHealthById(100L)
+        ).thenReturn(
+                agreed
+        );
+
+        when(
+                healthService
+                        .getHealthById(101L)
+        ).thenReturn(
+                notAgreed
+        );
+
+        when(
+                travelService
+                        .createTravel(createTravelRequest, userId)
+        ).thenReturn(
+                travel
+        );
+
+        when(
+                planService
+                        .createPlan(any(CreatePlanRequest.class))
+        ).thenReturn(
+                plan
+        );
+
+        when(
+                foodInfoService
+                        .getFoodInfoList(100L)
+        ).thenReturn(
+                List.of()
+        );
+
+        when(
+                medicationInfoService
+                        .findAllByHealthId(100L)
+        ).thenReturn(
+                List.of()
+        );
+
+        CreatePlanAiResponse emptyAiResponse =
+                new CreatePlanAiResponse(List.of());
+
+        ArgumentCaptor<TravelPlanContext> contextCaptor =
+                ArgumentCaptor.forClass(TravelPlanContext.class);
+
+        when(
+                planService
+                        .makePlanByAi(contextCaptor.capture())
+        ).thenReturn(
+                emptyAiResponse
+        );
+
+        when(
+                planService
+                        .aggregateTags(List.of())
+        ).thenReturn(
+                Set.of()
+        );
+
+        // when
+        travelFacade.makeTravelOptionsAndRecommend(
+                createTravelRequest,
+                username
+        );
+
+        // then - 건강 정보가 없는 구성원을 컨텍스트에 넣으면 그 자리에서 읽을 값이 없다
+        assertThat(
+                contextCaptor
+                        .getValue()
+                        .healthContexts()
+        ).extracting(TravelHealthContext::travelerName)
+                .containsExactly("동의 동행인");
     }
 
 }

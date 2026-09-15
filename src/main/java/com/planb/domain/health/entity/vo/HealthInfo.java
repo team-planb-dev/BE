@@ -52,7 +52,8 @@ public class HealthInfo {
         this.walkType = walkType;
     }
 
-    // 선택한 순서를 유지한 목록으로 돌려준다. 화면과 AI 컨텍스트가 순서를 그대로 쓴다.
+    // 순서는 보장하지 않는다. DB에서 다시 읽으면 저장 순서와 달라질 수 있다.
+    // 어떤 질환이 담겼는지만 의미가 있고, 평가와 화면 모두 순서를 쓰지 않는다.
     public List<DiseaseType> diseaseTypeList() {
 
         return List.copyOf(diseaseTypes);
