@@ -24,7 +24,7 @@ public class NutritionService {
     // 음식 영양정보 조회 및 질환별 영양성분 평가
     public Mono<NutritionEvaluationResult> evaluateFoodNutrition(
             String foodName,
-            DiseaseType diseaseType
+            List<DiseaseType> diseaseTypes
     ) {
 
         return foodNtrCpntHandler
@@ -35,7 +35,7 @@ public class NutritionService {
 
                     if (items.isEmpty()) {
                         return new NutritionEvaluationResult(
-                                diseaseType,
+                                List.copyOf(diseaseTypes),
                                 NutritionEvaluationStatus.UNAVAILABLE,
                                 List.of(),
                                 null,
@@ -54,7 +54,7 @@ public class NutritionService {
                             toNutritionInfo(item);
 
                     return nutritionEvaluator.evaluate(
-                            diseaseType,
+                            diseaseTypes,
                             nutritionInfo
                     );
                 });

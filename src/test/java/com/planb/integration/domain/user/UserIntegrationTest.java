@@ -271,8 +271,9 @@ public class UserIntegrationTest extends IntegrationTest {
 
         // given
         String username = createUniqueUsername();
+        String nickname = createUniqueNickname();
 
-        createUser(username, createUniqueNickname(), PASSWORD);
+        createUser(username, nickname, PASSWORD);
 
         LoginResult loginResult = login(username, PASSWORD);
 
@@ -291,10 +292,23 @@ public class UserIntegrationTest extends IntegrationTest {
                         .isNumber())
                 .andExpect(jsonPath("$.data.username")
                         .value(username))
+                .andExpect(jsonPath("$.data.nickname")
+                        .value(nickname))
                 .andExpect(jsonPath("$.data.role")
                         .exists())
                 .andExpect(jsonPath("$.error")
                         .isEmpty());
+
+        // 세션 식별자는 인증 내부 값이라 응답에 나가지 않아야 한다.
+        mockMvc
+                .perform(get(USER_ME_URL)
+                        .header(
+                                "Authorization",
+                                loginResult
+                                        .accessToken()
+                        ))
+                .andExpect(jsonPath("$.data.sessionId")
+                        .doesNotExist());
 
     }
 

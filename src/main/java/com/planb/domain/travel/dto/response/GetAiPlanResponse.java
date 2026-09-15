@@ -69,14 +69,16 @@ public record GetAiPlanResponse(
                                 )
                         );
 
+        // 구성원마다 관리 질환이 여러 개일 수 있어 펼친 뒤 중복을 없앤다.
         List<DiseaseType> diseaseTypes =
                 healthSummaries.stream()
                         .map(
-                                HealthSummaryQueryResponse::diseaseType
+                                HealthSummaryQueryResponse::diseaseTypes
                         )
                         .filter(
                                 Objects::nonNull
                         )
+                        .flatMap(List::stream)
                         .distinct()
                         .toList();
 

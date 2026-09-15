@@ -269,11 +269,12 @@ class TourismToolTest {
 
         // given
         String foodName = "비빔밥";
-        DiseaseType diseaseType = DiseaseType.DIABETES;
+        List<DiseaseType> diseaseTypes =
+                List.of(DiseaseType.DIABETES);
 
         NutritionEvaluationResult response =
                 new NutritionEvaluationResult(
-                        diseaseType,
+                        diseaseTypes,
                         NutritionEvaluationStatus.AVAILABLE,
                         List.of(),
                         50.0,
@@ -283,14 +284,14 @@ class TourismToolTest {
 
         when(nutritionService.evaluateFoodNutrition(
                 foodName,
-                diseaseType
+                diseaseTypes
         )).thenReturn(Mono.just(response));
 
         // when
         NutritionEvaluationResult result =
                 tourismTool.evaluateFoodNutrition(
                         foodName,
-                        diseaseType
+                        diseaseTypes
                 );
 
         // then
@@ -299,7 +300,7 @@ class TourismToolTest {
         verify(nutritionService)
                 .evaluateFoodNutrition(
                         foodName,
-                        diseaseType
+                        diseaseTypes
                 );
 
         // 결정 가능한 RecommendationTag 계산 재사용을 위한 요청 단위 기록

@@ -21,6 +21,7 @@ import reactor.test.StepVerifier;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -43,7 +44,8 @@ class NutritionServiceTest {
 
         // given
         String foodName = "비빔밥";
-        DiseaseType diseaseType = DiseaseType.DIABETES;
+        List<DiseaseType> diseaseTypes =
+                List.of(DiseaseType.DIABETES);
 
         FoodNtrCpntResponse.Item firstItem =
                 createItem(
@@ -83,7 +85,7 @@ class NutritionServiceTest {
 
         NutritionEvaluationResult expectedResult =
                 new NutritionEvaluationResult(
-                        diseaseType,
+                        diseaseTypes,
                         NutritionEvaluationStatus.AVAILABLE,
                         List.of(),
                         50.0,
@@ -103,7 +105,7 @@ class NutritionServiceTest {
         );
 
         when(nutritionEvaluator.evaluate(
-                diseaseType,
+                diseaseTypes,
                 nutritionInfo
         )).thenReturn(expectedResult);
 
@@ -111,7 +113,7 @@ class NutritionServiceTest {
         StepVerifier.create(
                         nutritionService.evaluateFoodNutrition(
                                 foodName,
-                                diseaseType
+                                diseaseTypes
                         )
                 )
                 .expectNext(expectedResult)
@@ -119,7 +121,7 @@ class NutritionServiceTest {
 
         verify(nutritionEvaluator)
                 .evaluate(
-                        diseaseType,
+                        diseaseTypes,
                         nutritionInfo
                 );
     }
@@ -130,7 +132,8 @@ class NutritionServiceTest {
 
         // given
         String foodName = "비빔밥";
-        DiseaseType diseaseType = DiseaseType.DIABETES;
+        List<DiseaseType> diseaseTypes =
+                List.of(DiseaseType.DIABETES);
 
         FoodNtrCpntResponse.Item firstItem =
                 createItem(
@@ -170,7 +173,7 @@ class NutritionServiceTest {
 
         NutritionEvaluationResult expectedResult =
                 new NutritionEvaluationResult(
-                        diseaseType,
+                        diseaseTypes,
                         NutritionEvaluationStatus.AVAILABLE,
                         List.of(),
                         55.0,
@@ -190,7 +193,7 @@ class NutritionServiceTest {
         );
 
         when(nutritionEvaluator.evaluate(
-                diseaseType,
+                diseaseTypes,
                 nutritionInfo
         )).thenReturn(expectedResult);
 
@@ -198,7 +201,7 @@ class NutritionServiceTest {
         StepVerifier.create(
                         nutritionService.evaluateFoodNutrition(
                                 foodName,
-                                diseaseType
+                                diseaseTypes
                         )
                 )
                 .expectNext(expectedResult)
@@ -206,7 +209,7 @@ class NutritionServiceTest {
 
         verify(nutritionEvaluator)
                 .evaluate(
-                        diseaseType,
+                        diseaseTypes,
                         nutritionInfo
                 );
     }
@@ -217,7 +220,8 @@ class NutritionServiceTest {
 
         // given
         String foodName = "없는음식";
-        DiseaseType diseaseType = DiseaseType.DIABETES;
+        List<DiseaseType> diseaseTypes =
+                List.of(DiseaseType.DIABETES);
 
         when(foodNtrCpntHandler.getFoodNutrition(
                 any(FoodNtrCpntSearchRequest.class)
@@ -229,11 +233,11 @@ class NutritionServiceTest {
         StepVerifier.create(
                         nutritionService.evaluateFoodNutrition(
                                 foodName,
-                                diseaseType
+                                diseaseTypes
                         )
                 )
                 .expectNextMatches(result ->
-                        result.diseaseType() == diseaseType
+                        result.diseaseTypes() == diseaseTypes
                                 && result.status()
                                 == NutritionEvaluationStatus.UNAVAILABLE
                                 && result.evaluations().isEmpty()
@@ -245,7 +249,7 @@ class NutritionServiceTest {
 
         verify(nutritionEvaluator, never())
                 .evaluate(
-                        any(DiseaseType.class),
+                        anyList(),
                         any(NutritionInfo.class)
                 );
     }
@@ -256,7 +260,8 @@ class NutritionServiceTest {
 
         // given
         String foodName = "비빔밥";
-        DiseaseType diseaseType = DiseaseType.DIABETES;
+        List<DiseaseType> diseaseTypes =
+                List.of(DiseaseType.DIABETES);
 
         FoodNtrCpntResponse.Item item =
                 createItem(
@@ -284,7 +289,7 @@ class NutritionServiceTest {
 
         NutritionEvaluationResult expectedResult =
                 new NutritionEvaluationResult(
-                        diseaseType,
+                        diseaseTypes,
                         NutritionEvaluationStatus.NOT_EVALUABLE,
                         List.of(),
                         null,
@@ -299,7 +304,7 @@ class NutritionServiceTest {
         );
 
         when(nutritionEvaluator.evaluate(
-                diseaseType,
+                diseaseTypes,
                 nutritionInfo
         )).thenReturn(expectedResult);
 
@@ -307,7 +312,7 @@ class NutritionServiceTest {
         StepVerifier.create(
                         nutritionService.evaluateFoodNutrition(
                                 foodName,
-                                diseaseType
+                                diseaseTypes
                         )
                 )
                 .expectNext(expectedResult)
@@ -315,7 +320,7 @@ class NutritionServiceTest {
 
         verify(nutritionEvaluator)
                 .evaluate(
-                        diseaseType,
+                        diseaseTypes,
                         nutritionInfo
                 );
     }

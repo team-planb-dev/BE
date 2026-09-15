@@ -93,7 +93,7 @@ class MealSlotPolicyTest {
 
         TravelHealthContext notApplied = new TravelHealthContext(
                 "동행인",
-                DiseaseType.DIABETES,
+                List.of(DiseaseType.DIABETES),
                 WalkType.MODERATE,
                 new TravelHealthContext.MealInfoContext(
                         false,
@@ -216,7 +216,7 @@ class MealSlotPolicyTest {
 
         return new TravelHealthContext(
                 "동행인",
-                DiseaseType.DIABETES,
+                List.of(DiseaseType.DIABETES),
                 WalkType.MODERATE,
                 new TravelHealthContext.MealInfoContext(
                         LocalTime.of(8, 0),

@@ -210,7 +210,7 @@ class TravelRecommendHandlerContractTest {
                 List.of(
                         new TravelHealthContext(
                                 "여행자",
-                                DiseaseType.DIABETES,
+                                List.of(DiseaseType.DIABETES),
                                 WalkType.ACTIVE,
                                 new TravelHealthContext.MealInfoContext(
                                         true,
@@ -492,7 +492,7 @@ class TravelRecommendHandlerContractTest {
 
         TravelHealthContext healthContext = new TravelHealthContext(
                 "여행자",
-                DiseaseType.DIABETES,
+                List.of(DiseaseType.DIABETES),
                 walkType,
                 new TravelHealthContext.MealInfoContext(
                         false,

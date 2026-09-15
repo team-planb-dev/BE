@@ -25,7 +25,7 @@ import com.planb.domain.user.dto.response.UserDeleteResponse;
 import com.planb.domain.user.facade.UserFacade;
 import com.planb.global.config.exception.BaseExceptionEnum;
 import com.planb.global.config.exception.domain.BaseException;
-import com.planb.global.security.dto.UserAuthCache;
+import com.planb.domain.user.dto.response.UserReadResponse;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
@@ -103,10 +103,11 @@ class UserControllerTest {
     @DisplayName("회원 조회 성공")
     void getUserSuccess() throws Exception {
 
-        UserAuthCache response =
-                new UserAuthCache(
+        UserReadResponse response =
+                new UserReadResponse(
                         1L,
                         "testUser@example.com",
+                        "우주",
                         "USER"
                 );
 
@@ -119,8 +120,12 @@ class UserControllerTest {
                         .value(1L))
                 .andExpect(jsonPath("$.data.username")
                         .value("testUser@example.com"))
+                .andExpect(jsonPath("$.data.nickname")
+                        .value("우주"))
                 .andExpect(jsonPath("$.data.role")
-                        .value("USER"));
+                        .value("USER"))
+                .andExpect(jsonPath("$.data.sessionId")
+                        .doesNotExist());
 
         verify(userFacade)
                 .findByUsername("testUser@example.com");

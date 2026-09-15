@@ -6,13 +6,15 @@ import com.planb.domain.health.entity.constant.WalkType;
 
 import java.time.LocalTime;
 
+import java.util.List;
+
 public record CreateHealthRequest(String travelerName, // 동행자 이름
                                   boolean sensitiveAgree, // 민감정보 동의 여부
                                   boolean hasMedication, // 복용약 여부
                                   HealthInfo healthInfo,
                                   MealInfo mealInfo) {
 
-    public record HealthInfo(DiseaseType diseaseType, // 질환 종류
+    public record HealthInfo(List<DiseaseType> diseaseTypes, // 질환 종류
                              WalkType walkType){ // 걷기 수준
 
     }

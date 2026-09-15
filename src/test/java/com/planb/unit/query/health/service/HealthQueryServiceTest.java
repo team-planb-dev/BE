@@ -46,7 +46,7 @@ class HealthQueryServiceTest {
                                 1L,
                                 "동행인1",
                                 true,
-                                DiseaseType.DIABETES,
+                                List.of(DiseaseType.DIABETES),
                                 true
                         ),
                         new HealthSummaryQueryResponse(

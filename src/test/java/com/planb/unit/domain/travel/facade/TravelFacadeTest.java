@@ -326,7 +326,7 @@ class TravelFacadeTest {
                         .hasMedication(true)
                         .healthInfo(
                                 new HealthInfo(
-                                        DiseaseType.DIABETES,
+                                        List.of(DiseaseType.DIABETES),
                                         WalkType.MODERATE
                                 )
                         )
@@ -718,14 +718,14 @@ class TravelFacadeTest {
                                 1L,
                                 "동행인1",
                                 true,
-                                DiseaseType.DIABETES,
+                                List.of(DiseaseType.DIABETES),
                                 false
                         ),
                         new HealthSummaryQueryResponse(
                                 2L,
                                 "동행인2",
                                 true,
-                                DiseaseType.HIGH_BLOOD_PRESSURE,
+                                List.of(DiseaseType.HIGH_BLOOD_PRESSURE),
                                 false
                         )
                 );
@@ -1806,4 +1806,54 @@ class TravelFacadeTest {
                 travelId
         );
     }
+
+    @Test
+    @DisplayName("등록한 관리 질환을 모두 AI 컨텍스트로 전달")
+    void travelHealthContextCarriesEveryRegisteredDisease() {
+
+        // given
+        Health health =
+                Health.builder()
+                        .id(100L)
+                        .travelerName("본인")
+                        .sensitiveAgree(true)
+                        .hasMedication(false)
+                        .healthInfo(
+                                new HealthInfo(
+                                        List.of(
+                                                DiseaseType.DIABETES,
+                                                DiseaseType.HIGH_BLOOD_PRESSURE
+                                        ),
+                                        WalkType.MODERATE
+                                )
+                        )
+                        .mealInfo(
+                                new MealInfo(
+                                        true,
+                                        true,
+                                        LocalTime.of(8, 0),
+                                        true,
+                                        LocalTime.of(12, 0),
+                                        true,
+                                        LocalTime.of(18, 0)
+                                )
+                        )
+                        .build();
+
+        // when
+        TravelHealthContext context =
+                TravelHealthContext.from(
+                        health,
+                        List.of(),
+                        List.of()
+                );
+
+        // then - 질환마다 보는 영양성분이 달라 하나라도 빠지면 그 기준이 평가에서 사라진다
+        assertThat(context.diseaseTypes())
+                .containsExactly(
+                        DiseaseType.DIABETES,
+                        DiseaseType.HIGH_BLOOD_PRESSURE
+                );
+    }
+
 }

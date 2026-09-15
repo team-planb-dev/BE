@@ -170,8 +170,13 @@ abstract class TravelApiTestSupport extends IntegrationTest {
                         true,
                         true,
 
+                        // 관리 질환은 여러 개일 수 있고 질환마다 보는 영양성분이 다르다.
+                        // 실 AI 경로에서 목록 전체가 전달되는지 확인하려고 두 개를 등록한다.
                         new AddCompanionRequest.HealthInfo(
-                                DiseaseType.DIABETES,
+                                List.of(
+                                        DiseaseType.DIABETES,
+                                        DiseaseType.HIGH_BLOOD_PRESSURE
+                                ),
                                 WalkType.MODERATE
                         ),
 

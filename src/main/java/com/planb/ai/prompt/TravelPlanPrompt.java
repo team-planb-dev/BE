@@ -72,9 +72,10 @@ public record TravelPlanPrompt(
                    해당 음식은 전체 일행의 식사 후보에서 제외합니다.
                 3. MEDICATION 슬롯을 생성하지 않습니다.
                    복약시간 계산, 일정 생성, 동일 시각 병합은 Java가 최종 처리합니다.
-                4. diseaseType은 evaluateFoodNutrition Tool 호출 시
+                4. diseaseTypes는 evaluateFoodNutrition Tool 호출 시
                    질환별 영양 기준을 결정하는 입력값으로만 사용합니다.
-                   diseaseType만을 근거로 AI가 임의로 음식 또는 음식점을 제외하지 않습니다.
+                   여행자가 관리하는 질환이 여러 개일 수 있으므로 목록 전체를 전달합니다.
+                   diseaseTypes만을 근거로 AI가 임의로 음식 또는 음식점을 제외하지 않습니다.
                 6. walkType은 특정 관광지 또는 음식점을 제외하는 근거로 사용하지 않습니다.
                    다만 하루 관광지 개수 등 일정 밀도를 정하는 기준으로는 사용합니다(STEP 2 참고).
                    여행자가 여러 명이고 walkType이 서로 다르면,
@@ -137,7 +138,7 @@ public record TravelPlanPrompt(
                 - 식사 후보 수는 고정하지 않습니다.
                   최종 일정에 포함할 식사 슬롯마다 서로 다른 메뉴 후보를 결정합니다.
                 - 메뉴 후보는 localFoods를 우선 사용하고, 부족하면 recommendFoods를 사용합니다.
-                  그래도 부족하면 diseaseType과 travelTheme을 참고하여 새로운 음식 후보를 제안합니다.
+                  그래도 부족하면 diseaseTypes와 travelTheme을 참고하여 새로운 음식 후보를 제안합니다.
                 - 여행 전체 기간 동안 같은 음식을 두 번 이상 배치하지 않습니다.
                   각 끼니의 메뉴는 서로 달라야 하며, 이 규칙에는 예외를 두지 않습니다.
                   이때도 "여행 전체 기간"은 1일차부터 마지막 날짜까지의 모든 끼니를 의미하며,
@@ -267,7 +268,9 @@ public record TravelPlanPrompt(
                 [STEP 6. 음식 및 건강 조건 평가]
 
                 - 순서를 반드시 지킵니다: searchRestaurantsByLocation → 실제 음식점 선택
-                  → getRestaurantDetail → 실제 메뉴 확인 → evaluateFoodNutrition(실제 메뉴, 여행자의 diseaseType).
+                  → getRestaurantDetail → 실제 메뉴 확인 → evaluateFoodNutrition(실제 메뉴, 여행자의 diseaseTypes).
+                  diseaseTypes는 여행자가 관리하는 질환 전체를 한 번에 전달하며,
+                  질환마다 Tool을 나눠 호출하지 않습니다.
                   검색 keyword를 실제 메뉴 확인 없이 바로 영양평가하지 않습니다.
                 - evaluateFoodNutrition도 실제 메뉴(음식점)마다 개별적으로 호출합니다.
                   이미 다른 음식점의 메뉴로 평가한 영양정보 결과를
@@ -277,10 +280,11 @@ public record TravelPlanPrompt(
                   기준으로 최종 검증합니다.
                   서로 다른 음식 후보로 시작했더라도 실제 메뉴가 동일하게 확인되면
                   다른 음식점 또는 다른 메뉴로 재검색하여 대체합니다.
-                - evaluateFoodNutrition은 diseaseType에 따라 평가하는 영양성분이 다릅니다.
+                - evaluateFoodNutrition은 diseaseTypes에 따라 평가하는 영양성분이 다릅니다.
                   DIABETES는 탄수화물·당류·식이섬유, HIGH_BLOOD_PRESSURE는 나트륨,
                   DYSLIPIDEMIA는 포화지방·트랜스지방·식이섬유·콜레스테롤을 평가합니다.
-                  해당 여행자의 diseaseType에 해당하는 성분 평가만 판단 근거로 사용합니다.
+                  질환이 여러 개면 응답의 evaluations에 해당 성분이 모두 담겨 돌아옵니다.
+                  해당 여행자의 diseaseTypes에 해당하는 성분 평가만 판단 근거로 사용합니다.
                 - status가 AVAILABLE인 경우에만 evaluations(LOW/CHECK/HIGH)를 판단 근거로 사용합니다.
                   LOW는 부담이 낮은 수준, CHECK는 확인 또는 주의가 필요한 수준,
                   HIGH는 부담이 높은 수준으로 해석합니다.
