@@ -91,7 +91,9 @@ public class TravelQueryRepository {
                                 travel
                                         .startDate,
                                 travel
-                                        .endDate
+                                        .endDate,
+                                travel
+                                        .travelTheme
                         )
                 )
                 .from(travel)
