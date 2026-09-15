@@ -703,13 +703,17 @@ public class TravelFacade {
     /**
      * 생성과 편집이 동일한 건강 정보 계약을 사용하도록 AI 컨텍스트를 구성한다.
      *
+     * 민감정보에 동의하지 않은 구성원은 건강 정보와 식사 정보 자체가 없어 제외한다.
+     * 여행과의 연결은 그대로 남으므로 인원에서 빠지지는 않는다.
+     *
      * @param healths 이번 여행에 선택된 구성원
-     * @return 동행인별 건강, 음식 제한, 복약 정보 컨텍스트
+     * @return 민감정보에 동의한 동행인의 건강, 음식 제한, 복약 정보 컨텍스트
      */
     private List<TravelHealthContext> buildHealthContexts(List<Health> healths) {
 
         return healths
                 .stream()
+                .filter(Health::isSensitiveAgree)
                 .map(health ->
                         TravelHealthContext.from(
                                 health,
