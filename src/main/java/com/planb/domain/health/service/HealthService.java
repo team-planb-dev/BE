@@ -49,7 +49,7 @@ public class HealthService {
                         new HealthInfo(
                                 request
                                         .healthInfo()
-                                        .diseaseType(),
+                                        .diseaseTypes(),
                                 request
                                         .healthInfo()
                                         .walkType()))
@@ -120,7 +120,7 @@ public class HealthService {
                 new HealthInfo(
                         request
                                 .healthInfo()
-                                .diseaseType(),
+                                .diseaseTypes(),
                         request
                                 .healthInfo()
                                 .walkType()),

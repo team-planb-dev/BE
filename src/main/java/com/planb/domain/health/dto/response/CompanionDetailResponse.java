@@ -33,7 +33,7 @@ public record CompanionDetailResponse(
 
     public record HealthInfoDetail(
 
-            DiseaseType diseaseType,
+            List<DiseaseType> diseaseTypes,
             WalkType walkType) {
     }
 
@@ -111,7 +111,7 @@ public record CompanionDetailResponse(
         return new HealthInfoDetail(
                 health
                         .getHealthInfo()
-                        .getDiseaseType(),
+                        .diseaseTypeList(),
                 health
                         .getHealthInfo()
                         .getWalkType()
