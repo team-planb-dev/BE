@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 
 public record TravelHealthContext(
         String travelerName,
-        DiseaseType diseaseType,
+        List<DiseaseType> diseaseTypes,
         WalkType walkType,
         MealInfoContext mealInfo,
         List<FoodInfoContext> foodInfos,
@@ -26,7 +26,7 @@ public record TravelHealthContext(
 
         return new TravelHealthContext(
                 health.getTravelerName(),
-                health.getHealthInfo().getDiseaseType(),
+                health.getHealthInfo().diseaseTypeList(),
                 health.getHealthInfo().getWalkType(),
 
                 new MealInfoContext(

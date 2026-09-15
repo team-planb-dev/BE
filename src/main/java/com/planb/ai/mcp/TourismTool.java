@@ -239,19 +239,19 @@ public class TourismTool {
         """)
     public NutritionEvaluationResult evaluateFoodNutrition(
             String foodName,
-            DiseaseType diseaseType
+            List<DiseaseType> diseaseTypes
     ) {
 
         log.info(
-                "[AI TOOL] 영양정보 평가 호출 - foodName: {}, diseaseType: {}",
+                "[AI TOOL] 영양정보 평가 호출 - foodName: {}, diseaseTypes: {}",
                 foodName,
-                diseaseType
+                diseaseTypes
         );
 
         NutritionEvaluationResult result =
                 nutritionService.evaluateFoodNutrition(
                         foodName,
-                        diseaseType
+                        diseaseTypes
                 ).block();
 
         // 결정 가능한 RecommendationTag 계산에 재사용하기 위해 요청 단위로 기록

@@ -211,9 +211,9 @@ public class PlanTourismTool {
     @Tool(description = "질환별 음식 영양 평가")
     public NutritionEvaluationResult evaluateFoodNutrition(
             String foodName,
-            DiseaseType diseaseType
+            List<DiseaseType> diseaseTypes
     ) {
 
-        return tourismTool.evaluateFoodNutrition(foodName, diseaseType);
+        return tourismTool.evaluateFoodNutrition(foodName, diseaseTypes);
     }
 }
