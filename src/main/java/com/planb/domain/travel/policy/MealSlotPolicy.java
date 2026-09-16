@@ -18,7 +18,8 @@ import java.util.Objects;
  */
 public final class MealSlotPolicy {
 
-    private static final List<ScheduleType> MEAL_SCHEDULE_TYPES = List.of(
+    // 검증도 "그 날에 어떤 식사가 있었는가"를 같은 목록으로 판정한다.
+    public static final List<ScheduleType> MEAL_SCHEDULE_TYPES = List.of(
             ScheduleType.BREAKFAST,
             ScheduleType.LUNCH,
             ScheduleType.DINNER

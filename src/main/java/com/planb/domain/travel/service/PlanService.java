@@ -39,6 +39,7 @@ import com.planb.global.config.exception.domain.BaseException;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -130,7 +131,8 @@ public class PlanService {
                 context,
                 evaluations,
                 RouteAnchor.from(context.createTravelRequest().decidedLocation()),
-                candidates);
+                candidates,
+                null);
     }
 
     // AI 일정 수정 및 검증된 기존 슬롯 복구
@@ -183,7 +185,8 @@ public class PlanService {
                 preserveOtherDays
                         ? rebuildAnchor(context, rebuildDays)
                         : RouteAnchor.from(context.createTravelRequest().decidedLocation()),
-                candidates);
+                candidates,
+                context.currentPlan());
 
         CreatePlanAiResponse result = !preserveOtherDays ? finished : new CreatePlanAiResponse(
                 validated.planDays().stream().map(day -> finished.planDays().stream()
@@ -478,7 +481,8 @@ public class PlanService {
             TravelPlanContext context,
             List<NutritionEvaluationCollector.FoodNutritionEvaluation> evaluations,
             RouteAnchor anchor,
-            PlaceCandidateContext candidates
+            PlaceCandidateContext candidates,
+            GetAiPlanResponse currentPlan
     ) {
 
         // 복약 일정은 이동시간과 시간표가 확정된 뒤 한 번만 생성한다.
@@ -507,7 +511,8 @@ public class PlanService {
 
         validateMealSlots(
                 mealFixed,
-                context.healthContexts()
+                context.healthContexts(),
+                currentPlan
         );
 
         // 식후·식전 복약은 식사 슬롯을 기준으로 배치하므로 식사가 확정된 뒤에 만든다.
@@ -566,17 +571,34 @@ public class PlanService {
         );
     }
 
-    // 관광 장소 개수와 같은 기준으로 식사 슬롯 누락도 최종 응답에서 막는다.
+    /**
+     * 관광 장소 개수와 같은 기준으로 식사 슬롯 누락도 최종 응답에서 막는다.
+     *
+     * 다만 편집은 기존 일정에 이미 빠져 있던 식사까지 책임지지 않는다.
+     * 식사 요구 여부는 하루의 시작·종료 시각으로 정해지므로, 편집이 하루를 앞당기면
+     * 이전에는 범위 밖이던 식사시각이 안으로 들어와 갑자기 요구 대상이 된다.
+     * 그것까지 거부하면 사용자는 고칠 방법도 없이 편집 자체를 못 하게 된다.
+     * 새로 생긴 누락만 막고, 원래 없던 식사는 그대로 둔다.
+     *
+     * @param currentPlan 편집 전 일정, 생성 경로는 null이라 완화 없이 전부 검증한다
+     */
     private void validateMealSlots(
             CreatePlanAiResponse response,
-            List<TravelHealthContext> healthContexts
+            List<TravelHealthContext> healthContexts,
+            GetAiPlanResponse currentPlan
     ) {
 
+        Map<Integer, Set<ScheduleType>> alreadyMissing =
+                baselineMissingMeals(currentPlan);
+
         for (CreatePlanAiResponse.PlanDayDetail day : response.planDays()) {
-            List<ScheduleType> missing = MealSlotPolicy.missingMeals(
-                    day,
-                    healthContexts
-            );
+            List<ScheduleType> missing = MealSlotPolicy
+                    .missingMeals(day, healthContexts)
+                    .stream()
+                    .filter(mealType -> !alreadyMissing
+                            .getOrDefault(day.dayNumber(), Set.of())
+                            .contains(mealType))
+                    .toList();
 
             if (!missing.isEmpty()) {
                 throw invalidPlace(
@@ -585,6 +607,53 @@ public class PlanService {
                 );
             }
         }
+    }
+
+    /**
+     * 편집 전 일정에 없던 식사를 날짜별로 모은다.
+     *
+     * 요구 여부가 아니라 존재 여부로 본다. 편집 전에는 하루가 그 시각까지 가지 않아
+     * 요구되지 않았을 뿐이고, 슬롯 자체는 없었다. 편집이 하루를 앞당겨 요구 대상이 되어도
+     * 그 부재는 편집이 만든 것이 아니다.
+     *
+     * 편집으로 새로 생긴 날은 비교 대상이 없으므로 면제하지 않는다.
+     *
+     * @param currentPlan 편집 전 일정, null이면 완화 대상이 없다
+     * @return dayNumber별로 편집 전에 없던 식사
+     */
+    private Map<Integer, Set<ScheduleType>> baselineMissingMeals(
+            GetAiPlanResponse currentPlan
+    ) {
+
+        if (currentPlan == null || currentPlan.planDays() == null) {
+            return Map.of();
+        }
+
+        Map<Integer, Set<ScheduleType>> absentByDay = new HashMap<>();
+
+        for (GetAiPlanResponse.PlanDayDetail day : currentPlan.planDays()) {
+
+            Set<ScheduleType> present = day
+                    .schedules()
+                    .stream()
+                    .filter(Objects::nonNull)
+                    .map(GetAiPlanResponse.PlanScheduleDetail::scheduleType)
+                    .collect(Collectors.toSet());
+
+            Set<ScheduleType> absent = MealSlotPolicy.MEAL_SCHEDULE_TYPES
+                    .stream()
+                    .filter(mealType -> !present.contains(mealType))
+                    .collect(Collectors.toSet());
+
+            if (!absent.isEmpty()) {
+                absentByDay.put(
+                        day.dayNumber(),
+                        absent
+                );
+            }
+        }
+
+        return absentByDay;
     }
 
     // 식사가 빠진 날짜, 재보정이 필요한지 판단한다
