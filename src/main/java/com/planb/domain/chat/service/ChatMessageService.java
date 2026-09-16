@@ -119,6 +119,12 @@ public class ChatMessageService {
                 .existsByChatRoom_IdAndDeletedFalse(roomId);
     }
 
+    // 일정 수정 처리 실패 안내 메시지 조회
+    public String resolveEditFailedMessage(){
+
+        return chatAiReplyMessageHelper.makeEditFailedMessage();
+    }
+
     // 수정 확정(CONFIRM) 완료 메시지 조회
     public String resolveConfirmMessage(){
 
