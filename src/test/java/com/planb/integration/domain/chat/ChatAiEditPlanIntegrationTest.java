@@ -345,6 +345,95 @@ public class ChatAiEditPlanIntegrationTest
     }
 
     @Test
+    @DisplayName("기존 일정에 없던 식사는 편집이 하루를 앞당겨도 요구하지 않음")
+    void editKeepsMealMissingWhenBaselineAlreadyMissedIt() throws Exception {
+
+        // given
+        stubCreatePlan();
+
+        TestUser testUser =
+                createAuthenticatedUser();
+
+        Long travelId =
+                createTravel(
+                        testUser.accessToken(),
+                        "아침 없는 여행-" + createUniqueValue()
+                );
+
+        Long roomId =
+                findOrCreateTravelChatRoom(
+                        testUser.accessToken(),
+                        travelId
+                );
+
+        // 저장된 일정은 09:00 시작이라 아침 08:00이 하루 시간대 밖이다.
+        // 편집이 하루를 07:30으로 앞당기면 08:00이 안으로 들어와 아침이 요구된다.
+        stubEditPlanStartingEarlier();
+
+        WebSocketStompClient stompClient =
+                stompHelper.createStompClient();
+
+        StompSession session = null;
+
+        try {
+            session =
+                    stompHelper.connect(
+                            stompClient,
+                            testUser.accessToken()
+                    );
+
+            BlockingQueue<SendChatMessageResponse> messages =
+                    new LinkedBlockingQueue<>();
+
+            stompHelper.subscribe(
+                    session,
+                    roomId,
+                    messages
+            );
+
+            stompHelper.drainMessagesMatching(
+                    messages,
+                    message -> message.type() == MessageType.ENTER
+                            || AI_BOT_NICKNAME.equals(message.senderNickname())
+            );
+
+            // when
+            session.send(
+                    CHAT_SEND_PREFIX
+                            + roomId
+                            + "/send",
+                    new SendChatMessageRequest(
+                            MessageType.TALK,
+                            "덜 걷고 싶어요"
+                    )
+            );
+
+            SendChatMessageResponse botReply =
+                    stompHelper.awaitMessage(
+                            messages,
+                            message -> AI_BOT_NICKNAME.equals(message.senderNickname())
+                    );
+
+            // then - 편집 전에도 없던 아침이라 편집을 거부할 이유가 없다
+            assertThat(botReply)
+                    .isNotNull();
+
+            assertThat(botReply.message())
+                    .isEqualTo("일정 수정을 완료했어요!");
+
+            assertThat(botReply.editPreview())
+                    .isNotNull();
+
+            assertThat(botReply.editPreview().after().processable())
+                    .isTrue();
+
+        } finally {
+            stompHelper.disconnect(session);
+            stompHelper.stop(stompClient);
+        }
+    }
+
+    @Test
     @DisplayName("일정 수정 중 예외가 나도 봇이 안내 메시지를 발행")
     void talkPublishesFailureNoticeWhenEditThrows() throws Exception {
 
@@ -1237,6 +1326,103 @@ public class ChatAiEditPlanIntegrationTest
     }
 
     // 수정 요청 AI 응답 고정값 생성 (processable=true면 카페 이름만 변경)
+    // 하루 시작을 07:30으로 앞당기고 아침 슬롯은 넣지 않는다.
+    private void stubEditPlanStartingEarlier() {
+
+        when(travelRecommendHandler.editPlanByAi(
+                any(PlanEditContext.class),
+                any(PlaceCandidateContext.class)
+        ))
+                .thenAnswer(invocation -> {
+                    PlaceCandidateContext candidates =
+                            invocation.getArgument(1);
+
+                    recordPlanCandidates(
+                            candidates,
+                            EDITED_CAFE_NAME,
+                            EDITED_CAFE_CANDIDATE_ID
+                    );
+
+                    CreatePlanAiResponse.PlanScheduleDetail earlyAttraction =
+                            new CreatePlanAiResponse.PlanScheduleDetail(
+                                    ScheduleType.ACTIVITY,
+                                    CourseType.ATTRACTION,
+                                    LocalTime.of(7, 30),
+                                    LocalTime.of(9, 0),
+                                    "해운대해수욕장",
+                                    "부산광역시 해운대구",
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    90,
+                                    15,
+                                    Set.of(RecommendationTag.NATURAL_SCENERY),
+                                    null,
+                                    null,
+                                    ATTRACTION_CANDIDATE_ID
+                            );
+
+                    CreatePlanAiResponse.PlanScheduleDetail secondAttraction =
+                            new CreatePlanAiResponse.PlanScheduleDetail(
+                                    ScheduleType.ACTIVITY,
+                                    CourseType.ATTRACTION,
+                                    LocalTime.of(9, 30),
+                                    LocalTime.of(10, 30),
+                                    SECOND_ATTRACTION_NAME,
+                                    "부산광역시 해운대구",
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    60,
+                                    15,
+                                    Set.of(RecommendationTag.NATURAL_SCENERY),
+                                    null,
+                                    null,
+                                    SECOND_ATTRACTION_CANDIDATE_ID
+                            );
+
+                    CreatePlanAiResponse.PlanScheduleDetail editedCafe =
+                            new CreatePlanAiResponse.PlanScheduleDetail(
+                                    ScheduleType.ACTIVITY,
+                                    CourseType.CAFE_REST,
+                                    LocalTime.of(13, 0),
+                                    LocalTime.of(14, 0),
+                                    EDITED_CAFE_NAME,
+                                    "부산광역시 해운대구",
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    60,
+                                    10,
+                                    Set.of(RecommendationTag.REST_POINT),
+                                    null,
+                                    null,
+                                    EDITED_CAFE_CANDIDATE_ID
+                            );
+
+                    return new EditPlanAiResponse(
+                            null,
+                            List.of(
+                                    new CreatePlanAiResponse.PlanDayDetail(
+                                            1,
+                                            LocalDate.now().plusDays(7),
+                                            List.of(
+                                                    earlyAttraction,
+                                                    secondAttraction,
+                                                    lunchSlot(),
+                                                    editedCafe
+                                            )
+                                    )
+                            ),
+                            List.of("1일차 시작 시각을 앞당김"),
+                            true
+                    );
+                });
+    }
+
     private EditPlanAiResponse editPlanAiResponse(
             List<String> changes,
             boolean processable
