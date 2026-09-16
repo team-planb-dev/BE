@@ -231,6 +231,39 @@ class FoodNtrCpntHelperTest {
     }
 
     @Test
+    @DisplayName("출처명이 없는 항목도 영양정보 후보로 남김")
+    void keepNutritionWithoutFoodOriginName() {
+
+        FoodNtrCpntResponse.Item item =
+                makeItem(
+                        "부대찌개",
+                        "음식",
+                        null
+                );
+
+        FoodNtrCpntResponse response =
+                makeResponse(
+                        List.of(item)
+                );
+
+        List<FoodNtrCpntResponse.Item> result =
+                foodNtrCpntHelper.filterFoodNutrition(
+                        response,
+                        "부대찌개"
+                );
+
+        assertEquals(
+                1,
+                result.size()
+        );
+
+        assertEquals(
+                item,
+                result.getFirst()
+        );
+    }
+
+    @Test
     @DisplayName("Null 영양정보 응답 빈 리스트 반환")
     void returnEmptyListWhenResponseNull() {
 
