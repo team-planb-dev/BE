@@ -16,6 +16,8 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
 import com.planb.ai.context.PlaceCandidateContext;
 import com.planb.ai.context.PlanEditContext;
+import com.planb.global.config.exception.AiFailure;
+import com.planb.global.config.exception.domain.AiOrchestrationException;
 import com.planb.ai.context.TravelPlanContext;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
 import com.planb.ai.dto.response.EditPlanAiResponse;
@@ -335,6 +337,182 @@ public class ChatAiEditPlanIntegrationTest
 
             assertThat(response.editPreview().after().changes())
                     .contains("1일차 카페를 " + EDITED_CAFE_NAME + "으로 변경");
+
+        } finally {
+            stompHelper.disconnect(session);
+            stompHelper.stop(stompClient);
+        }
+    }
+
+    @Test
+    @DisplayName("일정 수정 중 예외가 나도 봇이 안내 메시지를 발행")
+    void talkPublishesFailureNoticeWhenEditThrows() throws Exception {
+
+        // given
+        stubCreatePlan();
+
+        TestUser testUser =
+                createAuthenticatedUser();
+
+        Long travelId =
+                createTravel(
+                        testUser.accessToken(),
+                        "수정 실패 여행-" + createUniqueValue()
+                );
+
+        Long roomId =
+                findOrCreateTravelChatRoom(
+                        testUser.accessToken(),
+                        travelId
+                );
+
+        // 운영에서 유력한 실패다. 구조화 응답 검증이 2회 모두 실패하면 이 예외가 난다.
+        when(travelRecommendHandler.editPlanByAi(
+                any(PlanEditContext.class),
+                any(PlaceCandidateContext.class)
+        ))
+                .thenThrow(new AiOrchestrationException(
+                        AiFailure.RESPONSE_INVALID,
+                        "테스트용 검증 실패"
+                ));
+
+        WebSocketStompClient stompClient =
+                stompHelper.createStompClient();
+
+        StompSession session = null;
+
+        try {
+            session =
+                    stompHelper.connect(
+                            stompClient,
+                            testUser.accessToken()
+                    );
+
+            BlockingQueue<SendChatMessageResponse> messages =
+                    new LinkedBlockingQueue<>();
+
+            stompHelper.subscribe(
+                    session,
+                    roomId,
+                    messages
+            );
+
+            stompHelper.drainMessagesMatching(
+                    messages,
+                    message -> message.type() == MessageType.ENTER
+                            || AI_BOT_NICKNAME.equals(message.senderNickname())
+            );
+
+            // when
+            session.send(
+                    CHAT_SEND_PREFIX
+                            + roomId
+                            + "/send",
+                    new SendChatMessageRequest(
+                            MessageType.TALK,
+                            "덜 걷고 싶어요"
+                    )
+            );
+
+            // then - 예외가 전송 계층에서 사라지면 사용자는 침묵만 본다
+            SendChatMessageResponse botReply =
+                    stompHelper.awaitMessage(
+                            messages,
+                            message -> AI_BOT_NICKNAME.equals(message.senderNickname())
+                    );
+
+            assertThat(botReply)
+                    .isNotNull();
+
+            assertThat(botReply.message())
+                    .isEqualTo("일정 수정 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요.");
+
+        } finally {
+            stompHelper.disconnect(session);
+            stompHelper.stop(stompClient);
+        }
+    }
+
+    @Test
+    @DisplayName("여행과 연결되지 않은 채팅방의 TALK는 AI 응답 없이 침묵")
+    void talkInRoomWithoutTravelGetsNoReply() throws Exception {
+
+        // given
+        TestUser testUser =
+                createAuthenticatedUser();
+
+        // 여행 기준 방이 아니라 일반 채팅방이다. travel이 붙지 않는다.
+        Long roomId =
+                createChatRoom(
+                        testUser.accessToken(),
+                        "여행 없는 방-" + createUniqueValue()
+                );
+
+        // 여행 기준 방과 달리 멤버가 자동 등록되지 않는다.
+        addChatRoomMember(
+                testUser.accessToken(),
+                roomId,
+                getUserId(testUser.accessToken())
+        );
+
+        WebSocketStompClient stompClient =
+                stompHelper.createStompClient();
+
+        StompSession session = null;
+
+        try {
+            session =
+                    stompHelper.connect(
+                            stompClient,
+                            testUser.accessToken()
+                    );
+
+            BlockingQueue<SendChatMessageResponse> messages =
+                    new LinkedBlockingQueue<>();
+
+            stompHelper.subscribe(
+                    session,
+                    roomId,
+                    messages
+            );
+
+            stompHelper.drainMessagesMatching(
+                    messages,
+                    message -> message.type() == MessageType.ENTER
+                            || AI_BOT_NICKNAME.equals(message.senderNickname())
+            );
+
+            // when
+            session.send(
+                    CHAT_SEND_PREFIX
+                            + roomId
+                            + "/send",
+                    new SendChatMessageRequest(
+                            MessageType.TALK,
+                            "덜 걷고 싶어요"
+                    )
+            );
+
+            // then - 사용자 메시지는 그대로 돌아온다
+            SendChatMessageResponse echo =
+                    stompHelper.awaitMessage(
+                            messages,
+                            message -> message.type() == MessageType.TALK
+                                    && !AI_BOT_NICKNAME.equals(message.senderNickname())
+                    );
+
+            assertThat(echo)
+                    .isNotNull();
+
+            // AI는 아무 응답도, 아무 안내도 하지 않는다
+            SendChatMessageResponse botReply =
+                    stompHelper.awaitMessage(
+                            messages,
+                            message -> AI_BOT_NICKNAME.equals(message.senderNickname())
+                    );
+
+            assertThat(botReply)
+                    .isNull();
 
         } finally {
             stompHelper.disconnect(session);
