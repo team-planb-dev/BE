@@ -14,7 +14,8 @@ public class CorsMvcConfig implements WebMvcConfigurer {
         registry.addMapping("/**")
                 .allowedOrigins(
                         "http://localhost:3000",
-                        "http://localhost:5173"
+                        "http://localhost:5173",
+                        "https://yeoro-frontend.vercel.app"
                 )
                 .allowedMethods("*")
                 .allowedHeaders("*")
