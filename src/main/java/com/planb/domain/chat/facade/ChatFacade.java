@@ -313,6 +313,25 @@ public class ChatFacade {
     }
 
     /**
+     * 일정 수정 처리가 실패했을 때 안내 응답을 발행한다.
+     *
+     * STOMP에는 요청에 대응하는 응답 자리가 없어 예외가 클라이언트에 닿지 않는다.
+     * 알리지 않으면 사용자는 처리 중인지 실패인지 구분할 수 없다.
+     *
+     * @param roomId 응답을 발행할 채팅방 ID
+     */
+    @Transactional
+    public void publishEditFailedReply(Long roomId){
+
+        publishAiReply(
+                roomId,
+                chatMessageService.resolveEditFailedMessage(),
+                null,
+                MessageType.TALK
+        );
+    }
+
+    /**
      * 일정 수정 취소가 완료된 뒤 CANCEL 유형의 고정 응답을 발행한다.
      *
      * @param roomId 응답을 발행할 채팅방 ID

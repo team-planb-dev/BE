@@ -23,6 +23,9 @@ public class ChatAiReplyMessageHelper {
     private static final String GREETING_QUESTION_MESSAGE =
             "일정을 어떻게 수정하고 싶나요?";
 
+    private static final String EDIT_FAILED_MESSAGE =
+            "일정 수정 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요.";
+
     // 편집 미리보기 결과 기준 AI 응답 메시지 가공
     public String makeReplyMessage(EditPlanPreviewResponse preview){
 
@@ -31,6 +34,13 @@ public class ChatAiReplyMessageHelper {
         }
 
         return EDIT_COMPLETED_MESSAGE;
+    }
+
+    // 일정 수정 처리 실패 안내 메시지 생성
+    // 실패 사유는 로그에만 남기고 사용자에게는 고정 문구만 보낸다.
+    public String makeEditFailedMessage(){
+
+        return EDIT_FAILED_MESSAGE;
     }
 
     // 수정 확정(CONFIRM) 완료 메시지 생성
