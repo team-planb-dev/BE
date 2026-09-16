@@ -222,6 +222,64 @@ public class UserIntegrationTest extends IntegrationTest {
     }
 
     @Test
+    @DisplayName("재발급 응답의 새 Refresh Token 쿠키로 연속 재발급 성공")
+    void reissueTwiceWithRotatedCookieSuccess() throws Exception {
+
+        // given
+        String username = createUniqueUsername();
+
+        createUser(
+                username,
+                createUniqueNickname(),
+                PASSWORD
+        );
+
+        LoginResult loginResult = login(
+                username,
+                PASSWORD
+        );
+
+        // when - 첫 재발급은 서버에 저장된 옛 Refresh Token을 지운다
+        MvcResult firstResult = mockMvc.perform(
+                        post(REISSUE_URL)
+                                .cookie(
+                                        loginResult.refreshTokenCookie()
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.data.status")
+                                .value("REFRESH_REISSUED")
+                )
+                .andReturn();
+
+        Cookie rotatedCookie = firstResult
+                .getResponse()
+                .getCookie("refreshToken");
+
+        // then - 쿠키를 갱신해 주지 않으면 브라우저는 지워진 토큰을 계속 보낸다
+        assertThat(rotatedCookie)
+                .isNotNull();
+
+        // 토큰 값 자체는 비교하지 않는다. iat가 초 단위라 같은 초에 재발급하면
+        // 문자열이 옛것과 같아질 수 있다. 확인할 것은 쿠키가 내려오는지와
+        // 그 쿠키로 다음 재발급이 되는지다.
+        mockMvc.perform(
+                        post(REISSUE_URL)
+                                .cookie(rotatedCookie)
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.success")
+                                .value(true)
+                )
+                .andExpect(
+                        jsonPath("$.data.status")
+                                .value("REFRESH_REISSUED")
+                );
+    }
+
+    @Test
     @DisplayName("로그아웃 후 기존 Access Token 사용 거부")
     void accessTokenRejectedAfterLogout() throws Exception {
 
