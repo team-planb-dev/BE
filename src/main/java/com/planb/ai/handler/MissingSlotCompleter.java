@@ -209,6 +209,15 @@ public class MissingSlotCompleter {
             );
 
             if (mealSlot == null) {
+
+                // 여기서 포기하면 바로 뒤 검증이 사용자에게 실패를 던진다.
+                // 이유를 남기지 않으면 왜 못 채웠는지 로그로 되짚을 수 없다.
+                log.info(
+                        "[SLOT FILL] 식사 슬롯 보정 실패 - scheduleType: {}, 대표메뉴를 확인한 음식점 후보 수: {}",
+                        mealType,
+                        candidates.restaurantCandidates().size()
+                );
+
                 return;
             }
 
