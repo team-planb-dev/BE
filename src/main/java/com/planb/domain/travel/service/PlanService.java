@@ -1111,7 +1111,15 @@ public class PlanService {
         // 프롬프트가 CourseType별 후보를 알려주지만 AI 응답이 그걸 항상 지킨다는 보장은 없다.
         mergedTags.retainAll(RecommendationTag.candidates(schedule.courseType()));
 
-        if (mergedTags.equals(nullSafeTags(schedule))) {
+        CreatePlanAiResponse.RestaurantDetail restaurantDetail =
+                nutritionAlignedRestaurant(
+                        schedule.restaurantDetail(),
+                        resultsByFoodName
+                );
+
+        if (mergedTags.equals(nullSafeTags(schedule))
+                && restaurantDetail == schedule.restaurantDetail()) {
+
             return schedule;
         }
 
@@ -1130,8 +1138,68 @@ public class PlanService {
                 schedule.travelMinutes(),
                 mergedTags,
                 schedule.medication(),
-                schedule.restaurantDetail(),
+                restaurantDetail,
                 schedule.candidateId()
+        );
+    }
+
+    /**
+     * 메뉴의 영양성분을 조회 결과로 맞춘다.
+     *
+     * 수치는 AI가 옮겨 적는 값이라 믿을 수 없다. 프롬프트가 값이 없으면 null을 두라고
+     * 일러도 0을 적어 내려온다. 0은 실제 측정값과 구분되지 않아 사용자가 그대로 믿는다.
+     *
+     * 그래서 Tool이 실제로 찾아온 수치만 남기고, 찾지 못한 메뉴는 비운다.
+     * 식약처에 없는 식당 고유 메뉴명은 조회되지 않으므로 이 경우가 적지 않다.
+     */
+    private CreatePlanAiResponse.RestaurantDetail nutritionAlignedRestaurant(
+            CreatePlanAiResponse.RestaurantDetail restaurantDetail,
+            Map<String, List<NutritionEvaluationResult>> resultsByFoodName
+    ) {
+
+        if (restaurantDetail == null) {
+            return null;
+        }
+
+        NutritionEvaluationResult lookup = resultsByFoodName
+                .getOrDefault(restaurantDetail.menuName(), List.of())
+                .stream()
+                .filter(result -> result.status() != NutritionEvaluationStatus.UNAVAILABLE)
+                .findFirst()
+                .orElse(null);
+
+        if (lookup == null) {
+
+            // 빈칸이 되는 메뉴의 비율을 운영에서 재기 위한 기록이다.
+            // 식당 고유 메뉴명은 식약처에 없어 조회되지 않는다. 그 비율이 높으면
+            // AI에게 표준 품목명을 따로 받는 방식을 검토해야 한다.
+            log.info(
+                    "영양성분 조회 실패 - menuName: {}",
+                    restaurantDetail.menuName()
+            );
+        }
+
+        Double carbohydrate = lookup == null ? null : lookup.carbohydrate();
+        Double sodium = lookup == null ? null : lookup.sodium();
+        Double fat = lookup == null ? null : lookup.fat();
+
+        if (Objects.equals(carbohydrate, restaurantDetail.carbohydrate())
+                && Objects.equals(sodium, restaurantDetail.sodium())
+                && Objects.equals(fat, restaurantDetail.fat())) {
+
+            return restaurantDetail;
+        }
+
+        return new CreatePlanAiResponse.RestaurantDetail(
+                restaurantDetail.menuName(),
+                carbohydrate,
+                sodium,
+                fat,
+                restaurantDetail.openTime(),
+                restaurantDetail.address(),
+                restaurantDetail.longitude(),
+                restaurantDetail.latitude(),
+                restaurantDetail.imageUrl()
         );
     }
 
