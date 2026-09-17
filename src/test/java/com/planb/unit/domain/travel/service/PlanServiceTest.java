@@ -1407,6 +1407,137 @@ class PlanServiceTest {
     }
 
     @Test
+    @DisplayName("AI 기반 여행 일정 생성 - 영양정보를 찾지 못한 메뉴의 AI 수치는 비운다")
+    void makePlanByAiClearsNutritionWhenLookupUnavailable() {
+
+        TravelPlanContext context =
+                travelPlanContext();
+
+        CreatePlanAiResponse response =
+                new CreatePlanAiResponse(
+                        List.of(
+                                planDay(
+                                        1,
+                                        List.of(
+                                                restaurantWithNutrition(
+                                                        "육회꼬막비빔밥",
+                                                        0.0,
+                                                        0.0,
+                                                        0.0
+                                                )
+                                        )
+                                )
+                        )
+                );
+
+        when(
+                travelRecommendHandler.createPlanByAi(eq(context), any(PlaceCandidateContext.class))
+        ).thenReturn(response);
+
+        when(
+                nutritionEvaluationCollector.finish()
+        ).thenReturn(
+                List.of(
+                        new NutritionEvaluationCollector.FoodNutritionEvaluation(
+                                "육회꼬막비빔밥",
+                                new NutritionEvaluationResult(
+                                        List.of(DiseaseType.DIABETES),
+                                        NutritionEvaluationStatus.UNAVAILABLE,
+                                        List.of(),
+                                        null,
+                                        null,
+                                        null
+                                )
+                        )
+                )
+        );
+
+        stubEmptyRoute();
+
+        CreatePlanAiResponse result =
+                planService.makePlanByAi(context);
+
+        CreatePlanAiResponse.RestaurantDetail restaurantDetail =
+                result.planDays()
+                        .get(0)
+                        .schedules()
+                        .get(0)
+                        .restaurantDetail();
+
+        assertNull(restaurantDetail.carbohydrate());
+        assertNull(restaurantDetail.sodium());
+        assertNull(restaurantDetail.fat());
+    }
+
+    @Test
+    @DisplayName("AI 기반 여행 일정 생성 - 조회한 영양성분으로 AI 수치를 덮어쓴다")
+    void makePlanByAiOverwritesNutritionFromLookup() {
+
+        TravelPlanContext context =
+                travelPlanContext();
+
+        CreatePlanAiResponse response =
+                new CreatePlanAiResponse(
+                        List.of(
+                                planDay(
+                                        1,
+                                        List.of(
+                                                restaurantWithNutrition(
+                                                        "비빔밥",
+                                                        0.0,
+                                                        0.0,
+                                                        0.0
+                                                )
+                                        )
+                                )
+                        )
+                );
+
+        when(
+                travelRecommendHandler.createPlanByAi(eq(context), any(PlaceCandidateContext.class))
+        ).thenReturn(response);
+
+        when(
+                nutritionEvaluationCollector.finish()
+        ).thenReturn(
+                List.of(
+                        new NutritionEvaluationCollector.FoodNutritionEvaluation(
+                                "비빔밥",
+                                new NutritionEvaluationResult(
+                                        List.of(DiseaseType.DIABETES),
+                                        NutritionEvaluationStatus.AVAILABLE,
+                                        List.of(
+                                                new NutritionEvaluationDetail(
+                                                        NutritionType.CARBOHYDRATE,
+                                                        NutritionLevel.LOW
+                                                )
+                                        ),
+                                        18.5,
+                                        239.0,
+                                        6.49
+                                )
+                        )
+                )
+        );
+
+        stubEmptyRoute();
+
+        CreatePlanAiResponse result =
+                planService.makePlanByAi(context);
+
+        CreatePlanAiResponse.RestaurantDetail restaurantDetail =
+                result.planDays()
+                        .get(0)
+                        .schedules()
+                        .get(0)
+                        .restaurantDetail();
+
+        assertEquals(18.5, restaurantDetail.carbohydrate());
+        assertEquals(239.0, restaurantDetail.sodium());
+        assertEquals(6.49, restaurantDetail.fat());
+    }
+
+    @Test
     @DisplayName("RecommendationTag 집계 - PlanDay 목록의 모든 스케줄 태그 수집")
     void aggregateTags() {
 
@@ -1696,6 +1827,66 @@ class PlanServiceTest {
                 Set.of(),
                 null,
                 null
+        );
+    }
+
+    private void stubEmptyRoute() {
+
+        when(
+                kakaoMapServiceHandler
+                        .getRoute(
+                                anyString(),
+                                anyString(),
+                                any(Transportation.class)
+                        )
+        ).thenReturn(
+                Mono.just(
+                        new KakaoRouteResult(
+                                null,
+                                null,
+                                null,
+                                null
+                        )
+                )
+        );
+    }
+
+    private CreatePlanAiResponse.PlanScheduleDetail restaurantWithNutrition(
+            String menuName,
+            Double carbohydrate,
+            Double sodium,
+            Double fat
+    ) {
+
+        CreatePlanAiResponse.PlanScheduleDetail schedule =
+                restaurant(menuName);
+
+        return new CreatePlanAiResponse.PlanScheduleDetail(
+                schedule.scheduleType(),
+                schedule.courseType(),
+                schedule.startTime(),
+                schedule.endTime(),
+                schedule.locationName(),
+                schedule.location(),
+                schedule.longitude(),
+                schedule.latitude(),
+                schedule.imageUrl(),
+                schedule.thumbNailImageUrl(),
+                schedule.stayMinutes(),
+                schedule.travelMinutes(),
+                schedule.tags(),
+                schedule.medication(),
+                new CreatePlanAiResponse.RestaurantDetail(
+                        menuName,
+                        carbohydrate,
+                        sodium,
+                        fat,
+                        schedule.restaurantDetail().openTime(),
+                        schedule.restaurantDetail().address(),
+                        schedule.restaurantDetail().longitude(),
+                        schedule.restaurantDetail().latitude(),
+                        schedule.restaurantDetail().imageUrl()
+                )
         );
     }
 
