@@ -67,20 +67,21 @@ class NutritionServiceTest {
                         "6.0",
                         "600.0",
                         "3.0",
-                        "0.1",
+                        "0.5",
                         "70.0"
                 );
 
+        // 평가에는 100g 수치를 한 끼 분량으로 환산해 넘긴다.
         NutritionInfo nutritionInfo =
                 new NutritionInfo(
-                        50.0,
-                        8.0,
-                        6.0,
-                        600.0,
-                        3.0,
-                        0.1,
-                        70.0,
-                        3.0
+                        150.0,
+                        24.0,
+                        18.0,
+                        1800.0,
+                        9.0,
+                        1.5,
+                        210.0,
+                        9.0
                 );
 
         NutritionEvaluationResult expectedResult =
@@ -88,9 +89,9 @@ class NutritionServiceTest {
                         diseaseTypes,
                         NutritionEvaluationStatus.AVAILABLE,
                         List.of(),
-                        50.0,
-                        600.0,
-                        3.0
+                        150.0,
+                        1800.0,
+                        9.0
                 );
 
         when(foodNtrCpntHandler.getFoodNutrition(
@@ -116,7 +117,11 @@ class NutritionServiceTest {
                                 diseaseTypes
                         )
                 )
-                .expectNext(expectedResult)
+                .expectNextMatches(result ->
+                        result.carbohydrate() == 50.0
+                                && result.sodium() == 600.0
+                                && result.fat() == 3.0
+                )
                 .verifyComplete();
 
         verify(nutritionEvaluator)
@@ -143,7 +148,7 @@ class NutritionServiceTest {
                         "5.0",
                         "650.0",
                         "4.0",
-                        "0.2",
+                        "0.5",
                         "75.0"
                 );
 
@@ -161,14 +166,14 @@ class NutritionServiceTest {
 
         NutritionInfo nutritionInfo =
                 new NutritionInfo(
-                        55.0,
-                        9.0,
-                        5.0,
-                        650.0,
-                        4.0,
-                        0.2,
-                        75.0,
-                        3.0
+                        165.0,
+                        27.0,
+                        15.0,
+                        1950.0,
+                        12.0,
+                        1.5,
+                        225.0,
+                        9.0
                 );
 
         NutritionEvaluationResult expectedResult =
@@ -176,9 +181,9 @@ class NutritionServiceTest {
                         diseaseTypes,
                         NutritionEvaluationStatus.AVAILABLE,
                         List.of(),
-                        55.0,
-                        650.0,
-                        3.0
+                        165.0,
+                        1950.0,
+                        9.0
                 );
 
         when(foodNtrCpntHandler.getFoodNutrition(
@@ -204,7 +209,11 @@ class NutritionServiceTest {
                                 diseaseTypes
                         )
                 )
-                .expectNext(expectedResult)
+                .expectNextMatches(result ->
+                        result.carbohydrate() == 55.0
+                                && result.sodium() == 650.0
+                                && result.fat() == 3.0
+                )
                 .verifyComplete();
 
         verify(nutritionEvaluator)
@@ -271,20 +280,20 @@ class NutritionServiceTest {
                         "6.0",
                         "600.0",
                         "3.0",
-                        "0.1",
+                        "0.5",
                         "70.0"
                 );
 
         NutritionInfo nutritionInfo =
                 new NutritionInfo(
                         null,
-                        8.0,
-                        6.0,
-                        600.0,
-                        3.0,
-                        0.1,
-                        70.0,
-                        3.0
+                        24.0,
+                        18.0,
+                        1800.0,
+                        9.0,
+                        1.5,
+                        210.0,
+                        9.0
                 );
 
         NutritionEvaluationResult expectedResult =
@@ -293,8 +302,8 @@ class NutritionServiceTest {
                         NutritionEvaluationStatus.NOT_EVALUABLE,
                         List.of(),
                         null,
-                        600.0,
-                        3.0
+                        1800.0,
+                        9.0
                 );
 
         when(foodNtrCpntHandler.getFoodNutrition(
@@ -315,13 +324,136 @@ class NutritionServiceTest {
                                 diseaseTypes
                         )
                 )
-                .expectNext(expectedResult)
+                .expectNextMatches(result ->
+                        result.carbohydrate() == null
+                                && result.sodium() == 600.0
+                                && result.fat() == 3.0
+                )
                 .verifyComplete();
 
         verify(nutritionEvaluator)
                 .evaluate(
                         diseaseTypes,
                         nutritionInfo
+                );
+    }
+
+    @Test
+    @DisplayName("한 끼 분량으로 환산해 평가하고 응답 수치는 실측 그대로 반환")
+    void evaluateFoodNutritionByReferenceServing() {
+
+        // given
+        String foodName = "비빔밥";
+        List<DiseaseType> diseaseTypes =
+                List.of(DiseaseType.DIABETES);
+
+        FoodNtrCpntResponse.Item item =
+                createItem(
+                        foodName,
+                        "20.0",
+                        "4.0",
+                        "2.0",
+                        "200.0",
+                        "1.0",
+                        "0.5",
+                        "30.0"
+                );
+
+        // 식약처 수치는 100g 기준이다. 임계값은 한 끼 기준이라 300g으로 맞춰 평가한다.
+        NutritionInfo referenceServing =
+                new NutritionInfo(
+                        60.0,
+                        12.0,
+                        6.0,
+                        600.0,
+                        3.0,
+                        1.5,
+                        90.0,
+                        9.0
+                );
+
+        NutritionEvaluationResult evaluatorResult =
+                new NutritionEvaluationResult(
+                        diseaseTypes,
+                        NutritionEvaluationStatus.AVAILABLE,
+                        List.of(),
+                        60.0,
+                        600.0,
+                        9.0
+                );
+
+        when(foodNtrCpntHandler.getFoodNutrition(
+                any(FoodNtrCpntSearchRequest.class)
+        )).thenReturn(
+                Mono.just(List.of(item))
+        );
+
+        when(nutritionEvaluator.evaluate(
+                diseaseTypes,
+                referenceServing
+        )).thenReturn(evaluatorResult);
+
+        // when & then
+        StepVerifier.create(
+                        nutritionService.evaluateFoodNutrition(
+                                foodName,
+                                diseaseTypes
+                        )
+                )
+                .expectNextMatches(result ->
+                        result.status()
+                                == NutritionEvaluationStatus.AVAILABLE
+                                && result.carbohydrate() == 20.0
+                                && result.sodium() == 200.0
+                                && result.fat() == 3.0
+                )
+                .verifyComplete();
+
+        verify(nutritionEvaluator)
+                .evaluate(
+                        diseaseTypes,
+                        referenceServing
+                );
+    }
+
+    @Test
+    @DisplayName("영양정보 조회가 실패해도 예외 없이 조회 불가로 반환")
+    void evaluateFoodNutritionWhenLookupFails() {
+
+        // given
+        String foodName = "비빔밥";
+        List<DiseaseType> diseaseTypes =
+                List.of(DiseaseType.DIABETES);
+
+        when(foodNtrCpntHandler.getFoodNutrition(
+                any(FoodNtrCpntSearchRequest.class)
+        )).thenReturn(
+                Mono.error(
+                        new RuntimeException("504 Gateway Timeout")
+                )
+        );
+
+        // when & then
+        StepVerifier.create(
+                        nutritionService.evaluateFoodNutrition(
+                                foodName,
+                                diseaseTypes
+                        )
+                )
+                .expectNextMatches(result ->
+                        result.status()
+                                == NutritionEvaluationStatus.UNAVAILABLE
+                                && result.evaluations().isEmpty()
+                                && result.carbohydrate() == null
+                                && result.sodium() == null
+                                && result.fat() == null
+                )
+                .verifyComplete();
+
+        verify(nutritionEvaluator, never())
+                .evaluate(
+                        anyList(),
+                        any(NutritionInfo.class)
                 );
     }
 
