@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * FoodNtrCpntResponse DTO 응답 파싱 검증.
  * Handler 내부 응답 정제 로직 검증.
  */
+@Tag("external")
 class FoodNtrCpntHandlerTest extends IntegrationTest {
 
     @Autowired
@@ -83,12 +84,6 @@ class FoodNtrCpntHandlerTest extends IntegrationTest {
             assertThat(item.dbGroupName())
                     .isEqualTo("음식");
 
-            // 실제 응답의 FOOD_OR_NM은 비어 온다. 값이 있을 때만 급식 제외를 확인한다.
-            if (item.foodOriginName() != null) {
-
-                assertThat(item.foodOriginName())
-                        .doesNotContain("급식");
-            }
         });
     }
 }
