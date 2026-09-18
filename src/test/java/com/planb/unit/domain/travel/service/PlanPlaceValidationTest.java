@@ -2872,6 +2872,300 @@ class PlanPlaceValidationTest {
         assertTrue(touristPlaceNames(result).contains("해운대"));
     }
 
+    @Test
+    @DisplayName("일부 날짜만 재구성해도 보존 날짜의 조회된 영양성분은 남는다")
+    void keepsNutritionOnPreservedDayDuringRebuildEdit() {
+
+        when(kakao.getRoute(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
+
+        when(kakao.searchPlace("이기대"))
+                .thenReturn(Mono.just(kakaoPlace("AT4", "이기대")));
+
+        when(handler.classifyEditScope(any()))
+                .thenReturn(new PlanEditScope(List.of(1)));
+
+        when(handler.editPlanByAi(any(), any()))
+                .thenAnswer(invocation -> {
+                    recordCandidates(invocation.getArgument(1));
+
+                    return new EditPlanAiResponse(
+                            "부산",
+                            List.of(
+                                    new PlanDayDetail(
+                                            1,
+                                            date,
+                                            List.of(slot("tour:1", "해운대", 9))),
+                                    new PlanDayDetail(
+                                            2,
+                                            date.plusDays(1),
+                                            List.of(preservedRestaurantSlot()))),
+                            List.of("최소 변경 원칙으로 유지"),
+                            true);
+                });
+
+        when(handler.rebuildDay(any(), any(), eq(1), anyString(), any()))
+                .thenAnswer(invocation -> {
+                    PlaceCandidateContext candidates = invocation.getArgument(4);
+
+                    candidates.record(new PlaceWithRouteResult(
+                            true,
+                            "동백섬",
+                            "부산",
+                            "129.2",
+                            "35.2",
+                            10,
+                            "kakao:new",
+                            "AT4",
+                            "관광명소"));
+
+                    return new RebuildPlanDayResponse(
+                            true,
+                            "",
+                            List.of(new PlanDayDetail(
+                                    1,
+                                    date,
+                                    List.of(slot("kakao:new", "동백섬", 9)))));
+                });
+
+        EditPlanAiResponse result = service.makeEditPlanByAi(new PlanEditContext(
+                travel.createTravelRequest(),
+                List.of(),
+                existingWithPreservedRestaurant(),
+                "1일차 일정을 관광지 위주로 통째로 다시 짜주세요."));
+
+        CreatePlanAiResponse.RestaurantDetail preserved = result
+                .planDays()
+                .stream()
+                .filter(day -> day.dayNumber() == 2)
+                .flatMap(day -> day
+                        .schedules()
+                        .stream())
+                .map(PlanScheduleDetail::restaurantDetail)
+                .filter(java.util.Objects::nonNull)
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals(226.0, preserved.sodium());
+
+        assertEquals(10.96, preserved.carbohydrate());
+
+        assertEquals(0.6, preserved.fat());
+    }
+
+    @Test
+    @DisplayName("재구성 날짜에서 조회 없이 AI가 적은 수치는 편집에서도 비운다")
+    void clearsUnlookedNutritionOnRebuiltDayDuringEdit() {
+
+        when(kakao.getRoute(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
+
+        when(kakao.searchPlace("이기대"))
+                .thenReturn(Mono.just(kakaoPlace("AT4", "이기대")));
+
+        when(handler.classifyEditScope(any()))
+                .thenReturn(new PlanEditScope(List.of(1)));
+
+        when(handler.editPlanByAi(any(), any()))
+                .thenAnswer(invocation -> {
+                    recordCandidates(invocation.getArgument(1));
+
+                    return new EditPlanAiResponse(
+                            "부산",
+                            List.of(
+                                    new PlanDayDetail(
+                                            1,
+                                            date,
+                                            List.of(slot("tour:1", "해운대", 9))),
+                                    new PlanDayDetail(
+                                            2,
+                                            date.plusDays(1),
+                                            List.of(preservedRestaurantSlot()))),
+                            List.of("최소 변경 원칙으로 유지"),
+                            true);
+                });
+
+        when(handler.rebuildDay(any(), any(), eq(1), anyString(), any()))
+                .thenAnswer(invocation -> {
+                    PlaceCandidateContext candidates = invocation.getArgument(4);
+
+                    candidates.record(new PlaceWithRouteResult(
+                            true,
+                            "동백섬",
+                            "부산",
+                            "129.2",
+                            "35.2",
+                            10,
+                            "kakao:new",
+                            "AT4",
+                            "관광명소"));
+
+                    candidates.record(new PlaceWithRouteResult(
+                            true,
+                            "밀면집",
+                            "부산",
+                            "129.3",
+                            "35.3",
+                            10,
+                            "kakao:meal",
+                            "FD6",
+                            "음식점"));
+
+                    return new RebuildPlanDayResponse(
+                            true,
+                            "",
+                            List.of(new PlanDayDetail(
+                                    1,
+                                    date,
+                                    List.of(
+                                            slot("kakao:new", "동백섬", 9),
+                                            inventedNutritionSlot()))));
+                });
+
+        EditPlanAiResponse result = service.makeEditPlanByAi(new PlanEditContext(
+                travel.createTravelRequest(),
+                List.of(),
+                existingWithPreservedRestaurant(),
+                "1일차 일정을 관광지 위주로 통째로 다시 짜주세요."));
+
+        CreatePlanAiResponse.RestaurantDetail invented = result
+                .planDays()
+                .stream()
+                .filter(day -> day.dayNumber() == 1)
+                .flatMap(day -> day
+                        .schedules()
+                        .stream())
+                .map(PlanScheduleDetail::restaurantDetail)
+                .filter(java.util.Objects::nonNull)
+                .findFirst()
+                .orElseThrow();
+
+        // 조회 기록이 없는 메뉴다. AI가 적어 낸 숫자는 근거가 없으므로 남기지 않는다.
+        assertNull(invented.carbohydrate());
+
+        assertNull(invented.sodium());
+
+        assertNull(invented.fat());
+    }
+
+    // 조회 기록 없이 AI가 수치를 적어 낸 재구성 날짜의 식사 슬롯
+    private PlanScheduleDetail inventedNutritionSlot() {
+
+        return new PlanScheduleDetail(
+                ScheduleType.LUNCH,
+                CourseType.RESTAURANT,
+                LocalTime.of(12, 0),
+                LocalTime.of(13, 0),
+                "밀면집",
+                "부산",
+                "129.3",
+                "35.3",
+                "원본 사진",
+                "원본 썸네일",
+                60,
+                10,
+                Set.of(),
+                null,
+                new CreatePlanAiResponse.RestaurantDetail(
+                        "밀면",
+                        99.9,
+                        888.0,
+                        7.7,
+                        "",
+                        "부산",
+                        "129.3",
+                        "35.3",
+                        ""),
+                "kakao:meal");
+    }
+
+    // 조회로 확정된 수치를 이미 가진 보존 날짜의 식사 슬롯
+    private PlanScheduleDetail preservedRestaurantSlot() {
+
+        return new PlanScheduleDetail(
+                ScheduleType.LUNCH,
+                CourseType.RESTAURANT,
+                LocalTime.of(12, 0),
+                LocalTime.of(13, 0),
+                "개금밀면",
+                "부산",
+                "129.1",
+                "35.1",
+                "원본 사진",
+                "원본 썸네일",
+                60,
+                10,
+                Set.of(),
+                null,
+                new CreatePlanAiResponse.RestaurantDetail(
+                        "막국수",
+                        10.96,
+                        226.0,
+                        0.6,
+                        "",
+                        "부산",
+                        "129.1",
+                        "35.1",
+                        ""),
+                "tour:2784321");
+    }
+
+    private GetAiPlanResponse existingWithPreservedRestaurant() {
+
+        PlanScheduleDetail restaurant = preservedRestaurantSlot();
+
+        return new GetAiPlanResponse(
+                "부산",
+                TravelStyle.MATCH_MEAL_TIME,
+                TravelTheme.TASTE,
+                List.of(),
+                List.of(),
+                Set.of(),
+                List.of(
+                        new GetAiPlanResponse.PlanDayDetail(
+                                1,
+                                date,
+                                List.of(storedSlot(slot("tour:1", "해운대", 9), null))),
+                        new GetAiPlanResponse.PlanDayDetail(
+                                2,
+                                date.plusDays(1),
+                                List.of(storedSlot(
+                                        restaurant,
+                                        new GetAiPlanResponse.RestaurantDetail(
+                                                "막국수",
+                                                10.96,
+                                                226.0,
+                                                0.6,
+                                                "",
+                                                "부산",
+                                                "129.1",
+                                                "35.1",
+                                                ""))))));
+    }
+
+    private GetAiPlanResponse.PlanScheduleDetail storedSlot(
+            PlanScheduleDetail slot,
+            GetAiPlanResponse.RestaurantDetail restaurantDetail
+    ) {
+
+        return new GetAiPlanResponse.PlanScheduleDetail(
+                slot.scheduleType(),
+                slot.courseType(),
+                slot.startTime(),
+                slot.endTime(),
+                slot.locationName(),
+                slot.location(),
+                slot.longitude(),
+                slot.latitude(),
+                slot.imageUrl(),
+                slot.thumbNailImageUrl(),
+                slot.stayMinutes(),
+                slot.travelMinutes(),
+                slot.tags(),
+                null,
+                restaurantDetail);
+    }
+
     // 하루 관광지 개수 규칙만 걸리도록 식사시각을 일정 시간대 밖에 둔 동행인
     private Kor2RestaurantIntroResponse intro(String firstMenu) {
 
