@@ -31,9 +31,6 @@ public record FoodNtrCpntResponse(
              @JsonProperty("DB_GRP_NM")
              String dbGroupName,
 
-             @JsonProperty("FOOD_OR_NM")
-             String foodOriginName,
-
              @JsonProperty("FOOD_CAT1_NM")
              String foodCategoryName,
 

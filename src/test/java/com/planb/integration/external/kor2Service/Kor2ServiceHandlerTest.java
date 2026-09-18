@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 음식점 상세정보 조회 및 응답 파싱 검증.
  * Kor2Service 관련 Response DTO 매핑 검증.
  */
+@Tag("external")
 class Kor2ServiceHandlerTest extends IntegrationTest {
 
     @Autowired

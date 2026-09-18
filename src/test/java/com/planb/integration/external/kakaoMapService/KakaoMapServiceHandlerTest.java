@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 자동차 경로 조회 및 응답 파싱 검증.
  * 이동수단별 KakaoRouteResult 변환 로직 검증.
  */
+@Tag("external")
 class KakaoMapServiceHandlerTest extends IntegrationTest {
 
     @Autowired

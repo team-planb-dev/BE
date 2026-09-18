@@ -474,7 +474,6 @@ class NutritionServiceTest {
                 "음식DB",
                 "",
                 "",
-                "",
                 "100g",
                 "100.0",
                 "5.0",

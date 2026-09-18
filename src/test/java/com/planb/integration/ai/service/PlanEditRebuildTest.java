@@ -27,6 +27,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 
+@Tag("external")
 class PlanEditRebuildTest extends IntegrationTest {
     @Autowired
     private PlanService planService;
