@@ -7,6 +7,7 @@ import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import com.planb.global.config.web.cors.CorsMvcConfig;
 import com.planb.global.websocket.interceptor.StompChannelInterceptor;
 
 
@@ -25,11 +26,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // 비워 두면 같은 origin만 통과해 로컬 프론트에서 403이 난다.
         registry
                 .addEndpoint("/ws-stomp")
-                .setAllowedOrigins(
-                        "http://localhost:3000",
-                        "http://localhost:5173",
-                        "https://yeoro-frontend.vercel.app"
-                );
+                .setAllowedOrigins(CorsMvcConfig.ALLOWED_ORIGINS);
     }
 
     @Override
