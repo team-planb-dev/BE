@@ -47,10 +47,6 @@ external:
     base-url: ${KOR2_SERVICE_URL}
     service-key: ${KOR2_SERVICE_KEY}
 
-  tar-rlte-tar-service:
-    base-url: ${TAR_RLTE_TAR_SERVICE_URL}
-    service-key: ${TAR_RLTE_TAR_SERVICE_KEY}
-
   kakao-map:
     base-url: ${KAKAO_MAP_API_BASE_URL}
     api-key: ${KAKAO_REST_API_KEY}
