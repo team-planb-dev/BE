@@ -29,27 +29,7 @@ public class FoodNtrCpntHelper {
                                 item.dbGroupName()
                         )
                 )
-                // FOOD_OR_NM은 실제 응답에서 비어 온다. 없다고 버리면 후보가 하나도 남지 않는다.
-                // 값이 있을 때만 급식을 걸러낸다.
-                .filter(item ->
-                        item.foodOriginName() == null
-                                || !item.foodOriginName()
-                                .contains("급식")
-                )
                 .toList();
-
-        List<FoodNtrCpntResponse.Item> outsideFoodCandidates = candidates
-                .stream()
-                .filter(item ->
-                        item.foodOriginName() != null
-                                && item.foodOriginName()
-                                .startsWith("외식")
-                )
-                .toList();
-
-        if (!outsideFoodCandidates.isEmpty()) {
-            candidates = outsideFoodCandidates;
-        }
 
         String normalizedFoodName =
                 normalizeFoodName(foodName);
