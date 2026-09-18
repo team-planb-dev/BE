@@ -175,6 +175,18 @@ public class PlanService {
             evaluations = nutritionEvaluationCollector.finish();
         }
 
+        // 편집 중에는 이전 조회로 이미 확정된 수치를 잃지 않는다.
+        // 재구성 날짜 직후 날짜는 첫 이동시간을 다시 계산해야 해서 finishPlan을 함께 거치는데,
+        // 그 날짜의 메뉴는 이번 호출에서 다시 평가되지 않아 조회 결과가 비어 있다.
+        // 그대로 두면 이전에 찾아 저장해 둔 수치가 지워진다.
+        // 뒤에 이어 붙여 이번 조회를 우선하고, 이번에 못 찾은 메뉴만 저장된 수치로 되살린다.
+        evaluations = Stream
+                .concat(
+                        evaluations.stream(),
+                        storedNutritionEvaluations(context.currentPlan()).stream()
+                )
+                .toList();
+
         CreatePlanAiResponse toFinish = !preserveOtherDays ? validated
                 : new CreatePlanAiResponse(finishTargets(validated, rebuildDays));
 
@@ -1311,6 +1323,48 @@ public class PlanService {
                         foodInfo.foodType() == FoodType.ALLERGY
                                 || foodInfo.foodType() == FoodType.AVOID
                 );
+    }
+
+    /**
+     * 저장된 일정에 남아 있는 메뉴별 수치를 조회 결과 형태로 되살린다.
+     *
+     * 이 수치는 AI가 적어 낸 값이 아니라 이전 호출의 Tool 조회로 확정된 값이다.
+     * 그래서 다시 조회하지 않고 그대로 쓸 수 있다.
+     *
+     * 등급(HIGH/CHECK/LOW)은 저장하지 않으므로 비운다. 되살리는 대상은 수치뿐이고,
+     * 보존 슬롯의 영양 참고 태그는 슬롯에 이미 붙어 있어 태그 병합으로 남는다.
+     */
+    private List<NutritionEvaluationCollector.FoodNutritionEvaluation> storedNutritionEvaluations(
+            GetAiPlanResponse currentPlan
+    ) {
+
+        if (currentPlan == null || currentPlan.planDays() == null) {
+            return List.of();
+        }
+
+        return currentPlan
+                .planDays()
+                .stream()
+                .flatMap(planDay -> planDay
+                        .schedules()
+                        .stream())
+                .map(GetAiPlanResponse.PlanScheduleDetail::restaurantDetail)
+                .filter(Objects::nonNull)
+                .filter(restaurant -> restaurant.carbohydrate() != null
+                        || restaurant.sodium() != null
+                        || restaurant.fat() != null)
+                .map(restaurant -> new NutritionEvaluationCollector.FoodNutritionEvaluation(
+                        restaurant.menuName(),
+                        new NutritionEvaluationResult(
+                                List.of(),
+                                NutritionEvaluationStatus.AVAILABLE,
+                                List.of(),
+                                restaurant.carbohydrate(),
+                                restaurant.sodium(),
+                                restaurant.fat()
+                        )
+                ))
+                .toList();
     }
 
     // evaluateFoodNutrition Tool 호출 기록을 메뉴명 기준으로 재구성
