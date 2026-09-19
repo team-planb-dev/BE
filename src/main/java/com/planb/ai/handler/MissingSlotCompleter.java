@@ -53,13 +53,16 @@ public class MissingSlotCompleter {
      * @param candidates     이번 호출에서 검색한 후보
      * @param usedNames      이 응답 밖에서 이미 쓴 장소명. 날짜 일부만 넘길 때 나머지 날짜를 알려준다.
      *                       변형하지 않으므로 불변 집합을 넘겨도 된다.
+     * @param usedMenus      이 응답 밖에서 이미 쓴 메뉴명. 장소명과 같은 이유로 받는다.
+     *                       변형하지 않으므로 불변 집합을 넘겨도 된다.
      * @return 채워 넣은 일정
      */
     public CreatePlanAiResponse complete(
             CreatePlanAiResponse response,
             List<TravelHealthContext> healthContexts,
             PlaceCandidateContext candidates,
-            Set<String> usedNames
+            Set<String> usedNames,
+            Set<String> usedMenus
     ) {
 
         if (response == null || response.planDays() == null) {
@@ -68,15 +71,17 @@ public class MissingSlotCompleter {
 
         // 여행 전체에서 이미 쓴 장소는 다시 고르지 않는다.
         // 호출부가 알려준 응답 밖의 장소와 응답 안의 장소를 합쳐서 본다.
-        Set<String> selectedNames = usedNames(response);
+        Set<String> selectedNames = merged(
+                usedNames(response),
+                usedNames
+        );
 
-        if (usedNames != null) {
-            usedNames
-                    .stream()
-                    .map(MissingSlotCompleter::normalized)
-                    .filter(Objects::nonNull)
-                    .forEach(selectedNames::add);
-        }
+        // 메뉴도 같은 이유로 본다. 식당 이름이 달라도 대표메뉴가 겹치면
+        // 여행자는 같은 음식을 두 끼 먹게 된다.
+        Set<String> selectedMenus = merged(
+                usedMenus(response),
+                usedMenus
+        );
 
         List<CreatePlanAiResponse.PlanDayDetail> days = new ArrayList<>();
 
@@ -86,7 +91,8 @@ public class MissingSlotCompleter {
                             day,
                             healthContexts,
                             candidates,
-                            selectedNames
+                            selectedNames,
+                            selectedMenus
                     )
             );
         }
@@ -94,11 +100,28 @@ public class MissingSlotCompleter {
         return new CreatePlanAiResponse(days);
     }
 
+    private Set<String> merged(
+            Set<String> fromResponse,
+            Set<String> fromCaller
+    ) {
+
+        if (fromCaller != null) {
+            fromCaller
+                    .stream()
+                    .map(MissingSlotCompleter::normalized)
+                    .filter(Objects::nonNull)
+                    .forEach(fromResponse::add);
+        }
+
+        return fromResponse;
+    }
+
     private CreatePlanAiResponse.PlanDayDetail fillDay(
             CreatePlanAiResponse.PlanDayDetail day,
             List<TravelHealthContext> healthContexts,
             PlaceCandidateContext candidates,
-            Set<String> usedNames
+            Set<String> usedNames,
+            Set<String> usedMenus
     ) {
 
         if (day == null || day.schedules() == null) {
@@ -110,7 +133,7 @@ public class MissingSlotCompleter {
 
         addTouristPlaces(schedules, healthContexts, candidates, usedNames);
 
-        addMealSlots(day, schedules, healthContexts, candidates, usedNames);
+        addMealSlots(day, schedules, healthContexts, candidates, usedNames, usedMenus);
 
         schedules.sort(
                 Comparator.comparing(
@@ -182,7 +205,8 @@ public class MissingSlotCompleter {
             List<CreatePlanAiResponse.PlanScheduleDetail> schedules,
             List<TravelHealthContext> healthContexts,
             PlaceCandidateContext candidates,
-            Set<String> usedNames
+            Set<String> usedNames,
+            Set<String> usedMenus
     ) {
 
         List<ScheduleType> missingMeals = MealSlotPolicy.missingMeals(
@@ -205,7 +229,8 @@ public class MissingSlotCompleter {
                     mealType,
                     mealTime,
                     candidates,
-                    usedNames
+                    usedNames,
+                    usedMenus
             );
 
             if (mealSlot == null) {
@@ -225,6 +250,14 @@ public class MissingSlotCompleter {
 
             usedNames.add(normalized(mealSlot.locationName()));
 
+            usedMenus.add(
+                    normalized(
+                            mealSlot
+                                    .restaurantDetail()
+                                    .menuName()
+                    )
+            );
+
             log.info(
                     "[SLOT FILL] 식사 슬롯 보정 - scheduleType: {}, locationName: {}, startTime: {}",
                     mealType,
@@ -239,12 +272,16 @@ public class MissingSlotCompleter {
      *
      * 메뉴명은 검색 키워드가 아니라 TourAPI 상세의 대표메뉴를 쓴다.
      * 상세를 얻지 못한 후보는 메뉴를 확정할 수 없으므로 건너뛰고 다음 후보를 본다.
+     *
+     * 대표메뉴가 이미 쓰인 후보도 건너뛴다. 식당 이름이 달라도 같은 음식이면
+     * 여행자에게는 같은 끼니가 두 번 나온 것이다.
      */
     private CreatePlanAiResponse.PlanScheduleDetail mealSlot(
             ScheduleType mealType,
             LocalTime mealTime,
             PlaceCandidateContext candidates,
-            Set<String> usedNames
+            Set<String> usedNames,
+            Set<String> usedMenus
     ) {
 
         for (PlaceCandidateContext.Candidate candidate : candidates.restaurantCandidates()) {
@@ -255,6 +292,10 @@ public class MissingSlotCompleter {
             String menuName = representativeMenu(candidate);
 
             if (menuName == null) {
+                continue;
+            }
+
+            if (usedMenus.contains(normalized(menuName))) {
                 continue;
             }
 
@@ -471,6 +512,29 @@ public class MissingSlotCompleter {
         String stripped = name.strip();
 
         return stripped.isEmpty() ? null : stripped;
+    }
+
+    private Set<String> usedMenus(CreatePlanAiResponse response) {
+
+        Set<String> menus = new HashSet<>();
+
+        for (CreatePlanAiResponse.PlanDayDetail day : response.planDays()) {
+            if (day == null || day.schedules() == null) {
+                continue;
+            }
+
+            day.schedules()
+                    .stream()
+                    .filter(Objects::nonNull)
+                    .map(CreatePlanAiResponse.PlanScheduleDetail::restaurantDetail)
+                    .filter(Objects::nonNull)
+                    .map(CreatePlanAiResponse.RestaurantDetail::menuName)
+                    .map(MissingSlotCompleter::normalized)
+                    .filter(Objects::nonNull)
+                    .forEach(menus::add);
+        }
+
+        return menus;
     }
 
     private Set<String> usedNames(CreatePlanAiResponse response) {
