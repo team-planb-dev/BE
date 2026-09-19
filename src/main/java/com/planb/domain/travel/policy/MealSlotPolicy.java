@@ -12,9 +12,13 @@ import java.util.Objects;
 /**
  * 하루에 있어야 하는 식사 슬롯 규칙.
  *
- * 등록 식사시각을 지나는 하루에는 그 식사 슬롯이 있어야 한다.
- * 하루가 그 시각까지 가지 않으면 요구하지 않는다. 만들 수 없는 일정을 요구하면
- * 재시도가 끝없이 실패하기 때문이다.
+ * 판정이 둘로 갈린다. 채울 대상은 등록된 식사 전부이고, 없으면 거부할 대상은
+ * 그중 첫날 아침과 마지막 날 저녁을 뺀 것이다. 첫날은 이동 후 늦게 시작하고
+ * 마지막 날은 귀가로 일찍 끝나므로 그 두 끼는 채워지면 좋지만 없어도 내보낸다.
+ *
+ * 하루의 시작·종료 시각은 보지 않는다. 하루 길이는 슬롯 시각에서 파생될 뿐이고,
+ * TouristPlaceCountPolicy.trimExcess가 뒤쪽 관광지를 제거하면서 바뀐다.
+ * 그 값을 기준으로 삼으면 관광지가 잘릴 때 사용자가 등록한 식사가 조용히 사라진다.
  */
 public final class MealSlotPolicy {
 
@@ -58,22 +62,10 @@ public final class MealSlotPolicy {
             return List.of();
         }
 
-        LocalTime dayStart = schedules
-                .stream()
-                .map(CreatePlanAiResponse.PlanScheduleDetail::startTime)
-                .min(LocalTime::compareTo)
-                .orElseThrow();
-
-        LocalTime dayEnd = schedules
-                .stream()
-                .map(MealSlotPolicy::endOf)
-                .max(LocalTime::compareTo)
-                .orElseThrow();
-
         List<ScheduleType> missing = new ArrayList<>();
 
         for (ScheduleType mealType : MEAL_SCHEDULE_TYPES) {
-            if (!spansConfiguredMeal(mealType, healthContexts, dayStart, dayEnd)) {
+            if (configuredMealTime(mealType, healthContexts) == null) {
                 continue;
             }
 
@@ -87,6 +79,45 @@ public final class MealSlotPolicy {
         }
 
         return missing;
+    }
+
+    /**
+     * 하루에서 없으면 일정을 거부해야 하는 식사를 찾는다.
+     *
+     * 채울 대상에서 첫날 아침과 마지막 날 저녁을 뺀 것이다. 첫날은 이동 후에 시작하고
+     * 마지막 날은 귀가로 일찍 끝나므로, 그 두 끼는 만들 수 없는 경우가 정상이다.
+     * 면제는 거부에만 적용되고 채우는 쪽은 그대로 시도한다.
+     *
+     * @param day            검사할 하루
+     * @param healthContexts 이번 여행에 선택된 동행인, 없으면 규칙을 적용하지 않는다
+     * @param totalDays      이번 여행의 전체 일수
+     * @return 없으면 거부해야 하는 식사의 ScheduleType 목록, 이른 식사부터
+     */
+    public static List<ScheduleType> requiredMissingMeals(
+            CreatePlanAiResponse.PlanDayDetail day,
+            List<TravelHealthContext> healthContexts,
+            int totalDays
+    ) {
+
+        return missingMeals(day, healthContexts)
+                .stream()
+                .filter(mealType -> !isExempt(mealType, day, totalDays))
+                .toList();
+    }
+
+    private static boolean isExempt(
+            ScheduleType mealType,
+            CreatePlanAiResponse.PlanDayDetail day,
+            int totalDays
+    ) {
+
+        return switch (mealType) {
+            case BREAKFAST -> Objects.equals(day.dayNumber(), 1);
+
+            case DINNER -> Objects.equals(day.dayNumber(), totalDays);
+
+            default -> false;
+        };
     }
 
     /**
@@ -112,24 +143,6 @@ public final class MealSlotPolicy {
                 .filter(Objects::nonNull)
                 .min(LocalTime::compareTo)
                 .orElse(null);
-    }
-
-    // 등록 식사시각 중 하나라도 하루 시간대 안에 들어오면 그 식사를 요구한다.
-    private static boolean spansConfiguredMeal(
-            ScheduleType mealType,
-            List<TravelHealthContext> healthContexts,
-            LocalTime dayStart,
-            LocalTime dayEnd
-    ) {
-
-        return healthContexts
-                .stream()
-                .filter(Objects::nonNull)
-                .map(TravelHealthContext::mealInfo)
-                .map(mealInfo -> configuredMealTime(mealInfo, mealType))
-                .filter(Objects::nonNull)
-                .anyMatch(mealTime -> !mealTime.isBefore(dayStart)
-                        && !mealTime.isAfter(dayEnd));
     }
 
     private static LocalTime configuredMealTime(
@@ -158,12 +171,4 @@ public final class MealSlotPolicy {
         };
     }
 
-    private static LocalTime endOf(
-            CreatePlanAiResponse.PlanScheduleDetail schedule
-    ) {
-
-        return schedule.endTime() == null
-                ? schedule.startTime()
-                : schedule.endTime();
-    }
 }

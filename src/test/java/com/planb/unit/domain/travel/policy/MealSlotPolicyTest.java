@@ -19,31 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class MealSlotPolicyTest {
 
     @Test
-    @DisplayName("등록 식사시각을 지나는 하루에 식사 슬롯이 없으면 누락으로 판단")
-    void spanningConfiguredMealWithoutSlotIsMissing() {
-
-        CreatePlanAiResponse.PlanDayDetail day = day(
-                attraction(
-                        LocalTime.of(9, 40),
-                        LocalTime.of(11, 40)
-                ),
-                attraction(
-                        LocalTime.of(12, 30),
-                        LocalTime.of(14, 10)
-                )
-        );
-
-        assertThat(
-                MealSlotPolicy.missingMeals(
-                        day,
-                        List.of(healthContext())
-                )
-        ).containsExactly(ScheduleType.LUNCH);
-    }
-
-    @Test
-    @DisplayName("식사 슬롯이 있는 하루는 누락 없음")
-    void spanningConfiguredMealWithSlotIsSatisfied() {
+    @DisplayName("이미 있는 식사는 채울 대상에서 빠짐")
+    void existingMealIsNotAFillTarget() {
 
         CreatePlanAiResponse.PlanDayDetail day = day(
                 attraction(
@@ -51,6 +28,7 @@ class MealSlotPolicyTest {
                         LocalTime.of(11, 40)
                 ),
                 meal(
+                        ScheduleType.LUNCH,
                         LocalTime.of(12, 0),
                         LocalTime.of(13, 0)
                 ),
@@ -65,12 +43,15 @@ class MealSlotPolicyTest {
                         day,
                         List.of(healthContext())
                 )
-        ).isEmpty();
+        ).containsExactly(
+                ScheduleType.BREAKFAST,
+                ScheduleType.DINNER
+        );
     }
 
     @Test
-    @DisplayName("등록 식사시각을 지나지 않는 하루는 식사 슬롯을 요구하지 않음")
-    void dayEndingBeforeConfiguredMealRequiresNothing() {
+    @DisplayName("등록 식사시각을 지나지 않는 하루도 등록된 식사를 모두 채울 대상으로 판단")
+    void dayEndingBeforeConfiguredMealStillNeedsFilling() {
 
         CreatePlanAiResponse.PlanDayDetail day = day(
                 attraction(
@@ -84,7 +65,11 @@ class MealSlotPolicyTest {
                         day,
                         List.of(healthContext())
                 )
-        ).isEmpty();
+        ).containsExactly(
+                ScheduleType.BREAKFAST,
+                ScheduleType.LUNCH,
+                ScheduleType.DINNER
+        );
     }
 
     @Test
@@ -124,17 +109,24 @@ class MealSlotPolicyTest {
     }
 
     @Test
-    @DisplayName("아침과 점심을 모두 지나는 하루는 두 식사를 모두 요구")
-    void spanningTwoConfiguredMealsRequiresBoth() {
+    @DisplayName("등록된 식사가 모두 있는 하루는 채울 대상 없음")
+    void allRegisteredMealsPresentNeedsNothing() {
 
         CreatePlanAiResponse.PlanDayDetail day = day(
-                attraction(
-                        LocalTime.of(7, 30),
-                        LocalTime.of(11, 40)
+                meal(
+                        ScheduleType.BREAKFAST,
+                        LocalTime.of(8, 0),
+                        LocalTime.of(9, 0)
                 ),
-                attraction(
-                        LocalTime.of(12, 30),
-                        LocalTime.of(14, 10)
+                meal(
+                        ScheduleType.LUNCH,
+                        LocalTime.of(12, 0),
+                        LocalTime.of(13, 0)
+                ),
+                meal(
+                        ScheduleType.DINNER,
+                        LocalTime.of(18, 0),
+                        LocalTime.of(19, 0)
                 )
         );
 
@@ -143,9 +135,79 @@ class MealSlotPolicyTest {
                         day,
                         List.of(healthContext())
                 )
+        ).isEmpty();
+    }
+
+    @Test
+    @DisplayName("첫날 아침은 없어도 거부하지 않음")
+    void firstDayBreakfastIsExemptFromRejection() {
+
+        CreatePlanAiResponse.PlanDayDetail day = day(
+                1,
+                attraction(
+                        LocalTime.of(9, 0),
+                        LocalTime.of(11, 0)
+                )
+        );
+
+        assertThat(
+                MealSlotPolicy.requiredMissingMeals(
+                        day,
+                        List.of(healthContext()),
+                        2
+                )
+        ).containsExactly(
+                ScheduleType.LUNCH,
+                ScheduleType.DINNER
+        );
+    }
+
+    @Test
+    @DisplayName("마지막 날 저녁은 없어도 거부하지 않음")
+    void lastDayDinnerIsExemptFromRejection() {
+
+        CreatePlanAiResponse.PlanDayDetail day = day(
+                2,
+                attraction(
+                        LocalTime.of(9, 0),
+                        LocalTime.of(16, 18)
+                )
+        );
+
+        assertThat(
+                MealSlotPolicy.requiredMissingMeals(
+                        day,
+                        List.of(healthContext()),
+                        2
+                )
         ).containsExactly(
                 ScheduleType.BREAKFAST,
                 ScheduleType.LUNCH
+        );
+    }
+
+    @Test
+    @DisplayName("중간 날은 등록된 세 끼를 모두 요구")
+    void middleDayRequiresEveryRegisteredMeal() {
+
+        CreatePlanAiResponse.PlanDayDetail day = day(
+                2,
+                attraction(
+                        LocalTime.of(9, 0),
+                        LocalTime.of(16, 18)
+                )
+        );
+
+        assertThat(
+                MealSlotPolicy.requiredMissingMeals(
+                        day,
+                        List.of(healthContext()),
+                        3
+                )
+        ).containsExactly(
+                ScheduleType.BREAKFAST,
+                ScheduleType.LUNCH,
+                ScheduleType.DINNER
         );
     }
 
@@ -153,9 +215,17 @@ class MealSlotPolicyTest {
             CreatePlanAiResponse.PlanScheduleDetail... schedules
     ) {
 
+        return day(1, schedules);
+    }
+
+    private CreatePlanAiResponse.PlanDayDetail day(
+            int dayNumber,
+            CreatePlanAiResponse.PlanScheduleDetail... schedules
+    ) {
+
         return new CreatePlanAiResponse.PlanDayDetail(
-                1,
-                LocalDate.of(2026, 9, 12),
+                dayNumber,
+                LocalDate.of(2026, 9, 12).plusDays(dayNumber - 1L),
                 List.of(schedules)
         );
     }
@@ -174,12 +244,13 @@ class MealSlotPolicyTest {
     }
 
     private CreatePlanAiResponse.PlanScheduleDetail meal(
+            ScheduleType mealType,
             LocalTime startTime,
             LocalTime endTime
     ) {
 
         return schedule(
-                ScheduleType.LUNCH,
+                mealType,
                 CourseType.RESTAURANT,
                 startTime,
                 endTime
