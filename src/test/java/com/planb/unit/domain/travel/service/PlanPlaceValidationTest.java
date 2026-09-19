@@ -2669,6 +2669,11 @@ class PlanPlaceValidationTest {
         when(tourismTool.getRestaurantDetail(anyString()))
                 .thenReturn(intro("밀면"));
 
+        // 아침 보정이 고를 후보는 점심과 다른 메뉴여야 한다.
+        // 같은 메뉴면 보정기가 중복으로 보고 건너뛴다.
+        when(tourismTool.getRestaurantDetail("2784322"))
+                .thenReturn(intro("아침메뉴"));
+
         when(kakao.getRoute(anyString(), anyString(), any()))
                 .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
 
