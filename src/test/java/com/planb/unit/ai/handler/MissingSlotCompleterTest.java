@@ -61,6 +61,7 @@ class MissingSlotCompleterTest {
                 response(attraction("첨성대", LocalTime.of(9, 0))),
                 List.of(healthContext()),
                 candidates,
+                Set.of(),
                 Set.of()
         );
 
@@ -88,6 +89,7 @@ class MissingSlotCompleterTest {
                 response(attraction("첨성대", LocalTime.of(9, 0))),
                 List.of(healthContext()),
                 candidates,
+                Set.of(),
                 Set.of()
         );
 
@@ -110,7 +112,8 @@ class MissingSlotCompleterTest {
                 response(attraction("첨성대", LocalTime.of(9, 0))),
                 List.of(healthContext()),
                 candidates,
-                Set.of("대릉원")
+                Set.of("대릉원"),
+                Set.of()
         );
 
         assertThat(schedules(filled))
@@ -135,7 +138,8 @@ class MissingSlotCompleterTest {
                 response(attraction("첨성대", LocalTime.of(9, 0))),
                 List.of(healthContext()),
                 candidates,
-                usedNames
+                usedNames,
+                Set.of()
         );
 
         assertThat(usedNames)
@@ -158,6 +162,7 @@ class MissingSlotCompleterTest {
                 ),
                 List.of(healthContext()),
                 candidates,
+                Set.of(),
                 Set.of()
         );
 
@@ -189,6 +194,7 @@ class MissingSlotCompleterTest {
                 response(attraction("첨성대", LocalTime.of(9, 0))),
                 List.of(healthContext()),
                 candidates,
+                Set.of(),
                 Set.of()
         );
 
@@ -212,11 +218,166 @@ class MissingSlotCompleterTest {
                 original,
                 List.of(healthContext()),
                 new PlaceCandidateContext(),
+                Set.of(),
                 Set.of()
         );
 
         assertThat(schedules(filled))
                 .hasSize(1);
+    }
+
+    @Test
+    @DisplayName("일정에 이미 쓴 메뉴는 다른 식당으로도 다시 채우지 않음")
+    void skipsCandidateWhoseMenuIsAlreadyUsed() {
+
+        lenient()
+                .when(tourismTool.getRestaurantDetail("101"))
+                .thenReturn(intro("삼계탕"));
+
+        lenient()
+                .when(tourismTool.getRestaurantDetail("102"))
+                .thenReturn(intro("칼국수"));
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(restaurantItem("101", "백제삼계탕", "129.21", "35.83"));
+
+        candidates.record(restaurantItem("102", "하니칼국수", "129.23", "35.84"));
+
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
+                twoDays(
+                        List.of(
+                                attraction("첨성대", LocalTime.of(9, 0)),
+                                attraction("대릉원", LocalTime.of(11, 0)),
+                                attraction("동궁과 월지", LocalTime.of(13, 0)),
+                                restaurant("고려삼계탕", "삼계탕", LocalTime.of(12, 0))
+                        ),
+                        List.of(
+                                attraction("불국사", LocalTime.of(9, 0)),
+                                attraction("석굴암", LocalTime.of(11, 0)),
+                                attraction("감은사지", LocalTime.of(13, 0))
+                        )
+                ),
+                List.of(healthContext()),
+                candidates,
+                Set.of(),
+                Set.of()
+        );
+
+        assertThat(daySchedules(filled, 2))
+                .filteredOn(slot -> slot.scheduleType() == ScheduleType.LUNCH)
+                .singleElement()
+                .satisfies(slot ->
+                        assertThat(slot.restaurantDetail()
+                                .menuName())
+                                .isEqualTo("칼국수"));
+    }
+
+    @Test
+    @DisplayName("후보의 대표메뉴가 전부 이미 쓰였으면 식사 슬롯을 채우지 않음")
+    void leavesMealEmptyWhenEveryCandidateMenuIsUsed() {
+
+        lenient()
+                .when(tourismTool.getRestaurantDetail("101"))
+                .thenReturn(intro("삼계탕"));
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(restaurantItem("101", "백제삼계탕", "129.21", "35.83"));
+
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
+                twoDays(
+                        List.of(
+                                attraction("첨성대", LocalTime.of(9, 0)),
+                                attraction("대릉원", LocalTime.of(11, 0)),
+                                attraction("동궁과 월지", LocalTime.of(13, 0)),
+                                restaurant("고려삼계탕", "삼계탕", LocalTime.of(12, 0))
+                        ),
+                        List.of(
+                                attraction("불국사", LocalTime.of(9, 0)),
+                                attraction("석굴암", LocalTime.of(11, 0)),
+                                attraction("감은사지", LocalTime.of(13, 0))
+                        )
+                ),
+                List.of(healthContext()),
+                candidates,
+                Set.of(),
+                Set.of()
+        );
+
+        assertThat(daySchedules(filled, 2))
+                .filteredOn(slot -> slot.scheduleType() == ScheduleType.LUNCH)
+                .isEmpty();
+    }
+
+    private List<CreatePlanAiResponse.PlanScheduleDetail> daySchedules(
+            CreatePlanAiResponse response,
+            int dayNumber
+    ) {
+
+        return response
+                .planDays()
+                .stream()
+                .filter(day -> day.dayNumber() == dayNumber)
+                .findFirst()
+                .orElseThrow()
+                .schedules();
+    }
+
+    private CreatePlanAiResponse twoDays(
+            List<CreatePlanAiResponse.PlanScheduleDetail> first,
+            List<CreatePlanAiResponse.PlanScheduleDetail> second
+    ) {
+
+        return new CreatePlanAiResponse(
+                List.of(
+                        new CreatePlanAiResponse.PlanDayDetail(
+                                1,
+                                LocalDate.of(2026, 9, 19),
+                                first
+                        ),
+                        new CreatePlanAiResponse.PlanDayDetail(
+                                2,
+                                LocalDate.of(2026, 9, 20),
+                                second
+                        )
+                )
+        );
+    }
+
+    private CreatePlanAiResponse.PlanScheduleDetail restaurant(
+            String name,
+            String menuName,
+            LocalTime startTime
+    ) {
+
+        return new CreatePlanAiResponse.PlanScheduleDetail(
+                ScheduleType.LUNCH,
+                CourseType.RESTAURANT,
+                startTime,
+                startTime.plusMinutes(60),
+                name,
+                "경상북도 경주시",
+                "129.22",
+                "35.83",
+                null,
+                null,
+                60,
+                10,
+                Set.of(),
+                null,
+                new CreatePlanAiResponse.RestaurantDetail(
+                        menuName,
+                        null,
+                        null,
+                        null,
+                        null,
+                        "경상북도 경주시",
+                        "129.22",
+                        "35.83",
+                        null
+                )
+        );
     }
 
     private List<CreatePlanAiResponse.PlanScheduleDetail> schedules(CreatePlanAiResponse response) {

@@ -570,6 +570,7 @@ public class PlanService {
                 response,
                 context.healthContexts(),
                 candidates,
+                new HashSet<>(),
                 new HashSet<>()
         );
 
@@ -737,12 +738,14 @@ public class PlanService {
 
         // 빈 슬롯 채우기와 초과분 제거는 개수 검증 직전에 한 번만 한다.
         // 생성·편집·재구성 응답이 모두 이 지점을 지나므로 여기 두어야 경로마다 갈라지지 않는다.
-        // usedPlaces에는 이 응답 밖 날짜의 장소가 들어있어, 날짜 일부만 검증할 때도 중복을 피한다.
+        // usedPlaces·usedMenus에는 이 응답 밖 날짜의 장소와 메뉴가 들어있어,
+        // 날짜 일부만 검증할 때도 중복을 피한다.
         response = missingSlotCompleter.complete(
                 response,
                 context.healthContexts(),
                 candidates,
-                usedPlaces
+                usedPlaces,
+                usedMenus
         );
 
         response = TouristPlaceCountPolicy.trimExcess(
