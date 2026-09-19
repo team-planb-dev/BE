@@ -524,7 +524,9 @@ public class PlanService {
         validateMealSlots(
                 mealFixed,
                 context.healthContexts(),
-                currentPlan
+                currentPlan,
+                candidates,
+                context.createTravelRequest().dateType().getPlusDays() + 1
         );
 
         // 식후·식전 복약은 식사 슬롯을 기준으로 배치하므로 식사가 확정된 뒤에 만든다.
@@ -595,18 +597,34 @@ public class PlanService {
      *
      * @param currentPlan 편집 전 일정, 생성 경로는 null이라 완화 없이 전부 검증한다
      */
+    /**
+     * 없으면 안 되는 식사가 빠진 일정을 거부한다.
+     *
+     * 후보가 남아 있는데 채우지 않은 경우만 거부한다. 후보가 없어서 못 채운 것은
+     * 사용자가 할 수 있는 일이 없으므로 거부해도 빈손으로 돌려보낼 뿐이다.
+     *
+     * ponytail: 후보 유무만 본다. 보정기는 대표메뉴를 확인하지 못한 후보를 건너뛰므로
+     * (MissingSlotCompleter 참고), 그런 후보만 남은 날은 채울 수 없는데도 거부된다.
+     * 보정기가 시도 결과를 돌려주게 바꾸면 정확해지지만 반환형이 세 호출부로 번진다.
+     */
     private void validateMealSlots(
             CreatePlanAiResponse response,
             List<TravelHealthContext> healthContexts,
-            GetAiPlanResponse currentPlan
+            GetAiPlanResponse currentPlan,
+            PlaceCandidateContext candidates,
+            int totalDays
     ) {
+
+        if (unusedRestaurantCandidates(response, candidates) == 0) {
+            return;
+        }
 
         Map<Integer, Set<ScheduleType>> alreadyMissing =
                 baselineMissingMeals(currentPlan);
 
         for (CreatePlanAiResponse.PlanDayDetail day : response.planDays()) {
             List<ScheduleType> missing = MealSlotPolicy
-                    .missingMeals(day, healthContexts)
+                    .requiredMissingMeals(day, healthContexts, totalDays)
                     .stream()
                     .filter(mealType -> !alreadyMissing
                             .getOrDefault(day.dayNumber(), Set.of())
@@ -620,6 +638,36 @@ public class PlanService {
                 );
             }
         }
+    }
+
+    // 이번 응답이 아직 쓰지 않은 음식점 후보 수.
+    private int unusedRestaurantCandidates(
+            CreatePlanAiResponse response,
+            PlaceCandidateContext candidates
+    ) {
+
+        if (candidates == null) {
+            return 0;
+        }
+
+        Set<String> usedNames = response
+                .planDays()
+                .stream()
+                .filter(Objects::nonNull)
+                .filter(day -> day.schedules() != null)
+                .flatMap(day -> day
+                        .schedules()
+                        .stream())
+                .filter(Objects::nonNull)
+                .map(CreatePlanAiResponse.PlanScheduleDetail::locationName)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        return (int) candidates
+                .restaurantCandidates()
+                .stream()
+                .filter(candidate -> !usedNames.contains(candidate.name()))
+                .count();
     }
 
     /**

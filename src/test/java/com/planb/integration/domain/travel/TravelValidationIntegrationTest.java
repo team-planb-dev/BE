@@ -684,13 +684,13 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     }
 
     @Test
-    @DisplayName("채울 음식점 후보가 없는 식사 누락은 생성 실패와 DB 롤백")
-    void missingMealWithoutCandidateRollsBackCreation() throws Exception {
+    @DisplayName("채울 음식점 후보가 없는 식사 누락은 거부하지 않고 저장")
+    void missingMealWithoutCandidateStillPersists() throws Exception {
 
         List<Long> before = counts();
 
-        // 하루가 등록 저녁시각(18:00)을 지나지만 저녁 슬롯이 없다.
-        // 카카오 후보만 있어 MissingSlotCompleter가 채울 음식점이 없다.
+        // 저녁 슬롯이 없다. 카카오 후보만 있어 MissingSlotCompleter가 채울 음식점이 없다.
+        // 사용자가 손쓸 수 없는 부족분이므로 빈손으로 돌려보내지 않는다.
         when(handler.createPlanByAi(any(), any()))
                 .thenAnswer(invocation -> {
                     PlaceCandidateContext candidates = invocation.getArgument(1);
@@ -700,10 +700,10 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                             dayWithoutDinner(2, 2, candidates)));
                 });
 
-        assertError(postApi("/add-with-recommend", request), "PLAN.EXCEPTION.INVALID_AI_PLACE");
+        success(postApi("/add-with-recommend", request));
 
         assertThat(counts())
-                .isEqualTo(before);
+                .isNotEqualTo(before);
     }
 
     @Test
@@ -725,12 +725,18 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         when(tourismTool.getRestaurantDetail(anyString()))
                 .thenReturn(restaurantIntro("보정 메뉴"));
 
+        // 2일차는 아침도 저녁도 없다. 대표메뉴가 겹치면 보정기가 건너뛰므로 후보마다 다른 메뉴를 준다.
+        when(tourismTool.getRestaurantDetail("9002"))
+                .thenReturn(restaurantIntro("보정 메뉴2"));
+
         // 2일차만 저녁 없이 돌려주고, 채울 음식점은 편집 호출의 후보로만 등록한다.
         when(handler.editPlanByAi(any(), any()))
                 .thenAnswer(invocation -> {
                     PlaceCandidateContext candidates = invocation.getArgument(1);
 
                     candidates.record(tourRestaurant("9001", "보정 음식점"));
+
+                    candidates.record(tourRestaurant("9002", "보정 음식점2"));
 
                     return new EditPlanAiResponse(
                             request.travelName(),

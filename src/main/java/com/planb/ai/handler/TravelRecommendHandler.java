@@ -258,7 +258,8 @@ public class TravelRecommendHandler {
                     unfillable(
                             mealSlotFailures(
                                     response,
-                                    context.healthContexts()
+                                    context.healthContexts(),
+                                    expectedDayCount
                             ),
                             unusedCandidateCount(response, candidates, false)
                     )
@@ -268,10 +269,12 @@ public class TravelRecommendHandler {
         };
     }
 
-    // 등록 식사시각을 지나는데 식사 슬롯이 없는 날짜를 교정 사유로 만든다.
+    // 없으면 안 되는 식사가 빠진 날짜를 교정 사유로 만든다.
+    // 면제된 끼니는 Java 보정기가 어차피 시도하므로 AI를 다시 부를 값이 없다.
     private static List<String> mealSlotFailures(
             CreatePlanAiResponse response,
-            List<TravelHealthContext> healthContexts
+            List<TravelHealthContext> healthContexts,
+            int expectedDayCount
     ) {
 
         return response
@@ -279,7 +282,7 @@ public class TravelRecommendHandler {
                 .stream()
                 .filter(Objects::nonNull)
                 .flatMap(day -> MealSlotPolicy
-                        .missingMeals(day, healthContexts)
+                        .requiredMissingMeals(day, healthContexts, expectedDayCount)
                         .stream()
                         .map(mealType -> mealSlotFailure(day, mealType)))
                 .toList();
