@@ -2684,9 +2684,9 @@ class PlanPlaceValidationTest {
                 .planDays()
                 .getFirst();
 
-        assertEquals(
-                List.of(),
-                com.planb.domain.travel.policy.MealSlotPolicy.missingMeals(day, List.of(health)),
+        assertTrue(
+                day.schedules().stream()
+                        .anyMatch(schedule -> schedule.scheduleType() == ScheduleType.BREAKFAST),
                 day.schedules().stream()
                         .map(schedule -> schedule.scheduleType() + "@" + schedule.startTime())
                         .toList()
@@ -2694,8 +2694,8 @@ class PlanPlaceValidationTest {
     }
 
     @Test
-    @DisplayName("채울 음식점 후보가 없으면 식사 슬롯 누락으로 거부")
-    void rejectsPlanWhenMissingMealCannotBeFilled() {
+    @DisplayName("채울 음식점 후보가 없으면 식사 슬롯이 빠져도 거부하지 않음")
+    void acceptsPlanWhenMissingMealCannotBeFilled() {
 
         TravelHealthContext health = new TravelHealthContext(
                 "테스트 여행자",
@@ -2738,6 +2738,84 @@ class PlanPlaceValidationTest {
                         slot("tour:1", "해운대", 9),
                         slot("tour:3", "이기대", 10),
                         lunch)))));
+
+        when(kakao.getRoute(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
+
+        PlanDayDetail day = service
+                .makePlanByAi(new TravelPlanContext(
+                        travel.createTravelRequest(),
+                        List.of(health)))
+                .planDays()
+                .getFirst();
+
+        // 저녁은 요구 대상인데 후보가 없어 채우지 못했다. 그래도 내보낸다.
+        assertTrue(
+                day.schedules().stream()
+                        .noneMatch(schedule -> schedule.scheduleType() == ScheduleType.DINNER),
+                day.schedules().stream()
+                        .map(schedule -> schedule.scheduleType() + "@" + schedule.startTime())
+                        .toList()
+                        .toString());
+    }
+
+    @Test
+    @DisplayName("음식점 후보가 남았는데 식사 슬롯이 비면 거부")
+    void rejectsPlanWhenMissingMealCouldHaveBeenFilled() {
+
+        TravelHealthContext health = new TravelHealthContext(
+                "테스트 여행자",
+                List.of(DiseaseType.DIABETES),
+                WalkType.MINIMAL,
+                new TravelHealthContext.MealInfoContext(
+                        LocalTime.of(8, 0),
+                        LocalTime.of(12, 0),
+                        LocalTime.of(18, 0)
+                ),
+                List.of(),
+                List.of());
+
+        PlanScheduleDetail lunch = new PlanScheduleDetail(
+                ScheduleType.LUNCH,
+                CourseType.RESTAURANT,
+                LocalTime.of(14, 30),
+                LocalTime.of(15, 30),
+                "개금밀면",
+                "부산",
+                "129.1",
+                "35.1",
+                "원본 사진",
+                "원본 썸네일",
+                60,
+                195,
+                Set.of(),
+                null,
+                new CreatePlanAiResponse.RestaurantDetail(
+                        "밀면",
+                        null, null, null, null,
+                        "부산", "129.1", "35.1", "원본 사진"),
+                "tour:2784321");
+
+        when(handler.createPlanByAi(any(), any()))
+                .thenAnswer(invocation -> {
+                    PlaceCandidateContext candidates = invocation.getArgument(1);
+
+                    recordCandidates(candidates);
+
+                    // 남는 음식점 후보. 대표메뉴가 점심과 같아 보정기가 건너뛴다.
+                    candidates.record(tour("9999", "39", "제2밀면"));
+
+                    return new CreatePlanAiResponse(List.of(new PlanDayDetail(
+                            1,
+                            date,
+                            List.of(
+                                    slot("tour:1", "해운대", 9),
+                                    slot("tour:3", "이기대", 10),
+                                    lunch))));
+                });
+
+        when(tourismTool.getRestaurantDetail(anyString()))
+                .thenReturn(intro("밀면"));
 
         when(kakao.getRoute(anyString(), anyString(), any()))
                 .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
