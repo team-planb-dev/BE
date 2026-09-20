@@ -236,21 +236,40 @@ public class TourismTool {
 
         음식 추천 시 사용자의 질환에 적합한 메뉴인지 판단하는
         근거가 필요한 경우 사용합니다.
+
+        foodName에는 식당이 내건 메뉴명을 그대로 넣습니다.
+
+        standardFoodName에는 같은 음식의 표준 품목명을 넣습니다.
+        식품 영양정보 DB는 식당 고유 메뉴명을 모르기 때문에,
+        일반적인 음식 이름으로 한 번 더 조회하기 위한 값입니다.
+        메뉴명이 이미 표준 품목명이면 같은 값을 그대로 넣습니다.
+
+        예: "검은콩 장칼국수" -> "칼국수",
+            "한우광양불고기" -> "불고기",
+            "멍게 비빔밥" -> "비빔밥"
+
+        "영양솥밥+생선구이"처럼 두 음식이 붙어 있으면
+        주된 음식 하나만 고릅니다.
+
+        표준 품목명을 알 수 없으면 메뉴명을 그대로 넣습니다. 지어내지 마세요.
         """)
     public NutritionEvaluationResult evaluateFoodNutrition(
             String foodName,
+            String standardFoodName,
             List<DiseaseType> diseaseTypes
     ) {
 
         log.info(
-                "[AI TOOL] 영양정보 평가 호출 - foodName: {}, diseaseTypes: {}",
+                "[AI TOOL] 영양정보 평가 호출 - foodName: {}, standardFoodName: {}, diseaseTypes: {}",
                 foodName,
+                standardFoodName,
                 diseaseTypes
         );
 
         NutritionEvaluationResult result =
                 nutritionService.evaluateFoodNutrition(
                         foodName,
+                        standardFoodName,
                         diseaseTypes
                 ).block();
 

@@ -268,10 +268,17 @@ public record TravelPlanPrompt(
                 [STEP 6. 음식 및 건강 조건 평가]
 
                 - 순서를 반드시 지킵니다: searchRestaurantsByLocation → 실제 음식점 선택
-                  → getRestaurantDetail → 실제 메뉴 확인 → evaluateFoodNutrition(실제 메뉴, 여행자의 diseaseTypes).
+                  → getRestaurantDetail → 실제 메뉴 확인
+                  → evaluateFoodNutrition(실제 메뉴, 표준 품목명, 여행자의 diseaseTypes).
                   diseaseTypes는 여행자가 관리하는 질환 전체를 한 번에 전달하며,
                   질환마다 Tool을 나눠 호출하지 않습니다.
                   검색 keyword를 실제 메뉴 확인 없이 바로 영양평가하지 않습니다.
+                - evaluateFoodNutrition의 standardFoodName에는 그 메뉴의 표준 품목명을 항상 함께 전달합니다.
+                  식품 영양정보 DB는 식당 고유 메뉴명을 모르기 때문에, 일반적인 음식 이름이 필요합니다.
+                  예: "검은콩 장칼국수" → "칼국수", "한우광양불고기" → "불고기", "멍게 비빔밥" → "비빔밥".
+                  메뉴명이 이미 표준 품목명이면 같은 값을 그대로 전달합니다.
+                  "영양솥밥+생선구이"처럼 두 음식이 붙어 있으면 주된 음식 하나만 고릅니다.
+                  표준 품목명을 알 수 없으면 메뉴명을 그대로 전달하며, 지어내지 않습니다.
                 - evaluateFoodNutrition도 실제 메뉴(음식점)마다 개별적으로 호출합니다.
                   이미 다른 음식점의 메뉴로 평가한 영양정보 결과를
                   contentId가 다른 음식점이나 다른 메뉴에 그대로 재사용하지 않습니다.

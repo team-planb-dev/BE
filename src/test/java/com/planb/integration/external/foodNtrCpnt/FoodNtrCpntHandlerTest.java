@@ -86,4 +86,24 @@ class FoodNtrCpntHandlerTest extends IntegrationTest {
 
         });
     }
+
+    @Test
+    @DisplayName("식품 영양성분 API가 부분일치를 하는지 확인")
+    void partialMatchProbe() {
+
+        List.of(
+                "칼국수",
+                "장칼국수",
+                "검은콩 장칼국수"
+        ).forEach(keyword -> {
+
+            List<FoodNtrCpntResponse.Item> items = foodNtrCpntHandler
+                    .getFoodNutrition(FoodNtrCpntSearchRequest.of(keyword))
+                    .block();
+
+            System.out.println(keyword + " 결과 수: " + items.size());
+
+            items.forEach(item -> System.out.println("  " + item.foodName()));
+        });
+    }
 }

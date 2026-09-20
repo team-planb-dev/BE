@@ -129,9 +129,15 @@ public record EditPlanPrompt(
                 - 음식점(RESTAURANT) 슬롯을 새로 정하는 경우
                   searchRestaurantsByLocation(keyword, locationDo, locationSigungu)로
                   음식점을 확인한 뒤, 반드시 getRestaurantDetail(contentId)로 상세정보를
-                  조회하고, evaluateFoodNutrition(실제 메뉴, 여행자의 diseaseTypes)으로
+                  조회하고, evaluateFoodNutrition(실제 메뉴, 표준 품목명, 여행자의 diseaseTypes)으로
                   건강 조건을 평가합니다. healthContexts의 ALLERGY/AVOID 음식은 STEP 4의
                   규칙과 동일하게 전체 일행 기준으로 제외합니다.
+                - evaluateFoodNutrition의 standardFoodName에는 그 메뉴의 표준 품목명을 항상 함께 전달합니다.
+                  식품 영양정보 DB는 식당 고유 메뉴명을 모르기 때문에, 일반적인 음식 이름이 필요합니다.
+                  예: "검은콩 장칼국수" → "칼국수", "한우광양불고기" → "불고기".
+                  메뉴명이 이미 표준 품목명이면 같은 값을 그대로 전달하고,
+                  두 음식이 붙어 있으면 주된 음식 하나만 고릅니다.
+                  알 수 없으면 메뉴명을 그대로 전달하며, 지어내지 않습니다.
                 - CAFE_REST 슬롯을 새로 정하는 경우
                   findPlaceWithRoute(keyword, previousLocation, transportation, excludeNames, courseType)로
                   확인합니다.
