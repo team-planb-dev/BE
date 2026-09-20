@@ -14,6 +14,7 @@ import com.planb.ai.handler.MissingSlotCompleter;
 import com.planb.ai.handler.TravelRecommendHandler;
 import com.planb.ai.mcp.NutritionEvaluationCollector;
 import com.planb.ai.prompt.PlaceReselectPrompt;
+import com.planb.domain.health.entity.constant.DiseaseType;
 import com.planb.domain.health.entity.constant.FoodType;
 import com.planb.domain.travel.dto.nutrition.NutritionEvaluationResult;
 import com.planb.domain.travel.dto.request.CreatePlanRequest;
@@ -41,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -92,6 +94,8 @@ public class PlanService {
     Tool 호출 결과 수집기
      */
     private final NutritionEvaluationCollector nutritionEvaluationCollector;
+
+    private final NutritionService nutritionService;
 
     private final MissingSlotCompleter missingSlotCompleter;
 
@@ -529,6 +533,13 @@ public class PlanService {
                 context.createTravelRequest().dateType().getPlusDays() + 1
         );
 
+        List<NutritionEvaluationCollector.FoodNutritionEvaluation> finalEvaluations =
+                enrichMissingNutritionEvaluations(
+                        mealFixed,
+                        context.healthContexts(),
+                        evaluations
+                );
+
         // 식후·식전 복약은 식사 슬롯을 기준으로 배치하므로 식사가 확정된 뒤에 만든다.
         CreatePlanAiResponse medicationFixed = scheduleNormalizer.ensureMedicationSchedules(
                 mealFixed,
@@ -538,10 +549,66 @@ public class PlanService {
         CreatePlanAiResponse tagged = applyDeterministicTags(
                 medicationFixed,
                 context,
-                evaluations
+                finalEvaluations
         );
 
         return tagged;
+    }
+
+    // 최종 일정의 식사 중 기존 영양평가가 없는 메뉴만 결과에 추가한다.
+    private List<NutritionEvaluationCollector.FoodNutritionEvaluation> enrichMissingNutritionEvaluations(
+            CreatePlanAiResponse response,
+            List<TravelHealthContext> healthContexts,
+            List<NutritionEvaluationCollector.FoodNutritionEvaluation> evaluations
+    ) {
+
+        List<NutritionEvaluationCollector.FoodNutritionEvaluation> enriched =
+                new ArrayList<>(evaluations);
+
+        Set<String> evaluatedMenus = evaluations
+                .stream()
+                .map(NutritionEvaluationCollector.FoodNutritionEvaluation::foodName)
+                .filter(menuName -> !isBlank(menuName))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        List<DiseaseType> diseaseTypes = healthContexts
+                .stream()
+                .filter(Objects::nonNull)
+                .flatMap(healthContext -> healthContext.diseaseTypes() == null
+                        ? Stream.empty()
+                        : healthContext
+                                .diseaseTypes()
+                                .stream())
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new))
+                .stream()
+                .toList();
+
+        response
+                .planDays()
+                .stream()
+                .flatMap(planDay -> planDay
+                        .schedules()
+                        .stream())
+                .map(CreatePlanAiResponse.PlanScheduleDetail::restaurantDetail)
+                .filter(Objects::nonNull)
+                .map(CreatePlanAiResponse.RestaurantDetail::menuName)
+                .filter(menuName -> !isBlank(menuName))
+                .filter(evaluatedMenus::add)
+                .forEach(menuName -> nutritionService
+                        .evaluateFoodNutrition(
+                                menuName,
+                                diseaseTypes
+                        )
+                        .blockOptional()
+                        .ifPresent(result -> enriched.add(
+                                new NutritionEvaluationCollector.FoodNutritionEvaluation(
+                                        menuName,
+                                        result
+                                )
+                        )));
+
+        return enriched;
     }
 
     /**

@@ -25,12 +25,14 @@ import com.planb.domain.health.entity.constant.MealTiming;
 import com.planb.domain.health.entity.constant.MedicationBasis;
 import com.planb.domain.health.entity.constant.RelatedMeal;
 import com.planb.domain.health.entity.constant.WalkType;
+import com.planb.domain.travel.dto.nutrition.NutritionEvaluationResult;
 import com.planb.domain.travel.dto.request.CreateTravelRequest;
 import com.planb.domain.travel.dto.response.GetAiPlanResponse;
 import com.planb.domain.travel.entity.constant.*;
 import com.planb.domain.travel.helper.PlanPlaceResolver;
 import com.planb.domain.travel.repository.PlanRepository;
 import com.planb.domain.travel.service.PlanService;
+import com.planb.domain.travel.service.NutritionService;
 import com.planb.domain.travel.service.ScheduleNormalizer;
 import com.planb.global.client.kakaoMapService.dto.response.KakaoPlaceSearchResponse;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
@@ -64,6 +66,8 @@ class PlanPlaceValidationTest {
 
     private final NutritionEvaluationCollector nutrition = new NutritionEvaluationCollector();
 
+    private final NutritionService nutritionService = mock(NutritionService.class);
+
     private final ScheduleNormalizer scheduleNormalizer = new ScheduleNormalizer(helper);
 
     private final PlanService service = new PlanService(
@@ -74,6 +78,7 @@ class PlanPlaceValidationTest {
             handler,
             kakao,
             nutrition,
+            nutritionService,
             new MissingSlotCompleter(tourismTool)
     );
 
@@ -96,6 +101,21 @@ class PlanPlaceValidationTest {
 
     @BeforeEach
     void ordinaryEditScope() {
+
+        lenient()
+                .when(nutritionService.evaluateFoodNutrition(anyString(), anyList()))
+                .thenReturn(
+                        Mono.just(
+                                new NutritionEvaluationResult(
+                                        List.of(),
+                                        NutritionEvaluationStatus.UNAVAILABLE,
+                                        List.of(),
+                                        null,
+                                        null,
+                                        null
+                                )
+                        )
+                );
 
         // travelMinutes가 0인 슬롯도 재조회 대상이라 기본 응답이 필요하다.
         // 조회 실패(이동시간 없음)를 기본으로 두어 각 테스트가 필요할 때만 값을 덮어쓴다.

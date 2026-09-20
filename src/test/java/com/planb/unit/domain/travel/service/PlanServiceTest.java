@@ -34,6 +34,7 @@ import com.planb.domain.travel.helper.PlanEditValidator;
 import com.planb.domain.travel.helper.PlanPlaceResolver;
 import com.planb.domain.travel.repository.PlanRepository;
 import com.planb.domain.travel.service.PlanService;
+import com.planb.domain.travel.service.NutritionService;
 import com.planb.domain.travel.service.ScheduleNormalizer;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.global.config.exception.domain.BaseException;
@@ -58,12 +59,14 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -83,6 +86,9 @@ class PlanServiceTest {
     private NutritionEvaluationCollector nutritionEvaluationCollector;
 
     @Mock
+    private NutritionService nutritionService;
+
+    @Mock
     private PlanPlaceResolver planPlaceResolver;
 
     private PlanService planService;
@@ -98,6 +104,7 @@ class PlanServiceTest {
                 travelRecommendHandler,
                 kakaoMapServiceHandler,
                 nutritionEvaluationCollector,
+                nutritionService,
                 new MissingSlotCompleter(mock(com.planb.ai.mcp.TourismTool.class))
         );
 
@@ -119,6 +126,21 @@ class PlanServiceTest {
         // 복약·태그 후처리 단위 테스트의 장소 검증 경계 대역
         lenient().when(planPlaceResolver.validate(any(), any(), anySet(), anySet()))
                 .thenAnswer(invocation -> new PlanPlaceResolver.Validation(invocation.getArgument(0), null));
+
+        lenient()
+                .when(nutritionService.evaluateFoodNutrition(anyString(), anyList()))
+                .thenReturn(
+                        Mono.just(
+                                new NutritionEvaluationResult(
+                                        List.of(),
+                                        NutritionEvaluationStatus.UNAVAILABLE,
+                                        List.of(),
+                                        null,
+                                        null,
+                                        null
+                                )
+                        )
+                );
     }
 
     @Test
@@ -1333,6 +1355,214 @@ class PlanServiceTest {
     }
 
     @Test
+    @DisplayName("누락 식사 보정 후 영양정보 평가")
+    void makePlanByAiEvaluatesNutritionForCompletedMeal() {
+
+        TravelHealthContext healthContext =
+                new TravelHealthContext(
+                        "테스트 여행자",
+                        List.of(DiseaseType.DIABETES),
+                        WalkType.ACTIVE,
+                        new TravelHealthContext.MealInfoContext(
+                                true,
+                                false,
+                                null,
+                                true,
+                                LocalTime.of(12, 0),
+                                false,
+                                null
+                        ),
+                        List.of(),
+                        List.of()
+                );
+
+        TravelPlanContext context =
+                travelPlanContext(
+                        Transportation.TRANSIT,
+                        List.of(healthContext)
+                );
+
+        CreatePlanAiResponse initialResponse =
+                new CreatePlanAiResponse(
+                        List.of(
+                                planDay(
+                                        1,
+                                        List.of(
+                                                attraction("계약 관광지 1", 0),
+                                                attraction("계약 관광지 2", 0),
+                                                attraction("계약 관광지 3", 0)
+                                        )
+                                )
+                        )
+                );
+
+        CreatePlanAiResponse completedResponse =
+                new CreatePlanAiResponse(
+                        List.of(
+                                planDay(
+                                        1,
+                                        withRequiredSlots()
+                                )
+                        )
+                );
+
+        MissingSlotCompleter missingSlotCompleter =
+                mock(MissingSlotCompleter.class);
+
+        PlanService service =
+                new PlanService(
+                        planRepository,
+                        planPlaceResolver,
+                        new PlanEditValidator(),
+                        new ScheduleNormalizer(planPlaceResolver),
+                        travelRecommendHandler,
+                        kakaoMapServiceHandler,
+                        nutritionEvaluationCollector,
+                        nutritionService,
+                        missingSlotCompleter
+                );
+
+        when(
+                travelRecommendHandler
+                        .createPlanByAi(
+                                eq(context),
+                                any(PlaceCandidateContext.class)
+                        )
+        ).thenReturn(initialResponse);
+
+        when(
+                missingSlotCompleter
+                        .complete(
+                                any(CreatePlanAiResponse.class),
+                                anyList(),
+                                any(PlaceCandidateContext.class),
+                                anySet(),
+                                anySet()
+                        )
+        ).thenReturn(completedResponse);
+
+        when(
+                nutritionService
+                        .evaluateFoodNutrition(
+                                "계약 점심",
+                                List.of(DiseaseType.DIABETES)
+                        )
+        ).thenReturn(
+                Mono.just(
+                        new NutritionEvaluationResult(
+                                List.of(DiseaseType.DIABETES),
+                                NutritionEvaluationStatus.AVAILABLE,
+                                List.of(),
+                                18.5,
+                                239.0,
+                                6.49
+                        )
+                )
+        );
+
+        CreatePlanAiResponse result =
+                service.makePlanByAi(context);
+
+        CreatePlanAiResponse.RestaurantDetail restaurantDetail =
+                result
+                        .planDays()
+                        .getFirst()
+                        .schedules()
+                        .stream()
+                        .filter(schedule -> schedule.courseType() == CourseType.RESTAURANT)
+                        .findFirst()
+                        .orElseThrow()
+                        .restaurantDetail();
+
+        assertEquals(18.5, restaurantDetail.carbohydrate());
+        assertEquals(239.0, restaurantDetail.sodium());
+        assertEquals(6.49, restaurantDetail.fat());
+
+        verify(nutritionService)
+                .evaluateFoodNutrition(
+                        "계약 점심",
+                        List.of(DiseaseType.DIABETES)
+                );
+    }
+
+    @Test
+    @DisplayName("동일 메뉴 영양정보 중복 조회 방지")
+    void makePlanByAiEvaluatesDuplicateMenuOnce() {
+
+        TravelPlanContext context =
+                travelPlanContext();
+
+        CreatePlanAiResponse response =
+                new CreatePlanAiResponse(
+                        List.of(
+                                planDay(
+                                        1,
+                                        List.of(
+                                                restaurant("중복 메뉴"),
+                                                restaurant("중복 메뉴")
+                                        )
+                                )
+                        )
+                );
+
+        when(
+                travelRecommendHandler
+                        .createPlanByAi(
+                                eq(context),
+                                any(PlaceCandidateContext.class)
+                        )
+        ).thenReturn(response);
+
+        when(
+                nutritionService
+                        .evaluateFoodNutrition(
+                                "중복 메뉴",
+                                List.of()
+                        )
+        ).thenReturn(
+                Mono.just(
+                        new NutritionEvaluationResult(
+                                List.of(),
+                                NutritionEvaluationStatus.AVAILABLE,
+                                List.of(),
+                                18.5,
+                                239.0,
+                                6.49
+                        )
+                )
+        );
+
+        CreatePlanAiResponse result =
+                planService.makePlanByAi(context);
+
+        List<CreatePlanAiResponse.RestaurantDetail> restaurants =
+                result
+                        .planDays()
+                        .getFirst()
+                        .schedules()
+                        .stream()
+                        .map(CreatePlanAiResponse.PlanScheduleDetail::restaurantDetail)
+                        .filter(java.util.Objects::nonNull)
+                        .toList();
+
+        assertEquals(2, restaurants.size());
+
+        restaurants
+                .forEach(restaurantDetail ->
+                        assertEquals(
+                                18.5,
+                                restaurantDetail.carbohydrate()
+                        )
+                );
+
+        verify(nutritionService, times(1))
+                .evaluateFoodNutrition(
+                        "중복 메뉴",
+                        List.of()
+                );
+    }
+
+    @Test
     @DisplayName("AI 기반 여행 일정 생성 - 수집된 영양평가 결과의 CHECK/HIGH 성분만 참고 태그 부여와 LOW 제외")
     void makePlanByAiAddsNutritionReferenceTagsFromCollectedEvaluations() {
 
@@ -1467,6 +1697,12 @@ class PlanServiceTest {
         assertNull(restaurantDetail.carbohydrate());
         assertNull(restaurantDetail.sodium());
         assertNull(restaurantDetail.fat());
+
+        verify(nutritionService, never())
+                .evaluateFoodNutrition(
+                        anyString(),
+                        anyList()
+                );
     }
 
     @Test
