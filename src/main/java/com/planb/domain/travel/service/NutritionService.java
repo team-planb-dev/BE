@@ -21,10 +21,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class NutritionService {
 
-    // 식약처 응답은 SERVING_SIZE가 100g인 품목대표 행이다.
-    // NutritionThreshold는 한 끼 기준이라 100g 수치를 그대로 재면 어떤 메뉴든 낮게 나온다.
+    // NutritionThreshold는 한 끼 기준이라 기준량 수치를 그대로 재면 어떤 메뉴든 낮게 나온다.
     // 한 끼를 이 중량으로 보고 맞춘 값으로 평가한다.
-    // 실제 1인분 중량은 API가 주지 않는다. 이 상수가 유일한 가정이자 조정 지점이다.
+    //
+    // 이 상수는 임시 가정이다. SERVING_SIZE는 영양성분 기준량이고 단위도 g과 ml가 섞인다.
+    // Z10500은 식품중량일 뿐 1인분으로 정의되지 않아 전역 환산 근거로 쓸 수 없다.
+    // 근거와 실측은 docs/ai/mfds-nutrition-api-verification.md 참고.
     private static final double REFERENCE_SERVING_GRAMS = 300.0;
 
     private static final double SERVING_RATIO =
@@ -46,37 +48,33 @@ public class NutritionService {
             List<DiseaseType> diseaseTypes
     ) {
 
-        return foodNtrCpntHandler
-                .getFoodNutrition(
-                        FoodNtrCpntSearchRequest.of(foodName)
-                )
-                .map(items -> {
+        return evaluateFoodNutrition(foodName, null, diseaseTypes);
+    }
 
-                    if (items.isEmpty()) {
-                        return unavailable(diseaseTypes);
-                    }
+    /**
+     * 음식 영양정보 조회 및 질환별 영양성분 평가.
+     *
+     * 식당 고유 메뉴명은 식약처 품목명이 아니라서 조회되지 않는 경우가 많다.
+     * 그래서 메뉴명으로 못 찾으면 표준 품목명으로 한 번 더 조회한다.
+     *
+     * 표준 품목명은 여기서만 쓴다. 결과를 되찾는 쪽은 메뉴명을 키로 쓰므로
+     * (PlanService가 restaurantDetail.menuName()으로 찾는다) 바깥으로 새면
+     * 조회는 성공하는데 화면은 그대로 빈칸이 된다.
+     *
+     * @param foodName         식당이 내건 메뉴명
+     * @param standardFoodName 같은 음식의 표준 품목명, 없으면 null
+     */
+    public Mono<NutritionEvaluationResult> evaluateFoodNutrition(
+            String foodName,
+            String standardFoodName,
+            List<DiseaseType> diseaseTypes
+    ) {
 
-                    FoodNtrCpntResponse.Item item =
-                            findFoodItem(
-                                    items,
-                                    foodName
-                            );
-
-                    NutritionInfo measured =
-                            toNutritionInfo(item);
-
-                    NutritionEvaluationResult evaluated =
-                            nutritionEvaluator.evaluate(
-                                    diseaseTypes,
-                                    toReferenceServing(measured)
-                            );
-
-                    return withMeasuredValues(
-                            evaluated,
-                            measured
-                    );
-                })
-                .timeout(LOOKUP_TIMEOUT)
+        return lookup(foodName)
+                .flatMap(items -> items.isEmpty() && retryable(foodName, standardFoodName)
+                        ? lookup(standardFoodName)
+                        .map(retried -> evaluated(retried, standardFoodName, diseaseTypes))
+                        : Mono.just(evaluated(items, foodName, diseaseTypes)))
                 .onErrorResume(failure -> {
 
                     log.warn(
@@ -89,6 +87,59 @@ public class NutritionService {
                             unavailable(diseaseTypes)
                     );
                 });
+    }
+
+    // 조회 한 건에 상한을 건다. 재조회는 첫 조회와 예산을 나눠 쓰지 않는다.
+    // 합쳐서 재면 첫 조회가 느린 날 재조회가 시작도 못 하고 잘린다.
+    private Mono<List<FoodNtrCpntResponse.Item>> lookup(String name) {
+
+        return foodNtrCpntHandler
+                .getFoodNutrition(
+                        FoodNtrCpntSearchRequest.of(name)
+                )
+                .timeout(LOOKUP_TIMEOUT);
+    }
+
+    // 표준 품목명이 비어 있거나 메뉴명과 같으면 같은 조회를 두 번 하는 셈이다
+    private boolean retryable(
+            String foodName,
+            String standardFoodName
+    ) {
+
+        return standardFoodName != null
+                && !standardFoodName.isBlank()
+                && !standardFoodName.equals(foodName);
+    }
+
+    private NutritionEvaluationResult evaluated(
+            List<FoodNtrCpntResponse.Item> items,
+            String foodName,
+            List<DiseaseType> diseaseTypes
+    ) {
+
+        if (items.isEmpty()) {
+            return unavailable(diseaseTypes);
+        }
+
+        FoodNtrCpntResponse.Item item =
+                findFoodItem(
+                        items,
+                        foodName
+                );
+
+        NutritionInfo measured =
+                toNutritionInfo(item);
+
+        NutritionEvaluationResult evaluated =
+                nutritionEvaluator.evaluate(
+                        diseaseTypes,
+                        toReferenceServing(measured)
+                );
+
+        return withMeasuredValues(
+                evaluated,
+                measured
+        );
     }
 
     // 조회하지 못한 음식의 결과, 수치와 평가가 모두 비어 있다
