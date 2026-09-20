@@ -2,9 +2,7 @@ package com.planb.domain.travel.service;
 
 import com.planb.domain.health.entity.constant.DiseaseType;
 import com.planb.domain.travel.dto.nutrition.NutritionEvaluationResult;
-import com.planb.domain.travel.dto.nutrition.NutritionInfo;
 import com.planb.domain.travel.entity.constant.NutritionEvaluationStatus;
-import com.planb.domain.travel.helper.NutritionEvaluator;
 import com.planb.global.client.foodNtrCpnt.dto.request.FoodNtrCpntSearchRequest;
 import com.planb.global.client.foodNtrCpnt.dto.response.FoodNtrCpntResponse;
 import com.planb.global.client.foodNtrCpnt.handler.FoodNtrCpntHandler;
@@ -21,17 +19,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class NutritionService {
 
-    // NutritionThreshold는 한 끼 기준이라 기준량 수치를 그대로 재면 어떤 메뉴든 낮게 나온다.
-    // 한 끼를 이 중량으로 보고 맞춘 값으로 평가한다.
-    //
-    // 이 상수는 임시 가정이다. SERVING_SIZE는 영양성분 기준량이고 단위도 g과 ml가 섞인다.
-    // Z10500은 식품중량일 뿐 1인분으로 정의되지 않아 전역 환산 근거로 쓸 수 없다.
-    // 근거와 실측은 docs/ai/mfds-nutrition-api-verification.md 참고.
-    private static final double REFERENCE_SERVING_GRAMS = 300.0;
-
-    private static final double SERVING_RATIO =
-            REFERENCE_SERVING_GRAMS / 100.0;
-
     // 식약처 API가 죽으면 상대 게이트웨이가 60초를 끌고 504를 준다.
     // 그동안 AI 호출 전체가 매달리고, 메뉴 수만큼 곱해져 사용자가 몇 분을 기다린다.
     // 영양정보는 없어도 일정을 만들 수 있다. 빨리 포기하고 조회 불가로 넘긴다.
@@ -40,9 +27,8 @@ public class NutritionService {
             Duration.ofSeconds(15);
 
     private final FoodNtrCpntHandler foodNtrCpntHandler;
-    private final NutritionEvaluator nutritionEvaluator;
 
-    // 음식 영양정보 조회 및 질환별 영양성분 평가
+    // 음식 영양정보 조회 및 평가 가능 여부 판정
     public Mono<NutritionEvaluationResult> evaluateFoodNutrition(
             String foodName,
             List<DiseaseType> diseaseTypes
@@ -52,7 +38,7 @@ public class NutritionService {
     }
 
     /**
-     * 음식 영양정보 조회 및 질환별 영양성분 평가.
+     * 음식 영양정보 조회 및 평가 가능 여부 판정.
      *
      * 식당 고유 메뉴명은 식약처 품목명이 아니라서 조회되지 않는 경우가 많다.
      * 그래서 메뉴명으로 못 찾으면 표준 품목명으로 한 번 더 조회한다.
@@ -127,18 +113,15 @@ public class NutritionService {
                         foodName
                 );
 
-        NutritionInfo measured =
-                toNutritionInfo(item);
-
-        NutritionEvaluationResult evaluated =
-                nutritionEvaluator.evaluate(
-                        diseaseTypes,
-                        toReferenceServing(measured)
-                );
-
-        return withMeasuredValues(
-                evaluated,
-                measured
+        // 현재 응답에는 신뢰 가능한 1회분량이 없다. 기준량 수치는 보존하되
+        // 한 끼 임계값으로 평가하거나 건강 태그를 만들지 않는다.
+        return new NutritionEvaluationResult(
+                List.copyOf(diseaseTypes),
+                NutritionEvaluationStatus.NOT_EVALUABLE,
+                List.of(),
+                parseNutritionValue(item.carbohydrate()),
+                parseNutritionValue(item.sodium()),
+                parseNutritionValue(item.fat())
         );
     }
 
@@ -174,68 +157,6 @@ public class NutritionService {
                 )
                 .findFirst()
                 .orElse(items.getFirst());
-    }
-
-    // 식약처 영양정보를 평가용 NutritionInfo로 변환
-    private NutritionInfo toNutritionInfo(
-            FoodNtrCpntResponse.Item item
-    ) {
-
-        return new NutritionInfo(
-                parseNutritionValue(item.carbohydrate()),
-                parseNutritionValue(item.sugar()),
-                parseNutritionValue(item.dietaryFiber()),
-                parseNutritionValue(item.sodium()),
-                parseNutritionValue(item.saturatedFat()),
-                parseNutritionValue(item.transFat()),
-                parseNutritionValue(item.cholesterol()),
-                parseNutritionValue(item.fat())
-        );
-    }
-
-    // 100g 기준 수치를 기준 1인분 분량으로 환산 (평가 전용)
-    private NutritionInfo toReferenceServing(
-            NutritionInfo measured
-    ) {
-
-        return new NutritionInfo(
-                toServing(measured.carbohydrate()),
-                toServing(measured.sugar()),
-                toServing(measured.dietaryFiber()),
-                toServing(measured.sodium()),
-                toServing(measured.saturatedFat()),
-                toServing(measured.transFat()),
-                toServing(measured.cholesterol()),
-                toServing(measured.fat())
-        );
-    }
-
-    private Double toServing(Double value) {
-
-        return value == null
-                ? null
-                : value * SERVING_RATIO;
-    }
-
-    /**
-     * 평가 결과의 수치를 실측값으로 되돌린다.
-     *
-     * 등급은 한 끼 분량을 가정해 매기지만 화면에 나가는 수치는 측정값이어야 한다.
-     * 환산값을 내보내면 가정이 측정처럼 보인다.
-     */
-    private NutritionEvaluationResult withMeasuredValues(
-            NutritionEvaluationResult evaluated,
-            NutritionInfo measured
-    ) {
-
-        return new NutritionEvaluationResult(
-                evaluated.diseaseTypes(),
-                evaluated.status(),
-                evaluated.evaluations(),
-                measured.carbohydrate(),
-                measured.sodium(),
-                measured.fat()
-        );
     }
 
     // 식약처 String 영양성분 값을 Double 타입으로 변환

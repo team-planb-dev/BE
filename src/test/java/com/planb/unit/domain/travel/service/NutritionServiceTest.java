@@ -1,10 +1,7 @@
 package com.planb.unit.domain.travel.service;
 
 import com.planb.domain.health.entity.constant.DiseaseType;
-import com.planb.domain.travel.dto.nutrition.NutritionEvaluationResult;
-import com.planb.domain.travel.dto.nutrition.NutritionInfo;
 import com.planb.domain.travel.entity.constant.NutritionEvaluationStatus;
-import com.planb.domain.travel.helper.NutritionEvaluator;
 import com.planb.domain.travel.service.NutritionService;
 import com.planb.global.client.foodNtrCpnt.dto.request.FoodNtrCpntSearchRequest;
 import com.planb.global.client.foodNtrCpnt.dto.response.FoodNtrCpntResponse;
@@ -23,8 +20,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -35,14 +30,11 @@ class NutritionServiceTest {
     @Mock
     private FoodNtrCpntHandler foodNtrCpntHandler;
 
-    @Mock
-    private NutritionEvaluator nutritionEvaluator;
-
     @InjectMocks
     private NutritionService nutritionService;
 
     @Test
-    @DisplayName("음식 이름 정확 일치 영양정보 평가")
+    @DisplayName("음식 이름 정확 일치 영양정보 선택")
     void evaluateFoodNutritionExactMatch() {
 
         // given
@@ -74,29 +66,6 @@ class NutritionServiceTest {
                         "70.0"
                 );
 
-        // 평가에는 100g 수치를 한 끼 분량으로 환산해 넘긴다.
-        NutritionInfo nutritionInfo =
-                new NutritionInfo(
-                        150.0,
-                        24.0,
-                        18.0,
-                        1800.0,
-                        9.0,
-                        1.5,
-                        210.0,
-                        9.0
-                );
-
-        NutritionEvaluationResult expectedResult =
-                new NutritionEvaluationResult(
-                        diseaseTypes,
-                        NutritionEvaluationStatus.AVAILABLE,
-                        List.of(),
-                        150.0,
-                        1800.0,
-                        9.0
-                );
-
         when(foodNtrCpntHandler.getFoodNutrition(
                 any(FoodNtrCpntSearchRequest.class)
         )).thenReturn(
@@ -108,11 +77,6 @@ class NutritionServiceTest {
                 )
         );
 
-        when(nutritionEvaluator.evaluate(
-                diseaseTypes,
-                nutritionInfo
-        )).thenReturn(expectedResult);
-
         // when & then
         StepVerifier.create(
                         nutritionService.evaluateFoodNutrition(
@@ -121,21 +85,17 @@ class NutritionServiceTest {
                         )
                 )
                 .expectNextMatches(result ->
-                        result.carbohydrate() == 50.0
+                        result.status() == NutritionEvaluationStatus.NOT_EVALUABLE
+                                && result.evaluations().isEmpty()
+                                && result.carbohydrate() == 50.0
                                 && result.sodium() == 600.0
                                 && result.fat() == 3.0
                 )
                 .verifyComplete();
-
-        verify(nutritionEvaluator)
-                .evaluate(
-                        diseaseTypes,
-                        nutritionInfo
-                );
     }
 
     @Test
-    @DisplayName("음식 이름 불일치 시 첫 번째 영양정보 평가")
+    @DisplayName("음식 이름 불일치 시 첫 번째 영양정보 선택")
     void evaluateFoodNutritionFirstItemFallback() {
 
         // given
@@ -167,28 +127,6 @@ class NutritionServiceTest {
                         "60.0"
                 );
 
-        NutritionInfo nutritionInfo =
-                new NutritionInfo(
-                        165.0,
-                        27.0,
-                        15.0,
-                        1950.0,
-                        12.0,
-                        1.5,
-                        225.0,
-                        9.0
-                );
-
-        NutritionEvaluationResult expectedResult =
-                new NutritionEvaluationResult(
-                        diseaseTypes,
-                        NutritionEvaluationStatus.AVAILABLE,
-                        List.of(),
-                        165.0,
-                        1950.0,
-                        9.0
-                );
-
         when(foodNtrCpntHandler.getFoodNutrition(
                 any(FoodNtrCpntSearchRequest.class)
         )).thenReturn(
@@ -200,11 +138,6 @@ class NutritionServiceTest {
                 )
         );
 
-        when(nutritionEvaluator.evaluate(
-                diseaseTypes,
-                nutritionInfo
-        )).thenReturn(expectedResult);
-
         // when & then
         StepVerifier.create(
                         nutritionService.evaluateFoodNutrition(
@@ -213,17 +146,13 @@ class NutritionServiceTest {
                         )
                 )
                 .expectNextMatches(result ->
-                        result.carbohydrate() == 55.0
+                        result.status() == NutritionEvaluationStatus.NOT_EVALUABLE
+                                && result.evaluations().isEmpty()
+                                && result.carbohydrate() == 55.0
                                 && result.sodium() == 650.0
                                 && result.fat() == 3.0
                 )
                 .verifyComplete();
-
-        verify(nutritionEvaluator)
-                .evaluate(
-                        diseaseTypes,
-                        nutritionInfo
-                );
     }
 
     @Test
@@ -258,16 +187,10 @@ class NutritionServiceTest {
                                 && result.fat() == null
                 )
                 .verifyComplete();
-
-        verify(nutritionEvaluator, never())
-                .evaluate(
-                        anyList(),
-                        any(NutritionInfo.class)
-                );
     }
 
     @Test
-    @DisplayName("빈 영양성분 평가용 데이터 변환")
+    @DisplayName("빈 영양성분 원본 수치 보존")
     void evaluateFoodNutritionBlankNutritionValue() {
 
         // given
@@ -287,38 +210,11 @@ class NutritionServiceTest {
                         "70.0"
                 );
 
-        NutritionInfo nutritionInfo =
-                new NutritionInfo(
-                        null,
-                        24.0,
-                        18.0,
-                        1800.0,
-                        9.0,
-                        1.5,
-                        210.0,
-                        9.0
-                );
-
-        NutritionEvaluationResult expectedResult =
-                new NutritionEvaluationResult(
-                        diseaseTypes,
-                        NutritionEvaluationStatus.NOT_EVALUABLE,
-                        List.of(),
-                        null,
-                        1800.0,
-                        9.0
-                );
-
         when(foodNtrCpntHandler.getFoodNutrition(
                 any(FoodNtrCpntSearchRequest.class)
         )).thenReturn(
                 Mono.just(List.of(item))
         );
-
-        when(nutritionEvaluator.evaluate(
-                diseaseTypes,
-                nutritionInfo
-        )).thenReturn(expectedResult);
 
         // when & then
         StepVerifier.create(
@@ -328,22 +224,18 @@ class NutritionServiceTest {
                         )
                 )
                 .expectNextMatches(result ->
-                        result.carbohydrate() == null
+                        result.status() == NutritionEvaluationStatus.NOT_EVALUABLE
+                                && result.evaluations().isEmpty()
+                                && result.carbohydrate() == null
                                 && result.sodium() == 600.0
                                 && result.fat() == 3.0
                 )
                 .verifyComplete();
-
-        verify(nutritionEvaluator)
-                .evaluate(
-                        diseaseTypes,
-                        nutritionInfo
-                );
     }
 
     @Test
-    @DisplayName("한 끼 분량으로 환산해 평가하고 응답 수치는 실측 그대로 반환")
-    void evaluateFoodNutritionByReferenceServing() {
+    @DisplayName("1회분량 근거 없는 영양정보 평가 불가")
+    void evaluateFoodNutritionWithoutReliableServing() {
 
         // given
         String foodName = "비빔밥";
@@ -362,39 +254,11 @@ class NutritionServiceTest {
                         "30.0"
                 );
 
-        // 식약처 수치는 100g 기준이다. 임계값은 한 끼 기준이라 300g으로 맞춰 평가한다.
-        NutritionInfo referenceServing =
-                new NutritionInfo(
-                        60.0,
-                        12.0,
-                        6.0,
-                        600.0,
-                        3.0,
-                        1.5,
-                        90.0,
-                        9.0
-                );
-
-        NutritionEvaluationResult evaluatorResult =
-                new NutritionEvaluationResult(
-                        diseaseTypes,
-                        NutritionEvaluationStatus.AVAILABLE,
-                        List.of(),
-                        60.0,
-                        600.0,
-                        9.0
-                );
-
         when(foodNtrCpntHandler.getFoodNutrition(
                 any(FoodNtrCpntSearchRequest.class)
         )).thenReturn(
                 Mono.just(List.of(item))
         );
-
-        when(nutritionEvaluator.evaluate(
-                diseaseTypes,
-                referenceServing
-        )).thenReturn(evaluatorResult);
 
         // when & then
         StepVerifier.create(
@@ -405,18 +269,13 @@ class NutritionServiceTest {
                 )
                 .expectNextMatches(result ->
                         result.status()
-                                == NutritionEvaluationStatus.AVAILABLE
+                                == NutritionEvaluationStatus.NOT_EVALUABLE
+                                && result.evaluations().isEmpty()
                                 && result.carbohydrate() == 20.0
                                 && result.sodium() == 200.0
                                 && result.fat() == 3.0
                 )
                 .verifyComplete();
-
-        verify(nutritionEvaluator)
-                .evaluate(
-                        diseaseTypes,
-                        referenceServing
-                );
     }
 
     @Test
@@ -452,12 +311,6 @@ class NutritionServiceTest {
                                 && result.fat() == null
                 )
                 .verifyComplete();
-
-        verify(nutritionEvaluator, never())
-                .evaluate(
-                        anyList(),
-                        any(NutritionInfo.class)
-                );
     }
 
     @Test
@@ -486,18 +339,6 @@ class NutritionServiceTest {
                 )))
         );
 
-        when(nutritionEvaluator.evaluate(
-                anyList(),
-                any(NutritionInfo.class)
-        )).thenReturn(new NutritionEvaluationResult(
-                diseaseTypes,
-                NutritionEvaluationStatus.AVAILABLE,
-                List.of(),
-                null,
-                null,
-                null
-        ));
-
         // when & then
         StepVerifier.create(
                         nutritionService.evaluateFoodNutrition(
@@ -507,7 +348,8 @@ class NutritionServiceTest {
                         )
                 )
                 .expectNextMatches(result ->
-                        result.status() == NutritionEvaluationStatus.AVAILABLE
+                        result.status() == NutritionEvaluationStatus.NOT_EVALUABLE
+                                && result.evaluations().isEmpty()
                                 && result.carbohydrate() == 10.0
                                 && result.sodium() == 100.0
                 )
@@ -611,18 +453,6 @@ class NutritionServiceTest {
                         : List.of(found))
                 .delayElement(Duration.ofSeconds(10)));
 
-        when(nutritionEvaluator.evaluate(
-                anyList(),
-                any(NutritionInfo.class)
-        )).thenReturn(new NutritionEvaluationResult(
-                diseaseTypes,
-                NutritionEvaluationStatus.AVAILABLE,
-                List.of(),
-                null,
-                null,
-                null
-        ));
-
         // when & then
         StepVerifier.withVirtualTime(() ->
                         nutritionService.evaluateFoodNutrition(
@@ -633,7 +463,7 @@ class NutritionServiceTest {
                 )
                 .thenAwait(Duration.ofSeconds(30))
                 .expectNextMatches(result ->
-                        result.status() == NutritionEvaluationStatus.AVAILABLE
+                        result.status() == NutritionEvaluationStatus.NOT_EVALUABLE
                 )
                 .verifyComplete();
     }
