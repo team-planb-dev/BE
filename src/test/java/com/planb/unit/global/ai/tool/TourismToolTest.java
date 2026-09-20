@@ -284,12 +284,14 @@ class TourismToolTest {
 
         when(nutritionService.evaluateFoodNutrition(
                 foodName,
+                foodName,
                 diseaseTypes
         )).thenReturn(Mono.just(response));
 
         // when
         NutritionEvaluationResult result =
                 tourismTool.evaluateFoodNutrition(
+                        foodName,
                         foodName,
                         diseaseTypes
                 );
@@ -300,10 +302,54 @@ class TourismToolTest {
         verify(nutritionService)
                 .evaluateFoodNutrition(
                         foodName,
+                        foodName,
                         diseaseTypes
                 );
 
         // 결정 가능한 RecommendationTag 계산 재사용을 위한 요청 단위 기록
+        verify(nutritionEvaluationCollector)
+                .record(foodName, response);
+    }
+
+    @Test
+    @DisplayName("표준 품목명을 조회에 넘기되 기록은 메뉴명으로 남김")
+    void evaluateFoodNutritionWithStandardName() {
+
+        // given
+        String foodName = "검은콩 장칼국수";
+        String standardFoodName = "칼국수";
+        List<DiseaseType> diseaseTypes =
+                List.of(DiseaseType.DIABETES);
+
+        NutritionEvaluationResult response =
+                new NutritionEvaluationResult(
+                        diseaseTypes,
+                        NutritionEvaluationStatus.AVAILABLE,
+                        List.of(),
+                        50.0,
+                        500.0,
+                        10.0
+                );
+
+        when(nutritionService.evaluateFoodNutrition(
+                foodName,
+                standardFoodName,
+                diseaseTypes
+        )).thenReturn(Mono.just(response));
+
+        // when
+        NutritionEvaluationResult result =
+                tourismTool.evaluateFoodNutrition(
+                        foodName,
+                        standardFoodName,
+                        diseaseTypes
+                );
+
+        // then
+        assertEquals(response, result);
+
+        // 수치를 되찾는 쪽은 restaurantDetail.menuName()을 키로 쓴다.
+        // 여기에 표준 품목명을 넣으면 조회는 성공하는데 화면은 빈칸이 된다.
         verify(nutritionEvaluationCollector)
                 .record(foodName, response);
     }

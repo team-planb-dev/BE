@@ -112,6 +112,39 @@ class PlanDayRebuildContractTest {
     }
 
     @Test
+    @DisplayName("영양 평가 Prompt는 조회 가능한 기본 음식명을 표준 품목명으로 전달")
+    void usesSearchableBaseFoodNameForNutritionLookup() {
+
+        String createPrompt =
+                new TravelPlanPrompt(
+                        null,
+                        null
+                ).system();
+
+        String editPrompt =
+                new EditPlanPrompt(
+                        null,
+                        null
+                ).system();
+
+        assertTrue(createPrompt.contains(
+                "\"검은콩 장칼국수\" → \"칼국수\""
+        ));
+
+        assertTrue(editPrompt.contains(
+                "\"검은콩 장칼국수\" → \"칼국수\""
+        ));
+
+        assertFalse(createPrompt.contains(
+                "\"검은콩 장칼국수\" → \"장칼국수\""
+        ));
+
+        assertFalse(editPrompt.contains(
+                "\"검은콩 장칼국수\" → \"장칼국수\""
+        ));
+    }
+
+    @Test
     @DisplayName("후보 부재 응답을 JSON 파싱 오류와 구분하여 실패 사유 보존")
     void preservesExplicitCandidateFailure() {
 
