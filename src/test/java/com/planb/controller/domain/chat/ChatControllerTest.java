@@ -11,10 +11,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.planb.domain.chat.controller.ChatController;
 import com.planb.domain.chat.dto.MessageType;
 import com.planb.domain.chat.dto.request.SendChatMessageRequest;
+import com.planb.domain.chat.facade.ChatFacade;
 import com.planb.domain.chat.facade.ChatMessageFacade;
 
 import java.security.Principal;
 
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -22,6 +24,9 @@ class ChatControllerTest {
 
     @Mock
     private ChatMessageFacade chatMessageFacade;
+
+    @Mock
+    private ChatFacade chatFacade;
 
     @InjectMocks
     private ChatController chatController;
@@ -55,6 +60,47 @@ class ChatControllerTest {
                         roomId,
                         request,
                         username
+                );
+    }
+
+    @Test
+    @DisplayName("STOMP 처리 예외의 실패 응답 발행 위임")
+    void sendMessageDelegatesFailureReply() {
+
+        // given
+        Long roomId = 1L;
+        String username = "testUser@example.com";
+
+        SendChatMessageRequest request =
+                new SendChatMessageRequest(
+                        MessageType.TALK,
+                        "일정을 수정해 주세요."
+                );
+
+        Principal principal = () -> username;
+        RuntimeException exception =
+                new RuntimeException("테스트용 편집 실패");
+
+        doThrow(exception)
+                .when(chatMessageFacade)
+                .handleMessage(
+                        roomId,
+                        request,
+                        username
+                );
+
+        // when
+        chatController.sendMessage(
+                roomId,
+                request,
+                principal
+        );
+
+        // then
+        verify(chatFacade)
+                .publishEditFailedReply(
+                        roomId,
+                        exception
                 );
     }
 }

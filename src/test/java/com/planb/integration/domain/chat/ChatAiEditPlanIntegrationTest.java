@@ -434,7 +434,7 @@ public class ChatAiEditPlanIntegrationTest
     }
 
     @Test
-    @DisplayName("일정 수정 중 예외가 나도 봇이 안내 메시지를 발행")
+    @DisplayName("일정 수정 검증 실패의 사용자 안내 메시지 발행")
     void talkPublishesFailureNoticeWhenEditThrows() throws Exception {
 
         // given
@@ -514,7 +514,7 @@ public class ChatAiEditPlanIntegrationTest
                     .isNotNull();
 
             assertThat(botReply.message())
-                    .isEqualTo("일정 수정 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요.");
+                    .isEqualTo("AI가 요청 조건을 만족하는 결과를 만들지 못했습니다.");
 
         } finally {
             stompHelper.disconnect(session);
