@@ -135,4 +135,23 @@ class FoodNtrCpntHandlerTest extends IntegrationTest {
         });
     }
 
+    @Test
+    @DisplayName("접미사가 같은 다른 실제 음식 제외")
+    void excludeDifferentFoodWithSameSuffix() {
+
+        List<FoodNtrCpntResponse.Item> items = foodNtrCpntHandler
+                .getFoodNutrition(
+                        FoodNtrCpntSearchRequest.of("순두부")
+                )
+                .block();
+
+        assertThat(items)
+                .isNotNull()
+                .noneMatch(item ->
+                        "달걀탕_순두부".equals(
+                                item.foodName()
+                        )
+                );
+    }
+
 }

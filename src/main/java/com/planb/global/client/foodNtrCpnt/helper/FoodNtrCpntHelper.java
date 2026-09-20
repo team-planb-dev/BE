@@ -31,15 +31,13 @@ public class FoodNtrCpntHelper {
                 )
                 .toList();
 
-        String normalizedFoodName =
-                normalizeFoodName(foodName);
-
         List<FoodNtrCpntResponse.Item> exactMatches = candidates
                 .stream()
                 .filter(item ->
-                        normalizeFoodName(
-                                item.foodName()
-                        ).equals(normalizedFoodName)
+                        sameFoodName(
+                                item.foodName(),
+                                foodName
+                        )
                 )
                 .limit(3)
                 .toList();
@@ -48,34 +46,38 @@ public class FoodNtrCpntHelper {
             return exactMatches;
         }
 
-        return candidates
+        List<FoodNtrCpntResponse.Item> referenceMatches = candidates
                 .stream()
                 .filter(item ->
-                        normalizeFoodName(
-                                item.foodName()
-                        ).contains(normalizedFoodName)
+                        sameFoodName(
+                                item.foodReferenceName(),
+                                foodName
+                        )
                 )
-                .limit(3)
+                .limit(2)
                 .toList();
+
+        if (referenceMatches.size() == 1) {
+            return referenceMatches;
+        }
+
+        return List.of();
     }
 
-    // 식품명 비교를 위한 이름 정규화
-    private String normalizeFoodName(String foodName) {
+    // 식품명 비교
+    private boolean sameFoodName(
+            String candidateFoodName,
+            String requestedFoodName
+    ) {
 
-        if (foodName == null) {
-            return "";
+        if (candidateFoodName == null || requestedFoodName == null) {
+            return false;
         }
 
-        int separatorIndex = foodName
-                .lastIndexOf("_");
-
-        if (separatorIndex >= 0) {
-            return foodName
-                    .substring(separatorIndex + 1)
-                    .trim();
-        }
-
-        return foodName
-                .trim();
+        return candidateFoodName
+                .trim()
+                .equalsIgnoreCase(
+                        requestedFoodName.trim()
+                );
     }
 }
