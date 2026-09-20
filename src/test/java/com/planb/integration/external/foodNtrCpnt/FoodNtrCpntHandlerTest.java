@@ -1,5 +1,9 @@
 package com.planb.integration.external.foodNtrCpnt;
 
+import com.planb.domain.health.entity.constant.DiseaseType;
+import com.planb.domain.travel.dto.nutrition.NutritionEvaluationResult;
+import com.planb.domain.travel.entity.constant.NutritionEvaluationStatus;
+import com.planb.domain.travel.service.NutritionService;
 import com.planb.global.client.foodNtrCpnt.dto.request.FoodNtrCpntSearchRequest;
 import com.planb.global.client.foodNtrCpnt.dto.response.FoodNtrCpntResponse;
 import com.planb.global.client.foodNtrCpnt.handler.FoodNtrCpntHandler;
@@ -25,6 +29,9 @@ class FoodNtrCpntHandlerTest extends IntegrationTest {
 
     @Autowired
     private FoodNtrCpntHandler foodNtrCpntHandler;
+
+    @Autowired
+    private NutritionService nutritionService;
 
     @Test
     @DisplayName("식품 영양성분 API 호출 및 응답 파싱")
@@ -88,6 +95,27 @@ class FoodNtrCpntHandlerTest extends IntegrationTest {
     }
 
     @Test
+    @DisplayName("1회분량 근거 없는 실제 영양정보 평가 불가")
+    void nutritionWithoutReliableServing() {
+
+        NutritionEvaluationResult result = nutritionService
+                .evaluateFoodNutrition(
+                        "막국수",
+                        List.of(DiseaseType.DIABETES)
+                )
+                .block();
+
+        assertThat(result)
+                .isNotNull();
+
+        assertThat(result.status())
+                .isEqualTo(NutritionEvaluationStatus.NOT_EVALUABLE);
+
+        assertThat(result.evaluations())
+                .isEmpty();
+    }
+
+    @Test
     @DisplayName("식품 영양성분 API가 부분일치를 하는지 확인")
     void partialMatchProbe() {
 
@@ -106,4 +134,5 @@ class FoodNtrCpntHandlerTest extends IntegrationTest {
             items.forEach(item -> System.out.println("  " + item.foodName()));
         });
     }
+
 }

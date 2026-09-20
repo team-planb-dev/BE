@@ -1706,8 +1706,8 @@ class PlanServiceTest {
     }
 
     @Test
-    @DisplayName("AI 기반 여행 일정 생성 - 조회한 영양성분으로 AI 수치를 덮어쓴다")
-    void makePlanByAiOverwritesNutritionFromLookup() {
+    @DisplayName("평가 불가 영양정보의 원본 수치 보존과 참고 태그 미부여")
+    void makePlanByAiKeepsMeasuredNutritionWithoutReferenceTag() {
 
         TravelPlanContext context =
                 travelPlanContext();
@@ -1741,11 +1741,11 @@ class PlanServiceTest {
                                 "비빔밥",
                                 new NutritionEvaluationResult(
                                         List.of(DiseaseType.DIABETES),
-                                        NutritionEvaluationStatus.AVAILABLE,
+                                        NutritionEvaluationStatus.NOT_EVALUABLE,
                                         List.of(
                                                 new NutritionEvaluationDetail(
                                                         NutritionType.CARBOHYDRATE,
-                                                        NutritionLevel.LOW
+                                                        NutritionLevel.HIGH
                                                 )
                                         ),
                                         18.5,
@@ -1771,6 +1771,14 @@ class PlanServiceTest {
         assertEquals(18.5, restaurantDetail.carbohydrate());
         assertEquals(239.0, restaurantDetail.sodium());
         assertEquals(6.49, restaurantDetail.fat());
+        assertFalse(
+                result.planDays()
+                        .get(0)
+                        .schedules()
+                        .get(0)
+                        .tags()
+                        .contains(RecommendationTag.CARBOHYDRATE_REFERENCE)
+        );
     }
 
     @Test
