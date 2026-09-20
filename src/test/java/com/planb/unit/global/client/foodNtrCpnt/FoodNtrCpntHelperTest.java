@@ -42,18 +42,19 @@ class FoodNtrCpntHelperTest {
     }
 
     @Test
-    @DisplayName("정규화된 식품명 정확 일치")
+    @DisplayName("원본 식품명 정확 일치 우선")
     void filterExactFoodName() {
 
         FoodNtrCpntResponse.Item exactFood =
                 makeItem(
-                        "부산_돼지국밥",
+                        "돼지국밥",
                         "음식"
                 );
 
         FoodNtrCpntResponse.Item similarFood =
                 makeItem(
-                        "돼지국밥_특",
+                        "부산_돼지국밥",
+                        "돼지국밥",
                         "음식"
                 );
 
@@ -83,12 +84,13 @@ class FoodNtrCpntHelperTest {
     }
 
     @Test
-    @DisplayName("부분 일치 식품명 검색")
-    void filterContainsFoodName() {
+    @DisplayName("대표 식품명 정확 일치")
+    void filterReferenceFoodName() {
 
         FoodNtrCpntResponse.Item item =
                 makeItem(
-                        "얼큰돼지국밥",
+                        "부산_돼지국밥",
+                        "돼지국밥",
                         "음식"
                 );
 
@@ -115,6 +117,64 @@ class FoodNtrCpntHelperTest {
     }
 
     @Test
+    @DisplayName("접미사가 같은 다른 음식 제외")
+    void excludeDifferentFoodWithSameSuffix() {
+
+        FoodNtrCpntResponse.Item differentFood =
+                makeItem(
+                        "달걀탕_순두부",
+                        "달걀탕",
+                        "음식"
+                );
+
+        FoodNtrCpntResponse response =
+                makeResponse(
+                        List.of(differentFood)
+                );
+
+        List<FoodNtrCpntResponse.Item> result =
+                foodNtrCpntHelper.filterFoodNutrition(
+                        response,
+                        "순두부"
+                );
+
+        assertTrue(
+                result.isEmpty()
+        );
+    }
+
+    @Test
+    @DisplayName("대표 식품명이 같은 여러 음식 제외")
+    void excludeAmbiguousReferenceFoodName() {
+
+        FoodNtrCpntResponse response =
+                makeResponse(
+                        List.of(
+                                makeItem(
+                                        "부산_돼지국밥",
+                                        "돼지국밥",
+                                        "음식"
+                                ),
+                                makeItem(
+                                        "밀양_돼지국밥",
+                                        "돼지국밥",
+                                        "음식"
+                                )
+                        )
+                );
+
+        List<FoodNtrCpntResponse.Item> result =
+                foodNtrCpntHelper.filterFoodNutrition(
+                        response,
+                        "돼지국밥"
+                );
+
+        assertTrue(
+                result.isEmpty()
+        );
+    }
+
+    @Test
     @DisplayName("영양정보 검색 결과 최대 3개 제한")
     void limitFoodNutritionResults() {
 
@@ -122,19 +182,19 @@ class FoodNtrCpntHelperTest {
                 makeResponse(
                         List.of(
                                 makeItem(
-                                        "돼지국밥A",
+                                        "돼지국밥",
                                         "음식"
                                 ),
                                 makeItem(
-                                        "돼지국밥B",
+                                        "돼지국밥",
                                         "음식"
                                 ),
                                 makeItem(
-                                        "돼지국밥C",
+                                        "돼지국밥",
                                         "음식"
                                 ),
                                 makeItem(
-                                        "돼지국밥D",
+                                        "돼지국밥",
                                         "음식"
                                 )
                         )
@@ -190,12 +250,25 @@ class FoodNtrCpntHelperTest {
             String dbGroupName
     ) {
 
+        return makeItem(
+                foodName,
+                null,
+                dbGroupName
+        );
+    }
+
+    private FoodNtrCpntResponse.Item makeItem(
+            String foodName,
+            String foodReferenceName,
+            String dbGroupName
+    ) {
+
         return new FoodNtrCpntResponse.Item(
                 "FOOD_CODE",
                 foodName,
                 dbGroupName,
                 null,
-                null,
+                foodReferenceName,
                 null,
                 null,
                 null,
