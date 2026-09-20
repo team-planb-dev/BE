@@ -525,6 +525,8 @@ public class PlanService {
                 candidates
         );
 
+        validateTravelMinutes(mealFixed);
+
         validateMealSlots(
                 mealFixed,
                 context.healthContexts(),
