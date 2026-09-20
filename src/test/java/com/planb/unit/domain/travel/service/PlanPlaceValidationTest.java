@@ -2629,6 +2629,136 @@ class PlanPlaceValidationTest {
                         });
     }
 
+    private void stubRouteMinutes(
+            String origin,
+            String destination,
+            int expectedTravelMinutes
+    ) {
+
+        when(kakao.getRoute(anyString(), anyString(), any()))
+                .thenAnswer(invocation -> Mono.just(
+                        new KakaoRouteResult(
+                                null,
+                                null,
+                                null,
+                                origin.equals(invocation.<String>getArgument(0))
+                                        && destination.equals(invocation.<String>getArgument(1))
+                                        ? expectedTravelMinutes
+                                        : 15
+                        )
+                ));
+    }
+
+    private PlanScheduleDetail makePlanAndFind(
+            TravelHealthContext health,
+            String locationName
+    ) {
+
+        return service
+                .makePlanByAi(
+                        new TravelPlanContext(
+                                travel.createTravelRequest(),
+                                List.of(health)
+                        )
+                )
+                .planDays()
+                .getFirst()
+                .schedules()
+                .stream()
+                .filter(schedule -> locationName.equals(schedule.locationName()))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private TravelHealthContext healthWithMeal(
+            ScheduleType mealType,
+            LocalTime mealTime
+    ) {
+
+        return new TravelHealthContext(
+                "테스트 여행자",
+                List.of(DiseaseType.DIABETES),
+                WalkType.MINIMAL,
+                new TravelHealthContext.MealInfoContext(
+                        true,
+                        mealType == ScheduleType.BREAKFAST,
+                        mealType == ScheduleType.BREAKFAST ? mealTime : null,
+                        mealType == ScheduleType.LUNCH,
+                        mealType == ScheduleType.LUNCH ? mealTime : null,
+                        mealType == ScheduleType.DINNER,
+                        mealType == ScheduleType.DINNER ? mealTime : null
+                ),
+                List.of(),
+                List.of()
+        );
+    }
+
+    private void stubTwoAttractionPlan(int secondStartHour) {
+
+        stubCreate(
+                new CreatePlanAiResponse(
+                        List.of(
+                                new PlanDayDetail(
+                                        1,
+                                        date,
+                                        List.of(
+                                                slot("tour:1", "해운대", 9),
+                                                slot("tour:3", "이기대", secondStartHour)
+                                        )
+                                )
+                        )
+                )
+        );
+    }
+
+    @Test
+    @DisplayName("식사 슬롯 삽입으로 직전 장소가 바뀌면 이동시간 재계산")
+    void recalculatesTravelMinutesAfterMealSlotInsertion() {
+
+        TravelHealthContext health = healthWithMeal(
+                ScheduleType.LUNCH,
+                LocalTime.of(12, 0)
+        );
+
+        stubTwoAttractionPlan(13);
+
+        when(tourismTool.getRestaurantDetail("2784321"))
+                .thenReturn(intro("밀면"));
+
+        stubRouteMinutes("개금밀면", "이기대", 25);
+
+        PlanScheduleDetail secondAttraction = makePlanAndFind(health, "이기대");
+
+        assertEquals(
+                25,
+                secondAttraction.travelMinutes()
+        );
+    }
+
+    @Test
+    @DisplayName("첫 장소 앞에 식사 슬롯을 삽입하면 첫 장소 이동시간 재계산")
+    void recalculatesFirstPlaceTravelMinutesAfterMealSlotInsertion() {
+
+        TravelHealthContext health = healthWithMeal(
+                ScheduleType.BREAKFAST,
+                LocalTime.of(8, 0)
+        );
+
+        stubTwoAttractionPlan(11);
+
+        when(tourismTool.getRestaurantDetail("2784321"))
+                .thenReturn(intro("밀면"));
+
+        stubRouteMinutes("개금밀면", "해운대", 25);
+
+        PlanScheduleDetail firstAttraction = makePlanAndFind(health, "해운대");
+
+        assertEquals(
+                25,
+                firstAttraction.travelMinutes()
+        );
+    }
+
     @Test
     @DisplayName("정규화가 일정을 앞당겨 식사시각을 지나게 되면 그 식사 슬롯이 채워짐")
     void keepsMealSlotsAfterNormalizationShiftsDayEarlier() {
@@ -2711,6 +2841,37 @@ class PlanPlaceValidationTest {
                         .map(schedule -> schedule.scheduleType() + "@" + schedule.startTime())
                         .toList()
                         .toString());
+    }
+
+    @Test
+    @DisplayName("두 번째 식사 보정의 경로 조회 실패 시 이동시간 누락 거부")
+    void rejectsMissingTravelMinutesAfterSecondMealCompletion() {
+
+        TravelHealthContext health = healthWithMeal(
+                ScheduleType.LUNCH,
+                LocalTime.of(12, 0)
+        );
+
+        stubTwoAttractionPlan(13);
+
+        when(tourismTool.getRestaurantDetail("2784321"))
+                .thenThrow(new RuntimeException("temporary failure"))
+                .thenReturn(intro("밀면"));
+
+        BaseException exception = assertThrows(
+                BaseException.class,
+                () -> service.makePlanByAi(
+                        new TravelPlanContext(
+                                travel.createTravelRequest(),
+                                List.of(health)
+                        )
+                )
+        );
+
+        assertTrue(
+                exception.getMessage().contains("이동시간 누락"),
+                exception.getMessage()
+        );
     }
 
     @Test

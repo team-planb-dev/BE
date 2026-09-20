@@ -3,6 +3,8 @@ package com.planb.ai.handler;
 import com.planb.ai.context.PlaceCandidateContext;
 import com.planb.ai.context.TravelHealthContext;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
+import com.planb.ai.dto.response.CreatePlanAiResponse.PlanDayDetail;
+import com.planb.ai.dto.response.CreatePlanAiResponse.PlanScheduleDetail;
 import com.planb.ai.mcp.TourismTool;
 import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.RecommendationTag;
@@ -20,7 +22,9 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -69,6 +73,9 @@ public class MissingSlotCompleter {
             return response;
         }
 
+        Map<PlanScheduleDetail, PlanScheduleDetail> previousPlaces =
+                previousPlaces(response);
+
         // 여행 전체에서 이미 쓴 장소는 다시 고르지 않는다.
         // 호출부가 알려준 응답 밖의 장소와 응답 안의 장소를 합쳐서 본다.
         Set<String> selectedNames = merged(
@@ -97,7 +104,119 @@ public class MissingSlotCompleter {
             );
         }
 
+        return invalidateChangedTravelMinutes(
+                new CreatePlanAiResponse(days),
+                previousPlaces
+        );
+    }
+
+    /**
+     * 슬롯 추가나 정렬로 직전 장소가 바뀐 기존 슬롯의 이동시간을 무효화한다.
+     *
+     * 새 슬롯의 이동시간은 처음부터 null이다. 기존 슬롯은 자신을 향하는 경로의 출발지가
+     * 바뀐 경우에만 null로 돌려 뒤의 확정 좌표 기반 경로 조회가 다시 계산하게 한다.
+     */
+    private CreatePlanAiResponse invalidateChangedTravelMinutes(
+            CreatePlanAiResponse response,
+            Map<PlanScheduleDetail, PlanScheduleDetail> previousPlaces
+    ) {
+
+        List<PlanDayDetail> days = new ArrayList<>();
+        PlanScheduleDetail previousPlace = null;
+
+        for (PlanDayDetail day : response.planDays()) {
+            if (day == null || day.schedules() == null) {
+                days.add(day);
+
+                continue;
+            }
+
+            List<PlanScheduleDetail> schedules = new ArrayList<>();
+
+            for (PlanScheduleDetail schedule : day.schedules()) {
+                PlanScheduleDetail completed = schedule;
+
+                if (requiresPlace(schedule)) {
+                    if (previousPlaces.containsKey(schedule)
+                            && previousPlaces.get(schedule) != previousPlace) {
+                        completed = withTravelMinutes(schedule, null);
+                    }
+
+                    previousPlace = schedule;
+                }
+
+                schedules.add(completed);
+            }
+
+            days.add(
+                    new PlanDayDetail(
+                            day.dayNumber(),
+                            day.date(),
+                            schedules
+                    )
+            );
+        }
+
         return new CreatePlanAiResponse(days);
+    }
+
+    private Map<PlanScheduleDetail, PlanScheduleDetail> previousPlaces(
+            CreatePlanAiResponse response
+    ) {
+
+        Map<PlanScheduleDetail, PlanScheduleDetail> previousPlaces =
+                new IdentityHashMap<>();
+
+        PlanScheduleDetail previousPlace = null;
+
+        for (PlanDayDetail day : response.planDays()) {
+            if (day == null || day.schedules() == null) {
+                continue;
+            }
+
+            for (PlanScheduleDetail schedule : day.schedules()) {
+                if (!requiresPlace(schedule)) {
+                    continue;
+                }
+
+                previousPlaces.put(schedule, previousPlace);
+                previousPlace = schedule;
+            }
+        }
+
+        return previousPlaces;
+    }
+
+    private boolean requiresPlace(PlanScheduleDetail schedule) {
+
+        return schedule != null
+                && schedule.courseType() != CourseType.MEDICATION
+                && schedule.courseType() != CourseType.TRANSPORTATION;
+    }
+
+    private PlanScheduleDetail withTravelMinutes(
+            PlanScheduleDetail schedule,
+            Integer travelMinutes
+    ) {
+
+        return new PlanScheduleDetail(
+                schedule.scheduleType(),
+                schedule.courseType(),
+                schedule.startTime(),
+                schedule.endTime(),
+                schedule.locationName(),
+                schedule.location(),
+                schedule.longitude(),
+                schedule.latitude(),
+                schedule.imageUrl(),
+                schedule.thumbNailImageUrl(),
+                schedule.stayMinutes(),
+                travelMinutes,
+                schedule.tags(),
+                schedule.medication(),
+                schedule.restaurantDetail(),
+                schedule.candidateId()
+        );
     }
 
     /**

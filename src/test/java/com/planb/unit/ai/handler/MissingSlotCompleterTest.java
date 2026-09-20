@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
 
@@ -179,6 +180,92 @@ class MissingSlotCompleterTest {
                     assertThat(slot.restaurantDetail().menuName())
                             .isEqualTo("대표메뉴");
                 });
+    }
+
+    @Test
+    @DisplayName("식사 슬롯 삽입으로 변경된 인접 경로만 이동시간 무효화")
+    void invalidatesOnlyTravelMinutesWhosePredecessorChanged() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(restaurantItem("9", "교리김밥", "129.21", "35.83"));
+
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
+                response(
+                        attraction("첨성대", LocalTime.of(9, 0)),
+                        attraction("대릉원", LocalTime.of(13, 0)),
+                        attraction("동궁과 월지", LocalTime.of(15, 0))
+                ),
+                List.of(healthContext()),
+                candidates,
+                Set.of(),
+                Set.of()
+        );
+
+        assertThat(schedules(filled))
+                .extracting(
+                        CreatePlanAiResponse.PlanScheduleDetail::locationName,
+                        CreatePlanAiResponse.PlanScheduleDetail::travelMinutes
+                )
+                .containsExactly(
+                        tuple("첨성대", 10),
+                        tuple("교리김밥", null),
+                        tuple("대릉원", null),
+                        tuple("동궁과 월지", 10)
+                );
+    }
+
+    @Test
+    @DisplayName("전날 마지막 식사 삽입으로 변경된 다음 날 첫 이동시간 무효화")
+    void invalidatesNextDayFirstTravelMinutesWhenPreviousDayEndsWithInsertedMeal() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(restaurantItem("9", "교리김밥", "129.21", "35.83"));
+
+        TravelHealthContext health = new TravelHealthContext(
+                "동행인",
+                List.of(DiseaseType.DIABETES),
+                WalkType.MINIMAL,
+                new TravelHealthContext.MealInfoContext(
+                        true,
+                        false,
+                        null,
+                        false,
+                        null,
+                        true,
+                        LocalTime.of(18, 0)
+                ),
+                List.of(),
+                List.of()
+        );
+
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
+                twoDays(
+                        List.of(
+                                attraction("첨성대", LocalTime.of(9, 0)),
+                                attraction("대릉원", LocalTime.of(11, 0))
+                        ),
+                        List.of(
+                                attraction("불국사", LocalTime.of(9, 0)),
+                                attraction("석굴암", LocalTime.of(11, 0))
+                        )
+                ),
+                List.of(health),
+                candidates,
+                Set.of(),
+                Set.of()
+        );
+
+        assertThat(daySchedules(filled, 2))
+                .extracting(
+                        CreatePlanAiResponse.PlanScheduleDetail::locationName,
+                        CreatePlanAiResponse.PlanScheduleDetail::travelMinutes
+                )
+                .containsExactly(
+                        tuple("불국사", null),
+                        tuple("석굴암", 10)
+                );
     }
 
     @Test
