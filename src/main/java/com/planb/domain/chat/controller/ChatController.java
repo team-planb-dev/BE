@@ -47,7 +47,10 @@ public class ChatController {
                     e
             );
 
-            chatFacade.publishEditFailedReply(roomId);
+            chatFacade.publishEditFailedReply(
+                    roomId,
+                    e
+            );
         }
     }
 }

@@ -319,13 +319,17 @@ public class ChatFacade {
      * 알리지 않으면 사용자는 처리 중인지 실패인지 구분할 수 없다.
      *
      * @param roomId 응답을 발행할 채팅방 ID
+     * @param exception 사용자 안내 유형을 결정할 편집 실패
      */
     @Transactional
-    public void publishEditFailedReply(Long roomId){
+    public void publishEditFailedReply(
+            Long roomId,
+            Exception exception
+    ) {
 
         publishAiReply(
                 roomId,
-                chatMessageService.resolveEditFailedMessage(),
+                chatMessageService.resolveEditFailedMessage(exception),
                 null,
                 MessageType.TALK
         );
