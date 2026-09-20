@@ -100,6 +100,56 @@ public class MissingSlotCompleter {
         return new CreatePlanAiResponse(days);
     }
 
+    /**
+     * 현재 일정에서 실제로 채울 수 있는 식사 슬롯 수를 계산한다.
+     *
+     * 장소명만 남은 후보는 세지 않는다. 슬롯 생성과 같은 기준으로 대표메뉴를 확인하고,
+     * 이미 사용한 장소명과 메뉴명을 제외한 뒤 선택한 값을 즉시 예약한다.
+     */
+    public int fillableMealCount(
+            CreatePlanAiResponse response,
+            PlaceCandidateContext candidates,
+            Set<String> usedNames,
+            Set<String> usedMenus
+    ) {
+
+        if (response == null
+                || response.planDays() == null
+                || candidates == null) {
+            return 0;
+        }
+
+        Set<String> selectedNames = merged(
+                usedNames(response),
+                usedNames
+        );
+
+        Set<String> selectedMenus = merged(
+                usedMenus(response),
+                usedMenus
+        );
+
+        int count = 0;
+
+        for (PlaceCandidateContext.Candidate candidate : candidates.restaurantCandidates()) {
+            MealCandidateSelection selection = mealCandidate(
+                    candidate,
+                    selectedNames,
+                    selectedMenus
+            );
+
+            if (selection == null) {
+                continue;
+            }
+
+            selectedNames.add(normalized(selection.candidate().name()));
+            selectedMenus.add(normalized(selection.menuName()));
+            count++;
+        }
+
+        return count;
+    }
+
     private Set<String> merged(
             Set<String> fromResponse,
             Set<String> fromCaller
@@ -238,7 +288,7 @@ public class MissingSlotCompleter {
                 // 여기서 포기하면 바로 뒤 검증이 사용자에게 실패를 던진다.
                 // 이유를 남기지 않으면 왜 못 채웠는지 로그로 되짚을 수 없다.
                 log.info(
-                        "[SLOT FILL] 식사 슬롯 보정 실패 - scheduleType: {}, 대표메뉴를 확인한 음식점 후보 수: {}",
+                        "[SLOT FILL] 식사 슬롯 보정 실패 - scheduleType: {}, 검색 음식점 후보 수: {}",
                         mealType,
                         candidates.restaurantCandidates().size()
                 );
@@ -285,17 +335,13 @@ public class MissingSlotCompleter {
     ) {
 
         for (PlaceCandidateContext.Candidate candidate : candidates.restaurantCandidates()) {
-            if (usedNames.contains(normalized(candidate.name()))) {
-                continue;
-            }
+            MealCandidateSelection selection = mealCandidate(
+                    candidate,
+                    usedNames,
+                    usedMenus
+            );
 
-            String menuName = representativeMenu(candidate);
-
-            if (menuName == null) {
-                continue;
-            }
-
-            if (usedMenus.contains(normalized(menuName))) {
+            if (selection == null) {
                 continue;
             }
 
@@ -303,24 +349,43 @@ public class MissingSlotCompleter {
             return placeSlot(
                     mealType,
                     CourseType.RESTAURANT,
-                    candidate,
+                    selection.candidate(),
                     mealTime,
                     new CreatePlanAiResponse.RestaurantDetail(
-                            menuName,
+                            selection.menuName(),
                             null,
                             null,
                             null,
                             null,
-                            candidate.address(),
-                            candidate.longitude(),
-                            candidate.latitude(),
-                            candidate.imageUrl()
+                            selection.candidate().address(),
+                            selection.candidate().longitude(),
+                            selection.candidate().latitude(),
+                            selection.candidate().imageUrl()
                     ),
                     Set.of()
             );
         }
 
         return null;
+    }
+
+    private MealCandidateSelection mealCandidate(
+            PlaceCandidateContext.Candidate candidate,
+            Set<String> usedNames,
+            Set<String> usedMenus
+    ) {
+
+        if (usedNames.contains(normalized(candidate.name()))) {
+            return null;
+        }
+
+        String menuName = representativeMenu(candidate);
+
+        if (menuName == null || usedMenus.contains(normalized(menuName))) {
+            return null;
+        }
+
+        return new MealCandidateSelection(candidate, menuName);
     }
 
     private String representativeMenu(PlaceCandidateContext.Candidate candidate) {
@@ -570,4 +635,9 @@ public class MissingSlotCompleter {
             return null;
         }
     }
+
+    private record MealCandidateSelection(
+            PlaceCandidateContext.Candidate candidate,
+            String menuName
+    ) { }
 }

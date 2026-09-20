@@ -2780,8 +2780,8 @@ class PlanPlaceValidationTest {
     }
 
     @Test
-    @DisplayName("음식점 후보가 남았는데 식사 슬롯이 비면 거부")
-    void rejectsPlanWhenMissingMealCouldHaveBeenFilled() {
+    @DisplayName("남은 음식점 후보의 대표메뉴가 이미 사용됐으면 식사 누락 허용")
+    void acceptsPlanWhenRemainingCandidateMenuIsAlreadyUsed() {
 
         TravelHealthContext health = new TravelHealthContext(
                 "테스트 여행자",
@@ -2840,15 +2840,24 @@ class PlanPlaceValidationTest {
         when(kakao.getRoute(anyString(), anyString(), any()))
                 .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
 
-        BaseException exception = assertThrows(
-                BaseException.class,
-                () -> service.makePlanByAi(new TravelPlanContext(
+        PlanDayDetail day = service
+                .makePlanByAi(new TravelPlanContext(
                         travel.createTravelRequest(),
-                        List.of(health))));
+                        List.of(health)))
+                .planDays()
+                .getFirst();
 
         assertTrue(
-                exception.getMessage().contains("식사 슬롯 누락"),
-                exception.getMessage());
+                day
+                        .schedules()
+                        .stream()
+                        .noneMatch(schedule -> schedule.scheduleType() == ScheduleType.DINNER),
+                day
+                        .schedules()
+                        .stream()
+                        .map(schedule -> schedule.scheduleType() + "@" + schedule.startTime())
+                        .toList()
+                        .toString());
     }
 
     @Test

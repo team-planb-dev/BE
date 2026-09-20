@@ -55,6 +55,8 @@ public class TravelRecommendHandler {
      */
     private final ObjectMapper objectMapper;
 
+    private final MissingSlotCompleter missingSlotCompleter;
+
     private final BeanOutputConverter<CreatePlanAiResponse> createPlanAiResponseConverter;
 
     private final BeanOutputConverter<EditPlanAiResponse> editPlanAiResponseConverter;
@@ -217,7 +219,7 @@ public class TravelRecommendHandler {
     }
 
     // 날짜 수와 walkType 기준 관광지 개수, 등록 식사시각을 지나는 날짜의 식사 슬롯이 모두 맞는 응답만 허용
-    private static Function<CreatePlanAiResponse, List<String>> validatePlan(
+    private Function<CreatePlanAiResponse, List<String>> validatePlan(
             TravelPlanContext context,
             PlaceCandidateContext candidates
     ) {
@@ -250,20 +252,29 @@ public class TravelRecommendHandler {
                                     context.healthContexts(),
                                     expectedDayCount
                             ),
-                            unusedCandidateCount(response, candidates, true)
+                            unusedAttractionCandidateCount(response, candidates)
                     )
             );
 
-            failures.addAll(
-                    unfillable(
-                            mealSlotFailures(
-                                    response,
-                                    context.healthContexts(),
-                                    expectedDayCount
-                            ),
-                            unusedCandidateCount(response, candidates, false)
-                    )
+            List<String> mealFailures = mealSlotFailures(
+                    response,
+                    context.healthContexts(),
+                    expectedDayCount
             );
+
+            if (!mealFailures.isEmpty()) {
+                failures.addAll(
+                        unfillable(
+                                mealFailures,
+                                missingSlotCompleter.fillableMealCount(
+                                        response,
+                                        candidates,
+                                        Set.of(),
+                                        Set.of()
+                                )
+                        )
+                );
+            }
 
             return failures;
         };
@@ -303,11 +314,10 @@ public class TravelRecommendHandler {
                 : failures.subList(fillableCount, failures.size());
     }
 
-    // 응답에 아직 쓰이지 않은 후보 수. 이만큼은 Java가 채울 수 있다.
-    private static int unusedCandidateCount(
+    // 응답에 아직 쓰이지 않은 관광지 후보 수. 이만큼은 Java가 채울 수 있다.
+    private static int unusedAttractionCandidateCount(
             CreatePlanAiResponse response,
-            PlaceCandidateContext candidates,
-            boolean attraction
+            PlaceCandidateContext candidates
     ) {
 
         if (candidates == null) {
@@ -325,11 +335,8 @@ public class TravelRecommendHandler {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        List<PlaceCandidateContext.Candidate> pool = attraction
-                ? candidates.attractionCandidates()
-                : candidates.restaurantCandidates();
-
-        return (int) pool
+        return (int) candidates
+                .attractionCandidates()
                 .stream()
                 .map(PlaceCandidateContext.Candidate::name)
                 .filter(Objects::nonNull)
