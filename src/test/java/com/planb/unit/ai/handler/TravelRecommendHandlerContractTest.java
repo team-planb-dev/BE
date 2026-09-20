@@ -13,6 +13,7 @@ import com.planb.ai.dto.response.EditPlanAiResponse;
 import com.planb.ai.dto.response.PlaceReselectResponse;
 import com.planb.ai.dto.response.PlaceWithRouteResult;
 import com.planb.ai.dto.response.RebuildPlanDayResponse;
+import com.planb.ai.handler.MissingSlotCompleter;
 import com.planb.ai.handler.TravelRecommendHandler;
 import com.planb.ai.mcp.TourismTool;
 import com.planb.ai.prompt.AiPrompt;
@@ -26,6 +27,7 @@ import com.planb.domain.travel.entity.constant.ScheduleType;
 import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.domain.travel.entity.constant.TravelStyle;
 import com.planb.domain.travel.entity.constant.TravelTheme;
+import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -149,6 +151,12 @@ class TravelRecommendHandlerContractTest {
         candidates.record(restaurantItem("134712", "토속촌삼계탕"));
         candidates.record(restaurantItem("133854", "고려삼계탕"));
 
+        when(tourismTool.getRestaurantDetail("134712"))
+                .thenReturn(intro("삼계탕"));
+
+        when(tourismTool.getRestaurantDetail("133854"))
+                .thenReturn(intro("닭곰탕"));
+
         handler()
                 .createPlanByAi(
                         mealAppliedContext(),
@@ -171,6 +179,9 @@ class TravelRecommendHandlerContractTest {
 
         candidates.record(restaurantItem("134712", "토속촌삼계탕"));
 
+        when(tourismTool.getRestaurantDetail("134712"))
+                .thenReturn(intro("삼계탕"));
+
         handler()
                 .createPlanByAi(
                         mealAppliedContext(),
@@ -178,6 +189,53 @@ class TravelRecommendHandlerContractTest {
                 );
 
         // 후보가 한 곳뿐이라 하루치만 채울 수 있고, 남은 하루는 AI가 실제 음식점으로 채워야 한다.
+        assertThat(capturedPlanValidation().apply(planWithAttractions(3, 3)))
+                .singleElement()
+                .satisfies(failure ->
+                        assertTrue(failure.contains("LUNCH 식사 슬롯 필요")));
+    }
+
+    @Test
+    @DisplayName("대표메뉴를 확인할 수 없는 후보를 식사 보정 가능 개수에서 제외")
+    void excludesCandidateWithoutRepresentativeMenuFromFillableMealCount() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(restaurantItem("134712", "토속촌삼계탕"));
+
+        handler()
+                .createPlanByAi(
+                        mealAppliedContext(),
+                        candidates
+                );
+
+        assertThat(capturedPlanValidation().apply(planWithAttractions(3, 3)))
+                .hasSize(2)
+                .allSatisfy(failure ->
+                        assertTrue(failure.contains("LUNCH 식사 슬롯 필요")));
+    }
+
+    @Test
+    @DisplayName("같은 대표메뉴 후보를 식사 보정 가능 개수로 중복 계산하지 않음")
+    void countsDuplicateRepresentativeMenusOnce() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(restaurantItem("134712", "토속촌삼계탕"));
+        candidates.record(restaurantItem("133854", "고려삼계탕"));
+
+        when(tourismTool.getRestaurantDetail("134712"))
+                .thenReturn(intro("삼계탕"));
+
+        when(tourismTool.getRestaurantDetail("133854"))
+                .thenReturn(intro("삼계탕"));
+
+        handler()
+                .createPlanByAi(
+                        mealAppliedContext(),
+                        candidates
+                );
+
         assertThat(capturedPlanValidation().apply(planWithAttractions(3, 3)))
                 .singleElement()
                 .satisfies(failure ->
@@ -429,10 +487,35 @@ class TravelRecommendHandlerContractTest {
         return new TravelRecommendHandler(
                 openAiClient,
                 objectMapper,
+                new MissingSlotCompleter(tourismTool),
                 createPlanAiResponseConverter,
                 editPlanAiResponseConverter,
                 rebuildPlanDayResponseConverter,
                 tourismTool);
+    }
+
+    private Kor2RestaurantIntroResponse intro(String firstMenu) {
+
+        return new Kor2RestaurantIntroResponse(
+                new Kor2RestaurantIntroResponse.Response(
+                        new Kor2RestaurantIntroResponse.Header("0000", "OK"),
+                        new Kor2RestaurantIntroResponse.Body(
+                                new Kor2RestaurantIntroResponse.Items(
+                                        List.of(
+                                                new Kor2RestaurantIntroResponse.Item(
+                                                        "9",
+                                                        "39",
+                                                        firstMenu,
+                                                        firstMenu
+                                                )
+                                        )
+                                ),
+                                1,
+                                1,
+                                1
+                        )
+                )
+        );
     }
 
     private PlaceWithRouteResult place(
