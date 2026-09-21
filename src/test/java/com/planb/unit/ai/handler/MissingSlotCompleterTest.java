@@ -314,6 +314,93 @@ class MissingSlotCompleterTest {
     }
 
     @Test
+    @DisplayName("후보가 부족하면 필수 식사를 선택 식사보다 먼저 채움")
+    void fillsRequiredMealBeforeOptionalMealWhenCandidateIsLimited() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(restaurantItem("9", "교리김밥", "129.21", "35.83"));
+
+        TravelHealthContext health = new TravelHealthContext(
+                "동행인",
+                List.of(DiseaseType.DIABETES),
+                WalkType.MINIMAL,
+                new TravelHealthContext.MealInfoContext(
+                        true,
+                        true,
+                        LocalTime.of(8, 0),
+                        true,
+                        LocalTime.of(12, 0),
+                        false,
+                        null
+                ),
+                List.of(),
+                List.of()
+        );
+
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
+                response(
+                        attraction("첨성대", LocalTime.of(9, 0)),
+                        attraction("대릉원", LocalTime.of(13, 0))
+                ),
+                List.of(health),
+                candidates,
+                Set.of(),
+                Set.of()
+        );
+
+        assertThat(schedules(filled))
+                .filteredOn(slot -> slot.courseType() == CourseType.RESTAURANT)
+                .extracting(CreatePlanAiResponse.PlanScheduleDetail::scheduleType)
+                .containsExactly(ScheduleType.LUNCH);
+    }
+
+    @Test
+    @DisplayName("앞 날짜 선택 식사보다 뒤 날짜 필수 식사를 먼저 채움")
+    void fillsLaterRequiredMealBeforeEarlierOptionalMeal() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(restaurantItem("9", "교리김밥", "129.21", "35.83"));
+
+        TravelHealthContext health = new TravelHealthContext(
+                "동행인",
+                List.of(DiseaseType.DIABETES),
+                WalkType.MINIMAL,
+                new TravelHealthContext.MealInfoContext(
+                        true,
+                        true,
+                        LocalTime.of(8, 0),
+                        false,
+                        null,
+                        false,
+                        null
+                ),
+                List.of(),
+                List.of()
+        );
+
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
+                twoDays(
+                        List.of(attraction("첨성대", LocalTime.of(9, 0))),
+                        List.of(attraction("불국사", LocalTime.of(9, 0)))
+                ),
+                List.of(health),
+                candidates,
+                Set.of(),
+                Set.of()
+        );
+
+        assertThat(daySchedules(filled, 1))
+                .filteredOn(slot -> slot.scheduleType() == ScheduleType.BREAKFAST)
+                .isEmpty();
+
+        assertThat(daySchedules(filled, 2))
+                .filteredOn(slot -> slot.scheduleType() == ScheduleType.BREAKFAST)
+                .hasSize(1);
+    }
+
+    @Test
     @DisplayName("일정에 이미 쓴 메뉴는 다른 식당으로도 다시 채우지 않음")
     void skipsCandidateWhoseMenuIsAlreadyUsed() {
 

@@ -86,6 +86,37 @@ class TourismToolTest {
     }
 
     @Test
+    @DisplayName("지역 음식점 후보는 시군구 범위 조회에 위임")
+    void searchRestaurantCandidatesByRegion() {
+
+        Kor2KeywordSearchResponse response = mock(
+                Kor2KeywordSearchResponse.class
+        );
+
+        when(
+                kor2ServiceHandler
+                        .searchRestaurantCandidates(
+                                "강원특별자치도",
+                                "춘천시"
+                        )
+        ).thenReturn(Mono.just(response));
+
+        Kor2KeywordSearchResponse result = tourismTool
+                .searchRestaurantCandidatesByRegion(
+                        "강원특별자치도",
+                        "춘천시"
+                );
+
+        assertEquals(response, result);
+
+        verify(kor2ServiceHandler)
+                .searchRestaurantCandidates(
+                        "강원특별자치도",
+                        "춘천시"
+                );
+    }
+
+    @Test
     @DisplayName("지역 관광지 후보는 원본 후보에서 최대 40개만 반환")
     void selectsAttractionCandidatesWithinLimit() {
 

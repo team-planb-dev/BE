@@ -59,6 +59,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -454,11 +455,7 @@ class PlanServiceTest {
                         "테스트 여행자",
                         List.of(DiseaseType.DIABETES),
                         WalkType.MINIMAL,
-                        new TravelHealthContext.MealInfoContext(
-                                LocalTime.of(8, 0),
-                                LocalTime.of(12, 0),
-                                LocalTime.of(18, 0)
-                        ),
+                        noMealInfo(),
                         List.of(),
                         List.of()
                 );
@@ -517,11 +514,7 @@ class PlanServiceTest {
                         "테스트 여행자",
                         List.of(DiseaseType.DIABETES),
                         WalkType.ACTIVE,
-                        new TravelHealthContext.MealInfoContext(
-                                LocalTime.of(8, 0),
-                                LocalTime.of(12, 0),
-                                LocalTime.of(18, 0)
-                        ),
+                        noMealInfo(),
                         List.of(),
                         List.of()
                 );
@@ -579,11 +572,7 @@ class PlanServiceTest {
                         "테스트 여행자",
                         List.of(DiseaseType.DIABETES),
                         WalkType.ACTIVE,
-                        new TravelHealthContext.MealInfoContext(
-                                LocalTime.of(8, 0),
-                                LocalTime.of(12, 0),
-                                LocalTime.of(18, 0)
-                        ),
+                        noMealInfo(),
                         List.of(),
                         List.of()
                 );
@@ -644,11 +633,7 @@ class PlanServiceTest {
                         "테스트 여행자",
                         List.of(DiseaseType.DIABETES),
                         WalkType.MINIMAL,
-                        new TravelHealthContext.MealInfoContext(
-                                LocalTime.of(8, 0),
-                                LocalTime.of(12, 0),
-                                LocalTime.of(18, 0)
-                        ),
+                        lunchMealInfo(),
                         List.of(),
                         List.of()
                 );
@@ -722,11 +707,7 @@ class PlanServiceTest {
                         "테스트 여행자",
                         List.of(DiseaseType.DIABETES),
                         WalkType.MODERATE,
-                        new TravelHealthContext.MealInfoContext(
-                                LocalTime.of(8, 0),
-                                LocalTime.of(12, 0),
-                                LocalTime.of(18, 0)
-                        ),
+                        lunchMealInfo(),
                         List.of(),
                         List.of(medicationInfo)
                 );
@@ -797,11 +778,7 @@ class PlanServiceTest {
                         "테스트 여행자",
                         List.of(DiseaseType.DIABETES),
                         WalkType.MODERATE,
-                        new TravelHealthContext.MealInfoContext(
-                                LocalTime.of(8, 0),
-                                LocalTime.of(12, 0),
-                                LocalTime.of(18, 0)
-                        ),
+                        lunchMealInfo(),
                         List.of(),
                         List.of(medicationInfo)
                 );
@@ -930,11 +907,7 @@ class PlanServiceTest {
                         "테스트 여행자",
                         List.of(DiseaseType.DIABETES),
                         WalkType.MODERATE,
-                        new TravelHealthContext.MealInfoContext(
-                                LocalTime.of(8, 0),
-                                LocalTime.of(12, 0),
-                                LocalTime.of(18, 0)
-                        ),
+                        lunchMealInfo(),
                         List.of(),
                         List.of(
                                 new TravelHealthContext.MedicationInfoContext(
@@ -1287,11 +1260,7 @@ class PlanServiceTest {
                         "우주",
                         List.of(DiseaseType.DIABETES),
                         WalkType.MODERATE,
-                        new TravelHealthContext.MealInfoContext(
-                                LocalTime.of(8, 0),
-                                LocalTime.of(12, 0),
-                                LocalTime.of(18, 0)
-                        ),
+                        lunchMealInfo(),
                         List.of(
                                 new TravelHealthContext.FoodInfoContext("새우", FoodType.ALLERGY)
                         ),
@@ -1438,7 +1407,8 @@ class PlanServiceTest {
                                 any(PlaceCandidateContext.class),
                                 anySet(),
                                 anySet(),
-                                anySet()
+                                anySet(),
+                                anyInt()
                         )
         ).thenReturn(completedResponse);
 
@@ -1874,6 +1844,32 @@ class PlanServiceTest {
 
     private TravelPlanContext travelPlanContext() {
         return travelPlanContext(Transportation.TRANSIT, List.of());
+    }
+
+    private TravelHealthContext.MealInfoContext noMealInfo() {
+
+        return new TravelHealthContext.MealInfoContext(
+                false,
+                false,
+                null,
+                false,
+                null,
+                false,
+                null
+        );
+    }
+
+    private TravelHealthContext.MealInfoContext lunchMealInfo() {
+
+        return new TravelHealthContext.MealInfoContext(
+                true,
+                false,
+                null,
+                true,
+                LocalTime.of(12, 0),
+                false,
+                null
+        );
     }
 
     private TravelPlanContext travelPlanContext(

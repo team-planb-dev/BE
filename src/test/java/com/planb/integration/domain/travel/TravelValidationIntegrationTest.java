@@ -17,6 +17,7 @@ import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroRespo
 import com.planb.domain.travel.dto.request.CreateTravelRequest;
 import com.planb.domain.travel.dto.request.EditPlanRequest;
 import com.planb.domain.travel.dto.request.GetAiPlanRequest;
+import com.planb.domain.travel.dto.nutrition.NutritionEvaluationResult;
 import com.planb.domain.health.repository.HealthRepository;
 import com.planb.domain.travel.dto.response.ShareTravelResponse;
 import com.planb.domain.travel.entity.constant.*;
@@ -24,6 +25,8 @@ import com.planb.domain.travel.repository.*;
 import com.planb.ai.context.PlanEditContext;
 import com.planb.ai.context.TravelPlanContext;
 import com.planb.domain.travel.service.PlanEditCacheService;
+import com.planb.domain.travel.service.NutritionService;
+import com.planb.domain.travel.entity.constant.NutritionEvaluationStatus;
 import com.planb.global.client.kakaoMapService.dto.response.KakaoPlaceSearchResponse;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,6 +65,9 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     @MockitoBean
     private TourismTool tourismTool;
 
+    @MockitoBean
+    private NutritionService nutritionService;
+
     @Autowired
     private TravelRepository travels;
 
@@ -96,6 +102,17 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
 
     @BeforeEach
     void prepareTravel() throws Exception {
+
+        lenient()
+                .when(nutritionService.evaluateFoodNutrition(anyString(), anyList()))
+                .thenReturn(Mono.just(new NutritionEvaluationResult(
+                        List.of(),
+                        NutritionEvaluationStatus.UNAVAILABLE,
+                        List.of(),
+                        null,
+                        null,
+                        null
+                )));
 
         org.mockito.Mockito
                 .lenient()
@@ -417,14 +434,11 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                 .path("candidateId")
                 .asText())
                 .isEqualTo("kakao:41");
-        assertThat(created
+        assertThat(candidateIds(created
                 .path("planDays")
                 .get(1)
-                .path("schedules")
-                .get(0)
-                .path("candidateId")
-                .asText())
-                .isEqualTo("kakao:21");
+                .path("schedules")))
+                .contains("kakao:21");
         verify(handler)
                 .reselectPlace(any(), any());
     }
@@ -684,13 +698,12 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     }
 
     @Test
-    @DisplayName("채울 음식점 후보가 없는 식사 누락은 거부하지 않고 저장")
-    void missingMealWithoutCandidateStillPersists() throws Exception {
+    @DisplayName("지역 음식점 후보로도 채울 수 없는 필수 식사는 저장 전 거부")
+    void missingRequiredMealWithoutRegionalCandidateIsRejected() throws Exception {
 
         List<Long> before = counts();
 
-        // 저녁 슬롯이 없다. 카카오 후보만 있어 MissingSlotCompleter가 채울 음식점이 없다.
-        // 사용자가 손쓸 수 없는 부족분이므로 빈손으로 돌려보내지 않는다.
+        // 저녁 슬롯이 없고 지역 조회에도 후보가 추가되지 않는다.
         when(handler.createPlanByAi(any(), any()))
                 .thenAnswer(invocation -> {
                     PlaceCandidateContext candidates = invocation.getArgument(1);
@@ -700,10 +713,56 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                             dayWithoutDinner(2, 2, candidates)));
                 });
 
-        success(postApi("/add-with-recommend", request));
+        assertError(
+                postApi("/add-with-recommend", request),
+                "PLAN.EXCEPTION.INVALID_AI_PLACE"
+        );
 
         assertThat(counts())
-                .isNotEqualTo(before);
+                .isEqualTo(before);
+
+        verify(handler)
+                .collectRestaurantCandidates(any(), any());
+    }
+
+    @Test
+    @DisplayName("지역 음식점 후보로 필수 식사를 보정한 뒤 저장")
+    void regionalRestaurantCandidateFillsRequiredMealBeforePersistence() throws Exception {
+
+        when(handler.createPlanByAi(any(), any()))
+                .thenAnswer(invocation -> {
+                    PlaceCandidateContext candidates = invocation.getArgument(1);
+
+                    return new CreatePlanAiResponse(List.of(
+                            dayWithoutDinner(1, 1, candidates),
+                            dayWithoutDinner(2, 2, candidates)
+                    ));
+                });
+
+        doAnswer(invocation -> {
+            PlaceCandidateContext candidates = invocation.getArgument(1);
+
+            candidates.record(tourRestaurant("9001", "지역 보정 음식점"));
+            candidates.record(tourRestaurant("9002", "지역 보정 음식점2"));
+
+            return null;
+        })
+                .when(handler)
+                .collectRestaurantCandidates(any(), any());
+
+        when(tourismTool.getRestaurantDetail("9001"))
+                .thenReturn(restaurantIntro("지역 보정 메뉴"));
+
+        when(tourismTool.getRestaurantDetail("9002"))
+                .thenReturn(restaurantIntro("지역 보정 메뉴2"));
+
+        JsonNode created = success(postApi("/add-with-recommend", request));
+
+        assertThat(scheduleTypes(created
+                .path("planDays")
+                .get(0)
+                .path("schedules")))
+                .contains("DINNER");
     }
 
     @Test
@@ -774,6 +833,17 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         return types;
     }
 
+    private List<String> candidateIds(JsonNode schedules) {
+
+        List<String> ids = new ArrayList<>();
+
+        schedules.forEach(schedule -> ids.add(schedule
+                .path("candidateId")
+                .asText()));
+
+        return ids;
+    }
+
     // 저녁시각을 지나지만 저녁 슬롯이 없는 하루
     private PlanDayDetail dayWithoutDinner(
             int number,
@@ -781,15 +851,25 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
             PlaceCandidateContext candidates
     ) {
 
+        List<PlanScheduleDetail> daySchedules = new ArrayList<>();
+
+        if (number > 1) {
+            daySchedules.add(slot(source * 10, CourseType.RESTAURANT, 8, candidates, false));
+        }
+
+        daySchedules.addAll(List.of(
+                slot(source * 10 + 1, CourseType.ATTRACTION, 9, candidates, false),
+                slot(source * 10 + 2, CourseType.RESTAURANT, 12, candidates, false),
+                slot(source * 10 + 3, CourseType.CAFE_REST, 14, candidates, false),
+                slot(source * 10 + 4, CourseType.ATTRACTION, 16, candidates, false),
+                slot(source * 10 + 5, CourseType.ATTRACTION, 18, candidates, false)
+        ));
+
         return new PlanDayDetail(
                 number,
                 date.plusDays(number - 1),
-                List.of(
-                        slot(source * 10 + 1, CourseType.ATTRACTION, 9, candidates, false),
-                        slot(source * 10 + 2, CourseType.RESTAURANT, 12, candidates, false),
-                        slot(source * 10 + 3, CourseType.CAFE_REST, 14, candidates, false),
-                        slot(source * 10 + 4, CourseType.ATTRACTION, 16, candidates, false),
-                        slot(source * 10 + 5, CourseType.ATTRACTION, 18, candidates, false)));
+                daySchedules
+        );
     }
 
     private Kor2KeywordSearchResponse.Item tourRestaurant(
@@ -1026,17 +1106,27 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
             PlaceCandidateContext candidates
     ) {
 
+        List<PlanScheduleDetail> daySchedules = new ArrayList<>();
+
+        if (number > 1) {
+            daySchedules.add(slot(source * 10, CourseType.RESTAURANT, 8, candidates, false));
+        }
+
+        daySchedules.addAll(List.of(
+                unchangedFirstSlot(number * 10 + 1, candidates),
+                slot(source * 10 + 2, CourseType.RESTAURANT, 12, candidates, false),
+                slot(source * 10 + 3, CourseType.CAFE_REST, 14, candidates, false),
+                slot(source * 10 + 4, CourseType.ATTRACTION, 16, candidates, false),
+                // day(...)와 같은 이유로 저녁 슬롯이 있어야 한다.
+                slot(source * 10 + 6, CourseType.RESTAURANT, 18, candidates, false),
+                slot(source * 10 + 5, CourseType.ATTRACTION, 20, candidates, false)
+        ));
+
         return new CreatePlanAiResponse.PlanDayDetail(
                 number,
                 date.plusDays(number - 1),
-                List.of(
-                        unchangedFirstSlot(number * 10 + 1, candidates),
-                        slot(source * 10 + 2, CourseType.RESTAURANT, 12, candidates, false),
-                        slot(source * 10 + 3, CourseType.CAFE_REST, 14, candidates, false),
-                        slot(source * 10 + 4, CourseType.ATTRACTION, 16, candidates, false),
-                        // day(...)와 같은 이유로 저녁 슬롯이 있어야 한다.
-                        slot(source * 10 + 6, CourseType.RESTAURANT, 18, candidates, false),
-                        slot(source * 10 + 5, CourseType.ATTRACTION, 20, candidates, false)));
+                daySchedules
+        );
     }
 
     // 검색 원본과 동일한 장소 정보를 그대로 담아 장소 변경으로 판정되지 않는 슬롯
@@ -1143,54 +1233,63 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
             boolean optionalCoordinates
     ) {
 
+        List<PlanScheduleDetail> daySchedules = new ArrayList<>();
+
+        if (number > 1) {
+            daySchedules.add(slot(source * 10, CourseType.RESTAURANT, 8, candidates, false));
+        }
+
+        daySchedules.addAll(List.of(
+                slot(
+                        source * 10 + 1,
+                        CourseType.ATTRACTION,
+                        9,
+                        candidates,
+                        optionalCoordinates
+                ),
+                slot(
+                        source * 10 + 2,
+                        CourseType.RESTAURANT,
+                        12,
+                        candidates,
+                        false
+                ),
+                slot(
+                        source * 10 + 3,
+                        CourseType.CAFE_REST,
+                        14,
+                        candidates,
+                        optionalCoordinates
+                ),
+                slot(
+                        source * 10 + 4,
+                        CourseType.ATTRACTION,
+                        16,
+                        candidates,
+                        optionalCoordinates
+                ),
+                // 하루가 등록 저녁시각(18:00)을 지나므로 저녁 슬롯이 있어야 유효한 일정이다.
+                slot(
+                        source * 10 + 6,
+                        CourseType.RESTAURANT,
+                        18,
+                        candidates,
+                        false
+                ),
+                slot(
+                        source * 10 + 5,
+                        CourseType.ATTRACTION,
+                        20,
+                        candidates,
+                        optionalCoordinates
+                )
+        ));
+
         return new PlanDayDetail(
                 number,
                 date.plusDays(number - 1),
-                List.of(
-                        slot(
-                                source * 10 + 1,
-                                CourseType.ATTRACTION,
-                                9,
-                                candidates,
-                                optionalCoordinates
-                        ),
-                        slot(
-                                source * 10 + 2,
-                                CourseType.RESTAURANT,
-                                12,
-                                candidates,
-                                false
-                        ),
-                        slot(
-                                source * 10 + 3,
-                                CourseType.CAFE_REST,
-                                14,
-                                candidates,
-                                optionalCoordinates
-                        ),
-                        slot(
-                                source * 10 + 4,
-                                CourseType.ATTRACTION,
-                                16,
-                                candidates,
-                                optionalCoordinates
-                        ),
-                        // 하루가 등록 저녁시각(18:00)을 지나므로 저녁 슬롯이 있어야 유효한 일정이다.
-                        slot(
-                                source * 10 + 6,
-                                CourseType.RESTAURANT,
-                                18,
-                                candidates,
-                                false
-                        ),
-                        slot(
-                                source * 10 + 5,
-                                CourseType.ATTRACTION,
-                                20,
-                                candidates,
-                                optionalCoordinates
-                        )
-                ));
+                daySchedules
+        );
     }
 
     // 음식점 슬롯의 식사 종류는 시각이 정한다. 어긋나면 식사 슬롯으로 세어지지 않는다.

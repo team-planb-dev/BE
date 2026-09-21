@@ -13,7 +13,6 @@ import com.planb.ai.dto.response.EditPlanAiResponse;
 import com.planb.ai.dto.response.PlaceReselectResponse;
 import com.planb.ai.dto.response.PlaceWithRouteResult;
 import com.planb.ai.dto.response.RebuildPlanDayResponse;
-import com.planb.ai.handler.MissingSlotCompleter;
 import com.planb.ai.handler.TravelRecommendHandler;
 import com.planb.ai.mcp.TourismTool;
 import com.planb.ai.prompt.AiPrompt;
@@ -143,27 +142,15 @@ class TravelRecommendHandlerContractTest {
     }
 
     @Test
-    @DisplayName("후보로 채울 수 있는 식사 슬롯 누락은 재시도 대상 아님")
-    void allowsMissingMealSlotWhenCandidatesCanFillIt() {
-
-        PlaceCandidateContext candidates = new PlaceCandidateContext();
-
-        candidates.record(restaurantItem("134712", "토속촌삼계탕"));
-        candidates.record(restaurantItem("133854", "고려삼계탕"));
-
-        when(tourismTool.getRestaurantDetail("134712"))
-                .thenReturn(intro("삼계탕"));
-
-        when(tourismTool.getRestaurantDetail("133854"))
-                .thenReturn(intro("닭곰탕"));
+    @DisplayName("식사 슬롯 누락은 AI 재시도 대신 Java 최종 보정에 위임")
+    void delegatesMissingMealSlotsToJavaNormalization() {
 
         handler()
                 .createPlanByAi(
                         mealAppliedContext(),
-                        candidates
+                        new PlaceCandidateContext()
                 );
 
-        // 이틀치 LUNCH가 비어 있지만 미사용 후보가 두 곳이라 Java가 채운다.
         assertTrue(
                 capturedPlanValidation()
                         .apply(planWithAttractions(3, 3))
@@ -172,74 +159,49 @@ class TravelRecommendHandlerContractTest {
     }
 
     @Test
-    @DisplayName("후보로 채울 수 없는 식사 슬롯 누락만 교정 사유로 전달")
-    void describesMealSlotFailureBeyondCandidates() {
+    @DisplayName("키워드 후보 부족 시 여행 지역 전체의 음식점 후보 수집")
+    void collectsRegionalRestaurantCandidates() {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();
+        Kor2KeywordSearchResponse.Item restaurant = restaurantItem(
+                "456",
+                "춘천식당"
+        );
 
-        candidates.record(restaurantItem("134712", "토속촌삼계탕"));
+        when(
+                tourismTool
+                        .searchRestaurantCandidatesByRegion(
+                                "서울",
+                                "종로구"
+                        )
+        ).thenReturn(new Kor2KeywordSearchResponse(
+                new Kor2KeywordSearchResponse.Response(
+                        null,
+                        new Kor2KeywordSearchResponse.Body(
+                                new Kor2KeywordSearchResponse.Items(
+                                        List.of(restaurant)
+                                ),
+                                1,
+                                1,
+                                1
+                        )
+                )
+        ));
 
-        when(tourismTool.getRestaurantDetail("134712"))
-                .thenReturn(intro("삼계탕"));
+        handler().collectRestaurantCandidates(
+                mealAppliedContext(),
+                candidates
+        );
 
-        handler()
-                .createPlanByAi(
-                        mealAppliedContext(),
-                        candidates
-                );
+        assertThat(candidates.find("tour:456"))
+                .isNotNull()
+                .satisfies(candidate -> {
+                    assertThat(candidate.type())
+                            .isEqualTo("39");
 
-        // 후보가 한 곳뿐이라 하루치만 채울 수 있고, 남은 하루는 AI가 실제 음식점으로 채워야 한다.
-        assertThat(capturedPlanValidation().apply(planWithAttractions(3, 3)))
-                .singleElement()
-                .satisfies(failure ->
-                        assertTrue(failure.contains("LUNCH 식사 슬롯 필요")));
-    }
-
-    @Test
-    @DisplayName("대표메뉴를 확인할 수 없는 후보를 식사 보정 가능 개수에서 제외")
-    void excludesCandidateWithoutRepresentativeMenuFromFillableMealCount() {
-
-        PlaceCandidateContext candidates = new PlaceCandidateContext();
-
-        candidates.record(restaurantItem("134712", "토속촌삼계탕"));
-
-        handler()
-                .createPlanByAi(
-                        mealAppliedContext(),
-                        candidates
-                );
-
-        assertThat(capturedPlanValidation().apply(planWithAttractions(3, 3)))
-                .hasSize(2)
-                .allSatisfy(failure ->
-                        assertTrue(failure.contains("LUNCH 식사 슬롯 필요")));
-    }
-
-    @Test
-    @DisplayName("같은 대표메뉴 후보를 식사 보정 가능 개수로 중복 계산하지 않음")
-    void countsDuplicateRepresentativeMenusOnce() {
-
-        PlaceCandidateContext candidates = new PlaceCandidateContext();
-
-        candidates.record(restaurantItem("134712", "토속촌삼계탕"));
-        candidates.record(restaurantItem("133854", "고려삼계탕"));
-
-        when(tourismTool.getRestaurantDetail("134712"))
-                .thenReturn(intro("삼계탕"));
-
-        when(tourismTool.getRestaurantDetail("133854"))
-                .thenReturn(intro("삼계탕"));
-
-        handler()
-                .createPlanByAi(
-                        mealAppliedContext(),
-                        candidates
-                );
-
-        assertThat(capturedPlanValidation().apply(planWithAttractions(3, 3)))
-                .singleElement()
-                .satisfies(failure ->
-                        assertTrue(failure.contains("LUNCH 식사 슬롯 필요")));
+                    assertThat(candidate.name())
+                            .isEqualTo("춘천식당");
+                });
     }
 
     private Function<CreatePlanAiResponse, List<String>> capturedPlanValidation() {
@@ -487,7 +449,6 @@ class TravelRecommendHandlerContractTest {
         return new TravelRecommendHandler(
                 openAiClient,
                 objectMapper,
-                new MissingSlotCompleter(tourismTool),
                 createPlanAiResponseConverter,
                 editPlanAiResponseConverter,
                 rebuildPlanDayResponseConverter,

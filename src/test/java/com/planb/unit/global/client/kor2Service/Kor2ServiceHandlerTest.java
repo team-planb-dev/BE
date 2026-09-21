@@ -238,6 +238,99 @@ class Kor2ServiceHandlerTest {
                 );
     }
 
+    @Test
+    @DisplayName("도 지역 음식점 후보는 시군구 범위의 areaBasedList2 조회")
+    void searchesProvinceRestaurantCandidatesBySigungu() {
+
+        when(
+                kor2ServiceClient
+                        .get(
+                                any(URI.class),
+                                eq(Kor2AreaCodeResponse.class)
+                        )
+        ).thenReturn(
+                Mono.just(areaCodes("32", "강원특별자치도")),
+                Mono.just(areaCodes("13", "춘천시"))
+        );
+
+        when(
+                kor2ServiceClient
+                        .get(
+                                any(URI.class),
+                                eq(Kor2KeywordSearchResponse.class)
+                        )
+        ).thenReturn(Mono.just(emptyPlaces()));
+
+        handler
+                .searchRestaurantCandidates(
+                        "강원특별자치도",
+                        "춘천시"
+                )
+                .block();
+
+        ArgumentCaptor<URI> uri = ArgumentCaptor.forClass(URI.class);
+
+        verify(kor2ServiceClient)
+                .get(
+                        uri.capture(),
+                        eq(Kor2KeywordSearchResponse.class)
+                );
+
+        assertThat(uri.getValue().getPath())
+                .isEqualTo("/areaBasedList2");
+
+        assertThat(uri.getValue().getQuery())
+                .contains("areaCode=32")
+                .contains("sigunguCode=13")
+                .contains("contentTypeId=39")
+                .doesNotContain("keyword");
+    }
+
+    @Test
+    @DisplayName("광역 지역 음식점 후보는 시군구 없이 areaBasedList2 조회")
+    void searchesMetropolitanRestaurantCandidatesByArea() {
+
+        when(
+                kor2ServiceClient
+                        .get(
+                                any(URI.class),
+                                eq(Kor2AreaCodeResponse.class)
+                        )
+        ).thenReturn(Mono.just(areaCodes("1", "서울")));
+
+        when(
+                kor2ServiceClient
+                        .get(
+                                any(URI.class),
+                                eq(Kor2KeywordSearchResponse.class)
+                        )
+        ).thenReturn(Mono.just(emptyPlaces()));
+
+        handler
+                .searchRestaurantCandidates(
+                        "서울",
+                        "종로구"
+                )
+                .block();
+
+        ArgumentCaptor<URI> uri = ArgumentCaptor.forClass(URI.class);
+
+        verify(kor2ServiceClient)
+                .get(
+                        uri.capture(),
+                        eq(Kor2KeywordSearchResponse.class)
+                );
+
+        assertThat(uri.getValue().getPath())
+                .isEqualTo("/areaBasedList2");
+
+        assertThat(uri.getValue().getQuery())
+                .contains("areaCode=1")
+                .contains("contentTypeId=39")
+                .doesNotContain("sigunguCode")
+                .doesNotContain("keyword");
+    }
+
     private Kor2AreaCodeResponse areaCodes(
             String code,
             String name
