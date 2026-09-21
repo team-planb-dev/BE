@@ -48,6 +48,30 @@ public final class TouristPlaceCountPolicy {
     }
 
     /**
+     * 편집 의도까지 반영한 하루 관광 장소 최소 개수를 계산한다.
+     *
+     * @param healthContexts          이번 여행에 선택된 동행인
+     * @param densityReductionAllowed 밀도 감소가 허용된 날짜인지 여부
+     * @return 허용되는 최소 관광 장소 개수
+     */
+    public static int minimumCount(
+            List<TravelHealthContext> healthContexts,
+            boolean densityReductionAllowed
+    ) {
+
+        int expectedCount = expectedCount(healthContexts);
+
+        if (!densityReductionAllowed || expectedCount == 0) {
+            return expectedCount;
+        }
+
+        return Math.min(
+                MINIMAL_WALK_COUNT,
+                expectedCount
+        );
+    }
+
+    /**
      * 하루 관광 장소가 기준 개수를 넘으면 초과분을 제거한다.
      *
      * AI 재시도를 쓰지 않는 이유는 초과가 정답을 모르는 문제가 아니기 때문이다.

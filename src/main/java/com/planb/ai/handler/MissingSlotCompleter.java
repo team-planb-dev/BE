@@ -69,6 +69,25 @@ public class MissingSlotCompleter {
             Set<String> usedMenus
     ) {
 
+        return complete(
+                response,
+                healthContexts,
+                candidates,
+                usedNames,
+                usedMenus,
+                Set.of()
+        );
+    }
+
+    public CreatePlanAiResponse complete(
+            CreatePlanAiResponse response,
+            List<TravelHealthContext> healthContexts,
+            PlaceCandidateContext candidates,
+            Set<String> usedNames,
+            Set<String> usedMenus,
+            Set<Integer> densityReductionDays
+    ) {
+
         if (response == null || response.planDays() == null) {
             return response;
         }
@@ -99,7 +118,10 @@ public class MissingSlotCompleter {
                             healthContexts,
                             candidates,
                             selectedNames,
-                            selectedMenus
+                            selectedMenus,
+                            day != null
+                                    && densityReductionDays != null
+                                    && densityReductionDays.contains(day.dayNumber())
                     )
             );
         }
@@ -290,7 +312,8 @@ public class MissingSlotCompleter {
             List<TravelHealthContext> healthContexts,
             PlaceCandidateContext candidates,
             Set<String> usedNames,
-            Set<String> usedMenus
+            Set<String> usedMenus,
+            boolean densityReductionAllowed
     ) {
 
         if (day == null || day.schedules() == null) {
@@ -300,7 +323,13 @@ public class MissingSlotCompleter {
         List<CreatePlanAiResponse.PlanScheduleDetail> schedules =
                 new ArrayList<>(day.schedules());
 
-        addTouristPlaces(schedules, healthContexts, candidates, usedNames);
+        addTouristPlaces(
+                schedules,
+                healthContexts,
+                candidates,
+                usedNames,
+                densityReductionAllowed
+        );
 
         addMealSlots(day, schedules, healthContexts, candidates, usedNames, usedMenus);
 
@@ -322,10 +351,14 @@ public class MissingSlotCompleter {
             List<CreatePlanAiResponse.PlanScheduleDetail> schedules,
             List<TravelHealthContext> healthContexts,
             PlaceCandidateContext candidates,
-            Set<String> usedNames
+            Set<String> usedNames,
+            boolean densityReductionAllowed
     ) {
 
-        int expectedCount = TouristPlaceCountPolicy.expectedCount(healthContexts);
+        int expectedCount = TouristPlaceCountPolicy.minimumCount(
+                healthContexts,
+                densityReductionAllowed
+        );
 
         long actualCount = schedules
                 .stream()

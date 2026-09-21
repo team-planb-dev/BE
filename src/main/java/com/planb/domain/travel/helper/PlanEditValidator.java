@@ -25,14 +25,47 @@ public class PlanEditValidator {
             throw failure("수정 범위 해석 실패");
         }
 
-        Set<Integer> days = context.currentPlan().planDays().stream()
-                .map(day -> day.dayNumber()).collect(Collectors.toSet());
+        return validatedDays(
+                scope.rebuildDayNumbers(),
+                context,
+                "전체 재구성 대상 날짜 확인 필요"
+        );
+    }
 
-        if (!days.containsAll(scope.rebuildDayNumbers())) {
-            throw failure("전체 재구성 대상 날짜 확인 필요");
+    public Set<Integer> densityReductionDays(
+            PlanEditScope scope,
+            PlanEditContext context
+    ) {
+
+        if (scope == null || scope.densityReductionDayNumbers() == null) {
+            throw failure("밀도 감소 범위 해석 실패");
         }
 
-        return Set.copyOf(scope.rebuildDayNumbers());
+        return validatedDays(
+                scope.densityReductionDayNumbers(),
+                context,
+                "밀도 감소 대상 날짜 확인 필요"
+        );
+    }
+
+    private Set<Integer> validatedDays(
+            List<Integer> requestedDays,
+            PlanEditContext context,
+            String failureReason
+    ) {
+
+        Set<Integer> days = context
+                .currentPlan()
+                .planDays()
+                .stream()
+                .map(day -> day.dayNumber())
+                .collect(Collectors.toSet());
+
+        if (!days.containsAll(requestedDays)) {
+            throw failure(failureReason);
+        }
+
+        return Set.copyOf(requestedDays);
     }
 
     public boolean rebuilt(

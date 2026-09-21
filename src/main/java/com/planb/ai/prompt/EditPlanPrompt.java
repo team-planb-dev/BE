@@ -176,10 +176,14 @@ public record EditPlanPrompt(
 
                 editRequest가 STEP 1의 "이동/밀도 조정" 유형에 해당하는 경우에만 적용합니다.
 
+                - 기본 관광 장소 수는 하루 3개이며, TravelHealthContext의 walkType이 MINIMAL인
+                  여행자가 한 명이라도 있으면 하루 2개입니다.
                 - "덜 걷고 싶다", "여유롭게" 등 밀도를 낮추는 요청이면, 대상 범위(하루 또는
                   전체) 안에서 ATTRACTION 슬롯 중 일부를 CAFE_REST 또는 PARK_WALK로
-                  대체하거나 제거하는 방식으로 하루 관광지 개수를 줄입니다. 다만 이미
-                  포함이 확정된 plannedPlaces 항목은 우선적으로 유지를 시도합니다.
+                  대체하거나 제거하여 하루 관광 장소를 2개까지 줄일 수 있습니다.
+                  더 짧은 이동 동선이나 휴식 추가로 요청을 충족했다면 3개를 유지할 수 있습니다.
+                  감소 요청 대상이 아닌 날짜는 기존 관광 장소 수를 유지합니다. 이미 포함이
+                  확정된 plannedPlaces와 MUST_HAVE 항목은 우선적으로 유지를 시도합니다.
                 - "더 알차게", "관광지를 늘려달라" 등 밀도를 높이는 요청이면, STEP 3의
                   절차로 새 ATTRACTION 슬롯을 추가하되, TravelHealthContext의 walkType이
                   MINIMAL인 여행자가 포함되어 있으면 하루 최대 개수(원래 생성 규칙 기준

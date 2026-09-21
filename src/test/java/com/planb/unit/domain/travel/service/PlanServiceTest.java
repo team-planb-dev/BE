@@ -1437,6 +1437,7 @@ class PlanServiceTest {
                                 anyList(),
                                 any(PlaceCandidateContext.class),
                                 anySet(),
+                                anySet(),
                                 anySet()
                         )
         ).thenReturn(completedResponse);

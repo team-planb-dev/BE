@@ -7,6 +7,7 @@ import com.planb.ai.context.TravelPlanContext;
 import com.planb.ai.dto.request.MakeFoodRecommendCallRequest;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
 import com.planb.ai.dto.response.EditPlanAiResponse;
+import com.planb.ai.dto.response.PlanEditScope;
 import com.planb.ai.handler.TravelRecommendHandler;
 import com.planb.domain.health.entity.constant.DiseaseType;
 import com.planb.domain.health.entity.constant.FoodType;
@@ -364,6 +365,28 @@ class TravelRecommendHandlerTest extends IntegrationTest {
 
         assertThat(countAttractionSchedulesInEditResponse(response))
                 .isLessThanOrEqualTo(baseAttractionCount);
+    }
+
+    @Test
+    @DisplayName("실제 OpenAI 전체 일정 밀도 감소 범위 분류")
+    void classifiesAllDaysForWalkingDensityReduction() {
+
+        PlanEditContext planEditContext =
+                new PlanEditContext(
+                        baseCreateTravelRequest,
+                        baseHealthContexts,
+                        baseCurrentPlan,
+                        "덜 걷고 싶어요. 관광지 개수를 좀 줄여주세요."
+                );
+
+        PlanEditScope scope =
+                travelRecommendHandler.classifyEditScope(planEditContext);
+
+        assertThat(scope.rebuildDayNumbers())
+                .isEmpty();
+
+        assertThat(scope.densityReductionDayNumbers())
+                .containsExactlyInAnyOrder(1, 2);
     }
 
     // 이동/밀도 조정(증가) 요청: 더 알차게 다니고 싶다는 요청이면 관광지 개수가 줄어들지 않아야 함
