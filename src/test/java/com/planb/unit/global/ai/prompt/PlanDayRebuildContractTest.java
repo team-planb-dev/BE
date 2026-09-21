@@ -112,6 +112,29 @@ class PlanDayRebuildContractTest {
     }
 
     @Test
+    @DisplayName("음식점 키워드 후보 부족은 Java 지역 보정과 최종 검증에 위임")
+    void delegatesRestaurantCandidateShortageToJavaFallback() {
+
+        String createPrompt =
+                new TravelPlanPrompt(
+                        null,
+                        null
+                ).system();
+
+        assertTrue(createPrompt.contains(
+                "동일 여행 지역의 음식점 후보를 추가 조회"
+        ));
+
+        assertTrue(createPrompt.contains(
+                "필수 식사가 끝까지 누락되면 저장하지 않습니다"
+        ));
+
+        assertFalse(createPrompt.contains(
+                "재검색해도 결과가 없으면 해당 식사 슬롯을 생성하지 않습니다"
+        ));
+    }
+
+    @Test
     @DisplayName("영양 평가 Prompt는 조회 가능한 기본 음식명을 표준 품목명으로 전달")
     void usesSearchableBaseFoodNameForNutritionLookup() {
 

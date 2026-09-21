@@ -87,6 +87,63 @@ class PlanTourismToolTest {
     }
 
     @Test
+    @DisplayName("지역 음식점 후보의 candidateId와 장소 identity 유지")
+    void recordsRegionalRestaurantCandidateIdentity() {
+
+        TourismTool tourismTool = mock(TourismTool.class);
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+        Kor2KeywordSearchResponse.Item item = mock(
+                Kor2KeywordSearchResponse.Item.class
+        );
+
+        when(item.contentid())
+                .thenReturn("456");
+
+        when(item.contenttypeid())
+                .thenReturn("39");
+
+        when(item.title())
+                .thenReturn("춘천식당");
+
+        when(item.addr1())
+                .thenReturn("강원특별자치도 춘천시 중앙로 1");
+
+        when(item.mapx())
+                .thenReturn("127.7300");
+
+        when(item.mapy())
+                .thenReturn("37.8800");
+
+        when(
+                tourismTool
+                        .searchRestaurantCandidatesByRegion(
+                                "강원특별자치도",
+                                "춘천시"
+                        )
+        ).thenReturn(response(item));
+
+        PlanTourismTool tool = new PlanTourismTool(
+                tourismTool,
+                candidates
+        );
+
+        List<PlaceCandidateContext.Candidate> result = tool
+                .searchRestaurantCandidatesByRegion(
+                        "강원특별자치도",
+                        "춘천시"
+                );
+
+        assertEquals("tour:456", result.getFirst().candidateId());
+        assertEquals("춘천식당", result.getFirst().name());
+        assertEquals("127.7300", result.getFirst().longitude());
+        assertEquals("37.8800", result.getFirst().latitude());
+        assertSame(
+                result.getFirst(),
+                candidates.find("tour:456")
+        );
+    }
+
+    @Test
     @DisplayName("candidateId로 요청한 음식점 상세 조회의 tour 접두사 제거")
     void stripsCandidateIdPrefixBeforeRestaurantDetailLookup() {
 

@@ -2806,6 +2806,7 @@ class PlanPlaceValidationTest {
 
                     // 점심이 쓰지 않은 여분 음식점, 아침 보정이 고를 대상
                     candidates.record(tour("2784322", "39", "아침밀면"));
+                    candidates.record(tour("2784323", "39", "저녁밀면"));
 
                     return new CreatePlanAiResponse(List.of(new PlanDayDetail(
                             1,
@@ -2823,6 +2824,9 @@ class PlanPlaceValidationTest {
         // 같은 메뉴면 보정기가 중복으로 보고 건너뛴다.
         when(tourismTool.getRestaurantDetail("2784322"))
                 .thenReturn(intro("아침메뉴"));
+
+        when(tourismTool.getRestaurantDetail("2784323"))
+                .thenReturn(intro("저녁메뉴"));
 
         when(kakao.getRoute(anyString(), anyString(), any()))
                 .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
@@ -2875,8 +2879,8 @@ class PlanPlaceValidationTest {
     }
 
     @Test
-    @DisplayName("채울 음식점 후보가 없으면 식사 슬롯이 빠져도 거부하지 않음")
-    void acceptsPlanWhenMissingMealCannotBeFilled() {
+    @DisplayName("지역 음식점 후보를 조회해도 필수 식사를 채울 수 없으면 거부")
+    void rejectsPlanWhenRegionalCandidatesCannotFillRequiredMeal() {
 
         TravelHealthContext health = new TravelHealthContext(
                 "테스트 여행자",
@@ -2923,26 +2927,28 @@ class PlanPlaceValidationTest {
         when(kakao.getRoute(anyString(), anyString(), any()))
                 .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
 
-        PlanDayDetail day = service
-                .makePlanByAi(new TravelPlanContext(
-                        travel.createTravelRequest(),
-                        List.of(health)))
-                .planDays()
-                .getFirst();
+        BaseException exception = assertThrows(
+                BaseException.class,
+                () -> service.makePlanByAi(
+                        new TravelPlanContext(
+                                travel.createTravelRequest(),
+                                List.of(health)
+                        )
+                )
+        );
 
-        // 저녁은 요구 대상인데 후보가 없어 채우지 못했다. 그래도 내보낸다.
         assertTrue(
-                day.schedules().stream()
-                        .noneMatch(schedule -> schedule.scheduleType() == ScheduleType.DINNER),
-                day.schedules().stream()
-                        .map(schedule -> schedule.scheduleType() + "@" + schedule.startTime())
-                        .toList()
-                        .toString());
+                exception.getMessage().contains("식사 슬롯 누락"),
+                exception.getMessage()
+        );
+
+        verify(handler)
+                .collectRestaurantCandidates(any(), any());
     }
 
     @Test
-    @DisplayName("남은 음식점 후보의 대표메뉴가 이미 사용됐으면 식사 누락 허용")
-    void acceptsPlanWhenRemainingCandidateMenuIsAlreadyUsed() {
+    @DisplayName("지역 음식점 후보의 대표메뉴가 이미 사용됐으면 식사 누락 거부")
+    void rejectsPlanWhenRegionalCandidateMenuIsAlreadyUsed() {
 
         TravelHealthContext health = new TravelHealthContext(
                 "테스트 여행자",
@@ -3001,10 +3007,56 @@ class PlanPlaceValidationTest {
         when(kakao.getRoute(anyString(), anyString(), any()))
                 .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
 
+        BaseException exception = assertThrows(
+                BaseException.class,
+                () -> service.makePlanByAi(
+                        new TravelPlanContext(
+                                travel.createTravelRequest(),
+                                List.of(health)
+                        )
+                )
+        );
+
+        assertTrue(
+                exception.getMessage().contains("식사 슬롯 누락"),
+                exception.getMessage()
+        );
+    }
+
+    @Test
+    @DisplayName("AI 음식점 후보가 부족하면 같은 지역 후보로 필수 식사를 보정")
+    void fillsRequiredMealWithRegionalRestaurantCandidates() {
+
+        TravelHealthContext health = healthWithMeal(
+                ScheduleType.LUNCH,
+                LocalTime.of(12, 0)
+        );
+
+        stubTwoAttractionPlan(13);
+
+        doAnswer(invocation -> {
+            PlaceCandidateContext candidates = invocation.getArgument(1);
+
+            candidates.record(tour("9999", "39", "보정음식점"));
+
+            return null;
+        })
+                .when(handler)
+                .collectRestaurantCandidates(any(), any());
+
+        when(tourismTool.getRestaurantDetail("9999"))
+                .thenReturn(intro("보정메뉴"));
+
+        when(kakao.getRoute(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
+
         PlanDayDetail day = service
-                .makePlanByAi(new TravelPlanContext(
-                        travel.createTravelRequest(),
-                        List.of(health)))
+                .makePlanByAi(
+                        new TravelPlanContext(
+                                travel.createTravelRequest(),
+                                List.of(health)
+                        )
+                )
                 .planDays()
                 .getFirst();
 
@@ -3012,13 +3064,40 @@ class PlanPlaceValidationTest {
                 day
                         .schedules()
                         .stream()
-                        .noneMatch(schedule -> schedule.scheduleType() == ScheduleType.DINNER),
-                day
-                        .schedules()
-                        .stream()
-                        .map(schedule -> schedule.scheduleType() + "@" + schedule.startTime())
-                        .toList()
-                        .toString());
+                        .anyMatch(schedule -> schedule.scheduleType() == ScheduleType.LUNCH
+                                && "tour:9999".equals(schedule.candidateId()))
+        );
+    }
+
+    @Test
+    @DisplayName("지역 음식점 조회 실패는 후보 부족으로 바꾸지 않고 전달")
+    void propagatesRegionalRestaurantSearchFailure() {
+
+        TravelHealthContext health = healthWithMeal(
+                ScheduleType.LUNCH,
+                LocalTime.of(12, 0)
+        );
+
+        stubTwoAttractionPlan(13);
+
+        doThrow(new RuntimeException("TourAPI timeout"))
+                .when(handler)
+                .collectRestaurantCandidates(any(), any());
+
+        RuntimeException exception = assertThrows(
+                RuntimeException.class,
+                () -> service.makePlanByAi(
+                        new TravelPlanContext(
+                                travel.createTravelRequest(),
+                                List.of(health)
+                        )
+                )
+        );
+
+        assertEquals(
+                "TourAPI timeout",
+                exception.getMessage()
+        );
     }
 
     @Test

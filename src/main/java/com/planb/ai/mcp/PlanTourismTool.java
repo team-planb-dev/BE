@@ -84,6 +84,24 @@ public class PlanTourismTool {
         );
     }
 
+    /**
+     * AI 키워드 검색 후보로 식사 슬롯을 채울 수 없을 때 Java가 같은 여행 지역의
+     * 음식점 후보를 추가로 수집한다.
+     */
+    public List<PlaceCandidateContext.Candidate> searchRestaurantCandidatesByRegion(
+            String locationDo,
+            String locationSigungu
+    ) {
+
+        return recordCandidates(
+                tourismTool
+                        .searchRestaurantCandidatesByRegion(
+                                locationDo,
+                                locationSigungu
+                        )
+        );
+    }
+
     private List<PlaceCandidateContext.Candidate> recordCandidates(
             Kor2KeywordSearchResponse response
     ) {

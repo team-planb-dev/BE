@@ -88,6 +88,31 @@ public class MissingSlotCompleter {
             Set<Integer> densityReductionDays
     ) {
 
+        int totalDays = response == null || response.planDays() == null
+                ? 0
+                : response.planDays().size();
+
+        return complete(
+                response,
+                healthContexts,
+                candidates,
+                usedNames,
+                usedMenus,
+                densityReductionDays,
+                totalDays
+        );
+    }
+
+    public CreatePlanAiResponse complete(
+            CreatePlanAiResponse response,
+            List<TravelHealthContext> healthContexts,
+            PlaceCandidateContext candidates,
+            Set<String> usedNames,
+            Set<String> usedMenus,
+            Set<Integer> densityReductionDays,
+            int totalDays
+    ) {
+
         if (response == null || response.planDays() == null) {
             return response;
         }
@@ -109,9 +134,28 @@ public class MissingSlotCompleter {
                 usedMenus
         );
 
-        List<CreatePlanAiResponse.PlanDayDetail> days = new ArrayList<>();
+        List<CreatePlanAiResponse.PlanDayDetail> requiredMealDays = new ArrayList<>();
 
         for (CreatePlanAiResponse.PlanDayDetail day : response.planDays()) {
+            requiredMealDays.add(
+                    fillDay(
+                            day,
+                            healthContexts,
+                            candidates,
+                            selectedNames,
+                            selectedMenus,
+                            totalDays,
+                            true,
+                            day != null
+                                    && densityReductionDays != null
+                                    && densityReductionDays.contains(day.dayNumber())
+                    )
+            );
+        }
+
+        List<CreatePlanAiResponse.PlanDayDetail> days = new ArrayList<>();
+
+        for (CreatePlanAiResponse.PlanDayDetail day : requiredMealDays) {
             days.add(
                     fillDay(
                             day,
@@ -119,6 +163,8 @@ public class MissingSlotCompleter {
                             candidates,
                             selectedNames,
                             selectedMenus,
+                            totalDays,
+                            false,
                             day != null
                                     && densityReductionDays != null
                                     && densityReductionDays.contains(day.dayNumber())
@@ -241,56 +287,6 @@ public class MissingSlotCompleter {
         );
     }
 
-    /**
-     * 현재 일정에서 실제로 채울 수 있는 식사 슬롯 수를 계산한다.
-     *
-     * 장소명만 남은 후보는 세지 않는다. 슬롯 생성과 같은 기준으로 대표메뉴를 확인하고,
-     * 이미 사용한 장소명과 메뉴명을 제외한 뒤 선택한 값을 즉시 예약한다.
-     */
-    public int fillableMealCount(
-            CreatePlanAiResponse response,
-            PlaceCandidateContext candidates,
-            Set<String> usedNames,
-            Set<String> usedMenus
-    ) {
-
-        if (response == null
-                || response.planDays() == null
-                || candidates == null) {
-            return 0;
-        }
-
-        Set<String> selectedNames = merged(
-                usedNames(response),
-                usedNames
-        );
-
-        Set<String> selectedMenus = merged(
-                usedMenus(response),
-                usedMenus
-        );
-
-        int count = 0;
-
-        for (PlaceCandidateContext.Candidate candidate : candidates.restaurantCandidates()) {
-            MealCandidateSelection selection = mealCandidate(
-                    candidate,
-                    selectedNames,
-                    selectedMenus
-            );
-
-            if (selection == null) {
-                continue;
-            }
-
-            selectedNames.add(normalized(selection.candidate().name()));
-            selectedMenus.add(normalized(selection.menuName()));
-            count++;
-        }
-
-        return count;
-    }
-
     private Set<String> merged(
             Set<String> fromResponse,
             Set<String> fromCaller
@@ -313,6 +309,8 @@ public class MissingSlotCompleter {
             PlaceCandidateContext candidates,
             Set<String> usedNames,
             Set<String> usedMenus,
+            int totalDays,
+            boolean requiredMealPhase,
             boolean densityReductionAllowed
     ) {
 
@@ -331,7 +329,16 @@ public class MissingSlotCompleter {
                 densityReductionAllowed
         );
 
-        addMealSlots(day, schedules, healthContexts, candidates, usedNames, usedMenus);
+        addMealSlots(
+                day,
+                schedules,
+                healthContexts,
+                candidates,
+                usedNames,
+                usedMenus,
+                totalDays,
+                requiredMealPhase
+        );
 
         schedules.sort(
                 Comparator.comparing(
@@ -408,17 +415,37 @@ public class MissingSlotCompleter {
             List<TravelHealthContext> healthContexts,
             PlaceCandidateContext candidates,
             Set<String> usedNames,
-            Set<String> usedMenus
+            Set<String> usedMenus,
+            int totalDays,
+            boolean requiredMealPhase
     ) {
 
-        List<ScheduleType> missingMeals = MealSlotPolicy.missingMeals(
-                new CreatePlanAiResponse.PlanDayDetail(
-                        day.dayNumber(),
-                        day.date(),
-                        schedules
-                ),
-                healthContexts
+        List<ScheduleType> missingMeals = new ArrayList<>(
+                MealSlotPolicy.missingMeals(
+                        new CreatePlanAiResponse.PlanDayDetail(
+                                day.dayNumber(),
+                                day.date(),
+                                schedules
+                        ),
+                        healthContexts
+                )
         );
+
+        Set<ScheduleType> requiredMeals = new HashSet<>(
+                MealSlotPolicy.requiredMissingMeals(
+                        new CreatePlanAiResponse.PlanDayDetail(
+                                day.dayNumber(),
+                                day.date(),
+                                schedules
+                        ),
+                        healthContexts,
+                        totalDays
+                )
+        );
+
+        missingMeals.removeIf(mealType -> requiredMealPhase
+                ? !requiredMeals.contains(mealType)
+                : requiredMeals.contains(mealType));
 
         for (ScheduleType mealType : missingMeals) {
             LocalTime mealTime = MealSlotPolicy.configuredMealTime(mealType, healthContexts);

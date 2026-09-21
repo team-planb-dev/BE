@@ -28,16 +28,19 @@ import com.planb.ai.handler.TravelRecommendHandler;
 import com.planb.domain.chat.dto.MessageType;
 import com.planb.domain.chat.dto.request.SendChatMessageRequest;
 import com.planb.domain.chat.dto.response.SendChatMessageResponse;
+import com.planb.domain.travel.dto.nutrition.NutritionEvaluationResult;
 import com.planb.domain.travel.dto.request.CreateTravelRequest;
 import com.planb.domain.travel.entity.Travel;
 import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.DateType;
+import com.planb.domain.travel.entity.constant.NutritionEvaluationStatus;
 import com.planb.domain.travel.entity.constant.RecommendationTag;
 import com.planb.domain.travel.entity.constant.ScheduleType;
 import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.domain.travel.entity.constant.TravelStyle;
 import com.planb.domain.travel.entity.constant.TravelTheme;
 import com.planb.domain.travel.repository.TravelRepository;
+import com.planb.domain.travel.service.NutritionService;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.integration.domain.chat.helper.ChatIntegrationTestSupport;
 import com.planb.integration.domain.chat.helper.StompTestClientHelper;
@@ -53,6 +56,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.hamcrest.Matchers.hasItem;
@@ -122,6 +128,9 @@ public class ChatAiEditPlanIntegrationTest
     @MockitoBean
     private KakaoMapServiceHandler kakaoMapServiceHandler;
 
+    @MockitoBean
+    private NutritionService nutritionService;
+
     private StompTestClientHelper stompHelper;
 
     @BeforeEach
@@ -131,6 +140,17 @@ public class ChatAiEditPlanIntegrationTest
                 new StompTestClientHelper(
                         port
                 );
+
+        lenient()
+                .when(nutritionService.evaluateFoodNutrition(anyString(), anyList()))
+                .thenReturn(Mono.just(new NutritionEvaluationResult(
+                        List.of(),
+                        NutritionEvaluationStatus.UNAVAILABLE,
+                        List.of(),
+                        null,
+                        null,
+                        null
+                )));
 
         when(kakaoMapServiceHandler.getRoute(
                 any(),
@@ -1059,7 +1079,7 @@ public class ChatAiEditPlanIntegrationTest
                         "부산",
                         "해운대구",
                         LocalDate.now().plusDays(7),
-                        DateType.ONE_NIGHT_TWO_DAYS,
+                        DateType.DAY_TRIP,
                         Transportation.TRANSIT,
                         "해운대",
                         List.of(

@@ -5,7 +5,6 @@ import com.planb.ai.client.OpenAiClient;
 import com.planb.ai.context.PlaceCandidateContext;
 import com.planb.ai.context.PlanEditContext;
 import com.planb.ai.context.TravelHealthContext;
-import com.planb.domain.travel.policy.MealSlotPolicy;
 import com.planb.domain.travel.policy.TouristPlaceCountPolicy;
 import com.planb.ai.context.TravelPlanContext;
 import com.planb.ai.dto.request.MakeFoodRecommendCallRequest;
@@ -27,7 +26,6 @@ import com.planb.domain.travel.dto.response.MakeRecommendFoodResponse;
 import com.planb.domain.health.entity.constant.WalkType;
 import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.DateType;
-import com.planb.domain.travel.entity.constant.ScheduleType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,8 +52,6 @@ public class TravelRecommendHandler {
     Helper
      */
     private final ObjectMapper objectMapper;
-
-    private final MissingSlotCompleter missingSlotCompleter;
 
     private final BeanOutputConverter<CreatePlanAiResponse> createPlanAiResponseConverter;
 
@@ -148,6 +144,27 @@ public class TravelRecommendHandler {
 
         return openAiClient.call(new PlanEditScopePrompt(context),
                 PlanEditScope.class);
+    }
+
+    /**
+     * AI의 음식명 키워드 검색 후보가 부족할 때 같은 여행 지역의 음식점 후보를 보충한다.
+     */
+    public void collectRestaurantCandidates(
+            TravelPlanContext context,
+            PlaceCandidateContext candidates
+    ) {
+
+        new PlanTourismTool(
+                tourismTool,
+                candidates
+        ).searchRestaurantCandidatesByRegion(
+                context
+                        .createTravelRequest()
+                        .locationDo(),
+                context
+                        .createTravelRequest()
+                        .locationSigungu()
+        );
     }
 
     // 지정 날짜 하나의 새 후보 검색 및 재구성
@@ -256,47 +273,8 @@ public class TravelRecommendHandler {
                     )
             );
 
-            List<String> mealFailures = mealSlotFailures(
-                    response,
-                    context.healthContexts(),
-                    expectedDayCount
-            );
-
-            if (!mealFailures.isEmpty()) {
-                failures.addAll(
-                        unfillable(
-                                mealFailures,
-                                missingSlotCompleter.fillableMealCount(
-                                        response,
-                                        candidates,
-                                        Set.of(),
-                                        Set.of()
-                                )
-                        )
-                );
-            }
-
             return failures;
         };
-    }
-
-    // 없으면 안 되는 식사가 빠진 날짜를 교정 사유로 만든다.
-    // 면제된 끼니는 Java 보정기가 어차피 시도하므로 AI를 다시 부를 값이 없다.
-    private static List<String> mealSlotFailures(
-            CreatePlanAiResponse response,
-            List<TravelHealthContext> healthContexts,
-            int expectedDayCount
-    ) {
-
-        return response
-                .planDays()
-                .stream()
-                .filter(Objects::nonNull)
-                .flatMap(day -> MealSlotPolicy
-                        .requiredMissingMeals(day, healthContexts, expectedDayCount)
-                        .stream()
-                        .map(mealType -> mealSlotFailure(day, mealType)))
-                .toList();
     }
 
     /**
@@ -342,16 +320,6 @@ public class TravelRecommendHandler {
                 .filter(Objects::nonNull)
                 .filter(name -> !usedNames.contains(name))
                 .count();
-    }
-
-    private static String mealSlotFailure(
-            CreatePlanAiResponse.PlanDayDetail day,
-            ScheduleType mealType
-    ) {
-
-        return "planDays[day" + day.dayNumber()
-                + "].schedules: " + mealType + " 식사 슬롯 필요 / 실제 없음"
-                + " / 등록 식사시각을 지나는 일정이므로 음식점 후보로 식사 슬롯 추가";
     }
 
     private static List<String> touristPlaceCountFailures(

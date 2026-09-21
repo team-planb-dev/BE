@@ -89,9 +89,10 @@ public class Kor2ServiceHandler {
                 )
                 .flatMap(areaCode -> {
                     if (METROPOLITAN_AREAS.contains(locationDo)) {
-                        return searchAttractionsByAreaCode(
+                        return searchByAreaCode(
                                 areaCode,
-                                null
+                                null,
+                                12
                         );
                     }
 
@@ -103,9 +104,10 @@ public class Kor2ServiceHandler {
                                     )
                             )
                             .flatMap(sigunguCode ->
-                                    searchAttractionsByAreaCode(
+                                    searchByAreaCode(
                                             areaCode,
-                                            sigunguCode
+                                            sigunguCode,
+                                            12
                                     )
                             );
                 });
@@ -147,6 +149,46 @@ public class Kor2ServiceHandler {
                                             keyword,
                                             areaCode,
                                             sigunguCode
+                                    )
+                            );
+                });
+    }
+
+
+    // Ko2Service API : 광역 지역은 시/도, 도 지역은 시/군 기준 음식점 후보 조회
+    public Mono<Kor2KeywordSearchResponse> searchRestaurantCandidates(
+            String locationDo,
+            String locationSigungu
+    ) {
+
+        return getAreaCode()
+                .map(response ->
+                        findCode(
+                                response,
+                                locationDo
+                        )
+                )
+                .flatMap(areaCode -> {
+                    if (METROPOLITAN_AREAS.contains(locationDo)) {
+                        return searchByAreaCode(
+                                areaCode,
+                                null,
+                                39
+                        );
+                    }
+
+                    return getSigunguCode(areaCode)
+                            .map(response ->
+                                    findCode(
+                                            response,
+                                            locationSigungu
+                                    )
+                            )
+                            .flatMap(sigunguCode ->
+                                    searchByAreaCode(
+                                            areaCode,
+                                            sigunguCode,
+                                            39
                                     )
                             );
                 });
@@ -237,10 +279,11 @@ public class Kor2ServiceHandler {
     }
 
 
-    // Ko2Service API : 지역코드 기반 관광지 후보 조회
-    private Mono<Kor2KeywordSearchResponse> searchAttractionsByAreaCode(
+    // Ko2Service API : 지역코드와 콘텐츠 유형 기반 후보 조회
+    private Mono<Kor2KeywordSearchResponse> searchByAreaCode(
             String areaCode,
-            String sigunguCode
+            String sigunguCode,
+            int contentTypeId
     ) {
 
         URI uri = DataUriBuilder
@@ -279,7 +322,7 @@ public class Kor2ServiceHandler {
                 )
                 .queryParam(
                         "contentTypeId",
-                        12
+                        contentTypeId
                 )
                 .build();
 
