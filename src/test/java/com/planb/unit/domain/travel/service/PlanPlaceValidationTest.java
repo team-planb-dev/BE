@@ -3146,6 +3146,123 @@ class PlanPlaceValidationTest {
     }
 
     @Test
+    @DisplayName("걷기 감소 수정의 하루 관광 장소 2개 허용")
+    void allowsTwoTouristPlacesForReducedWalkingEdit() {
+
+        PlanScheduleDetail first = slot("tour:1", "해운대", 9);
+
+        PlanScheduleDetail second = slot("tour:3", "이기대", 11);
+
+        when(handler.classifyEditScope(any()))
+                .thenReturn(new PlanEditScope(
+                        List.of(),
+                        true,
+                        List.of(1)
+                ));
+
+        when(handler.editPlanByAi(any(), any()))
+                .thenAnswer(invocation -> {
+                    PlaceCandidateContext candidates = invocation.getArgument(1);
+
+                    candidates.record(tour("1", "12", "해운대"));
+
+                    candidates.record(tour("3", "12", "이기대"));
+
+                    return new EditPlanAiResponse(
+                            "부산",
+                            List.of(new PlanDayDetail(
+                                    1,
+                                    date,
+                                    List.of(
+                                            first,
+                                            second))),
+                            List.of("걷는 양을 줄이기 위해 관광지 한 곳을 제외했습니다."),
+                            true);
+                });
+
+        when(kakao.getRoute(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
+
+        EditPlanAiResponse result = service.makeEditPlanByAi(new PlanEditContext(
+                travel.createTravelRequest(),
+                List.of(walkOnlyHealthContext()),
+                existing(first),
+                "덜 걷고 싶어요"));
+
+        assertEquals(
+                List.of("해운대", "이기대"),
+                touristPlaceNames(result));
+    }
+
+    @Test
+    @DisplayName("일반 수정의 하루 관광 장소 2개 거부")
+    void rejectsTwoTouristPlacesForOrdinaryEdit() {
+
+        PlanScheduleDetail first = slot("tour:1", "해운대", 9);
+
+        PlanScheduleDetail second = slot("tour:3", "이기대", 11);
+
+        when(handler.editPlanByAi(any(), any()))
+                .thenAnswer(invocation -> {
+                    PlaceCandidateContext candidates = invocation.getArgument(1);
+
+                    candidates.record(tour("1", "12", "해운대"));
+
+                    candidates.record(tour("3", "12", "이기대"));
+
+                    return new EditPlanAiResponse(
+                            "부산",
+                            List.of(new PlanDayDetail(
+                                    1,
+                                    date,
+                                    List.of(
+                                            first,
+                                            second))),
+                            List.of("장소를 변경했습니다."),
+                            true);
+                });
+
+        BaseException failure = assertThrows(
+                BaseException.class,
+                () -> service.makeEditPlanByAi(new PlanEditContext(
+                        travel.createTravelRequest(),
+                        List.of(walkOnlyHealthContext()),
+                        existing(first),
+                        "첫 번째 관광지를 변경해주세요"))
+        );
+
+        assertTrue(failure.getMessage().contains("expected=3, actual=2"));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 일차의 밀도 감소 범위 거부")
+    void rejectsUnknownDensityReductionDay() {
+
+        PlanScheduleDetail place = slot("tour:1", "해운대", 9);
+
+        when(handler.classifyEditScope(any()))
+                .thenReturn(new PlanEditScope(
+                        List.of(),
+                        true,
+                        List.of(2)
+                ));
+
+        BaseException failure = assertThrows(
+                BaseException.class,
+                () -> service.makeEditPlanByAi(new PlanEditContext(
+                        travel.createTravelRequest(),
+                        List.of(walkOnlyHealthContext()),
+                        existing(place),
+                        "덜 걷고 싶어요"))
+        );
+
+        assertTrue(failure.getMessage().contains("밀도 감소 대상 날짜 확인 필요"));
+
+        verify(handler, never())
+                .editPlanByAi(any(), any());
+    }
+
+    @Test
     @DisplayName("일부 날짜만 재구성해도 보존 날짜의 조회된 영양성분은 남는다")
     void keepsNutritionOnPreservedDayDuringRebuildEdit() {
 

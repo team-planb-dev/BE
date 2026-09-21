@@ -51,6 +51,38 @@ class TouristPlaceCountPolicyTest {
     }
 
     @Test
+    @DisplayName("밀도 감소 대상인 일반 여행자의 관광 장소 최소 개수 2개")
+    void densityReductionLowersMinimumCountToTwo() {
+
+        List<TravelHealthContext> healthContexts = List.of(
+                healthContext(WalkType.MODERATE)
+        );
+
+        assertThat(TouristPlaceCountPolicy.minimumCount(
+                healthContexts,
+                false
+        ))
+                .isEqualTo(3);
+
+        assertThat(TouristPlaceCountPolicy.minimumCount(
+                healthContexts,
+                true
+        ))
+                .isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("밀도 감소 대상인 MINIMAL 여행자의 관광 장소 최소 개수 2개 유지")
+    void densityReductionKeepsMinimalCountAtTwo() {
+
+        assertThat(TouristPlaceCountPolicy.minimumCount(
+                List.of(healthContext(WalkType.MINIMAL)),
+                true
+        ))
+                .isEqualTo(2);
+    }
+
+    @Test
     @DisplayName("관광 장소 초과분을 뒤에서부터 제거해 기준 개수에 맞춤")
     void trimsExcessTouristPlacesFromTail() {
 
