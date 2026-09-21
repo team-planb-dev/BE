@@ -136,6 +136,7 @@ public class PlanService {
                 evaluations,
                 RouteAnchor.from(context.createTravelRequest().decidedLocation()),
                 candidates,
+                Set.of(),
                 null);
     }
 
@@ -149,6 +150,8 @@ public class PlanService {
         CreatePlanAiResponse validated;
 
         Set<Integer> rebuildDays;
+
+        Set<Integer> densityReductionDays;
 
         boolean preserveOtherDays;
 
@@ -164,6 +167,11 @@ public class PlanService {
 
             rebuildDays = planEditValidator.rebuildDays(scope, context);
 
+            densityReductionDays = planEditValidator.densityReductionDays(
+                    scope,
+                    context
+            );
+
             preserveOtherDays = !rebuildDays.isEmpty() && scope.preserveOtherDays();
 
             response = travelRecommendHandler.editPlanByAi(context, candidates);
@@ -171,10 +179,27 @@ public class PlanService {
             CreatePlanAiResponse proposed = new CreatePlanAiResponse(response.planDays());
 
             validated = preserveOtherDays
-                    ? validateRebuildTargets(context, proposed, candidates, rebuildDays)
-                    : validatePlaces(proposed, candidates, travelContext, context.currentPlan());
+                    ? validateRebuildTargets(
+                            context,
+                            proposed,
+                            candidates,
+                            rebuildDays,
+                            densityReductionDays
+                    )
+                    : validatePlaces(
+                            proposed,
+                            candidates,
+                            travelContext,
+                            context.currentPlan(),
+                            densityReductionDays
+                    );
 
-            validated = ensureDaysRebuilt(context, validated, rebuildDays);
+            validated = ensureDaysRebuilt(
+                    context,
+                    validated,
+                    rebuildDays,
+                    densityReductionDays
+            );
         } finally {
             evaluations = nutritionEvaluationCollector.finish();
         }
@@ -202,6 +227,7 @@ public class PlanService {
                         ? rebuildAnchor(context, rebuildDays)
                         : RouteAnchor.from(context.createTravelRequest().decidedLocation()),
                 candidates,
+                densityReductionDays,
                 context.currentPlan());
 
         CreatePlanAiResponse result = !preserveOtherDays ? finished : new CreatePlanAiResponse(
@@ -226,7 +252,8 @@ public class PlanService {
     private CreatePlanAiResponse ensureDaysRebuilt(
             PlanEditContext context,
             CreatePlanAiResponse response,
-            Set<Integer> rebuildDays
+            Set<Integer> rebuildDays,
+            Set<Integer> densityReductionDays
     ) {
 
         CreatePlanAiResponse current = response;
@@ -280,9 +307,22 @@ public class PlanService {
                 CreatePlanAiResponse checked;
 
                 try {
-                    checked = validatePlaces(replacement, candidates,
-                            new TravelPlanContext(context.createTravelRequest(), context.healthContexts()),
-                            context.currentPlan(), places, menus, rebuildAnchor(context, Set.of(dayNumber)));
+                    checked = validatePlaces(
+                            replacement,
+                            candidates,
+                            new TravelPlanContext(
+                                    context.createTravelRequest(),
+                                    context.healthContexts()
+                            ),
+                            context.currentPlan(),
+                            places,
+                            menus,
+                            densityReductionDays,
+                            rebuildAnchor(
+                                    context,
+                                    Set.of(dayNumber)
+                            )
+                    );
                 } catch (BaseException exception) {
                     if (!PlanEditExceptionEnum.INVALID_AI_PLACE.getCode().equals(exception.getErrorCode())) {
                         throw exception;
@@ -330,7 +370,8 @@ public class PlanService {
             PlanEditContext context,
             CreatePlanAiResponse response,
             PlaceCandidateContext candidates,
-            Set<Integer> rebuildDays
+            Set<Integer> rebuildDays,
+            Set<Integer> densityReductionDays
     ) {
 
         Set<String> places = new HashSet<>();
@@ -384,9 +425,22 @@ public class PlanService {
             return matches.getFirst();
         }).toList();
 
-        CreatePlanAiResponse checked = validatePlaces(new CreatePlanAiResponse(targets), candidates,
-                new TravelPlanContext(context.createTravelRequest(), context.healthContexts()),
-                context.currentPlan(), places, menus, rebuildAnchor(context, rebuildDays));
+        CreatePlanAiResponse checked = validatePlaces(
+                new CreatePlanAiResponse(targets),
+                candidates,
+                new TravelPlanContext(
+                        context.createTravelRequest(),
+                        context.healthContexts()
+                ),
+                context.currentPlan(),
+                places,
+                menus,
+                densityReductionDays,
+                rebuildAnchor(
+                        context,
+                        rebuildDays
+                )
+        );
 
         return new CreatePlanAiResponse(Stream.concat(preserved.stream(), checked.planDays().stream())
                 .sorted(Comparator.comparing(CreatePlanAiResponse.PlanDayDetail::dayNumber)).toList());
@@ -498,6 +552,7 @@ public class PlanService {
             List<NutritionEvaluationCollector.FoodNutritionEvaluation> evaluations,
             RouteAnchor anchor,
             PlaceCandidateContext candidates,
+            Set<Integer> densityReductionDays,
             GetAiPlanResponse currentPlan
     ) {
 
@@ -522,7 +577,8 @@ public class PlanService {
                 normalized,
                 context,
                 anchor,
-                candidates
+                candidates,
+                densityReductionDays
         );
 
         validateTravelMinutes(mealFixed);
@@ -630,7 +686,8 @@ public class PlanService {
             CreatePlanAiResponse response,
             TravelPlanContext context,
             RouteAnchor anchor,
-            PlaceCandidateContext candidates
+            PlaceCandidateContext candidates,
+            Set<Integer> densityReductionDays
     ) {
 
         if (missingMealDays(response, context.healthContexts()).isEmpty()) {
@@ -642,7 +699,8 @@ public class PlanService {
                 context.healthContexts(),
                 candidates,
                 new HashSet<>(),
-                new HashSet<>()
+                new HashSet<>(),
+                densityReductionDays
         );
 
         return scheduleNormalizer.normalizeScheduleTimes(
@@ -799,8 +857,37 @@ public class PlanService {
             GetAiPlanResponse existing
     ) {
 
-        return validatePlaces(response, candidates, context, existing, new HashSet<>(), new HashSet<>(),
-                RouteAnchor.from(context.createTravelRequest().decidedLocation()));
+        return validatePlaces(
+                response,
+                candidates,
+                context,
+                existing,
+                Set.of()
+        );
+    }
+
+    private CreatePlanAiResponse validatePlaces(
+            CreatePlanAiResponse response,
+            PlaceCandidateContext candidates,
+            TravelPlanContext context,
+            GetAiPlanResponse existing,
+            Set<Integer> densityReductionDays
+    ) {
+
+        return validatePlaces(
+                response,
+                candidates,
+                context,
+                existing,
+                new HashSet<>(),
+                new HashSet<>(),
+                densityReductionDays,
+                RouteAnchor.from(
+                        context
+                                .createTravelRequest()
+                                .decidedLocation()
+                )
+        );
     }
 
     // 다른 날짜의 예약 장소·메뉴를 포함한 장소 검증
@@ -812,6 +899,7 @@ public class PlanService {
             GetAiPlanResponse existing,
             Set<String> usedPlaces,
             Set<String> usedMenus,
+            Set<Integer> densityReductionDays,
             RouteAnchor anchor
     ) {
 
@@ -833,7 +921,8 @@ public class PlanService {
                 context.healthContexts(),
                 candidates,
                 usedPlaces,
-                usedMenus
+                usedMenus,
+                densityReductionDays
         );
 
         response = TouristPlaceCountPolicy.trimExcess(
@@ -843,7 +932,8 @@ public class PlanService {
 
         validateTouristPlaceCounts(
                 response,
-                context.healthContexts()
+                context.healthContexts(),
+                densityReductionDays
         );
 
         response = scheduleNormalizer.normalizeScheduleTimes(
@@ -949,16 +1039,23 @@ public class PlanService {
 
     private void validateTouristPlaceCounts(
             CreatePlanAiResponse response,
-            List<TravelHealthContext> healthContexts
+            List<TravelHealthContext> healthContexts,
+            Set<Integer> densityReductionDays
     ) {
 
-        int expectedCount = TouristPlaceCountPolicy.expectedCount(healthContexts);
+        int maximumCount = TouristPlaceCountPolicy.expectedCount(healthContexts);
 
-        if (expectedCount == 0) {
+        if (maximumCount == 0) {
             return;
         }
 
         for (CreatePlanAiResponse.PlanDayDetail day : response.planDays()) {
+            int minimumCount = TouristPlaceCountPolicy.minimumCount(
+                    healthContexts,
+                    densityReductionDays != null
+                            && densityReductionDays.contains(day.dayNumber())
+            );
+
             long touristPlaceCount = day.schedules() == null
                     ? 0
                     : day
@@ -970,7 +1067,11 @@ public class PlanService {
                                     || type == CourseType.MUST_HAVE)
                             .count();
 
-            if (touristPlaceCount != expectedCount) {
+            if (touristPlaceCount < minimumCount || touristPlaceCount > maximumCount) {
+                String expectedCount = minimumCount == maximumCount
+                        ? String.valueOf(maximumCount)
+                        : minimumCount + "~" + maximumCount;
+
                 throw invalidPlace(
                         "관광 장소 개수 불일치: day=" + day.dayNumber()
                                 + ", expected=" + expectedCount

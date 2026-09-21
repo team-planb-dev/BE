@@ -16,6 +16,11 @@ public record PlanEditScopePrompt(PlanEditContext context) implements AiPrompt {
                 preserveOtherDays는 전체 날짜 재구성 외의 변경 요청이 다른 날짜에 없을 때만 true입니다.
                 예: '1일차 통째로 다시, 2일차 점심도 변경'은 rebuildDayNumbers=[1], preserveOtherDays=false입니다.
                 여행 전체를 통째로 재구성하라고 명시하면 현재 일정의 모든 일차를 반환합니다.
+
+                densityReductionDayNumbers에는 사용자가 걷는 양, 관광지 개수 또는 일정 밀도를
+                줄여 달라고 명시한 일차만 넣습니다.
+                특정 일차를 지정하지 않은 여행 전체 감소 요청이면 현재 일정의 모든 일차를 넣습니다.
+                장소 교체, 시간 조정, 식사 변경, 관광지 증가 요청 또는 모호한 요청이면 []입니다.
                 """;
     }
 
