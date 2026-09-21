@@ -101,6 +101,34 @@ public class TourismTool {
                 .block();
     }
 
+    /**
+     * 키워드 검색 후보가 부족할 때 여행 지역 전체의 음식점 후보를 조회한다.
+     */
+    public Kor2KeywordSearchResponse searchRestaurantCandidatesByRegion(
+            String locationDo,
+            String locationSigungu
+    ) {
+
+        log.info(
+                "[AI TOOL] 지역 음식점 후보 조회 호출 - locationDo: {}, locationSigungu: {}",
+                locationDo,
+                locationSigungu
+        );
+
+        return kor2ServiceHandler
+                .searchRestaurantCandidates(
+                        locationDo,
+                        locationSigungu
+                )
+                .doOnNext(response ->
+                        log.info(
+                                "[AI TOOL] 지역 음식점 후보 조회 응답 - {}",
+                                response
+                        )
+                )
+                .block();
+    }
+
     private Kor2KeywordSearchResponse selectAttractionCandidates(
             Kor2KeywordSearchResponse response
     ) {

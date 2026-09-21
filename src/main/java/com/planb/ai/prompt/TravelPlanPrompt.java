@@ -183,7 +183,9 @@ public record TravelPlanPrompt(
                   반드시 같은 검색 결과 item 하나에서만 가져옵니다.
                   서로 다른 item에서 값을 가져와 하나의 일정에 섞어서 사용하지 않습니다.
                 - 음식점 검색 결과가 없으면 keyword를 한 번 변경하여 최대 1회 재검색합니다.
-                  재검색해도 결과가 없으면 해당 식사 슬롯을 생성하지 않습니다.
+                  재검색해도 결과가 없으면 Tool 결과에 없는 음식점을 만들지 않습니다.
+                  AI 응답에서 부족한 식사는 Java가 동일 여행 지역의 음식점 후보를 추가 조회해 보정하며,
+                  필수 식사가 끝까지 누락되면 저장하지 않습니다.
                 - 관광지 지역 후보가 부족하면 Tool 결과에 없는 장소를 생성하지 않습니다.
                   plannedPlaces가 지역 후보에 없는 경우에만 입력된 장소명으로
                   아래의 findPlaceWithRoute 대체 절차를 시도합니다.
@@ -475,8 +477,9 @@ public record TravelPlanPrompt(
                   - ATTRACTION, CAFE_REST, RESTAURANT, LOCAL_FOOD, MUST_HAVE 슬롯 중
                     locationName은 채워져 있지만 location·longitude·latitude가 비어있는
                     슬롯이 있는가(Tool 검증을 끝내지 못한 채 응답에 남은 것이므로, 있다면
-                    STEP 4~7을 다시 시도해야 한다. 식사·카페 슬롯은 최종적으로 확인되지 않으면
-                    생략할 수 있지만, 관광 슬롯은 날짜별 관광지 개수를 유지해야 한다)
+                    STEP 4~7을 다시 시도해야 한다. 확인되지 않은 식사 후보를 만들지는 않으며,
+                    부족한 식사는 Java 지역 보정과 최종 검증에 맡긴다. 카페 슬롯은 생략할 수 있지만,
+                    관광 슬롯은 날짜별 관광지 개수를 유지해야 한다)
                   - findPlaceWithRoute 호출 시 그때까지 확정된 실제 장소명을
                     excludeNames로 전달했는가
                   - findPlaceWithRoute 결과를 서로 다른 슬롯(다른 날짜 포함)에

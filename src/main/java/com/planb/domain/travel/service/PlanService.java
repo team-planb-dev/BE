@@ -587,7 +587,6 @@ public class PlanService {
                 mealFixed,
                 context.healthContexts(),
                 currentPlan,
-                candidates,
                 context.createTravelRequest().dateType().getPlusDays() + 1
         );
 
@@ -700,7 +699,8 @@ public class PlanService {
                 candidates,
                 new HashSet<>(),
                 new HashSet<>(),
-                densityReductionDays
+                densityReductionDays,
+                context.createTravelRequest().dateType().getPlusDays() + 1
         );
 
         return scheduleNormalizer.normalizeScheduleTimes(
@@ -734,38 +734,56 @@ public class PlanService {
             CreatePlanAiResponse response,
             List<TravelHealthContext> healthContexts,
             GetAiPlanResponse currentPlan,
-            PlaceCandidateContext candidates,
+            int totalDays
+    ) {
+
+        List<String> failures = requiredMealSlotFailures(
+                response,
+                healthContexts,
+                currentPlan,
+                totalDays
+        );
+
+        if (!failures.isEmpty()) {
+            log.info(
+                    "[MEAL VALIDATION] 필수 식사 슬롯 누락 - failures: {}, schedules: {}",
+                    failures,
+                    response
+                            .planDays()
+                            .stream()
+                            .map(day -> "day=" + day.dayNumber() + ":" + day
+                                    .schedules()
+                                    .stream()
+                                    .map(schedule -> schedule.scheduleType() + "@" + schedule.startTime())
+                                    .toList())
+                            .toList()
+            );
+
+            throw invalidPlace("식사 슬롯 누락: " + failures);
+        }
+    }
+
+    private List<String> requiredMealSlotFailures(
+            CreatePlanAiResponse response,
+            List<TravelHealthContext> healthContexts,
+            GetAiPlanResponse currentPlan,
             int totalDays
     ) {
 
         Map<Integer, Set<ScheduleType>> alreadyMissing =
                 baselineMissingMeals(currentPlan);
 
-        for (CreatePlanAiResponse.PlanDayDetail day : response.planDays()) {
-            List<ScheduleType> missing = MealSlotPolicy
-                    .requiredMissingMeals(day, healthContexts, totalDays)
-                    .stream()
-                    .filter(mealType -> !alreadyMissing
-                            .getOrDefault(day.dayNumber(), Set.of())
-                            .contains(mealType))
-                    .toList();
-
-            if (!missing.isEmpty()) {
-                if (missingSlotCompleter.fillableMealCount(
-                        response,
-                        candidates,
-                        Set.of(),
-                        Set.of()
-                ) == 0) {
-                    return;
-                }
-
-                throw invalidPlace(
-                        "식사 슬롯 누락: day=" + day.dayNumber()
-                                + ", meals=" + missing
-                );
-            }
-        }
+        return response
+                .planDays()
+                .stream()
+                .flatMap(day -> MealSlotPolicy
+                        .requiredMissingMeals(day, healthContexts, totalDays)
+                        .stream()
+                        .filter(mealType -> !alreadyMissing
+                                .getOrDefault(day.dayNumber(), Set.of())
+                                .contains(mealType))
+                        .map(mealType -> "day=" + day.dayNumber() + ", meal=" + mealType))
+                .toList();
     }
 
     /**
@@ -922,8 +940,36 @@ public class PlanService {
                 candidates,
                 usedPlaces,
                 usedMenus,
-                densityReductionDays
+                densityReductionDays,
+                context.createTravelRequest().dateType().getPlusDays() + 1
         );
+
+        int totalDays = context
+                .createTravelRequest()
+                .dateType()
+                .getPlusDays() + 1;
+
+        if (!requiredMealSlotFailures(
+                response,
+                context.healthContexts(),
+                existing,
+                totalDays
+        ).isEmpty()) {
+            travelRecommendHandler.collectRestaurantCandidates(
+                    context,
+                    candidates
+            );
+
+            response = missingSlotCompleter.complete(
+                    response,
+                    context.healthContexts(),
+                    candidates,
+                    usedPlaces,
+                    usedMenus,
+                    densityReductionDays,
+                    totalDays
+            );
+        }
 
         response = TouristPlaceCountPolicy.trimExcess(
                 response,
