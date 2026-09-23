@@ -187,6 +187,260 @@ class TourismToolTest {
     }
 
     @Test
+    @DisplayName("명확한 관광 분류 후보 유지")
+    void keepsClearAttractionCategories() {
+
+        List<Kor2KeywordSearchResponse.Item> source = List.of(
+                attraction("1", "강릉향교", null, "HS01", "HS010900"),
+                attraction("2", "대관령", null, "NA01", "NA010100"),
+                attraction("3", "체험마을", null, "EX03", "EX030100"),
+                attraction("4", "명주동골목", null, "VE04", "VE040100"),
+                attraction("5", "경포해변", null, "NA02", "NA020900"),
+                attraction("6", "주문진등대", null, "VE01", "VE010800"),
+                attraction("7", "경포호수광장", null, "VE03", "VE030500"),
+                attraction("8", "강릉시립미술관", null, "VE07", "VE070600")
+        );
+
+        when(
+                kor2ServiceHandler
+                        .searchAttractions(
+                                "강원특별자치도",
+                                "강릉시"
+                        )
+        ).thenReturn(Mono.just(response(source)));
+
+        Set<String> selectedTitles = tourismTool
+                .searchAttractionsByRegion(
+                        "강원특별자치도",
+                        "강릉시"
+                )
+                .response()
+                .body()
+                .items()
+                .item()
+                .stream()
+                .map(Kor2KeywordSearchResponse.Item::title)
+                .collect(java.util.stream.Collectors.toSet());
+
+        assertEquals(
+                source
+                        .stream()
+                        .map(Kor2KeywordSearchResponse.Item::title)
+                        .collect(java.util.stream.Collectors.toSet()),
+                selectedTitles
+        );
+    }
+
+    @Test
+    @DisplayName("혼합 및 미확인 분류 후보 제외")
+    void excludesMixedAndUnknownAttractionCategories() {
+
+        List<Kor2KeywordSearchResponse.Item> source = List.of(
+                attraction(
+                        "1",
+                        "강릉교회",
+                        null,
+                        "HS03",
+                        "HS030200"
+                ),
+                attraction(
+                        "2",
+                        "대한성공회 서울주교좌성당",
+                        "https://example.com/cathedral.jpg",
+                        "HS03",
+                        "HS030200"
+                ),
+                attraction(
+                        "3",
+                        "강릉항여객터미널",
+                        null,
+                        "EX07",
+                        "EX070100"
+                ),
+                attraction(
+                        "4",
+                        "강문해변화장실",
+                        null,
+                        "VE01",
+                        "VE010100"
+                ),
+                attraction(
+                        "5",
+                        "기린사우나",
+                        "https://example.com/sauna.jpg",
+                        "EX05",
+                        "EX050100"
+                ),
+                attraction(
+                        "6",
+                        "사천진항",
+                        "https://example.com/harbor.jpg",
+                        "NA02",
+                        "NA020700"
+                ),
+                attraction(
+                        "7",
+                        "분류 미확인 장소",
+                        "https://example.com/unknown.jpg",
+                        null,
+                        null
+                ),
+                attraction(
+                        "8",
+                        "구로기계공구단지",
+                        "https://example.com/tool-complex.jpg",
+                        "VE05",
+                        "VE050100"
+                ),
+                attraction(
+                        "9",
+                        "강릉향교",
+                        null,
+                        "HS01",
+                        "HS010900"
+                ),
+                attraction(
+                        "10",
+                        "경포해변",
+                        "https://example.com/beach.jpg",
+                        "NA02",
+                        "NA020900"
+                ),
+                attraction(
+                        "11",
+                        "경포생태저류지",
+                        "https://example.com/park.jpg",
+                        "VE03",
+                        "VE030500"
+                )
+        );
+
+        when(
+                kor2ServiceHandler
+                        .searchAttractions(
+                                "강원특별자치도",
+                                "강릉시"
+                        )
+        ).thenReturn(Mono.just(response(source)));
+
+        Set<String> selectedTitles = tourismTool
+                .searchAttractionsByRegion(
+                        "강원특별자치도",
+                        "강릉시"
+                )
+                .response()
+                .body()
+                .items()
+                .item()
+                .stream()
+                .map(Kor2KeywordSearchResponse.Item::title)
+                .collect(java.util.stream.Collectors.toSet());
+
+        assertEquals(
+                Set.of(
+                        "강릉향교",
+                        "경포해변",
+                        "경포생태저류지"
+                ),
+                selectedTitles
+        );
+    }
+
+    @Test
+    @DisplayName("기타문화시설 후보 전체 제외")
+    void excludesOtherCulturalFacilityCandidates() {
+
+        List<Kor2KeywordSearchResponse.Item> source = List.of(
+                attraction(
+                        "1",
+                        "대한노인회 강릉시지회",
+                        null,
+                        "VE12",
+                        "VE120300"
+                ),
+                attraction(
+                        "2",
+                        "임당생활문화센터",
+                        "https://example.com/culture-center.jpg",
+                        "VE12",
+                        "VE120300"
+                ),
+                attraction(
+                        "3",
+                        "경포해변",
+                        "https://example.com/beach.jpg",
+                        "NA02",
+                        "NA020900"
+                )
+        );
+
+        when(
+                kor2ServiceHandler
+                        .searchAttractions(
+                                "강원특별자치도",
+                                "강릉시"
+                        )
+        ).thenReturn(Mono.just(response(source)));
+
+        List<String> selectedTitles = tourismTool
+                .searchAttractionsByRegion(
+                        "강원특별자치도",
+                        "강릉시"
+                )
+                .response()
+                .body()
+                .items()
+                .item()
+                .stream()
+                .map(Kor2KeywordSearchResponse.Item::title)
+                .toList();
+
+        assertEquals(
+                List.of("경포해변"),
+                selectedTitles
+        );
+    }
+
+    @Test
+    @DisplayName("품질 기준을 통과한 관광지가 없을 때 원본 후보 미복원")
+    void doesNotRestoreRejectedAttractionCandidates() {
+
+        when(
+                kor2ServiceHandler
+                        .searchAttractions(
+                                "강원특별자치도",
+                                "강릉시"
+                        )
+        ).thenReturn(
+                Mono.just(
+                        response(
+                                List.of(
+                                        attraction(
+                                                "1",
+                                                "강릉교회",
+                                                null,
+                                                "HS03",
+                                                "HS030200"
+                                        )
+                                )
+                        )
+                )
+        );
+
+        List<Kor2KeywordSearchResponse.Item> selected = tourismTool
+                .searchAttractionsByRegion(
+                        "강원특별자치도",
+                        "강릉시"
+                )
+                .response()
+                .body()
+                .items()
+                .item();
+
+        assertTrue(selected.isEmpty());
+    }
+
+    @Test
     @DisplayName("장소 간 이동경로 조회 위임")
     void getRoute() {
 
@@ -406,14 +660,47 @@ class TourismToolTest {
             String contentId
     ) {
 
-        Kor2KeywordSearchResponse.Item item = mock(
-                Kor2KeywordSearchResponse.Item.class
+        return attraction(
+                contentId,
+                "관광지 " + contentId,
+                "https://example.com/attraction.jpg",
+                "NA02",
+                "NA020900"
         );
+    }
 
-        when(item.title())
-                .thenReturn("관광지 " + contentId);
+    private Kor2KeywordSearchResponse.Item attraction(
+            String contentId,
+            String title,
+            String firstImage,
+            String categoryLevel2,
+            String categoryLevel3
+    ) {
 
-        return item;
+        return new Kor2KeywordSearchResponse.Item(
+                "주소",
+                "",
+                null,
+                contentId,
+                "12",
+                null,
+                firstImage,
+                null,
+                null,
+                "128.9",
+                "37.7",
+                null,
+                null,
+                null,
+                title,
+                "51",
+                "150",
+                categoryLevel2 == null
+                        ? null
+                        : categoryLevel2.substring(0, 2),
+                categoryLevel2,
+                categoryLevel3
+        );
     }
 
 }
