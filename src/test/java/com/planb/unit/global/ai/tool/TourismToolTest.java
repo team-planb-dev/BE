@@ -402,6 +402,138 @@ class TourismToolTest {
     }
 
     @Test
+    @DisplayName("한국 범위를 벗어난 관광지 좌표 후보 제외")
+    void excludesAttractionCandidatesOutsideKorea() {
+
+        List<Kor2KeywordSearchResponse.Item> source = List.of(
+                attraction(
+                        "1",
+                        "경포해변",
+                        "128.9070",
+                        "37.8050"
+                ),
+                attraction(
+                        "2",
+                        "대치유수지체육공원",
+                        "117.9925662504",
+                        "19.6944274800"
+                )
+        );
+
+        when(
+                kor2ServiceHandler
+                        .searchAttractions(
+                                "서울",
+                                ""
+                        )
+        ).thenReturn(Mono.just(response(source)));
+
+        List<String> selectedTitles = tourismTool
+                .searchAttractionsByRegion(
+                        "서울",
+                        ""
+                )
+                .response()
+                .body()
+                .items()
+                .item()
+                .stream()
+                .map(Kor2KeywordSearchResponse.Item::title)
+                .toList();
+
+        assertEquals(
+                List.of("경포해변"),
+                selectedTitles
+        );
+    }
+
+    @Test
+    @DisplayName("누락되거나 해석할 수 없는 관광지 좌표 후보 제외")
+    void excludesAttractionCandidatesWithUnusableCoordinates() {
+
+        List<Kor2KeywordSearchResponse.Item> source = List.of(
+                attraction("1", "경포해변", "128.9070", "37.8050"),
+                attraction("2", "경도 누락", null, "37.8050"),
+                attraction("3", "위도 공백", "128.9070", ""),
+                attraction("4", "경도 형식 오류", "invalid", "37.8050"),
+                attraction("5", "비유한 경도", "NaN", "37.8050"),
+                attraction("6", "비유한 위도", "128.9070", "Infinity")
+        );
+
+        when(
+                kor2ServiceHandler
+                        .searchAttractions(
+                                "강원특별자치도",
+                                "강릉시"
+                        )
+        ).thenReturn(Mono.just(response(source)));
+
+        List<String> selectedTitles = tourismTool
+                .searchAttractionsByRegion(
+                        "강원특별자치도",
+                        "강릉시"
+                )
+                .response()
+                .body()
+                .items()
+                .item()
+                .stream()
+                .map(Kor2KeywordSearchResponse.Item::title)
+                .toList();
+
+        assertEquals(
+                List.of("경포해변"),
+                selectedTitles
+        );
+    }
+
+    @Test
+    @DisplayName("국내 도서 지역을 포함하는 관광지 좌표 범위 유지")
+    void keepsAttractionCandidatesWithinKoreanCoordinateBounds() {
+
+        List<Kor2KeywordSearchResponse.Item> source = List.of(
+                attraction("1", "서쪽 경계", "124.0", "36.0"),
+                attraction("2", "동쪽 경계", "132.0", "37.0"),
+                attraction("3", "남쪽 경계", "126.0", "33.0"),
+                attraction("4", "북쪽 경계", "128.0", "39.0"),
+                attraction("5", "경도 범위 밖", "133.0", "37.0"),
+                attraction("6", "위도 범위 밖", "128.0", "32.0"),
+                attraction("7", "경위도 역전", "37.5", "127.0")
+        );
+
+        when(
+                kor2ServiceHandler
+                        .searchAttractions(
+                                "제주특별자치도",
+                                "제주시"
+                        )
+        ).thenReturn(Mono.just(response(source)));
+
+        Set<String> selectedTitles = tourismTool
+                .searchAttractionsByRegion(
+                        "제주특별자치도",
+                        "제주시"
+                )
+                .response()
+                .body()
+                .items()
+                .item()
+                .stream()
+                .map(Kor2KeywordSearchResponse.Item::title)
+                .collect(java.util.stream.Collectors.toSet());
+
+        assertEquals(
+                Set.of(
+                        "서쪽 경계",
+                        "동쪽 경계",
+                        "남쪽 경계",
+                        "북쪽 경계"
+                ),
+                selectedTitles
+        );
+    }
+
+    @Test
     @DisplayName("품질 기준을 통과한 관광지가 없을 때 원본 후보 미복원")
     void doesNotRestoreRejectedAttractionCandidates() {
 
@@ -700,6 +832,37 @@ class TourismToolTest {
                         : categoryLevel2.substring(0, 2),
                 categoryLevel2,
                 categoryLevel3
+        );
+    }
+
+    private Kor2KeywordSearchResponse.Item attraction(
+            String contentId,
+            String title,
+            String longitude,
+            String latitude
+    ) {
+
+        return new Kor2KeywordSearchResponse.Item(
+                "주소",
+                "",
+                null,
+                contentId,
+                "12",
+                null,
+                "https://example.com/attraction.jpg",
+                null,
+                null,
+                longitude,
+                latitude,
+                null,
+                null,
+                null,
+                title,
+                "11",
+                "680",
+                "VE",
+                "VE03",
+                "VE030500"
         );
     }
 

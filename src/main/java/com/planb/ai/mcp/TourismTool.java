@@ -28,6 +28,10 @@ public class TourismTool {
 
     private static final List<String> ZONE_TITLE_KEYWORDS = List.of("관광특구", "지구", "권역");
     private static final String OTHER_CULTURAL_FACILITY_CATEGORY = "VE120300";
+    private static final double MIN_KOREA_LONGITUDE = 124.0;
+    private static final double MAX_KOREA_LONGITUDE = 132.0;
+    private static final double MIN_KOREA_LATITUDE = 33.0;
+    private static final double MAX_KOREA_LATITUDE = 39.0;
 
     private static final Set<String> ALLOWED_ATTRACTION_CATEGORY_LEVEL_2 = Set.of(
             "HS01", "HS02", "HS04",
@@ -201,6 +205,7 @@ public class TourismTool {
         String categoryLevel3 = item.lclsSystm3();
 
         return !isZoneTitle(item.title())
+                && hasValidKoreanCoordinates(item)
                 && !OTHER_CULTURAL_FACILITY_CATEGORY.equals(categoryLevel3)
                 && (
                         (
@@ -212,6 +217,35 @@ public class TourismTool {
                                         && ALLOWED_ATTRACTION_CATEGORY_LEVEL_3.contains(categoryLevel3)
                         )
                 );
+    }
+
+    private boolean hasValidKoreanCoordinates(
+            Kor2KeywordSearchResponse.Item item
+    ) {
+
+        String longitudeValue = item.mapx();
+        String latitudeValue = item.mapy();
+
+        if (longitudeValue == null
+                || longitudeValue.isBlank()
+                || latitudeValue == null
+                || latitudeValue.isBlank()) {
+            return false;
+        }
+
+        try {
+            double longitude = Double.parseDouble(longitudeValue);
+            double latitude = Double.parseDouble(latitudeValue);
+
+            return Double.isFinite(longitude)
+                    && Double.isFinite(latitude)
+                    && longitude >= MIN_KOREA_LONGITUDE
+                    && longitude <= MAX_KOREA_LONGITUDE
+                    && latitude >= MIN_KOREA_LATITUDE
+                    && latitude <= MAX_KOREA_LATITUDE;
+        } catch (NumberFormatException exception) {
+            return false;
+        }
     }
 
     @Tool(description = """
