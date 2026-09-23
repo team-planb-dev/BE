@@ -21,12 +21,23 @@ public final class AttractionTagPolicy {
     private static final String EXPERIENCE = "EX";
 
     /**
-     * 걸어서 둘러보는 VE 중분류.
+     * TourismTool의 관광 분류 허용 목록을 통과한 VE 중분류.
      *
-     * VE는 공원부터 화장실까지 섞인 분류라 대분류만으로는 태그를 정할 수 없다.
-     * 공원(VE03)과 거리·마을(VE04)만 자연경관으로 본다.
+     * 이 정책은 후보를 다시 검증하지 않고, 이미 검증된 후보의 추천 태그만 결정한다.
      */
-    private static final Set<String> WALKABLE_VENUES = Set.of("VE03", "VE04");
+    private static final Set<String> NATURAL_SCENERY_VENUES = Set.of(
+            "VE03",
+            "VE04"
+    );
+
+    private static final Set<String> EXPERIENCE_VENUES = Set.of(
+            "VE02"
+    );
+
+    private static final Set<String> HISTORY_CULTURE_VENUES = Set.of(
+            "VE01",
+            "VE07"
+    );
 
     private AttractionTagPolicy() {
     }
@@ -45,8 +56,16 @@ public final class AttractionTagPolicy {
 
         String code = categoryCode.strip();
 
-        if (WALKABLE_VENUES.contains(code)) {
+        if (NATURAL_SCENERY_VENUES.contains(code)) {
             return Set.of(RecommendationTag.NATURAL_SCENERY);
+        }
+
+        if (EXPERIENCE_VENUES.contains(code)) {
+            return Set.of(RecommendationTag.EXPERIENCE_ACTIVITY);
+        }
+
+        if (HISTORY_CULTURE_VENUES.contains(code)) {
+            return Set.of(RecommendationTag.HISTORY_CULTURE);
         }
 
         if (code.length() < 2) {

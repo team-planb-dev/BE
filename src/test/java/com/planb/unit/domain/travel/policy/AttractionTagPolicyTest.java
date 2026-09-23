@@ -36,15 +36,27 @@ class AttractionTagPolicyTest {
     }
 
     @Test
+    @DisplayName("허용 문화관광 분류의 관광 태그 결정")
+    void mapsAllowedCulturalAttractionCategory() {
+
+        assertThat(AttractionTagPolicy.tagsOf("VE01"))
+                .containsExactly(RecommendationTag.HISTORY_CULTURE);
+
+        assertThat(AttractionTagPolicy.tagsOf("VE02"))
+                .containsExactly(RecommendationTag.EXPERIENCE_ACTIVITY);
+
+        assertThat(AttractionTagPolicy.tagsOf("VE07"))
+                .containsExactly(RecommendationTag.HISTORY_CULTURE);
+    }
+
+    @Test
     @DisplayName("관광 태그로 옮길 수 없는 분류의 빈 태그")
     void leavesUnmappableCategoryEmpty() {
 
-        // VE01 관람지, VE05 체육시설, VE12 생활시설. 화장실과 복지관이 섞여 있어
-        // 관광 태그를 붙이면 틀린 정보가 된다.
-        assertThat(AttractionTagPolicy.tagsOf("VE01"))
+        assertThat(AttractionTagPolicy.tagsOf("VE12"))
                 .isEmpty();
 
-        assertThat(AttractionTagPolicy.tagsOf("VE12"))
+        assertThat(AttractionTagPolicy.tagsOf("VE05"))
                 .isEmpty();
 
         assertThat(AttractionTagPolicy.tagsOf("FD01"))

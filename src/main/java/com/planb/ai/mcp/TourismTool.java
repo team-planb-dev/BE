@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Component
@@ -26,6 +27,27 @@ import java.util.List;
 public class TourismTool {
 
     private static final List<String> ZONE_TITLE_KEYWORDS = List.of("관광특구", "지구", "권역");
+    private static final String OTHER_CULTURAL_FACILITY_CATEGORY = "VE120300";
+    private static final double MIN_KOREA_LONGITUDE = 124.0;
+    private static final double MAX_KOREA_LONGITUDE = 132.0;
+    private static final double MIN_KOREA_LATITUDE = 33.0;
+    private static final double MAX_KOREA_LATITUDE = 39.0;
+
+    private static final Set<String> ALLOWED_ATTRACTION_CATEGORY_LEVEL_2 = Set.of(
+            "HS01", "HS02", "HS04",
+            "NA01", "NA03", "NA04",
+            "EX01", "EX02", "EX03", "EX04", "EX06",
+            "VE02", "VE04"
+    );
+
+    private static final Set<String> ALLOWED_ATTRACTION_CATEGORY_LEVEL_3 = Set.of(
+            "NA020100", "NA020200", "NA020300", "NA020400",
+            "NA020500", "NA020600", "NA020800", "NA020900",
+            "VE010200", "VE010300", "VE010400", "VE010500",
+            "VE010600", "VE010700", "VE010800",
+            "VE030500",
+            "VE070100", "VE070200", "VE070300", "VE070500", "VE070600"
+    );
 
     private static final int ATTRACTION_CANDIDATE_LIMIT = 40;
 
@@ -145,12 +167,10 @@ public class TourismTool {
 
         List<Kor2KeywordSearchResponse.Item> filtered = items
                 .stream()
-                .filter(item -> !isZoneTitle(item.title()))
+                .filter(this::isAttractionCandidate)
                 .toList();
 
-        List<Kor2KeywordSearchResponse.Item> candidates = new ArrayList<>(
-                filtered.isEmpty() ? items : filtered
-        );
+        List<Kor2KeywordSearchResponse.Item> candidates = new ArrayList<>(filtered);
 
         Collections.shuffle(candidates);
 
@@ -175,6 +195,57 @@ public class TourismTool {
     private boolean isZoneTitle(String title) {
         return title != null
                 && ZONE_TITLE_KEYWORDS.stream().anyMatch(title::contains);
+    }
+
+    private boolean isAttractionCandidate(
+            Kor2KeywordSearchResponse.Item item
+    ) {
+
+        String categoryLevel2 = item.lclsSystm2();
+        String categoryLevel3 = item.lclsSystm3();
+
+        return !isZoneTitle(item.title())
+                && hasValidKoreanCoordinates(item)
+                && !OTHER_CULTURAL_FACILITY_CATEGORY.equals(categoryLevel3)
+                && (
+                        (
+                                categoryLevel2 != null
+                                        && ALLOWED_ATTRACTION_CATEGORY_LEVEL_2.contains(categoryLevel2)
+                        )
+                                || (
+                                categoryLevel3 != null
+                                        && ALLOWED_ATTRACTION_CATEGORY_LEVEL_3.contains(categoryLevel3)
+                        )
+                );
+    }
+
+    private boolean hasValidKoreanCoordinates(
+            Kor2KeywordSearchResponse.Item item
+    ) {
+
+        String longitudeValue = item.mapx();
+        String latitudeValue = item.mapy();
+
+        if (longitudeValue == null
+                || longitudeValue.isBlank()
+                || latitudeValue == null
+                || latitudeValue.isBlank()) {
+            return false;
+        }
+
+        try {
+            double longitude = Double.parseDouble(longitudeValue);
+            double latitude = Double.parseDouble(latitudeValue);
+
+            return Double.isFinite(longitude)
+                    && Double.isFinite(latitude)
+                    && longitude >= MIN_KOREA_LONGITUDE
+                    && longitude <= MAX_KOREA_LONGITUDE
+                    && latitude >= MIN_KOREA_LATITUDE
+                    && latitude <= MAX_KOREA_LATITUDE;
+        } catch (NumberFormatException exception) {
+            return false;
+        }
     }
 
     @Tool(description = """
