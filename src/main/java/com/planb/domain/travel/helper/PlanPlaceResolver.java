@@ -134,7 +134,11 @@ public class PlanPlaceResolver {
         return slot.courseType() != CourseType.MEDICATION && slot.courseType() != CourseType.TRANSPORTATION;
     }
 
-    public void track(PlanScheduleDetail slot, Set<String> places, Set<String> menus) {
+    public void track(
+            PlanScheduleDetail slot,
+            Set<String> places,
+            Set<String> menus
+    ) {
 
         if (!requiresPlace(slot)) {
             return;

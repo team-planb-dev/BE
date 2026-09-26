@@ -74,17 +74,33 @@ public class PlanEditValidator {
     ) {
 
         List<GetAiPlanResponse.PlanScheduleDetail> before =
-                context.currentPlan().planDays().stream()
+                context
+                        .currentPlan()
+                        .planDays()
+                        .stream()
                         .filter(day -> Objects.equals(day.dayNumber(), edited.dayNumber()))
-                        .flatMap(day -> day.schedules().stream())
-                        .filter(slot -> isPlace(slot.courseType())).toList();
+                        .flatMap(day -> day
+                                .schedules()
+                                .stream())
+                        .filter(slot -> isPlace(slot.courseType()))
+                        .toList();
 
         // 장소명 표현·순서 변경 또는 슬롯 삭제만으로 성공 처리 방지
-        return edited.schedules().stream().filter(slot -> isPlace(slot.courseType()))
+        return edited
+                .schedules()
+                .stream()
+                .filter(slot -> isPlace(slot.courseType()))
                 .filter(slot -> !normalize(slot.locationName()).isBlank())
-                .anyMatch(slot -> before.stream().noneMatch(old ->
-                        normalize(old.locationName()).equals(normalize(slot.locationName()))
-                                || sameCoordinates(old.longitude(), old.latitude(), slot.longitude(), slot.latitude())));
+                .anyMatch(slot -> before
+                        .stream()
+                        .noneMatch(old -> normalize(old.locationName())
+                                .equals(normalize(slot.locationName()))
+                                || sameCoordinates(
+                                        old.longitude(),
+                                        old.latitude(),
+                                        slot.longitude(),
+                                        slot.latitude()
+                                )));
     }
 
     public boolean sameDay(
@@ -93,15 +109,30 @@ public class PlanEditValidator {
             CreatePlanAiResponse response
     ) {
 
-        if (response == null || response.planDays() == null || response.planDays().size() != 1) {
+        if (response == null
+                || response.planDays() == null
+                || response
+                        .planDays()
+                        .size() != 1) {
             return false;
         }
 
-        CreatePlanAiResponse.PlanDayDetail day = response.planDays().getFirst();
+        CreatePlanAiResponse.PlanDayDetail day = response
+                .planDays()
+                .getFirst();
 
-        return day != null && Objects.equals(day.dayNumber(), dayNumber) && day.schedules() != null
-                && !day.schedules().isEmpty() && context.currentPlan().planDays().stream()
-                .anyMatch(old -> Objects.equals(old.dayNumber(), dayNumber) && Objects.equals(old.date(), day.date()));
+        return day != null
+                && Objects.equals(day.dayNumber(), dayNumber)
+                && day.schedules() != null
+                && !day
+                        .schedules()
+                        .isEmpty()
+                && context
+                        .currentPlan()
+                        .planDays()
+                        .stream()
+                        .anyMatch(old -> Objects.equals(old.dayNumber(), dayNumber)
+                                && Objects.equals(old.date(), day.date()));
     }
 
     public Optional<String> rebuildFailure(
@@ -138,14 +169,28 @@ public class PlanEditValidator {
                 .planDays()
                 .stream()
                 .limit(5)
-                .map(day -> day == null ? "null" : "dayNumber=" + day.dayNumber()
-                        + ", date=" + day.date()
-                        + ", schedules=" + (day.schedules() == null ? "null" : day.schedules().size()))
+                .map(day -> day == null
+                        ? "null"
+                        : "dayNumber=" + day.dayNumber()
+                                + ", date=" + day.date()
+                                + ", schedules=" + (day.schedules() == null
+                                        ? "null"
+                                        : day
+                                                .schedules()
+                                                .size()))
                 .collect(Collectors.joining("; "));
 
-        if (response.planDays().size() != 1) {
-            return Optional.of("기대 " + expected + "; 날짜 개수=" + response.planDays().size()
-                    + "; 실제 [" + actual + "]");
+        if (response
+                .planDays()
+                .size() != 1) {
+            return Optional.of(
+                    "기대 " + expected
+                            + "; 날짜 개수="
+                            + response
+                                    .planDays()
+                                    .size()
+                            + "; 실제 [" + actual + "]"
+            );
         }
 
         if (!sameDay(context, dayNumber, new CreatePlanAiResponse(response.planDays()))) {
@@ -169,7 +214,12 @@ public class PlanEditValidator {
         return type != null && type != CourseType.MEDICATION && type != CourseType.TRANSPORTATION;
     }
 
-    private boolean sameCoordinates(String oldX, String oldY, String newX, String newY) {
+    private boolean sameCoordinates(
+            String oldX,
+            String oldY,
+            String newX,
+            String newY
+    ) {
 
         try {
             return Math.abs(Double.parseDouble(oldX) - Double.parseDouble(newX)) < 0.0001

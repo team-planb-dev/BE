@@ -19,7 +19,11 @@ public class CodeCommSerializer extends StdSerializer<CodeCommInterface> {
     }
 
     // 자동으로 enum 클래스의 필드를 직렬화
-    public void serialize(CodeCommInterface value, JsonGenerator gen, SerializerProvider provider) throws IOException {
+    public void serialize(
+            CodeCommInterface value,
+            JsonGenerator gen,
+            SerializerProvider provider
+    ) throws IOException {
         if (value == null) {
             gen.writeStartObject();
             gen.writeStringField("code", "");

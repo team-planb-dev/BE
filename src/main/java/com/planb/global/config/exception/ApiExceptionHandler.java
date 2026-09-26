@@ -246,7 +246,9 @@ public class ApiExceptionHandler {
 
     // Validation 메시지 추출
     private String extractValidationMessage(BindingResult bindingResult) {
-        return bindingResult.getAllErrors().stream()
+        return bindingResult
+                .getAllErrors()
+                .stream()
                 .findFirst()
                 .map(error -> {
                     if (error instanceof FieldError fieldError) {

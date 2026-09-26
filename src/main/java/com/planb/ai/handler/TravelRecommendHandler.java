@@ -253,10 +253,16 @@ public class TravelRecommendHandler {
 
             List<String> failures = new ArrayList<>();
 
-            if (response.planDays().size() != expectedDayCount) {
+            if (response
+                    .planDays()
+                    .size() != expectedDayCount) {
                 failures.add(
                         "planDays: 여행 일수 " + expectedDayCount
-                                + "일 필요 / 실제 " + response.planDays().size() + "일"
+                                + "일 필요 / 실제 "
+                                + response
+                                        .planDays()
+                                        .size()
+                                + "일"
                 );
             }
 
@@ -307,7 +313,9 @@ public class TravelRecommendHandler {
                 .stream()
                 .filter(Objects::nonNull)
                 .filter(day -> day.schedules() != null)
-                .flatMap(day -> day.schedules().stream())
+                .flatMap(day -> day
+                        .schedules()
+                        .stream())
                 .filter(Objects::nonNull)
                 .map(CreatePlanAiResponse.PlanScheduleDetail::locationName)
                 .filter(Objects::nonNull)
@@ -397,10 +405,16 @@ public class TravelRecommendHandler {
 
             if (response.planDays() == null) {
                 failures.add("planDays: 수정된 일정이 없습니다.");
-            } else if (response.planDays().size() != expectedDayCount) {
+            } else if (response
+                    .planDays()
+                    .size() != expectedDayCount) {
                 failures.add(
                         "planDays: 여행 일수 " + expectedDayCount
-                                + "일 필요 / 실제 " + response.planDays().size() + "일"
+                                + "일 필요 / 실제 "
+                                + response
+                                        .planDays()
+                                        .size()
+                                + "일"
                 );
             }
 

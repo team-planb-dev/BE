@@ -8,7 +8,11 @@ import tools.jackson.databind.ValueSerializer;
 public class CodeCommEnumSerializer extends ValueSerializer<CodeCommInterface> {
 
     @Override
-    public void serialize(CodeCommInterface value, JsonGenerator gen, SerializationContext ctxt) {
+    public void serialize(
+            CodeCommInterface value,
+            JsonGenerator gen,
+            SerializationContext ctxt
+    ) {
         if (value == null) {
             gen.writeNull();
         } else {
