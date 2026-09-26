@@ -41,8 +41,10 @@ class JwtUtilTest {
                         expiredMs);
 
         // then
-        assertThat(token).isNotNull();
-        assertThat(token).isNotBlank();
+        assertThat(token)
+                .isNotNull();
+        assertThat(token)
+                .isNotBlank();
 
     }
 

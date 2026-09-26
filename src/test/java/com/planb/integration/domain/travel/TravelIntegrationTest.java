@@ -118,8 +118,12 @@ class TravelIntegrationTest extends TravelApiTestSupport {
                 .hasSize(2);
 
         List<String> cafeLocationNames =
-                response.planDays().stream()
-                        .flatMap(planDay -> planDay.schedules().stream())
+                response
+                        .planDays()
+                        .stream()
+                        .flatMap(planDay -> planDay
+                                .schedules()
+                                .stream())
                         .filter(schedule -> schedule.courseType() == CourseType.CAFE_REST)
                         .map(CreatePlanAiResponse.PlanScheduleDetail::locationName)
                         .toList();
@@ -206,7 +210,7 @@ class TravelIntegrationTest extends TravelApiTestSupport {
     }
 
     @Test
-    @DisplayName("회원가입, 로그인, 동행인 등록 후 AI 일정 생성 및 재조회 성공 - 최상위 tags가 저장/재조회까지 일치함")
+    @DisplayName("회원가입·로그인·동행인 등록 후 AI 일정 생성과 재조회 시 최상위 tags 일치")
     void addTravelOptionsAndRecommendThenGetAiPlanSuccess() throws Exception {
 
         // given
@@ -298,7 +302,9 @@ class TravelIntegrationTest extends TravelApiTestSupport {
 
         // 방금 생성된 Travel의 travelId 조회 (CreatePlanResponse는 travelId를 반환하지 않으므로 DB에서 직접 조회)
         Travel travel =
-                travelRepository.findAll().stream()
+                travelRepository
+                        .findAll()
+                        .stream()
                         .filter(t -> t.getTravelName().equals(travelName))
                         .findFirst()
                         .orElseThrow();

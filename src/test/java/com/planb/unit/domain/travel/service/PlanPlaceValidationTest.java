@@ -205,7 +205,8 @@ class PlanPlaceValidationTest {
                                 any(),
                                 any()
                         )
-        ).thenAnswer(
+        )
+                .thenAnswer(
                 invocation -> {
                     PlaceCandidateContext candidates = invocation.getArgument(1);
 
@@ -271,7 +272,8 @@ class PlanPlaceValidationTest {
                                 any(),
                                 any()
                         )
-        ).thenAnswer(
+        )
+                .thenAnswer(
                 invocation -> {
                     PlaceCandidateContext candidates = invocation.getArgument(1);
 
@@ -302,7 +304,8 @@ class PlanPlaceValidationTest {
                                 anyString(),
                                 any()
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 Mono.just(
                         new KakaoRouteResult(
                                 null,
@@ -916,7 +919,8 @@ class PlanPlaceValidationTest {
                                 any(),
                                 any()
                         )
-        ).thenAnswer(
+        )
+                .thenAnswer(
                 invocation -> {
                     recordCandidates(
                             invocation
@@ -959,7 +963,8 @@ class PlanPlaceValidationTest {
                                 anyString(),
                                 any()
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 Mono.just(
                         new KakaoRouteResult(
                                 null,
@@ -1095,7 +1100,8 @@ class PlanPlaceValidationTest {
                                 any(),
                                 any()
                         )
-        ).thenAnswer(
+        )
+                .thenAnswer(
                 invocation -> {
                     recordCandidates(
                             invocation.getArgument(1)
@@ -1133,7 +1139,8 @@ class PlanPlaceValidationTest {
                                 anyString(),
                                 any()
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 Mono.just(
                         new KakaoRouteResult(
                                 null,
@@ -2018,7 +2025,8 @@ class PlanPlaceValidationTest {
                         .classifyEditScope(
                                 any()
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 new PlanEditScope(
                         List.of(1)
                 )
@@ -2029,7 +2037,8 @@ class PlanPlaceValidationTest {
         when(
                 kakao
                         .searchPlace("이기대")
-        ).thenReturn(
+        )
+                .thenReturn(
                 Mono.just(
                         kakaoPlace(
                                 "AT4",
@@ -2045,7 +2054,8 @@ class PlanPlaceValidationTest {
                                 anyString(),
                                 any()
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 Mono.just(
                         new KakaoRouteResult(
                                 null,
@@ -2065,7 +2075,8 @@ class PlanPlaceValidationTest {
                                 anyString(),
                                 any()
                         )
-        ).thenAnswer(
+        )
+                .thenAnswer(
                 invocation -> {
                     PlaceCandidateContext candidates =
                             invocation.getArgument(4);
@@ -2394,7 +2405,8 @@ class PlanPlaceValidationTest {
                                 any(),
                                 any()
                         )
-        ).thenAnswer(
+        )
+                .thenAnswer(
                 invocation -> {
                     recordCandidates(
                             invocation
@@ -2839,9 +2851,13 @@ class PlanPlaceValidationTest {
                 .getFirst();
 
         assertTrue(
-                day.schedules().stream()
+                day
+                        .schedules()
+                        .stream()
                         .anyMatch(schedule -> schedule.scheduleType() == ScheduleType.BREAKFAST),
-                day.schedules().stream()
+                day
+                        .schedules()
+                        .stream()
                         .map(schedule -> schedule.scheduleType() + "@" + schedule.startTime())
                         .toList()
                         .toString());
@@ -3219,7 +3235,8 @@ class PlanPlaceValidationTest {
 
         assertEquals(
                 3,
-                touristPlaceNames(result).size());
+                touristPlaceNames(result)
+                        .size());
 
         assertTrue(touristPlaceNames(result).contains("해운대"));
     }

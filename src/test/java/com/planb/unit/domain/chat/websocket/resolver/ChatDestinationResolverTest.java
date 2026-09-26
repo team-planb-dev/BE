@@ -25,7 +25,8 @@ class ChatDestinationResolverTest {
         Long roomId = chatDestinationResolver.extractRoomId(destination);
 
         // then
-        assertThat(roomId).isEqualTo(1L);
+        assertThat(roomId)
+                .isEqualTo(1L);
     }
 
     @Test
@@ -35,7 +36,8 @@ class ChatDestinationResolverTest {
         Long roomId = chatDestinationResolver.extractRoomId(null);
 
         // then
-        assertThat(roomId).isNull();
+        assertThat(roomId)
+                .isNull();
     }
 
     @Test
@@ -48,7 +50,8 @@ class ChatDestinationResolverTest {
         Long roomId = chatDestinationResolver.extractRoomId(destination);
 
         // then
-        assertThat(roomId).isNull();
+        assertThat(roomId)
+                .isNull();
     }
 
     @Test
@@ -61,7 +64,8 @@ class ChatDestinationResolverTest {
         Long roomId = chatDestinationResolver.extractRoomId(destination);
 
         // then
-        assertThat(roomId).isNull();
+        assertThat(roomId)
+                .isNull();
     }
 
     @Test
@@ -74,7 +78,8 @@ class ChatDestinationResolverTest {
         Long roomId = chatDestinationResolver.extractRoomId(destination);
 
         // then
-        assertThat(roomId).isNull();
+        assertThat(roomId)
+                .isNull();
     }
 
     @Test
@@ -87,7 +92,8 @@ class ChatDestinationResolverTest {
         Long roomId = chatDestinationResolver.extractRoomId(destination);
 
         // then
-        assertThat(roomId).isNull();
+        assertThat(roomId)
+                .isNull();
     }
     @Test
     @DisplayName("메시지 발행 destination에서 채팅방 id 추출 성공")

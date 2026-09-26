@@ -90,7 +90,9 @@ public class MissingSlotCompleter {
 
         int totalDays = response == null || response.planDays() == null
                 ? 0
-                : response.planDays().size();
+                : response
+                        .planDays()
+                        .size();
 
         return complete(
                 response,
@@ -469,7 +471,9 @@ public class MissingSlotCompleter {
                 log.info(
                         "[SLOT FILL] 식사 슬롯 보정 실패 - scheduleType: {}, 검색 음식점 후보 수: {}",
                         mealType,
-                        candidates.restaurantCandidates().size()
+                        candidates
+                                .restaurantCandidates()
+                                .size()
                 );
 
                 return;

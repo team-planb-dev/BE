@@ -41,7 +41,8 @@ class ChatSubscriptionRegistryTest {
         );
 
         // then
-        assertThat(result).isTrue();
+        assertThat(result)
+                .isTrue();
     }
 
     @Test
@@ -68,7 +69,8 @@ class ChatSubscriptionRegistryTest {
         );
 
         // then
-        assertThat(result).isFalse();
+        assertThat(result)
+                .isFalse();
     }
 
     @Test
@@ -94,8 +96,10 @@ class ChatSubscriptionRegistryTest {
         );
 
         // then
-        assertThat(firstResult).isTrue();
-        assertThat(secondResult).isTrue();
+        assertThat(firstResult)
+                .isTrue();
+        assertThat(secondResult)
+                .isTrue();
     }
 
     @Test
@@ -121,8 +125,10 @@ class ChatSubscriptionRegistryTest {
         );
 
         // then
-        assertThat(firstResult).isTrue();
-        assertThat(secondResult).isTrue();
+        assertThat(firstResult)
+                .isTrue();
+        assertThat(secondResult)
+                .isTrue();
     }
 
     @Test
@@ -153,7 +159,8 @@ class ChatSubscriptionRegistryTest {
                 );
 
         // then
-        assertThat(result).isNotNull();
+        assertThat(result)
+                .isNotNull();
 
         assertThat(result
                 .roomId())
@@ -176,7 +183,8 @@ class ChatSubscriptionRegistryTest {
                 );
 
         // then
-        assertThat(result).isNull();
+        assertThat(result)
+                .isNull();
     }
 
     @Test
@@ -201,7 +209,8 @@ class ChatSubscriptionRegistryTest {
                 );
 
         // then
-        assertThat(result).isNull();
+        assertThat(result)
+                .isNull();
     }
 
     @Test
@@ -239,13 +248,15 @@ class ChatSubscriptionRegistryTest {
                 );
 
         // then
-        assertThat(removed).isNotNull();
+        assertThat(removed)
+                .isNotNull();
 
         assertThat(removed
                 .roomId())
                 .isEqualTo(1L);
 
-        assertThat(remaining).isNotNull();
+        assertThat(remaining)
+                .isNotNull();
 
         assertThat(remaining
                 .roomId())
@@ -281,7 +292,8 @@ class ChatSubscriptionRegistryTest {
         );
 
         // then
-        assertThat(result).isTrue();
+        assertThat(result)
+                .isTrue();
     }
 
     @Test
@@ -310,7 +322,8 @@ class ChatSubscriptionRegistryTest {
                 chatSubscriptionRegistry.disconnect(sessionId);
 
         // then
-        assertThat(result).hasSize(2);
+        assertThat(result)
+                .hasSize(2);
 
         assertThat(result)
                 .extracting(ChatSubscriptionInfo::roomId)
@@ -345,7 +358,8 @@ class ChatSubscriptionRegistryTest {
                 );
 
         // then
-        assertThat(result).isNull();
+        assertThat(result)
+                .isNull();
     }
 
     @Test
@@ -369,7 +383,8 @@ class ChatSubscriptionRegistryTest {
                 chatSubscriptionRegistry.disconnect(sessionId);
 
         // then
-        assertThat(result).isEmpty();
+        assertThat(result)
+                .isEmpty();
     }
 
     @Test
@@ -381,7 +396,8 @@ class ChatSubscriptionRegistryTest {
                 chatSubscriptionRegistry.disconnect("unknown-session");
 
         // then
-        assertThat(result).isEmpty();
+        assertThat(result)
+                .isEmpty();
     }
 
     @Test
@@ -414,7 +430,8 @@ class ChatSubscriptionRegistryTest {
                 );
 
         // then
-        assertThat(disconnected).hasSize(1);
+        assertThat(disconnected)
+                .hasSize(1);
 
         assertThat(disconnected
                 .get(0)
@@ -426,7 +443,8 @@ class ChatSubscriptionRegistryTest {
                 .username())
                 .isEqualTo("userA@example.com");
 
-        assertThat(remaining).isNotNull();
+        assertThat(remaining)
+                .isNotNull();
 
         assertThat(remaining
                 .roomId())

@@ -97,9 +97,12 @@ class ChatMessageQueryRepositoryTest
                 message2.getId()
         );
 
-        assertThat(updateCount).isEqualTo(2);
-        assertThat(deletedMessage1.isDeleted()).isTrue();
-        assertThat(deletedMessage2.isDeleted()).isTrue();
+        assertThat(updateCount)
+                .isEqualTo(2);
+        assertThat(deletedMessage1.isDeleted())
+                .isTrue();
+        assertThat(deletedMessage2.isDeleted())
+                .isTrue();
     }
 
     @Test
@@ -158,9 +161,12 @@ class ChatMessageQueryRepositoryTest
                 room2Message.getId()
         );
 
-        assertThat(updateCount).isEqualTo(1);
-        assertThat(deletedMessage.isDeleted()).isTrue();
-        assertThat(notDeletedMessage.isDeleted()).isFalse();
+        assertThat(updateCount)
+                .isEqualTo(1);
+        assertThat(deletedMessage.isDeleted())
+                .isTrue();
+        assertThat(notDeletedMessage.isDeleted())
+                .isFalse();
     }
 
     @Test
@@ -214,8 +220,11 @@ class ChatMessageQueryRepositoryTest
                 activeMessage.getId()
         );
 
-        assertThat(updateCount).isEqualTo(1);
-        assertThat(alreadyDeleted.isDeleted()).isTrue();
-        assertThat(newlyDeleted.isDeleted()).isTrue();
+        assertThat(updateCount)
+                .isEqualTo(1);
+        assertThat(alreadyDeleted.isDeleted())
+                .isTrue();
+        assertThat(newlyDeleted.isDeleted())
+                .isTrue();
     }
 }

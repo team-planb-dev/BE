@@ -73,7 +73,8 @@ class PlanQueryServiceTest {
                         .findPlanBasicByTravelId(
                                 travelId
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 basic
         );
 
@@ -82,7 +83,8 @@ class PlanQueryServiceTest {
                         .findById(
                                 planId
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 Optional.of(planEntity)
         );
 
@@ -96,7 +98,8 @@ class PlanQueryServiceTest {
         // then
         assertThat(
                 result
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 new PlanQueryResponse(
                         planId,
                         "부산 AI 여행 일정",
@@ -136,7 +139,8 @@ class PlanQueryServiceTest {
                         .findPlanBasicByTravelId(
                                 travelId
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 basic
         );
 
@@ -145,7 +149,8 @@ class PlanQueryServiceTest {
                         .findById(
                                 planId
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 Optional.empty()
         );
 
@@ -159,6 +164,7 @@ class PlanQueryServiceTest {
         // then
         assertThat(
                 result.tags()
-        ).isEmpty();
+        )
+                .isEmpty();
     }
 }

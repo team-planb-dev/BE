@@ -96,7 +96,8 @@ class ChatSessionEventListenerTest {
                 subscriptionId,
                 roomId,
                 username
-        )).thenReturn(true);
+        ))
+                .thenReturn(true);
 
         // when
         chatSessionEventListener.handleSubscribe(subscribeEvent);
@@ -157,7 +158,8 @@ class ChatSessionEventListenerTest {
                 subscriptionId,
                 roomId,
                 username
-        )).thenReturn(false);
+        ))
+                .thenReturn(false);
 
         // when
         chatSessionEventListener.handleSubscribe(subscribeEvent);
@@ -366,7 +368,8 @@ class ChatSessionEventListenerTest {
         when(subscriptionRegistry.unsubscribe(
                 sessionId,
                 subscriptionId
-        )).thenReturn(subscriptionInfo);
+        ))
+                .thenReturn(subscriptionInfo);
 
         // when
         chatSessionEventListener.handleUnsubscribe(unsubscribeEvent);
@@ -405,7 +408,8 @@ class ChatSessionEventListenerTest {
         when(subscriptionRegistry.unsubscribe(
                 sessionId,
                 subscriptionId
-        )).thenReturn(null);
+        ))
+                .thenReturn(null);
 
         // when
         chatSessionEventListener.handleUnsubscribe(unsubscribeEvent);

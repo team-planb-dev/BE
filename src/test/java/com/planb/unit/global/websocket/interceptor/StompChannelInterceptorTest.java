@@ -85,7 +85,8 @@ class StompChannelInterceptorTest {
                 );
 
         // then
-        assertThat(result).isSameAs(message);
+        assertThat(result)
+                .isSameAs(message);
 
         verify(jwtAuthenticationProvider).authenticate(authorizationHeader);
 
@@ -170,7 +171,8 @@ class StompChannelInterceptorTest {
                 );
 
         // then
-        assertThat(result).isSameAs(message);
+        assertThat(result)
+                .isSameAs(message);
 
         verify(chatRoomMemberQueryService).checkSubscriberWithRoomId(roomId, userId);
 
@@ -210,7 +212,8 @@ class StompChannelInterceptorTest {
                 );
 
         // then
-        assertThat(result).isSameAs(message);
+        assertThat(result)
+                .isSameAs(message);
 
         verify(chatRoomMemberQueryService).checkSubscriberWithRoomId(roomId, userId);
 
@@ -367,7 +370,8 @@ class StompChannelInterceptorTest {
                 );
 
         // then
-        assertThat(result).isSameAs(message);
+        assertThat(result)
+                .isSameAs(message);
 
         verify(jwtAuthenticationProvider, never())
                 .authenticate(anyString());
@@ -397,7 +401,8 @@ class StompChannelInterceptorTest {
                 );
 
         // then
-        assertThat(result).isSameAs(message);
+        assertThat(result)
+                .isSameAs(message);
 
         verify(jwtAuthenticationProvider, never()).authenticate(anyString());
 

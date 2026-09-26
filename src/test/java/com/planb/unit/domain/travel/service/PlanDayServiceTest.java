@@ -116,7 +116,8 @@ class PlanDayServiceTest {
         when(
                 planDayRepository
                         .findAllByPlan(plan)
-        ).thenReturn(
+        )
+                .thenReturn(
                 planDays
         );
 

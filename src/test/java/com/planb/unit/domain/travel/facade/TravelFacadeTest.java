@@ -175,7 +175,8 @@ class TravelFacadeTest {
                         .makeRecommendFoodResponse(
                                 request
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 response
         );
 
@@ -188,7 +189,8 @@ class TravelFacadeTest {
         // then
         assertThat(
                 result
-        ).isSameAs(
+        )
+                .isSameAs(
                 response
         );
 
@@ -200,7 +202,7 @@ class TravelFacadeTest {
     }
 
     @Test
-    @DisplayName("Kor2Service API로 키워드에 따른 숙박,관광지 검색하기")
+    @DisplayName("Kor2Service API 키워드 기반 숙박·관광지 검색")
     void searchPlannedPlaceByText() {
 
         // given
@@ -224,7 +226,8 @@ class TravelFacadeTest {
                         .searchPlannedPlace(
                                 request
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 Mono.just(
                         response
                 )
@@ -239,7 +242,8 @@ class TravelFacadeTest {
         // then
         assertThat(
                 result
-        ).isSameAs(
+        )
+                .isSameAs(
                 response
         );
 
@@ -251,7 +255,7 @@ class TravelFacadeTest {
     }
 
     @Test
-    @DisplayName("사용자 입력 받은 후, 해당 데이터 기반으로 여행일정 생성하기")
+    @DisplayName("사용자 입력 데이터 기반 여행 일정 생성")
     void makeTravelOptionsAndRecommend() {
 
         // given
@@ -386,28 +390,32 @@ class TravelFacadeTest {
                         .getFirst()
                         .mealInfo()
                         .applied()
-        ).isTrue();
+        )
+                .isTrue();
 
         assertThat(
                 healthContexts
                         .getFirst()
                         .mealInfo()
                         .breakfastApplied()
-        ).isTrue();
+        )
+                .isTrue();
 
         assertThat(
                 healthContexts
                         .getFirst()
                         .mealInfo()
                         .lunchApplied()
-        ).isFalse();
+        )
+                .isFalse();
 
         assertThat(
                 healthContexts
                         .getFirst()
                         .mealInfo()
                         .dinnerApplied()
-        ).isTrue();
+        )
+                .isTrue();
 
         CreatePlanAiResponse.RestaurantDetail aiRestaurantDetail =
                 new CreatePlanAiResponse.RestaurantDetail(
@@ -491,7 +499,8 @@ class TravelFacadeTest {
                         .findByUsernameInCache(
                                 username
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 userAuthCache
         );
 
@@ -501,7 +510,8 @@ class TravelFacadeTest {
                                 createTravelRequest,
                                 userId
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 travel
         );
 
@@ -513,7 +523,8 @@ class TravelFacadeTest {
                                         createTravelRequest
                                 )
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 plannedPlaces
         );
 
@@ -525,7 +536,8 @@ class TravelFacadeTest {
                                         createTravelRequest.travelName()
                                 )
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 plan
         );
 
@@ -535,7 +547,8 @@ class TravelFacadeTest {
                                 health.getId(),
                                 userId
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 true
         );
 
@@ -544,7 +557,8 @@ class TravelFacadeTest {
                         .getHealthById(
                                 health.getId()
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 health
         );
 
@@ -553,7 +567,8 @@ class TravelFacadeTest {
                         .getFoodInfoList(
                                 health.getId()
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 foodInfos
         );
 
@@ -562,7 +577,8 @@ class TravelFacadeTest {
                         .findAllByHealthId(
                                 health.getId()
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 medicationInfos
         );
 
@@ -574,7 +590,8 @@ class TravelFacadeTest {
                                         healthContexts
                                 )
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 createPlanAiResponse
         );
 
@@ -583,7 +600,8 @@ class TravelFacadeTest {
                         .aggregateTags(
                                 createPlanAiResponse.planDays()
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 aggregatedTags
         );
 
@@ -596,7 +614,8 @@ class TravelFacadeTest {
                                         planDayDetail.date()
                                 )
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 planDay
         );
 
@@ -606,7 +625,8 @@ class TravelFacadeTest {
                                 planDay,
                                 planDayDetail.schedules()
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 planSchedules
         );
 
@@ -616,7 +636,8 @@ class TravelFacadeTest {
                                 planSchedules,
                                 planDayDetail.schedules()
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 restaurantDetails
         );
 
@@ -630,19 +651,22 @@ class TravelFacadeTest {
         // then
         assertThat(
                 result.tags()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 aggregatedTags
         );
 
         assertThat(
                 result.planDays()
-        ).isSameAs(
+        )
+                .isSameAs(
                 createPlanAiResponse.planDays()
         );
 
         assertThat(
                 plan.getTags()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 aggregatedTags
         );
 
@@ -839,7 +863,8 @@ class TravelFacadeTest {
                         .findByUsernameInCache(
                                 username
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 userAuthCache
         );
 
@@ -849,7 +874,8 @@ class TravelFacadeTest {
                                 travelId,
                                 userId
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 true
         );
 
@@ -858,7 +884,8 @@ class TravelFacadeTest {
                         .getTravelConditionQueryResponse(
                                 travelId
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 travelCondition
         );
 
@@ -867,7 +894,8 @@ class TravelFacadeTest {
                         .getHealthSummaryListByHealthIds(
                                 List.of()
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 healthSummaries
         );
 
@@ -876,7 +904,8 @@ class TravelFacadeTest {
                         .getMedicationTimesByHealthIds(
                                 List.of()
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 medicationTimes
         );
 
@@ -885,7 +914,8 @@ class TravelFacadeTest {
                         .getPlanByTravelId(
                                 travelId
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 plan
         );
 
@@ -894,7 +924,8 @@ class TravelFacadeTest {
                         .getPlanDaysByPlanId(
                                 planId
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 List.of(
                         planDay
                 )
@@ -907,7 +938,8 @@ class TravelFacadeTest {
                                         planDayId
                                 )
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 List.of(
                         planSchedule
                 )
@@ -920,7 +952,8 @@ class TravelFacadeTest {
                                         planScheduleId
                                 )
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 List.of(
                         restaurantDetail
                 )
@@ -936,46 +969,53 @@ class TravelFacadeTest {
         // then
         assertThat(
                 result.planName()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 "부산 여행"
         );
 
         assertThat(
                 result.travelStyle()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 TravelStyle.LESS_WALK
         );
 
         assertThat(
                 result.travelTheme()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 TravelTheme.TASTE
         );
 
         assertThat(
                 result.diseaseTypes()
-        ).containsExactlyInAnyOrder(
+        )
+                .containsExactlyInAnyOrder(
                 DiseaseType.DIABETES,
                 DiseaseType.HIGH_BLOOD_PRESSURE
         );
 
         assertThat(
                 result.medicationTimes()
-        ).containsExactly(
+        )
+                .containsExactly(
                 LocalTime.of(8, 0),
                 LocalTime.of(20, 0)
         );
 
         assertThat(
                 result.tags()
-        ).containsExactlyInAnyOrder(
+        )
+                .containsExactlyInAnyOrder(
                 RecommendationTag.MEAL_TIME_APPLIED,
                 RecommendationTag.LOCAL_FOOD
         );
 
         assertThat(
                 result.planDays()
-        ).hasSize(1);
+        )
+                .hasSize(1);
 
         GetAiPlanResponse.PlanDayDetail resultPlanDay =
                 result.planDays()
@@ -983,13 +1023,15 @@ class TravelFacadeTest {
 
         assertThat(
                 resultPlanDay.dayNumber()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 1
         );
 
         assertThat(
                 resultPlanDay.date()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 LocalDate.of(
                         2026,
                         9,
@@ -999,7 +1041,8 @@ class TravelFacadeTest {
 
         assertThat(
                 resultPlanDay.schedules()
-        ).hasSize(1);
+        )
+                .hasSize(1);
 
         GetAiPlanResponse.PlanScheduleDetail resultSchedule =
                 resultPlanDay.schedules()
@@ -1007,37 +1050,43 @@ class TravelFacadeTest {
 
         assertThat(
                 resultSchedule.scheduleType()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 ScheduleType.LUNCH
         );
 
         assertThat(
                 resultSchedule.courseType()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 CourseType.RESTAURANT
         );
 
         assertThat(
                 resultSchedule.locationName()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 "부산 식당"
         );
 
         assertThat(
                 resultSchedule.tags()
-        ).containsExactly(
+        )
+                .containsExactly(
                 RecommendationTag.LOCAL_FOOD
         );
 
         assertThat(
                 resultSchedule.restaurantDetail()
-        ).isNotNull();
+        )
+                .isNotNull();
 
         assertThat(
                 resultSchedule
                         .restaurantDetail()
                         .menuName()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 "돼지국밥"
         );
 
@@ -1045,7 +1094,8 @@ class TravelFacadeTest {
                 resultSchedule
                         .restaurantDetail()
                         .carbohydrate()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 50.0
         );
 
@@ -1053,7 +1103,8 @@ class TravelFacadeTest {
                 resultSchedule
                         .restaurantDetail()
                         .sodium()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 800.0
         );
 
@@ -1061,7 +1112,8 @@ class TravelFacadeTest {
                 resultSchedule
                         .restaurantDetail()
                         .fat()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 15.0
         );
 
@@ -1151,7 +1203,8 @@ class TravelFacadeTest {
                         .findByUsernameInCache(
                                 username
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 userAuthCache
         );
 
@@ -1161,7 +1214,8 @@ class TravelFacadeTest {
                                 travelId,
                                 userId
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 false
         );
 
@@ -1171,7 +1225,8 @@ class TravelFacadeTest {
                         request,
                         username
                 )
-        ).isInstanceOf(
+        )
+                .isInstanceOf(
                 ForbiddenException.class
         );
 
@@ -1307,42 +1362,48 @@ class TravelFacadeTest {
         when(
                 userQueryService
                         .findByUsernameInCache(username)
-        ).thenReturn(
+        )
+                .thenReturn(
                 userAuthCache
         );
 
         when(
                 travelQueryService
                         .existsByIdAndUserId(travelId, userId)
-        ).thenReturn(
+        )
+                .thenReturn(
                 true
         );
 
         when(
                 planEditCacheService
                         .consumeEditResult(travelId)
-        ).thenReturn(
+        )
+                .thenReturn(
                 Optional.of(editPlanAiResponse)
         );
 
         when(
                 planQueryService
                         .getPlanByTravelId(travelId)
-        ).thenReturn(
+        )
+                .thenReturn(
                 planQueryResponse
         );
 
         when(
                 planService
                         .findPlanById(planId)
-        ).thenReturn(
+        )
+                .thenReturn(
                 plan
         );
 
         when(
                 planDayService
                         .findAllByPlan(plan)
-        ).thenReturn(
+        )
+                .thenReturn(
                 List.of(existingPlanDay)
         );
 
@@ -1351,7 +1412,8 @@ class TravelFacadeTest {
                         .findAllByPlanDayIn(
                                 List.of(existingPlanDay)
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 List.of(existingPlanSchedule)
         );
 
@@ -1360,7 +1422,8 @@ class TravelFacadeTest {
                         .aggregateTags(
                                 editPlanAiResponse.planDays()
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 aggregatedTags
         );
 
@@ -1373,7 +1436,8 @@ class TravelFacadeTest {
                                         planDayDetail.date()
                                 )
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 newPlanDay
         );
 
@@ -1383,7 +1447,8 @@ class TravelFacadeTest {
                                 newPlanDay,
                                 planDayDetail.schedules()
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 newPlanSchedules
         );
 
@@ -1393,7 +1458,8 @@ class TravelFacadeTest {
                                 newPlanSchedules,
                                 planDayDetail.schedules()
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 newRestaurantDetails
         );
 
@@ -1402,7 +1468,8 @@ class TravelFacadeTest {
                         .findTravelById(
                                 travelId
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 confirmedTravel
         );
 
@@ -1416,19 +1483,22 @@ class TravelFacadeTest {
         // then
         assertThat(
                 result.tags()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 aggregatedTags
         );
 
         assertThat(
                 result.planDays()
-        ).isSameAs(
+        )
+                .isSameAs(
                 editPlanAiResponse.planDays()
         );
 
         assertThat(
                 plan.getTags()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 aggregatedTags
         );
 
@@ -1506,28 +1576,32 @@ class TravelFacadeTest {
         when(
                 userQueryService
                         .findByUsernameInCache(username)
-        ).thenReturn(
+        )
+                .thenReturn(
                 userAuthCache
         );
 
         when(
                 travelQueryService
                         .existsByIdAndUserId(travelId, userId)
-        ).thenReturn(
+        )
+                .thenReturn(
                 true
         );
 
         when(
                 planEditCacheService
                         .consumeEditResult(travelId)
-        ).thenReturn(
+        )
+                .thenReturn(
                 Optional.empty()
         );
 
         when(
                 planEditCacheService
                         .findConfirmedResult(travelId)
-        ).thenReturn(
+        )
+                .thenReturn(
                 Optional.empty()
         );
 
@@ -1537,7 +1611,8 @@ class TravelFacadeTest {
                         request,
                         username
                 )
-        ).isInstanceOf(
+        )
+                .isInstanceOf(
                 BaseException.class
         ).satisfies(exception -> {
 
@@ -1545,7 +1620,8 @@ class TravelFacadeTest {
 
             assertThat(
                     baseException.getMessage()
-            ).isEqualTo(
+            )
+                    .isEqualTo(
                     PlanEditExceptionEnum.EDIT_RESULT_NOT_FOUND.getMessage()
             );
         });
@@ -1595,35 +1671,40 @@ class TravelFacadeTest {
         when(
                 userQueryService
                         .findByUsernameInCache(username)
-        ).thenReturn(
+        )
+                .thenReturn(
                 userAuthCache
         );
 
         when(
                 travelQueryService
                         .existsByIdAndUserId(travelId, userId)
-        ).thenReturn(
+        )
+                .thenReturn(
                 true
         );
 
         when(
                 planEditCacheService
                         .consumeEditResult(travelId)
-        ).thenReturn(
+        )
+                .thenReturn(
                 Optional.empty()
         );
 
         when(
                 planEditCacheService
                         .findConfirmedResult(travelId)
-        ).thenReturn(
+        )
+                .thenReturn(
                 Optional.of(confirmedResult)
         );
 
         when(
                 travelService
                         .findTravelById(travelId)
-        ).thenReturn(
+        )
+                .thenReturn(
                 confirmedTravel
         );
 
@@ -1637,7 +1718,8 @@ class TravelFacadeTest {
         // then
         assertThat(
                 result
-        ).isNotNull();
+        )
+                .isNotNull();
 
         verify(
                 planQueryService,
@@ -1678,14 +1760,16 @@ class TravelFacadeTest {
         when(
                 userQueryService
                         .findByUsernameInCache(username)
-        ).thenReturn(
+        )
+                .thenReturn(
                 userAuthCache
         );
 
         when(
                 travelQueryService
                         .existsByIdAndUserId(travelId, userId)
-        ).thenReturn(
+        )
+                .thenReturn(
                 false
         );
 
@@ -1695,7 +1779,8 @@ class TravelFacadeTest {
                         request,
                         username
                 )
-        ).isInstanceOf(
+        )
+                .isInstanceOf(
                 ForbiddenException.class
         );
 
@@ -1731,14 +1816,16 @@ class TravelFacadeTest {
         when(
                 userQueryService
                         .findByUsernameInCache(username)
-        ).thenReturn(
+        )
+                .thenReturn(
                 userAuthCache
         );
 
         when(
                 travelQueryService
                         .existsByIdAndUserId(travelId, userId)
-        ).thenReturn(
+        )
+                .thenReturn(
                 true
         );
 
@@ -1780,14 +1867,16 @@ class TravelFacadeTest {
         when(
                 userQueryService
                         .findByUsernameInCache(username)
-        ).thenReturn(
+        )
+                .thenReturn(
                 userAuthCache
         );
 
         when(
                 travelQueryService
                         .existsByIdAndUserId(travelId, userId)
-        ).thenReturn(
+        )
+                .thenReturn(
                 false
         );
 
@@ -1797,7 +1886,8 @@ class TravelFacadeTest {
                         request,
                         username
                 )
-        ).isInstanceOf(
+        )
+                .isInstanceOf(
                 ForbiddenException.class
         );
 
@@ -1946,63 +2036,72 @@ class TravelFacadeTest {
         when(
                 userQueryService
                         .findByUsernameInCache(username)
-        ).thenReturn(
+        )
+                .thenReturn(
                 userAuthCache
         );
 
         when(
                 healthQueryService
                         .checkHealthWithUser(100L, userId)
-        ).thenReturn(
+        )
+                .thenReturn(
                 true
         );
 
         when(
                 healthQueryService
                         .checkHealthWithUser(101L, userId)
-        ).thenReturn(
+        )
+                .thenReturn(
                 true
         );
 
         when(
                 healthService
                         .getHealthById(100L)
-        ).thenReturn(
+        )
+                .thenReturn(
                 agreed
         );
 
         when(
                 healthService
                         .getHealthById(101L)
-        ).thenReturn(
+        )
+                .thenReturn(
                 notAgreed
         );
 
         when(
                 travelService
                         .createTravel(createTravelRequest, userId)
-        ).thenReturn(
+        )
+                .thenReturn(
                 travel
         );
 
         when(
                 planService
                         .createPlan(any(CreatePlanRequest.class))
-        ).thenReturn(
+        )
+                .thenReturn(
                 plan
         );
 
         when(
                 foodInfoService
                         .getFoodInfoList(100L)
-        ).thenReturn(
+        )
+                .thenReturn(
                 List.of()
         );
 
         when(
                 medicationInfoService
                         .findAllByHealthId(100L)
-        ).thenReturn(
+        )
+                .thenReturn(
                 List.of()
         );
 
@@ -2015,14 +2114,16 @@ class TravelFacadeTest {
         when(
                 planService
                         .makePlanByAi(contextCaptor.capture())
-        ).thenReturn(
+        )
+                .thenReturn(
                 emptyAiResponse
         );
 
         when(
                 planService
                         .aggregateTags(List.of())
-        ).thenReturn(
+        )
+                .thenReturn(
                 Set.of()
         );
 

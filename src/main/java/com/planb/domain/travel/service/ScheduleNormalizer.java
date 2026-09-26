@@ -409,8 +409,13 @@ public class ScheduleNormalizer {
                 nonMealPlaceSlots(nonMedicationSchedules);
 
         List<CreatePlanAiResponse.PlanScheduleDetail> medicationSchedules =
-                healthContexts.stream()
-                        .flatMap(healthContext -> medicationSchedulesFor(healthContext, dayMealTimes).stream())
+                healthContexts
+                        .stream()
+                        .flatMap(healthContext -> medicationSchedulesFor(
+                                healthContext,
+                                dayMealTimes
+                        )
+                                .stream())
                         .map(medication -> moveOutOfPlaceSlots(medication, placeSlots))
                         .collect(Collectors.groupingBy(CreatePlanAiResponse.PlanScheduleDetail::startTime))
                         .values()
@@ -534,7 +539,12 @@ public class ScheduleNormalizer {
         return healthContext.medicationInfos()
                 .stream()
                 .flatMap(medicationInfo ->
-                        medicationSchedulesFor(healthContext, medicationInfo, dayMealTimes).stream()
+                        medicationSchedulesFor(
+                                healthContext,
+                                medicationInfo,
+                                dayMealTimes
+                        )
+                                .stream()
                 )
                 .toList();
     }

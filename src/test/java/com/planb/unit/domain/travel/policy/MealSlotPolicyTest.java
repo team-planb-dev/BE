@@ -43,7 +43,8 @@ class MealSlotPolicyTest {
                         day,
                         List.of(healthContext())
                 )
-        ).containsExactly(
+        )
+                .containsExactly(
                 ScheduleType.BREAKFAST,
                 ScheduleType.DINNER
         );
@@ -65,7 +66,8 @@ class MealSlotPolicyTest {
                         day,
                         List.of(healthContext())
                 )
-        ).containsExactly(
+        )
+                .containsExactly(
                 ScheduleType.BREAKFAST,
                 ScheduleType.LUNCH,
                 ScheduleType.DINNER
@@ -105,7 +107,8 @@ class MealSlotPolicyTest {
                         day,
                         List.of(notApplied)
                 )
-        ).isEmpty();
+        )
+                .isEmpty();
     }
 
     @Test
@@ -135,7 +138,8 @@ class MealSlotPolicyTest {
                         day,
                         List.of(healthContext())
                 )
-        ).isEmpty();
+        )
+                .isEmpty();
     }
 
     @Test
@@ -156,7 +160,8 @@ class MealSlotPolicyTest {
                         List.of(healthContext()),
                         2
                 )
-        ).containsExactly(
+        )
+                .containsExactly(
                 ScheduleType.LUNCH,
                 ScheduleType.DINNER
         );
@@ -180,7 +185,8 @@ class MealSlotPolicyTest {
                         List.of(healthContext()),
                         2
                 )
-        ).containsExactly(
+        )
+                .containsExactly(
                 ScheduleType.BREAKFAST,
                 ScheduleType.LUNCH
         );
@@ -204,7 +210,8 @@ class MealSlotPolicyTest {
                         List.of(healthContext()),
                         3
                 )
-        ).containsExactly(
+        )
+                .containsExactly(
                 ScheduleType.BREAKFAST,
                 ScheduleType.LUNCH,
                 ScheduleType.DINNER

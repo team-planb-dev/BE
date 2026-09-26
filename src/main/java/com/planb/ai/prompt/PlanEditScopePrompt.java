@@ -27,8 +27,12 @@ public record PlanEditScopePrompt(PlanEditContext context) implements AiPrompt {
     @Override
     public String user() {
 
-        return "현재 일차/날짜: " + context.currentPlan().planDays().stream()
-                .map(day -> day.dayNumber() + "=" + day.date()).toList()
+        return "현재 일차/날짜: " + context
+                .currentPlan()
+                .planDays()
+                .stream()
+                .map(day -> day.dayNumber() + "=" + day.date())
+                .toList()
                 + "\n사용자 수정 요청: " + context.editRequest();
     }
 }

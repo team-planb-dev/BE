@@ -53,7 +53,8 @@ class Kor2ServiceHandlerTest {
                                 any(URI.class),
                                 eq(Kor2AreaCodeResponse.class)
                         )
-        ).thenReturn(Mono.just(areaCodes("1", "서울")));
+        )
+                .thenReturn(Mono.just(areaCodes("1", "서울")));
 
         when(
                 kor2ServiceClient
@@ -61,7 +62,8 @@ class Kor2ServiceHandlerTest {
                                 any(URI.class),
                                 eq(Kor2KeywordSearchResponse.class)
                         )
-        ).thenReturn(Mono.just(emptyPlaces()));
+        )
+                .thenReturn(Mono.just(emptyPlaces()));
 
         handler
                 .searchAttractions(
@@ -98,7 +100,8 @@ class Kor2ServiceHandlerTest {
                                 any(URI.class),
                                 eq(Kor2AreaCodeResponse.class)
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 Mono.just(areaCodes("32", "강원특별자치도")),
                 Mono.just(areaCodes("1", "강릉시"))
         );
@@ -109,7 +112,8 @@ class Kor2ServiceHandlerTest {
                                 any(URI.class),
                                 eq(Kor2KeywordSearchResponse.class)
                         )
-        ).thenReturn(Mono.just(emptyPlaces()));
+        )
+                .thenReturn(Mono.just(emptyPlaces()));
 
         handler
                 .searchAttractions(
@@ -146,7 +150,8 @@ class Kor2ServiceHandlerTest {
                                 any(URI.class),
                                 eq(Kor2AreaCodeResponse.class)
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 Mono.just(areaCodes("35", "경상북도")),
                 Mono.just(areaCodes("2", "경주시"))
         );
@@ -157,7 +162,8 @@ class Kor2ServiceHandlerTest {
                                 any(URI.class),
                                 eq(Kor2KeywordSearchResponse.class)
                         )
-        ).thenReturn(Mono.just(emptyPlaces()));
+        )
+                .thenReturn(Mono.just(emptyPlaces()));
 
         handler
                 .searchRestaurants(
@@ -196,7 +202,8 @@ class Kor2ServiceHandlerTest {
                                 any(URI.class),
                                 eq(Kor2AreaCodeResponse.class)
                         )
-        ).thenReturn(Mono.just(areaCodes("6", "부산")));
+        )
+                .thenReturn(Mono.just(areaCodes("6", "부산")));
 
         when(
                 kor2ServiceClient
@@ -204,7 +211,8 @@ class Kor2ServiceHandlerTest {
                                 any(URI.class),
                                 eq(Kor2KeywordSearchResponse.class)
                         )
-        ).thenReturn(Mono.just(emptyPlaces()));
+        )
+                .thenReturn(Mono.just(emptyPlaces()));
 
         handler
                 .searchRestaurants(
@@ -248,7 +256,8 @@ class Kor2ServiceHandlerTest {
                                 any(URI.class),
                                 eq(Kor2AreaCodeResponse.class)
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 Mono.just(areaCodes("32", "강원특별자치도")),
                 Mono.just(areaCodes("13", "춘천시"))
         );
@@ -259,7 +268,8 @@ class Kor2ServiceHandlerTest {
                                 any(URI.class),
                                 eq(Kor2KeywordSearchResponse.class)
                         )
-        ).thenReturn(Mono.just(emptyPlaces()));
+        )
+                .thenReturn(Mono.just(emptyPlaces()));
 
         handler
                 .searchRestaurantCandidates(
@@ -296,7 +306,8 @@ class Kor2ServiceHandlerTest {
                                 any(URI.class),
                                 eq(Kor2AreaCodeResponse.class)
                         )
-        ).thenReturn(Mono.just(areaCodes("1", "서울")));
+        )
+                .thenReturn(Mono.just(areaCodes("1", "서울")));
 
         when(
                 kor2ServiceClient
@@ -304,7 +315,8 @@ class Kor2ServiceHandlerTest {
                                 any(URI.class),
                                 eq(Kor2KeywordSearchResponse.class)
                         )
-        ).thenReturn(Mono.just(emptyPlaces()));
+        )
+                .thenReturn(Mono.just(emptyPlaces()));
 
         handler
                 .searchRestaurantCandidates(

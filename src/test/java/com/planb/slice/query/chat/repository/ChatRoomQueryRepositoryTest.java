@@ -66,7 +66,8 @@ class ChatRoomQueryRepositoryTest
                 .findByRoomId(chatRoomId);
 
         // then
-        assertThat(result).isPresent();
+        assertThat(result)
+                .isPresent();
 
         assertThat(result
                 .get()
@@ -96,7 +97,8 @@ class ChatRoomQueryRepositoryTest
                 .findByRoomId(unknownRoomId);
 
         // then
-        assertThat(result).isEmpty();
+        assertThat(result)
+                .isEmpty();
     }
 
     @Test
@@ -119,6 +121,7 @@ class ChatRoomQueryRepositoryTest
                 .findByRoomId(deletedRoomId);
 
         // then
-        assertThat(result).isEmpty();
+        assertThat(result)
+                .isEmpty();
     }
 }

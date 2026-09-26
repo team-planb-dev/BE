@@ -65,7 +65,8 @@ class TourismToolTest {
                                 "부산",
                                 "해운대구"
                         )
-        ).thenReturn(Mono.just(response));
+        )
+                .thenReturn(Mono.just(response));
 
         Kor2KeywordSearchResponse result =
                 tourismTool
@@ -99,7 +100,8 @@ class TourismToolTest {
                                 "강원특별자치도",
                                 "춘천시"
                         )
-        ).thenReturn(Mono.just(response));
+        )
+                .thenReturn(Mono.just(response));
 
         Kor2KeywordSearchResponse result = tourismTool
                 .searchRestaurantCandidatesByRegion(
@@ -207,7 +209,8 @@ class TourismToolTest {
                                 "강원특별자치도",
                                 "강릉시"
                         )
-        ).thenReturn(Mono.just(response(source)));
+        )
+                .thenReturn(Mono.just(response(source)));
 
         Set<String> selectedTitles = tourismTool
                 .searchAttractionsByRegion(
@@ -321,7 +324,8 @@ class TourismToolTest {
                                 "강원특별자치도",
                                 "강릉시"
                         )
-        ).thenReturn(Mono.just(response(source)));
+        )
+                .thenReturn(Mono.just(response(source)));
 
         Set<String> selectedTitles = tourismTool
                 .searchAttractionsByRegion(
@@ -380,7 +384,8 @@ class TourismToolTest {
                                 "강원특별자치도",
                                 "강릉시"
                         )
-        ).thenReturn(Mono.just(response(source)));
+        )
+                .thenReturn(Mono.just(response(source)));
 
         List<String> selectedTitles = tourismTool
                 .searchAttractionsByRegion(
@@ -426,7 +431,8 @@ class TourismToolTest {
                                 "서울",
                                 ""
                         )
-        ).thenReturn(Mono.just(response(source)));
+        )
+                .thenReturn(Mono.just(response(source)));
 
         List<String> selectedTitles = tourismTool
                 .searchAttractionsByRegion(
@@ -466,7 +472,8 @@ class TourismToolTest {
                                 "강원특별자치도",
                                 "강릉시"
                         )
-        ).thenReturn(Mono.just(response(source)));
+        )
+                .thenReturn(Mono.just(response(source)));
 
         List<String> selectedTitles = tourismTool
                 .searchAttractionsByRegion(
@@ -507,7 +514,8 @@ class TourismToolTest {
                                 "제주특별자치도",
                                 "제주시"
                         )
-        ).thenReturn(Mono.just(response(source)));
+        )
+                .thenReturn(Mono.just(response(source)));
 
         Set<String> selectedTitles = tourismTool
                 .searchAttractionsByRegion(
@@ -543,7 +551,8 @@ class TourismToolTest {
                                 "강원특별자치도",
                                 "강릉시"
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 Mono.just(
                         response(
                                 List.of(
@@ -590,7 +599,8 @@ class TourismToolTest {
                 origin,
                 destination,
                 transportation
-        )).thenReturn(Mono.just(response));
+        ))
+                .thenReturn(Mono.just(response));
 
         // when
         KakaoRouteResult result =
@@ -638,7 +648,8 @@ class TourismToolTest {
                                 "129.2",
                                 "35.8"
                         )
-        ).thenReturn(Mono.just(response));
+        )
+                .thenReturn(Mono.just(response));
 
         assertEquals(
                 response,
@@ -703,7 +714,8 @@ class TourismToolTest {
                 foodName,
                 foodName,
                 diseaseTypes
-        )).thenReturn(Mono.just(response));
+        ))
+                .thenReturn(Mono.just(response));
 
         // when
         NutritionEvaluationResult result =
@@ -752,7 +764,8 @@ class TourismToolTest {
                 foodName,
                 standardFoodName,
                 diseaseTypes
-        )).thenReturn(Mono.just(response));
+        ))
+                .thenReturn(Mono.just(response));
 
         // when
         NutritionEvaluationResult result =

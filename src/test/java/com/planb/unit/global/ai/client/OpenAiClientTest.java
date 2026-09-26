@@ -71,7 +71,8 @@ class OpenAiClientTest {
 
     @BeforeEach
     void schemaForMockConverter() {
-        lenient().when(outputConverter.getJsonSchema()).thenReturn("{} ");
+        lenient().when(outputConverter.getJsonSchema())
+                .thenReturn("{} ");
     }
 
     @Test
@@ -80,12 +81,15 @@ class OpenAiClientTest {
         PlaceCandidateContext candidates = new PlaceCandidateContext();
         PlanTourismTool tool = new PlanTourismTool(mock(TourismTool.class), candidates);
         when(chatClient.prompt().system(prompt.system()).user(prompt.user()).tools(tool)
-                .options(any()).call().content()).thenReturn("raw");
-        when(outputConverter.convert("raw")).thenAnswer(invocation -> {
+                .options(any()).call().content())
+                .thenReturn("raw");
+        when(outputConverter.convert("raw"))
+                .thenAnswer(invocation -> {
             candidates.record(new PlaceWithRouteResult(true, "카페", "부산", "129.1", "35.1", null,
                     "kakao:first", "CE7", "카페"));
             throw new IllegalArgumentException("잘못된 JSON");
-        }).thenAnswer(invocation -> {
+        })
+                .thenAnswer(invocation -> {
             // 후보는 외부 검색으로 확인한 사실이므로 응답 파싱 실패와 무관하게 남는다
             assertNotNull(candidates.find("kakao:first"));
             candidates.record(new PlaceWithRouteResult(true, "두 번째 카페", "부산", "129.1", "35.1", null,
@@ -112,9 +116,11 @@ class OpenAiClientTest {
                         .tools()
                         .call()
                         .entity(TestDto.class)
-        ).thenThrow(
+        )
+                .thenThrow(
                 new RuntimeException("1차 파싱 실패")
-        ).thenReturn(
+        )
+                .thenReturn(
                 expected
         );
 
@@ -144,9 +150,11 @@ class OpenAiClientTest {
                         .tools()
                         .call()
                         .entity(TestDto.class)
-        ).thenThrow(
+        )
+                .thenThrow(
                 new RuntimeException("1차 파싱 실패")
-        ).thenThrow(
+        )
+                .thenThrow(
                 new RuntimeException("2차 파싱 실패")
         );
 
@@ -181,7 +189,8 @@ class OpenAiClientTest {
                         .options(any())
                         .call()
                         .content()
-        ).thenReturn("raw-1");
+        )
+                .thenReturn("raw-1");
 
         when(
                 chatClient.prompt()
@@ -191,11 +200,13 @@ class OpenAiClientTest {
                         .options(any())
                         .call()
                         .content()
-        ).thenReturn("raw-2");
+        )
+                .thenReturn("raw-2");
 
         when(
                 outputConverter.convert("raw-1")
-        ).thenAnswer(invocation -> {
+        )
+                .thenAnswer(invocation -> {
             candidates.record(new PlaceWithRouteResult(
                     true,
                     "카페",
@@ -213,7 +224,8 @@ class OpenAiClientTest {
         // correction 응답은 이전 응답을 고친 것이므로 그 응답이 가리키던 후보가 남아 있어야 한다
         when(
                 outputConverter.convert("raw-2")
-        ).thenAnswer(invocation -> {
+        )
+                .thenAnswer(invocation -> {
             assertNotNull(candidates.find("kakao:first"));
 
             return valid;
@@ -252,7 +264,8 @@ class OpenAiClientTest {
                         .options(any())
                         .call()
                         .content()
-        ).thenReturn("raw-1");
+        )
+                .thenReturn("raw-1");
 
         when(
                 chatClient.prompt()
@@ -266,17 +279,20 @@ class OpenAiClientTest {
                         .options(any())
                         .call()
                         .content()
-        ).thenReturn("raw-2");
+        )
+                .thenReturn("raw-2");
 
         when(
                 outputConverter.convert("raw-1")
-        ).thenReturn(
+        )
+                .thenReturn(
                 invalid
         );
 
         when(
                 outputConverter.convert("raw-2")
-        ).thenReturn(
+        )
+                .thenReturn(
                 valid
         );
 
@@ -316,14 +332,16 @@ class OpenAiClientTest {
                         .options(any())
                         .call()
                         .content()
-        ).thenReturn(
+        )
+                .thenReturn(
                 "raw-1",
                 "raw-1"
         );
 
         when(
                 outputConverter.convert("raw-1")
-        ).thenReturn(
+        )
+                .thenReturn(
                 invalid
         );
 
@@ -358,7 +376,8 @@ class OpenAiClientTest {
                         .options(any())
                         .call()
                         .content()
-        ).thenReturn(
+        )
+                .thenReturn(
                 " ",
                 " "
         );
@@ -396,14 +415,16 @@ class OpenAiClientTest {
                         .options(any())
                         .call()
                         .content()
-        ).thenReturn(
+        )
+                .thenReturn(
                 "raw-1",
                 "raw-2"
         );
 
         when(
                 outputConverter.convert(any())
-        ).thenReturn(
+        )
+                .thenReturn(
                 invalid
         );
 
@@ -444,7 +465,8 @@ class OpenAiClientTest {
                         .options(any())
                         .call()
                         .content()
-        ).thenReturn(
+        )
+                .thenReturn(
                 " ",
                 "raw-2"
         );
@@ -484,13 +506,15 @@ class OpenAiClientTest {
                         .options(any())
                         .call()
                         .content()
-        ).thenReturn(
+        )
+                .thenReturn(
                 "raw"
         );
 
         when(
                 outputConverter.convert("raw")
-        ).thenReturn(
+        )
+                .thenReturn(
                 result
         );
 
@@ -517,7 +541,8 @@ class OpenAiClientTest {
                         .user(prompt.user())
                         .stream()
                         .content()
-        ).thenReturn(
+        )
+                .thenReturn(
                 expected
         );
 

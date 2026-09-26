@@ -71,7 +71,8 @@ class MedicationInfoQueryServiceTest {
                         .findMedicationTimesByUserId(
                                 userId
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 expected
         );
 

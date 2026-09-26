@@ -332,7 +332,8 @@ class ChatMessageServiceTest {
         boolean result = chatMessageService.existsAnyMessage(roomId);
 
         // then
-        assertThat(result).isTrue();
+        assertThat(result)
+                .isTrue();
     }
 
     @Test
@@ -349,7 +350,8 @@ class ChatMessageServiceTest {
         boolean result = chatMessageService.existsAnyMessage(roomId);
 
         // then
-        assertThat(result).isFalse();
+        assertThat(result)
+                .isFalse();
     }
 
     @Test
@@ -364,7 +366,8 @@ class ChatMessageServiceTest {
         String result = chatMessageService.resolveConfirmMessage();
 
         // then
-        assertThat(result).isEqualTo("일정을 저장했어요!");
+        assertThat(result)
+                .isEqualTo("일정을 저장했어요!");
     }
 
     @Test
@@ -379,7 +382,8 @@ class ChatMessageServiceTest {
         String result = chatMessageService.resolveCancelMessage();
 
         // then
-        assertThat(result).isEqualTo("기존 일정을 유지했어요!");
+        assertThat(result)
+                .isEqualTo("기존 일정을 유지했어요!");
     }
 
     @Test
@@ -401,6 +405,7 @@ class ChatMessageServiceTest {
                 chatMessageService.resolveGreetingMessages(userNickname, aiNickname);
 
         // then
-        assertThat(result).isEqualTo(greetingMessages);
+        assertThat(result)
+                .isEqualTo(greetingMessages);
     }
 }

@@ -69,7 +69,8 @@ class TravelControllerTest {
 
         when(travelFacade.showRecommendFoods(
                 any(MakeRecommendFoodsRequest.class)
-        )).thenReturn(response);
+        ))
+                .thenReturn(response);
 
         // when & then
         mockMvc.perform(
@@ -107,7 +108,8 @@ class TravelControllerTest {
 
         when(travelFacade.searchPlannedPlaceByText(
                 any(SearchPlannedPlaceRequest.class)
-        )).thenReturn(
+        ))
+                .thenReturn(
                 Mono.just(response)
         );
 
@@ -158,7 +160,8 @@ class TravelControllerTest {
         when(travelFacade.makeTravelOptionsAndRecommend(
                 any(CreateTravelRequest.class),
                 eq("testUser@example.com")
-        )).thenReturn(response);
+        ))
+                .thenReturn(response);
 
         String request = """
                 {
@@ -227,7 +230,8 @@ class TravelControllerTest {
         when(travelFacade.getAiPlan(
                 any(GetAiPlanRequest.class),
                 eq("testUser@example.com")
-        )).thenReturn(response);
+        ))
+                .thenReturn(response);
 
         // when & then
         mockMvc.perform(
@@ -273,7 +277,8 @@ class TravelControllerTest {
         when(travelFacade.makeEditPlanPreview(
                 any(EditPlanRequest.class),
                 eq("testUser@example.com")
-        )).thenReturn(response);
+        ))
+                .thenReturn(response);
 
         String request = """
                 {
@@ -321,7 +326,8 @@ class TravelControllerTest {
         when(travelFacade.confirmEditPlan(
                 any(GetAiPlanRequest.class),
                 eq("testUser@example.com")
-        )).thenReturn(response);
+        ))
+                .thenReturn(response);
 
         String request = """
                 {

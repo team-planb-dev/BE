@@ -322,28 +322,32 @@ class NutritionEvaluatorTest {
                         lowResult,
                         NutritionType.CARBOHYDRATE
                 )
-        ).isEqualTo(NutritionLevel.LOW);
+        )
+                .isEqualTo(NutritionLevel.LOW);
 
         assertThat(
                 getNutritionLevel(
                         checkLowBoundaryResult,
                         NutritionType.CARBOHYDRATE
                 )
-        ).isEqualTo(NutritionLevel.CHECK);
+        )
+                .isEqualTo(NutritionLevel.CHECK);
 
         assertThat(
                 getNutritionLevel(
                         checkResult,
                         NutritionType.CARBOHYDRATE
                 )
-        ).isEqualTo(NutritionLevel.CHECK);
+        )
+                .isEqualTo(NutritionLevel.CHECK);
 
         assertThat(
                 getNutritionLevel(
                         highBoundaryResult,
                         NutritionType.CARBOHYDRATE
                 )
-        ).isEqualTo(NutritionLevel.HIGH);
+        )
+                .isEqualTo(NutritionLevel.HIGH);
     }
 
     @Test
@@ -394,28 +398,32 @@ class NutritionEvaluatorTest {
                         highResult,
                         NutritionType.DIETARY_FIBER
                 )
-        ).isEqualTo(NutritionLevel.HIGH);
+        )
+                .isEqualTo(NutritionLevel.HIGH);
 
         assertThat(
                 getNutritionLevel(
                         checkLowBoundaryResult,
                         NutritionType.DIETARY_FIBER
                 )
-        ).isEqualTo(NutritionLevel.CHECK);
+        )
+                .isEqualTo(NutritionLevel.CHECK);
 
         assertThat(
                 getNutritionLevel(
                         checkResult,
                         NutritionType.DIETARY_FIBER
                 )
-        ).isEqualTo(NutritionLevel.CHECK);
+        )
+                .isEqualTo(NutritionLevel.CHECK);
 
         assertThat(
                 getNutritionLevel(
                         lowBoundaryResult,
                         NutritionType.DIETARY_FIBER
                 )
-        ).isEqualTo(NutritionLevel.LOW);
+        )
+                .isEqualTo(NutritionLevel.LOW);
     }
 
     private NutritionInfo createCarbohydrateNutritionInfo(
