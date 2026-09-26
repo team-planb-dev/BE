@@ -3225,6 +3225,55 @@ class PlanPlaceValidationTest {
     }
 
     @Test
+    @DisplayName("편집 전부터 없던 필수 식사 슬롯의 새 누락 제외")
+    void keepsPreExistingRequiredMealMissingDuringEdit() {
+
+        PlanScheduleDetail first = slot("tour:1", "해운대", 9);
+
+        when(handler.editPlanByAi(any(), any()))
+                .thenAnswer(invocation -> {
+                    recordCandidates(invocation.getArgument(1));
+
+                    return new EditPlanAiResponse(
+                            "부산",
+                            List.of(new PlanDayDetail(
+                                    1,
+                                    date,
+                                    List.of(
+                                            first,
+                                            slot("tour:3", "이기대", 11),
+                                            slot("tour:4", "오죽헌", 13)))),
+                            List.of("장소를 변경했습니다."),
+                            true);
+                });
+
+        when(kakao.getRoute(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
+
+        TravelHealthContext health = healthWithMeal(
+                ScheduleType.LUNCH,
+                LocalTime.of(12, 0)
+        );
+
+        EditPlanAiResponse result = service
+                .makeEditPlanByAi(
+                        new PlanEditContext(
+                                travel.createTravelRequest(),
+                                List.of(health),
+                                existing(first),
+                                "첫 번째 관광지를 변경해주세요."
+                        )
+                );
+
+        assertTrue(result
+                .planDays()
+                .getFirst()
+                .schedules()
+                .stream()
+                .noneMatch(schedule -> schedule.scheduleType() == ScheduleType.LUNCH));
+    }
+
+    @Test
     @DisplayName("걷기 감소 수정의 하루 관광 장소 2개 허용")
     void allowsTwoTouristPlacesForReducedWalkingEdit() {
 
