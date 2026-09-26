@@ -8,8 +8,8 @@ import java.util.Set;
  * TourAPI 분류 코드로 관광 슬롯의 추천 태그를 정하는 규칙.
  *
  * Java가 채워 넣은 관광 슬롯은 AI가 태그를 달아주지 않으므로 여기서 결정한다.
- * 붙일 수 있는 태그는 TravelPlanPrompt가 ATTRACTION에 허용한 것으로 한정한다.
- * 같은 응답 안에서 AI와 Java가 서로 다른 규칙을 쓰면 안 되기 때문이다.
+ * 최종 허용 범위는 {@link RecommendationTag#candidates}가 결정한다.
+ * Prompt의 태그 안내는 이 Java 정책을 따르며 최종 승인 근거로 사용하지 않는다.
  */
 public final class AttractionTagPolicy {
 

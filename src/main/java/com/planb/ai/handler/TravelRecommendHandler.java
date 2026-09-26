@@ -235,7 +235,7 @@ public class TravelRecommendHandler {
                 candidateId);
     }
 
-    // 날짜 수와 walkType 기준 관광지 개수, 등록 식사시각을 지나는 날짜의 식사 슬롯이 모두 맞는 응답만 허용
+    // 날짜 수와 walkType 기준 관광지 개수를 검사하고, 검색 후보로 보정할 수 없는 부족분만 교정한다.
     private Function<CreatePlanAiResponse, List<String>> validatePlan(
             TravelPlanContext context,
             PlaceCandidateContext candidates

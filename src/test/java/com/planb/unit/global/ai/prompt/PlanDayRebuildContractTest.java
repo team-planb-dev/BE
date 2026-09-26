@@ -64,6 +64,18 @@ class PlanDayRebuildContractTest {
         assertTrue(editPrompt.contains("MEDICATION 슬롯을 생성하지 않습니다"));
 
         assertTrue(rebuildPrompt.contains("MEDICATION 슬롯을 생성하지 않습니다"));
+
+        assertFalse(createPrompt.contains("첫날 아침"));
+
+        assertFalse(createPrompt.contains("마지막 날 저녁"));
+
+        assertFalse(editPrompt.contains("첫날 아침"));
+
+        assertFalse(editPrompt.contains("마지막 날 저녁"));
+
+        assertFalse(rebuildPrompt.contains("첫날 아침"));
+
+        assertFalse(rebuildPrompt.contains("마지막 날 저녁"));
     }
 
     @Test
