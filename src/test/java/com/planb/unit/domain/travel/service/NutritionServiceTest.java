@@ -68,7 +68,8 @@ class NutritionServiceTest {
 
         when(foodNtrCpntHandler.getFoodNutrition(
                 any(FoodNtrCpntSearchRequest.class)
-        )).thenReturn(
+        ))
+                .thenReturn(
                 Mono.just(
                         List.of(
                                 firstItem,
@@ -129,7 +130,8 @@ class NutritionServiceTest {
 
         when(foodNtrCpntHandler.getFoodNutrition(
                 any(FoodNtrCpntSearchRequest.class)
-        )).thenReturn(
+        ))
+                .thenReturn(
                 Mono.just(
                         List.of(
                                 firstItem,
@@ -166,7 +168,8 @@ class NutritionServiceTest {
 
         when(foodNtrCpntHandler.getFoodNutrition(
                 any(FoodNtrCpntSearchRequest.class)
-        )).thenReturn(
+        ))
+                .thenReturn(
                 Mono.just(List.of())
         );
 
@@ -212,7 +215,8 @@ class NutritionServiceTest {
 
         when(foodNtrCpntHandler.getFoodNutrition(
                 any(FoodNtrCpntSearchRequest.class)
-        )).thenReturn(
+        ))
+                .thenReturn(
                 Mono.just(List.of(item))
         );
 
@@ -256,7 +260,8 @@ class NutritionServiceTest {
 
         when(foodNtrCpntHandler.getFoodNutrition(
                 any(FoodNtrCpntSearchRequest.class)
-        )).thenReturn(
+        ))
+                .thenReturn(
                 Mono.just(List.of(item))
         );
 
@@ -289,7 +294,8 @@ class NutritionServiceTest {
 
         when(foodNtrCpntHandler.getFoodNutrition(
                 any(FoodNtrCpntSearchRequest.class)
-        )).thenReturn(
+        ))
+                .thenReturn(
                 Mono.error(
                         new RuntimeException("504 Gateway Timeout")
                 )
@@ -325,7 +331,8 @@ class NutritionServiceTest {
 
         when(foodNtrCpntHandler.getFoodNutrition(
                 any(FoodNtrCpntSearchRequest.class)
-        )).thenReturn(
+        ))
+                .thenReturn(
                 Mono.just(List.of()),
                 Mono.just(List.of(createItem(
                         standardFoodName,
@@ -367,7 +374,8 @@ class NutritionServiceTest {
 
         when(foodNtrCpntHandler.getFoodNutrition(
                 any(FoodNtrCpntSearchRequest.class)
-        )).thenReturn(
+        ))
+                .thenReturn(
                 Mono.just(List.of())
         );
 
@@ -399,7 +407,8 @@ class NutritionServiceTest {
 
         when(foodNtrCpntHandler.getFoodNutrition(
                 any(FoodNtrCpntSearchRequest.class)
-        )).thenReturn(
+        ))
+                .thenReturn(
                 Mono.just(List.of())
         );
 
@@ -447,7 +456,8 @@ class NutritionServiceTest {
 
         when(foodNtrCpntHandler.getFoodNutrition(
                 any(FoodNtrCpntSearchRequest.class)
-        )).thenAnswer(invocation -> Mono
+        ))
+                .thenAnswer(invocation -> Mono
                 .just(calls.getAndIncrement() == 0
                         ? List.<FoodNtrCpntResponse.Item>of()
                         : List.of(found))
@@ -461,7 +471,8 @@ class NutritionServiceTest {
                                 diseaseTypes
                         )
                 )
-                .thenAwait(Duration.ofSeconds(30))
+
+                       .thenAwait(Duration.ofSeconds(30))
                 .expectNextMatches(result ->
                         result.status() == NutritionEvaluationStatus.NOT_EVALUABLE
                 )

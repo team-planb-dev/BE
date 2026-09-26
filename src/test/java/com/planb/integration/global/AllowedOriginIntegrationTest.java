@@ -107,7 +107,8 @@ class AllowedOriginIntegrationTest extends IntegrationTest {
                                 5,
                                 TimeUnit.SECONDS
                         )
-        ).isInstanceOf(ExecutionException.class);
+        )
+                .isInstanceOf(ExecutionException.class);
     }
 
     private CompletableFuture<WebSocketSession> handshake(String origin) {

@@ -766,7 +766,8 @@ public class HealthIntegrationTest extends IntegrationTest {
 
         assertThat(
                 refreshTokenCookie.getValue()
-        ).isNotBlank();
+        )
+                .isNotBlank();
 
         return new LoginResult(
                 accessToken,

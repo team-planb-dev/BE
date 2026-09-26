@@ -147,11 +147,13 @@ class RestaurantDetailServiceTest {
 
         org.mockito.Mockito.when(
                 attractionDetail.restaurantDetail()
-        ).thenReturn(null);
+        )
+                .thenReturn(null);
 
         org.mockito.Mockito.when(
                 restaurantScheduleDetail.restaurantDetail()
-        ).thenReturn(restaurant);
+        )
+                .thenReturn(restaurant);
 
         List<RestaurantDetail> result =
                 restaurantDetailService.makeRestaurantDetailList(

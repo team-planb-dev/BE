@@ -63,17 +63,20 @@ class PlanQueryRepositoryTest
                 );
 
         // then
-        assertThat(result).isNotNull();
+        assertThat(result)
+                .isNotNull();
 
         assertThat(
                 result.planId()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 plan.getId()
         );
 
         assertThat(
                 result.planName()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 "부산 AI 여행 일정"
         );
     }
@@ -111,17 +114,20 @@ class PlanQueryRepositoryTest
                 );
 
         // then
-        assertThat(result).isNotNull();
+        assertThat(result)
+                .isNotNull();
 
         assertThat(
                 result.planId()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 plan1.getId()
         );
 
         assertThat(
                 result.planName()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 "부산 AI 여행 일정"
         );
     }

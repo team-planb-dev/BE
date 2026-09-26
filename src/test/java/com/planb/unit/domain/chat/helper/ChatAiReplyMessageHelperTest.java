@@ -31,7 +31,8 @@ class ChatAiReplyMessageHelperTest {
 
         String result = chatAiReplyMessageHelper.makeReplyMessage(preview);
 
-        assertThat(result).isEqualTo("일정 수정을 완료했어요!");
+        assertThat(result)
+                .isEqualTo("일정 수정을 완료했어요!");
     }
 
     @Test
@@ -44,7 +45,8 @@ class ChatAiReplyMessageHelperTest {
 
         String result = chatAiReplyMessageHelper.makeReplyMessage(preview);
 
-        assertThat(result).isEqualTo("해당 요청은 처리하기 어렵습니다! 다른 요청 부탁드려요.");
+        assertThat(result)
+                .isEqualTo("해당 요청은 처리하기 어렵습니다! 다른 요청 부탁드려요.");
     }
 
     @Test
@@ -142,7 +144,8 @@ class ChatAiReplyMessageHelperTest {
 
         String result = chatAiReplyMessageHelper.makeConfirmMessage();
 
-        assertThat(result).isEqualTo("일정을 저장했어요!");
+        assertThat(result)
+                .isEqualTo("일정을 저장했어요!");
     }
 
     @Test
@@ -151,7 +154,8 @@ class ChatAiReplyMessageHelperTest {
 
         String result = chatAiReplyMessageHelper.makeCancelMessage();
 
-        assertThat(result).isEqualTo("기존 일정을 유지했어요!");
+        assertThat(result)
+                .isEqualTo("기존 일정을 유지했어요!");
     }
 
     @Test
@@ -164,7 +168,8 @@ class ChatAiReplyMessageHelperTest {
         List<String> result =
                 chatAiReplyMessageHelper.makeGreetingMessages(userNickname, aiNickname);
 
-        assertThat(result).containsExactly(
+        assertThat(result)
+                .containsExactly(
                 "안녕하세요. " + userNickname + "님의 여행 일정을 계획해줄 " + aiNickname + "예요.",
                 "일정을 어떻게 수정하고 싶나요?"
         );

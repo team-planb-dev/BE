@@ -4,7 +4,7 @@ import lombok.Getter;
 import com.planb.global.enums.MessageCommInterface;
 
 @Getter
-public class BaseDataException extends RuntimeException{
+public class BaseDataException extends RuntimeException {
 
     private final String errorCode;
     private final String message;
@@ -18,7 +18,11 @@ public class BaseDataException extends RuntimeException{
         this.data = data;
     }
 
-    public BaseDataException(String errorCode, String message, Object data) {
+    public BaseDataException(
+            String errorCode,
+            String message,
+            Object data
+    ) {
         super(message);
         this.errorCode = errorCode;
         this.message = message;

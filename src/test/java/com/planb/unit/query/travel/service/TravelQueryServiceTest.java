@@ -50,7 +50,8 @@ class TravelQueryServiceTest {
                         .findTravelConditionById(
                                 travelId
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 expected
         );
 
@@ -85,7 +86,8 @@ class TravelQueryServiceTest {
                                 travelId,
                                 userId
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 true
         );
 
@@ -98,7 +100,8 @@ class TravelQueryServiceTest {
                         );
 
         // then
-        assertThat(result).isTrue();
+        assertThat(result)
+                .isTrue();
 
         verify(travelQueryRepository)
                 .existsByIdAndUserId(

@@ -108,9 +108,12 @@ class MedicationInfoQueryRepositoryTest
                         medicationInfo2.getId()
                 );
 
-        assertThat(deleteCount).isEqualTo(2);
-        assertThat(deletedMedicationInfo1).isNull();
-        assertThat(deletedMedicationInfo2).isNull();
+        assertThat(deleteCount)
+                .isEqualTo(2);
+        assertThat(deletedMedicationInfo1)
+                .isNull();
+        assertThat(deletedMedicationInfo2)
+                .isNull();
     }
 
     @Test
@@ -175,9 +178,12 @@ class MedicationInfoQueryRepositoryTest
                         otherMedicationInfo.getId()
                 );
 
-        assertThat(deleteCount).isEqualTo(1);
-        assertThat(deletedMedicationInfo).isNull();
-        assertThat(remainedMedicationInfo).isNotNull();
+        assertThat(deleteCount)
+                .isEqualTo(1);
+        assertThat(deletedMedicationInfo)
+                .isNull();
+        assertThat(remainedMedicationInfo)
+                .isNotNull();
     }
 
     @Test

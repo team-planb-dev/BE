@@ -76,7 +76,8 @@ class HealthControllerTest {
         when(healthFacade.addCompanion(
                 any(AddCompanionRequest.class),
                 eq("testUser@example.com")
-        )).thenReturn(response);
+        ))
+                .thenReturn(response);
 
         // when & then
         mockMvc.perform(post("/api/v1/health/add-traveler")
@@ -113,7 +114,8 @@ class HealthControllerTest {
         when(healthFacade.deleteCompanion(
                 any(DeleteCompanionRequest.class),
                 eq("testUser@example.com")
-        )).thenReturn(response);
+        ))
+                .thenReturn(response);
 
         // when & then
         mockMvc.perform(delete("/api/v1/health/delete-companion")
@@ -154,7 +156,8 @@ class HealthControllerTest {
 
         when(healthFacade.getCompanionSummary(
                 "testUser@example.com"
-        )).thenReturn(response);
+        ))
+                .thenReturn(response);
 
         // when & then
         mockMvc.perform(

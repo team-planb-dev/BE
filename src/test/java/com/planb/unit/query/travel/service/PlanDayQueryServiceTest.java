@@ -67,7 +67,8 @@ class PlanDayQueryServiceTest {
                         .findPlanDaysByPlanId(
                                 planId
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 expected
         );
 

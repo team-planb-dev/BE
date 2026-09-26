@@ -207,7 +207,8 @@ class PlanServiceTest {
 
         when(
                 travelRecommendHandler.createPlanByAi(eq(context), any(PlaceCandidateContext.class))
-        ).thenReturn(response);
+        )
+                .thenReturn(response);
 
         when(
                 kakaoMapServiceHandler
@@ -216,7 +217,8 @@ class PlanServiceTest {
                                 anyString(),
                                 any(Transportation.class)
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 Mono.just(
                         new KakaoRouteResult(
                                 null,
@@ -273,7 +275,8 @@ class PlanServiceTest {
                                 eq(context),
                                 any(PlaceCandidateContext.class)
                         )
-        ).thenReturn(response);
+        )
+                .thenReturn(response);
 
         when(
                 kakaoMapServiceHandler
@@ -282,7 +285,8 @@ class PlanServiceTest {
                                 anyString(),
                                 any(Transportation.class)
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 Mono.just(
                         new KakaoRouteResult(
                                 null,
@@ -348,7 +352,8 @@ class PlanServiceTest {
                                 eq(context),
                                 any(PlaceCandidateContext.class)
                         )
-        ).thenReturn(response);
+        )
+                .thenReturn(response);
 
         when(
                 kakaoMapServiceHandler
@@ -357,7 +362,8 @@ class PlanServiceTest {
                                 anyString(),
                                 any(Transportation.class)
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 Mono.just(
                         new KakaoRouteResult(
                                 null,
@@ -411,7 +417,8 @@ class PlanServiceTest {
                                 eq(context),
                                 any(PlaceCandidateContext.class)
                         )
-        ).thenReturn(response);
+        )
+                .thenReturn(response);
 
         when(
                 kakaoMapServiceHandler
@@ -420,7 +427,8 @@ class PlanServiceTest {
                                 anyString(),
                                 any(Transportation.class)
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 Mono.just(
                         new KakaoRouteResult(
                                 null,
@@ -472,7 +480,8 @@ class PlanServiceTest {
                                 eq(context),
                                 any(PlaceCandidateContext.class)
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 new CreatePlanAiResponse(
                         List.of(
                                 planDay(
@@ -531,7 +540,8 @@ class PlanServiceTest {
                                 eq(context),
                                 any(PlaceCandidateContext.class)
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 new CreatePlanAiResponse(
                         List.of(
                                 planDay(
@@ -560,7 +570,9 @@ class PlanServiceTest {
         assertTrue(result
                 .planDays()
                 .stream()
-                .allMatch(day -> day.schedules().size() == 3));
+                .allMatch(day -> day
+                        .schedules()
+                        .size() == 3));
     }
 
     @Test
@@ -589,7 +601,8 @@ class PlanServiceTest {
                                 eq(context),
                                 any(PlaceCandidateContext.class)
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 new CreatePlanAiResponse(
                         List.of(
                                 planDay(
@@ -650,7 +663,8 @@ class PlanServiceTest {
                                 eq(context),
                                 any(PlaceCandidateContext.class)
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 new CreatePlanAiResponse(
                         List.of(
                                 planDay(
@@ -731,7 +745,8 @@ class PlanServiceTest {
 
         when(
                 travelRecommendHandler.createPlanByAi(eq(context), any(PlaceCandidateContext.class))
-        ).thenReturn(response);
+        )
+                .thenReturn(response);
 
         CreatePlanAiResponse result =
                 planService.makePlanByAi(context);
@@ -820,19 +835,25 @@ class PlanServiceTest {
 
         CreatePlanAiResponse response = new CreatePlanAiResponse(List.of(day1));
 
-        when(travelRecommendHandler.createPlanByAi(eq(context), any(PlaceCandidateContext.class))).thenReturn(response);
+        when(travelRecommendHandler.createPlanByAi(eq(context), any(PlaceCandidateContext.class)))
+                .thenReturn(response);
 
         when(
                 kakaoMapServiceHandler
                         .getRoute(anyString(), anyString(), any(Transportation.class))
-        ).thenReturn(
+        )
+                .thenReturn(
                 Mono.just(new KakaoRouteResult(null, null, null, null))
         );
 
         CreatePlanAiResponse result = planService.makePlanByAi(context);
 
         List<CreatePlanAiResponse.PlanScheduleDetail> medicationSchedules =
-                result.planDays().get(0).schedules().stream()
+                result
+                        .planDays()
+                        .get(0)
+                        .schedules()
+                        .stream()
                         .filter(schedule -> schedule.courseType() == CourseType.MEDICATION)
                         .toList();
 
@@ -876,7 +897,8 @@ class PlanServiceTest {
                                 eq(context),
                                 any(PlaceCandidateContext.class)
                         )
-        ).thenReturn(response);
+        )
+                .thenReturn(response);
 
         CreatePlanAiResponse result =
                 planService.makePlanByAi(context);
@@ -937,7 +959,8 @@ class PlanServiceTest {
                                 eq(context),
                                 any(PlaceCandidateContext.class)
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 new CreatePlanAiResponse(
                         List.of(
                                 planDay(
@@ -1050,7 +1073,8 @@ class PlanServiceTest {
                                 eq(context),
                                 any(PlaceCandidateContext.class)
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 new CreatePlanAiResponse(
                         List.of(
                                 planDay(
@@ -1117,7 +1141,8 @@ class PlanServiceTest {
                                 eq(context),
                                 any(PlaceCandidateContext.class)
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 new CreatePlanAiResponse(
                         List.of(
                                 planDay(
@@ -1160,13 +1185,19 @@ class PlanServiceTest {
 
         when(
                 travelRecommendHandler.createPlanByAi(eq(context), any(PlaceCandidateContext.class))
-        ).thenReturn(response);
+        )
+                .thenReturn(response);
 
         CreatePlanAiResponse result =
                 planService.makePlanByAi(context);
 
         assertTrue(
-                result.planDays().get(0).schedules().get(0).tags()
+                result
+                        .planDays()
+                        .get(0)
+                        .schedules()
+                        .get(0)
+                        .tags()
                         .contains(RecommendationTag.TRANSIT)
         );
     }
@@ -1191,13 +1222,19 @@ class PlanServiceTest {
 
         when(
                 travelRecommendHandler.createPlanByAi(eq(context), any(PlaceCandidateContext.class))
-        ).thenReturn(response);
+        )
+                .thenReturn(response);
 
         CreatePlanAiResponse result =
                 planService.makePlanByAi(context);
 
         assertTrue(
-                result.planDays().get(0).schedules().get(0).tags()
+                result
+                        .planDays()
+                        .get(0)
+                        .schedules()
+                        .get(0)
+                        .tags()
                         .contains(RecommendationTag.CAR)
         );
     }
@@ -1222,7 +1259,8 @@ class PlanServiceTest {
 
         when(
                 travelRecommendHandler.createPlanByAi(eq(context), any(PlaceCandidateContext.class))
-        ).thenReturn(response);
+        )
+                .thenReturn(response);
 
         when(
                 kakaoMapServiceHandler
@@ -1231,7 +1269,8 @@ class PlanServiceTest {
                                 anyString(),
                                 any(Transportation.class)
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 Mono.just(
                         new KakaoRouteResult(
                                 null,
@@ -1246,7 +1285,12 @@ class PlanServiceTest {
                 planService.makePlanByAi(context);
 
         assertTrue(
-                result.planDays().get(0).schedules().get(0).tags()
+                result
+                        .planDays()
+                        .get(0)
+                        .schedules()
+                        .get(0)
+                        .tags()
                         .contains(RecommendationTag.LOCAL_FOOD)
         );
     }
@@ -1283,7 +1327,8 @@ class PlanServiceTest {
 
         when(
                 travelRecommendHandler.createPlanByAi(eq(context), any(PlaceCandidateContext.class))
-        ).thenReturn(response);
+        )
+                .thenReturn(response);
 
         when(
                 kakaoMapServiceHandler
@@ -1292,7 +1337,8 @@ class PlanServiceTest {
                                 anyString(),
                                 any(Transportation.class)
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 Mono.just(
                         new KakaoRouteResult(
                                 null,
@@ -1397,7 +1443,8 @@ class PlanServiceTest {
                                 eq(context),
                                 any(PlaceCandidateContext.class)
                         )
-        ).thenReturn(initialResponse);
+        )
+                .thenReturn(initialResponse);
 
         when(
                 missingSlotCompleter
@@ -1410,7 +1457,8 @@ class PlanServiceTest {
                                 anySet(),
                                 anyInt()
                         )
-        ).thenReturn(completedResponse);
+        )
+                .thenReturn(completedResponse);
 
         when(
                 nutritionService
@@ -1418,7 +1466,8 @@ class PlanServiceTest {
                                 "계약 점심",
                                 List.of(DiseaseType.DIABETES)
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 Mono.just(
                         new NutritionEvaluationResult(
                                 List.of(DiseaseType.DIABETES),
@@ -1482,7 +1531,8 @@ class PlanServiceTest {
                                 eq(context),
                                 any(PlaceCandidateContext.class)
                         )
-        ).thenReturn(response);
+        )
+                .thenReturn(response);
 
         when(
                 nutritionService
@@ -1490,7 +1540,8 @@ class PlanServiceTest {
                                 "중복 메뉴",
                                 List.of()
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 Mono.just(
                         new NutritionEvaluationResult(
                                 List.of(),
@@ -1553,7 +1604,8 @@ class PlanServiceTest {
 
         when(
                 travelRecommendHandler.createPlanByAi(eq(context), any(PlaceCandidateContext.class))
-        ).thenReturn(response);
+        )
+                .thenReturn(response);
 
         NutritionEvaluationResult evaluationResult =
                 new NutritionEvaluationResult(
@@ -1570,7 +1622,8 @@ class PlanServiceTest {
 
         when(
                 nutritionEvaluationCollector.finish()
-        ).thenReturn(
+        )
+                .thenReturn(
                 List.of(
                         new NutritionEvaluationCollector.FoodNutritionEvaluation(
                                 "제육볶음",
@@ -1586,7 +1639,8 @@ class PlanServiceTest {
                                 anyString(),
                                 any(Transportation.class)
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 Mono.just(
                         new KakaoRouteResult(
                                 null,
@@ -1601,7 +1655,12 @@ class PlanServiceTest {
                 planService.makePlanByAi(context);
 
         Set<RecommendationTag> tags =
-                result.planDays().get(0).schedules().get(0).tags();
+                result
+                        .planDays()
+                        .get(0)
+                        .schedules()
+                        .get(0)
+                        .tags();
 
         assertTrue(tags.contains(RecommendationTag.CARBOHYDRATE_REFERENCE));
         assertFalse(tags.contains(RecommendationTag.SODIUM_REFERENCE));
@@ -1633,11 +1692,13 @@ class PlanServiceTest {
 
         when(
                 travelRecommendHandler.createPlanByAi(eq(context), any(PlaceCandidateContext.class))
-        ).thenReturn(response);
+        )
+                .thenReturn(response);
 
         when(
                 nutritionEvaluationCollector.finish()
-        ).thenReturn(
+        )
+                .thenReturn(
                 List.of(
                         new NutritionEvaluationCollector.FoodNutritionEvaluation(
                                 "육회꼬막비빔밥",
@@ -1702,11 +1763,13 @@ class PlanServiceTest {
 
         when(
                 travelRecommendHandler.createPlanByAi(eq(context), any(PlaceCandidateContext.class))
-        ).thenReturn(response);
+        )
+                .thenReturn(response);
 
         when(
                 nutritionEvaluationCollector.finish()
-        ).thenReturn(
+        )
+                .thenReturn(
                 List.of(
                         new NutritionEvaluationCollector.FoodNutritionEvaluation(
                                 "비빔밥",
@@ -1823,7 +1886,8 @@ class PlanServiceTest {
         when(
                 planRepository
                         .getReferenceById(planId)
-        ).thenReturn(
+        )
+                .thenReturn(
                 plan
         );
 
@@ -2080,7 +2144,8 @@ class PlanServiceTest {
                                 anyString(),
                                 any(Transportation.class)
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 Mono.just(
                         new KakaoRouteResult(
                                 null,

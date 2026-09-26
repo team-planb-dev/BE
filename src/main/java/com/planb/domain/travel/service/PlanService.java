@@ -212,7 +212,8 @@ public class PlanService {
         evaluations = Stream
                 .concat(
                         evaluations.stream(),
-                        storedNutritionEvaluations(context.currentPlan()).stream()
+                        storedNutritionEvaluations(context.currentPlan())
+                                .stream()
                 )
                 .toList();
 
@@ -230,14 +231,37 @@ public class PlanService {
                 densityReductionDays,
                 context.currentPlan());
 
-        CreatePlanAiResponse result = !preserveOtherDays ? finished : new CreatePlanAiResponse(
-                validated.planDays().stream().map(day -> finished.planDays().stream()
-                        .filter(updated -> Objects.equals(updated.dayNumber(), day.dayNumber()))
-                        .findFirst().orElse(day)).toList());
+        CreatePlanAiResponse result = !preserveOtherDays
+                ? finished
+                : new CreatePlanAiResponse(
+                        validated
+                                .planDays()
+                                .stream()
+                                .map(day -> finished
+                                        .planDays()
+                                        .stream()
+                                        .filter(updated -> Objects.equals(
+                                                updated.dayNumber(),
+                                                day.dayNumber()
+                                        ))
+                                        .findFirst()
+                                        .orElse(day))
+                                .toList()
+                );
 
-        List<String> changes = rebuildDays.isEmpty() ? response.changes() : Stream.concat(
-                preserveOtherDays ? Stream.<String>empty() : response.changes().stream(),
-                rebuildDays.stream().sorted().map(day -> day + "일차 장소 구성 재구성"))
+        List<String> changes = rebuildDays.isEmpty()
+                ? response.changes()
+                : Stream.concat(
+                        preserveOtherDays
+                                ? Stream.<String>empty()
+                                : response
+                                        .changes()
+                                        .stream(),
+                        rebuildDays
+                                .stream()
+                                .sorted()
+                                .map(day -> day + "일차 장소 구성 재구성")
+                )
                 .toList();
 
         return new EditPlanAiResponse(
@@ -258,9 +282,15 @@ public class PlanService {
 
         CreatePlanAiResponse current = response;
 
-        for (Integer dayNumber : rebuildDays.stream().sorted().toList()) {
-            CreatePlanAiResponse.PlanDayDetail target = current.planDays().stream()
-                    .filter(day -> Objects.equals(day.dayNumber(), dayNumber)).findFirst()
+        for (Integer dayNumber : rebuildDays
+                .stream()
+                .sorted()
+                .toList()) {
+            CreatePlanAiResponse.PlanDayDetail target = current
+                    .planDays()
+                    .stream()
+                    .filter(day -> Objects.equals(day.dayNumber(), dayNumber))
+                    .findFirst()
                     .orElseThrow(() -> planEditValidator.failure("대상 날짜 누락"));
 
             String reason = "전체 재구성 요청에도 새로운 장소가 없는 " + dayNumber + "일차";
@@ -300,8 +330,13 @@ public class PlanService {
 
                 Set<String> menus = new HashSet<>();
 
-                current.planDays().stream().filter(day -> !Objects.equals(day.dayNumber(), dayNumber))
-                        .flatMap(day -> day.schedules().stream())
+                current
+                        .planDays()
+                        .stream()
+                        .filter(day -> !Objects.equals(day.dayNumber(), dayNumber))
+                        .flatMap(day -> day
+                                .schedules()
+                                .stream())
                         .forEach(slot -> planPlaceResolver.track(slot, places, menus));
 
                 CreatePlanAiResponse checked;
@@ -339,7 +374,9 @@ public class PlanService {
                     continue;
                 }
 
-                target = checked.planDays().getFirst();
+                target = checked
+                        .planDays()
+                        .getFirst();
 
                 reason = "원본 검증 후에도 새로운 장소가 없는 " + dayNumber + "일차";
 
@@ -353,8 +390,15 @@ public class PlanService {
 
                 CreatePlanAiResponse.PlanDayDetail rebuilt = target;
 
-                current = new CreatePlanAiResponse(current.planDays().stream()
-                        .map(day -> Objects.equals(day.dayNumber(), dayNumber) ? rebuilt : day).toList());
+                current = new CreatePlanAiResponse(
+                        current
+                                .planDays()
+                                .stream()
+                                .map(day -> Objects.equals(day.dayNumber(), dayNumber)
+                                        ? rebuilt
+                                        : day)
+                                .toList()
+                );
             }
 
             if (!planEditValidator.rebuilt(context, target)) {
@@ -380,7 +424,9 @@ public class PlanService {
 
         List<CreatePlanAiResponse.PlanDayDetail> preserved = new ArrayList<>();
 
-        for (GetAiPlanResponse.PlanDayDetail day : context.currentPlan().planDays()) {
+        for (GetAiPlanResponse.PlanDayDetail day : context
+                .currentPlan()
+                .planDays()) {
             if (rebuildDays.contains(day.dayNumber())) {
                 continue;
             }
@@ -412,18 +458,26 @@ public class PlanService {
             preserved.add(new CreatePlanAiResponse.PlanDayDetail(day.dayNumber(), day.date(), schedules));
         }
 
-        List<CreatePlanAiResponse.PlanDayDetail> targets = rebuildDays.stream().sorted().map(number -> {
-            List<CreatePlanAiResponse.PlanDayDetail> matches = response.planDays().stream()
-                    .filter(day -> day != null && Objects.equals(day.dayNumber(), number)).toList();
+        List<CreatePlanAiResponse.PlanDayDetail> targets = rebuildDays
+                .stream()
+                .sorted()
+                .map(number -> {
+                    List<CreatePlanAiResponse.PlanDayDetail> matches = response
+                            .planDays()
+                            .stream()
+                            .filter(day -> day != null
+                                    && Objects.equals(day.dayNumber(), number))
+                            .toList();
 
-            CreatePlanAiResponse single = new CreatePlanAiResponse(matches);
+                    CreatePlanAiResponse single = new CreatePlanAiResponse(matches);
 
-            if (!planEditValidator.sameDay(context, number, single)) {
-                throw planEditValidator.failure("재구성 대상 일차/날짜 불일치");
-            }
+                    if (!planEditValidator.sameDay(context, number, single)) {
+                        throw planEditValidator.failure("재구성 대상 일차/날짜 불일치");
+                    }
 
-            return matches.getFirst();
-        }).toList();
+                    return matches.getFirst();
+                })
+                .toList();
 
         CreatePlanAiResponse checked = validatePlaces(
                 new CreatePlanAiResponse(targets),
@@ -442,8 +496,17 @@ public class PlanService {
                 )
         );
 
-        return new CreatePlanAiResponse(Stream.concat(preserved.stream(), checked.planDays().stream())
-                .sorted(Comparator.comparing(CreatePlanAiResponse.PlanDayDetail::dayNumber)).toList());
+        return new CreatePlanAiResponse(
+                Stream
+                        .concat(
+                                preserved.stream(),
+                                checked
+                                        .planDays()
+                                        .stream()
+                        )
+                        .sorted(Comparator.comparing(CreatePlanAiResponse.PlanDayDetail::dayNumber))
+                        .toList()
+        );
     }
 
     // 재구성 구간과 그 직후 보존 날짜를 함께 계산 대상으로 삼는다
@@ -835,7 +898,7 @@ public class PlanService {
     }
 
     // Plan 객체 단건 조회하기 (존재 검증은 호출부에서 이미 끝난 상태를 전제)
-    public Plan findPlanById(Long planId){
+    public Plan findPlanById(Long planId) {
 
         return planRepository.getReferenceById(planId);
     }
@@ -846,9 +909,13 @@ public class PlanService {
             List<CreatePlanAiResponse.PlanDayDetail> planDays
     ) {
 
-        return planDays.stream()
-                .flatMap(planDay -> planDay.schedules().stream())
-                .flatMap(schedule -> nullSafeTags(schedule).stream())
+        return planDays
+                .stream()
+                .flatMap(planDay -> planDay
+                        .schedules()
+                        .stream())
+                .flatMap(schedule -> nullSafeTags(schedule)
+                        .stream())
                 .collect(Collectors.toSet());
     }
 
@@ -1140,10 +1207,14 @@ public class PlanService {
             return false;
         }
 
-        return existing.planDays().stream()
+        return existing
+                .planDays()
+                .stream()
                 .filter(oldDay -> Objects.equals(oldDay.date(), day.date())
                         && Objects.equals(oldDay.dayNumber(), day.dayNumber()))
-                .flatMap(oldDay -> oldDay.schedules().stream())
+                .flatMap(oldDay -> oldDay
+                        .schedules()
+                        .stream())
                 .noneMatch(old -> old.scheduleType() == slot.scheduleType() && old.courseType() == slot.courseType()
                         && Objects.equals(old.startTime(), slot.startTime())
                         && Objects.equals(old.locationName(), slot.locationName())
@@ -1206,10 +1277,14 @@ public class PlanService {
             return Optional.empty();
         }
 
-        return existing.planDays().stream()
+        return existing
+                .planDays()
+                .stream()
                 .filter(oldDay -> Objects.equals(oldDay.date(), day.date())
                         && Objects.equals(oldDay.dayNumber(), day.dayNumber()))
-                .flatMap(oldDay -> oldDay.schedules().stream())
+                .flatMap(oldDay -> oldDay
+                        .schedules()
+                        .stream())
                 .filter(old -> old.scheduleType() == slot.scheduleType() && old.courseType() == slot.courseType()
                         && Objects.equals(old.startTime(), slot.startTime()))
                 .map(old -> planPlaceResolver.verifyExisting(old, usedPlaces, usedMenus))
@@ -1512,8 +1587,12 @@ public class PlanService {
     ) {
 
         return Stream.concat(
-                        createTravelRequest.localFoods().stream(),
-                        createTravelRequest.recommendFoods().stream()
+                        createTravelRequest
+                                .localFoods()
+                                .stream(),
+                        createTravelRequest
+                                .recommendFoods()
+                                .stream()
                 )
                 .filter(food -> !isBlank(food))
                 .anyMatch(food -> menuName.contains(food) || food.contains(menuName));
@@ -1530,7 +1609,9 @@ public class PlanService {
                 .getOrDefault(menuName, List.of())
                 .stream()
                 .filter(result -> result.status() == NutritionEvaluationStatus.AVAILABLE)
-                .flatMap(result -> result.evaluations().stream())
+                .flatMap(result -> result
+                        .evaluations()
+                        .stream())
                 .filter(detail -> detail.nutritionLevel() != NutritionLevel.LOW)
                 .map(detail -> NUTRITION_REFERENCE_TAGS.get(detail.nutritionType()))
                 .filter(Objects::nonNull)
@@ -1540,8 +1621,11 @@ public class PlanService {
     // 여행자 중 알레르기/기피 음식이 등록된 사람이 있는지 확인
     private boolean hasAllergyOrAvoidFood(List<TravelHealthContext> healthContexts) {
 
-        return healthContexts.stream()
-                .flatMap(healthContext -> healthContext.foodInfos().stream())
+        return healthContexts
+                .stream()
+                .flatMap(healthContext -> healthContext
+                        .foodInfos()
+                        .stream())
                 .anyMatch(foodInfo ->
                         foodInfo.foodType() == FoodType.ALLERGY
                                 || foodInfo.foodType() == FoodType.AVOID

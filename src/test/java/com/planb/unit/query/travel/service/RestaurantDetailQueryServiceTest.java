@@ -55,7 +55,8 @@ class RestaurantDetailQueryServiceTest {
                         .findRestaurantDetailsByPlanScheduleIds(
                                 planScheduleIds
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 expected
         );
 

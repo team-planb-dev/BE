@@ -103,7 +103,9 @@ public class KakaoMapRouteHelper {
                 response.routes().isEmpty()) {
             throw new IllegalStateException("카카오맵 대중교통 경로 조회 결과 없음: " + response);
         }
-        return response.routes().getFirst();
+        return response
+                .routes()
+                .getFirst();
     }
 
     // 좌표가 없거나 도보권을 넘으면 추정하지 않고 기존과 같이 실패로 남긴다.

@@ -77,7 +77,7 @@ class UserQueryRepositoryTest
     }
 
     @Test
-    @DisplayName("존재하지 않는 username 조회 시 , Optional.empty 반환")
+    @DisplayName("존재하지 않는 username 조회 시 Optional.empty 반환")
     void findByUsername_failure(){
 
         // when

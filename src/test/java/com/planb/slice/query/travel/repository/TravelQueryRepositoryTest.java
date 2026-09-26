@@ -77,17 +77,20 @@ class TravelQueryRepositoryTest
                         );
 
         // then
-        assertThat(result).isNotNull();
+        assertThat(result)
+                .isNotNull();
 
         assertThat(
                 result.travelStyle()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 TravelStyle.LESS_WALK
         );
 
         assertThat(
                 result.travelTheme()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 TravelTheme.TASTE
         );
     }
@@ -120,17 +123,20 @@ class TravelQueryRepositoryTest
                         );
 
         // then
-        assertThat(result).isNotNull();
+        assertThat(result)
+                .isNotNull();
 
         assertThat(
                 result.travelStyle()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 TravelStyle.LESS_WALK
         );
 
         assertThat(
                 result.travelTheme()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 TravelTheme.TASTE
         );
     }
@@ -161,7 +167,8 @@ class TravelQueryRepositoryTest
                         );
 
         // then
-        assertThat(result).isTrue();
+        assertThat(result)
+                .isTrue();
     }
 
     @Test
@@ -191,7 +198,8 @@ class TravelQueryRepositoryTest
                         );
 
         // then
-        assertThat(result).isFalse();
+        assertThat(result)
+                .isFalse();
     }
 
     @Test
@@ -469,7 +477,8 @@ class TravelQueryRepositoryTest
                         );
 
         // then
-        assertThat(result).isEmpty();
+        assertThat(result)
+                .isEmpty();
     }
 
     @Test

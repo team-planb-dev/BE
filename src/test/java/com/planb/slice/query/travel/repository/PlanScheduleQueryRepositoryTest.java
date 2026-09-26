@@ -175,11 +175,13 @@ class PlanScheduleQueryRepositoryTest
                 Hibernate.isInitialized(
                         schedule.getTags()
                 )
-        ).isTrue();
+        )
+                .isTrue();
 
         assertThat(
                 schedule.getTags()
-        ).containsExactlyInAnyOrder(
+        )
+                .containsExactlyInAnyOrder(
                 RecommendationTag.LOCAL_FOOD,
                 RecommendationTag.MEAL_TIME_APPLIED
         );
@@ -323,11 +325,13 @@ class PlanScheduleQueryRepositoryTest
                         );
 
         // then
-        assertThat(result).hasSize(1);
+        assertThat(result)
+                .hasSize(1);
 
         assertThat(
                 result.get(0).getId()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 targetSchedule.getId()
         );
     }

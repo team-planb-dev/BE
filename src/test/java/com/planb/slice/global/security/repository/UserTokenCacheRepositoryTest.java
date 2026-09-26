@@ -101,7 +101,8 @@ class UserTokenCacheRepositoryTest {
         String result = userTokenCacheRepository.findByKey(key).toString();
 
         // then
-        assertThat(result).isEqualTo(token);
+        assertThat(result)
+                .isEqualTo(token);
     }
 
     @Test
@@ -121,7 +122,8 @@ class UserTokenCacheRepositoryTest {
         boolean result = userTokenCacheRepository.exists(key);
 
         // then
-        assertThat(result).isTrue();
+        assertThat(result)
+                .isTrue();
     }
 
     @Test
@@ -147,7 +149,7 @@ class UserTokenCacheRepositoryTest {
     }
 
     @Test
-    @DisplayName("토큰 저장 시,TTL 적용")
+    @DisplayName("토큰 저장 시 TTL 적용")
     void saveWithExpiration() {
 
         // given
@@ -177,7 +179,7 @@ class UserTokenCacheRepositoryTest {
     }
 
     @Test
-    @DisplayName("존재하지 않는 토큰을 조회 시,예외 발생")
+    @DisplayName("존재하지 않는 토큰 조회 시 예외 발생")
     void findByKeyNotFound() {
 
         // given
@@ -186,7 +188,8 @@ class UserTokenCacheRepositoryTest {
         // when & then
         assertThatThrownBy(
                 () -> userTokenCacheRepository.findByKey(key)
-        ).isInstanceOf(BaseException.class);
+        )
+                .isInstanceOf(BaseException.class);
     }
 
 

@@ -18,7 +18,11 @@ public class PlanEditCacheRepository {
 
     private final RedisTemplate<String, EditPlanAiResponse> planEditRedisTemplate;
 
-    public void save(Long travelId, EditPlanAiResponse response, Long expiredMs) {
+    public void save(
+            Long travelId,
+            EditPlanAiResponse response,
+            Long expiredMs
+    ) {
 
         planEditRedisTemplate
                 .opsForValue()
@@ -56,7 +60,11 @@ public class PlanEditCacheRepository {
     }
 
     // 확정 완료 표식. 값까지 함께 남겨 재확정 요청에 같은 응답을 돌려줄 수 있게 한다.
-    public void saveConfirmed(Long travelId, EditPlanAiResponse response, Long expiredMs) {
+    public void saveConfirmed(
+            Long travelId,
+            EditPlanAiResponse response,
+            Long expiredMs
+    ) {
 
         planEditRedisTemplate
                 .opsForValue()

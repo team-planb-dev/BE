@@ -286,7 +286,8 @@ class PlanScheduleServiceTest {
                         .findAllByPlanDayIn(
                                 List.of(planDay)
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 planSchedules
         );
 
