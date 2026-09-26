@@ -68,7 +68,7 @@ class UserAuthCacheRepositoryTest {
     }
 
     @Test
-    @DisplayName("사용자 인증 정보를 Redis에 저장 후,username으로 조회")
+    @DisplayName("사용자 인증 정보 Redis 저장 후 username 조회")
     void saveAndFindByUsername() {
 
         // given
@@ -86,8 +86,10 @@ class UserAuthCacheRepositoryTest {
                 userAuthCacheRepository.findByUsername(username);
 
         // then
-        assertThat(result).isPresent();
-        assertThat(result.get()).isEqualTo(userAuthCache);
+        assertThat(result)
+                .isPresent();
+        assertThat(result.get())
+                .isEqualTo(userAuthCache);
     }
 
     @Test
@@ -102,7 +104,8 @@ class UserAuthCacheRepositoryTest {
                 userAuthCacheRepository.findByUsername(username);
 
         // then
-        assertThat(result).isEmpty();
+        assertThat(result)
+                .isEmpty();
 
     }
 
@@ -128,9 +131,12 @@ class UserAuthCacheRepositoryTest {
         );
 
         // then
-        assertThat(actualTtl).isNotNull();
-        assertThat(actualTtl).isPositive();
-        assertThat(actualTtl).isLessThanOrEqualTo(expiredMs);
+        assertThat(actualTtl)
+                .isNotNull();
+        assertThat(actualTtl)
+                .isPositive();
+        assertThat(actualTtl)
+                .isLessThanOrEqualTo(expiredMs);
 
     }
 
@@ -155,7 +161,8 @@ class UserAuthCacheRepositoryTest {
                 userAuthCacheRepository.findByUsername(username);
 
         // then
-        assertThat(result).isEmpty();
+        assertThat(result)
+                .isEmpty();
 
     }
 

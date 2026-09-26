@@ -43,7 +43,8 @@ class UserQueryServiceTest {
         User result = userQueryService.findByUsername(username);
 
         // then
-        assertThat(result).isSameAs(user);
+        assertThat(result)
+                .isSameAs(user);
         verify(userQueryRepository).findByUsername(username);
 
     }
@@ -86,7 +87,8 @@ class UserQueryServiceTest {
         boolean result = userQueryService.checkDuplicateUsername(username);
 
         // then
-        assertThat(result).isTrue();
+        assertThat(result)
+                .isTrue();
         verify(userQueryRepository).existsByUsername(username);
     }
 
@@ -104,7 +106,8 @@ class UserQueryServiceTest {
         boolean result = userQueryService.checkDuplicateUsername(username);
 
         // then
-        assertThat(result).isFalse();
+        assertThat(result)
+                .isFalse();
         verify(userQueryRepository).existsByUsername(username);
     }
 
@@ -122,7 +125,8 @@ class UserQueryServiceTest {
         boolean result = userQueryService.checkDuplicateNickname(nickname);
 
         // then
-        assertThat(result).isTrue();
+        assertThat(result)
+                .isTrue();
         verify(userQueryRepository).existsByNickname(nickname);
     }
 
@@ -140,7 +144,8 @@ class UserQueryServiceTest {
         boolean result = userQueryService.checkDuplicateNickname(nickname);
 
         // then
-        assertThat(result).isFalse();
+        assertThat(result)
+                .isFalse();
         verify(userQueryRepository).existsByNickname(nickname);
     }
 

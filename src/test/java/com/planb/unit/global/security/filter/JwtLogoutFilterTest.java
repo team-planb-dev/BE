@@ -45,7 +45,7 @@ class JwtLogoutFilterTest {
     private TestJwtLogoutFilter jwtLogoutFilter;
 
     @Test
-    @DisplayName("logout 요청이 아닐 시 , 필터를 수행 X")
+    @DisplayName("logout 외 요청의 필터 미수행")
     void shouldNotFilter_success_notLogoutRequest()
             throws Exception {
 
@@ -67,7 +67,7 @@ class JwtLogoutFilterTest {
     }
 
     @Test
-    @DisplayName("logout POST 요청시 , 필터 수행 O")
+    @DisplayName("logout POST 요청의 필터 수행")
     void shouldNotFilter_fail_logoutRequest()
             throws Exception {
 

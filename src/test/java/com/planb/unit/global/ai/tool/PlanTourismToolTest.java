@@ -120,7 +120,8 @@ class PlanTourismToolTest {
                                 "강원특별자치도",
                                 "춘천시"
                         )
-        ).thenReturn(response(item));
+        )
+                .thenReturn(response(item));
 
         PlanTourismTool tool = new PlanTourismTool(
                 tourismTool,
@@ -202,7 +203,8 @@ class PlanTourismToolTest {
                                 "서울",
                                 "종로구"
                         )
-        ).thenReturn(response(item));
+        )
+                .thenReturn(response(item));
 
         PlanTourismTool tool = new PlanTourismTool(
                 tourismTool,
@@ -265,7 +267,8 @@ class PlanTourismToolTest {
                                 null,
                                 null
                         )
-        ).thenReturn(expected);
+        )
+                .thenReturn(expected);
 
         PlanTourismTool tool = new PlanTourismTool(
                 tourismTool,

@@ -318,8 +318,12 @@ class TravelRecommendHandlerTest extends IntegrationTest {
 
         // 카페(CAFE_REST) 장소가 날짜(day)를 넘어 중복 배치되지 않는지 검증
         List<String> cafeLocationNames =
-                response.planDays().stream()
-                        .flatMap(planDay -> planDay.schedules().stream())
+                response
+                        .planDays()
+                        .stream()
+                        .flatMap(planDay -> planDay
+                                .schedules()
+                                .stream())
                         .filter(schedule -> schedule.courseType() == CourseType.CAFE_REST)
                         .map(CreatePlanAiResponse.PlanScheduleDetail::locationName)
                         .toList();
@@ -694,8 +698,12 @@ class TravelRecommendHandlerTest extends IntegrationTest {
     // 기본 일정(currentPlan)의 ATTRACTION 슬롯 개수
     private long countAttractionSchedulesInBasePlan() {
 
-        return baseCurrentPlan.planDays().stream()
-                .flatMap(planDay -> planDay.schedules().stream())
+        return baseCurrentPlan
+                .planDays()
+                .stream()
+                .flatMap(planDay -> planDay
+                        .schedules()
+                        .stream())
                 .filter(schedule -> schedule.courseType() == CourseType.ATTRACTION)
                 .count();
     }
@@ -705,8 +713,12 @@ class TravelRecommendHandlerTest extends IntegrationTest {
             EditPlanAiResponse response
     ) {
 
-        return response.planDays().stream()
-                .flatMap(planDay -> planDay.schedules().stream())
+        return response
+                .planDays()
+                .stream()
+                .flatMap(planDay -> planDay
+                        .schedules()
+                        .stream())
                 .filter(schedule -> schedule.courseType() == CourseType.ATTRACTION)
                 .count();
     }
@@ -714,11 +726,14 @@ class TravelRecommendHandlerTest extends IntegrationTest {
     // 기본 일정(currentPlan) 1일차 장소명 목록
     private List<String> day1LocationNamesInBasePlan() {
 
-        return baseCurrentPlan.planDays().stream()
+        return baseCurrentPlan
+                .planDays()
+                .stream()
                 .filter(planDay -> planDay.dayNumber() == 1)
                 .findFirst()
                 .orElseThrow()
-                .schedules().stream()
+                .schedules()
+                .stream()
                 .map(GetAiPlanResponse.PlanScheduleDetail::locationName)
                 .toList();
     }
@@ -728,11 +743,14 @@ class TravelRecommendHandlerTest extends IntegrationTest {
             EditPlanAiResponse response
     ) {
 
-        return response.planDays().stream()
+        return response
+                .planDays()
+                .stream()
                 .filter(planDay -> planDay.dayNumber() == 1)
                 .findFirst()
                 .orElseThrow()
-                .schedules().stream()
+                .schedules()
+                .stream()
                 .map(CreatePlanAiResponse.PlanScheduleDetail::locationName)
                 .toList();
     }
@@ -741,7 +759,9 @@ class TravelRecommendHandlerTest extends IntegrationTest {
     private GetAiPlanResponse.PlanScheduleDetail day1UniqueNamedScheduleInBasePlan() {
 
         List<GetAiPlanResponse.PlanScheduleDetail> day1Schedules =
-                baseCurrentPlan.planDays().stream()
+                baseCurrentPlan
+                        .planDays()
+                        .stream()
                         .filter(planDay -> planDay.dayNumber() == 1)
                         .findFirst()
                         .orElseThrow()
@@ -772,11 +792,14 @@ class TravelRecommendHandlerTest extends IntegrationTest {
             LocalTime startTime
     ) {
 
-        return response.planDays().stream()
+        return response
+                .planDays()
+                .stream()
                 .filter(planDay -> planDay.dayNumber() == 1)
                 .findFirst()
                 .orElseThrow()
-                .schedules().stream()
+                .schedules()
+                .stream()
                 .filter(schedule -> schedule.startTime().equals(startTime))
                 .map(CreatePlanAiResponse.PlanScheduleDetail::locationName)
                 .findFirst();
@@ -789,7 +812,9 @@ class TravelRecommendHandlerTest extends IntegrationTest {
     ) {
 
         List<GetAiPlanResponse.PlanDayDetail> planDayDetails =
-                createPlanAiResponse.planDays().stream()
+                createPlanAiResponse
+                        .planDays()
+                        .stream()
                         .map(this::toGetAiPlanDayDetail)
                         .toList();
 
@@ -811,7 +836,9 @@ class TravelRecommendHandlerTest extends IntegrationTest {
         return new GetAiPlanResponse.PlanDayDetail(
                 planDayDetail.dayNumber(),
                 planDayDetail.date(),
-                planDayDetail.schedules().stream()
+                planDayDetail
+                        .schedules()
+                        .stream()
                         .map(this::toGetAiPlanScheduleDetail)
                         .toList()
         );

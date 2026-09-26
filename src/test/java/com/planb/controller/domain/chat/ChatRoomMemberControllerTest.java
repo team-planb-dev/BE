@@ -69,7 +69,8 @@ class ChatRoomMemberControllerTest {
         when(chatFacade.addChatUser(
                 any(AddChatRoomMemberRequest.class),
                 eq("testUser@example.com")
-        )).thenReturn(response);
+        ))
+                .thenReturn(response);
 
         // when & then
         mockMvc.perform(
@@ -122,7 +123,8 @@ class ChatRoomMemberControllerTest {
         when(chatFacade.deleteChatUser(
                 any(DeleteChatRoomMemberRequest.class),
                 eq("testUser@example.com")
-        )).thenReturn(response);
+        ))
+                .thenReturn(response);
 
 
         // when & then

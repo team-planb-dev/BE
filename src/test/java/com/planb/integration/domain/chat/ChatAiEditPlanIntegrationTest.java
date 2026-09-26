@@ -1123,7 +1123,9 @@ public class ChatAiEditPlanIntegrationTest
                 );
 
         Travel travel =
-                travelRepository.findAll().stream()
+                travelRepository
+                        .findAll()
+                        .stream()
                         .filter(t -> t.getTravelName().equals(travelName))
                         .findFirst()
                         .orElseThrow();
@@ -1451,7 +1453,8 @@ public class ChatAiEditPlanIntegrationTest
         if (!processable) {
             return new EditPlanAiResponse(
                     null,
-                    baseCreatePlanAiResponse().planDays(),
+                    baseCreatePlanAiResponse()
+                            .planDays(),
                     changes,
                     false
             );

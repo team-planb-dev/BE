@@ -99,9 +99,12 @@ class FoodInfoQueryRepositoryTest
                 foodInfo2.getId()
         );
 
-        assertThat(deleteCount).isEqualTo(2);
-        assertThat(deletedFoodInfo1).isNull();
-        assertThat(deletedFoodInfo2).isNull();
+        assertThat(deleteCount)
+                .isEqualTo(2);
+        assertThat(deletedFoodInfo1)
+                .isNull();
+        assertThat(deletedFoodInfo2)
+                .isNull();
     }
 
     @Test
@@ -161,9 +164,12 @@ class FoodInfoQueryRepositoryTest
                 otherFoodInfo.getId()
         );
 
-        assertThat(deleteCount).isEqualTo(1);
-        assertThat(deletedFoodInfo).isNull();
-        assertThat(remainedFoodInfo).isNotNull();
+        assertThat(deleteCount)
+                .isEqualTo(1);
+        assertThat(deletedFoodInfo)
+                .isNull();
+        assertThat(remainedFoodInfo)
+                .isNotNull();
     }
 
     private Health createHealth(

@@ -65,7 +65,8 @@ class TravelServiceTest {
 
         when(
                 userRepository.getReferenceById(userId)
-        ).thenReturn(user);
+        )
+                .thenReturn(user);
 
         LocalDate startDate =
                 LocalDate.of(
@@ -200,7 +201,8 @@ class TravelServiceTest {
                                 MakeFoodRecommendCallRequest.class
                         )
                 )
-        ).thenReturn(response);
+        )
+                .thenReturn(response);
 
         MakeRecommendFoodResponse result =
                 travelService.makeRecommendFoodResponse(

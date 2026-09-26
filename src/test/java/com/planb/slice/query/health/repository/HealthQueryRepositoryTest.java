@@ -170,17 +170,20 @@ class HealthQueryRepositoryTest
                         );
 
         // then
-        assertThat(result).hasSize(1);
+        assertThat(result)
+                .hasSize(1);
 
         assertThat(
                 result.get(0).healthId()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 user1Health.getId()
         );
 
         assertThat(
                 result.get(0).travelerName()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 "동행인1"
         );
     }
@@ -217,7 +220,8 @@ class HealthQueryRepositoryTest
                         );
 
         // then
-        assertThat(result).isTrue();
+        assertThat(result)
+                .isTrue();
     }
 
     @Test
@@ -260,7 +264,8 @@ class HealthQueryRepositoryTest
                         );
 
         // then
-        assertThat(result).isFalse();
+        assertThat(result)
+                .isFalse();
     }
 
     private Health createHealth(

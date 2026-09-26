@@ -79,17 +79,24 @@ class PlanEditRebuildTest extends IntegrationTest {
                 "1일차 일정을 관광지 위주로 통째로 다시 짜주세요. 2일차는 그대로 유지해주세요."
         ));
 
-        assertThat(result.processable()).isTrue();
+        assertThat(result.processable())
+                .isTrue();
 
-        assertThat(result.planDays()).hasSize(2);
+        assertThat(result.planDays())
+                .hasSize(2);
 
-        assertThat(result.planDays().getFirst().schedules())
+        assertThat(result
+                .planDays()
+                .getFirst()
+                .schedules())
                 .filteredOn(slot -> slot.courseType() == CourseType.ATTRACTION
                         || slot.courseType() == CourseType.PARK_WALK || slot.courseType() == CourseType.MUST_HAVE)
                 .anySatisfy(slot -> {
-                    assertThat(slot.locationName()).isNotEqualTo(first.locationName());
+                    assertThat(slot.locationName())
+                            .isNotEqualTo(first.locationName());
 
-                    assertThat(slot.candidateId()).isNotBlank();
+                    assertThat(slot.candidateId())
+                            .isNotBlank();
                 });
 
         // 2일차 첫 장소의 travelMinutes는 1일차 마지막 장소 기준 inbound 값이므로
@@ -98,7 +105,12 @@ class PlanEditRebuildTest extends IntegrationTest {
                 .ignoringFields("schedules.candidateId", "schedules.travelMinutes")
                 .isEqualTo(original.planDays().get(1));
 
-        assertThat(result.planDays().get(1).schedules().getFirst().travelMinutes())
+        assertThat(result
+                .planDays()
+                .get(1)
+                .schedules()
+                .getFirst()
+                .travelMinutes())
                 .isNotNull()
                 .isGreaterThanOrEqualTo(0);
 
@@ -110,13 +122,18 @@ class PlanEditRebuildTest extends IntegrationTest {
 
         KakaoPlaceSearchResponse response = kakaoMapServiceHandler.searchPlace(keyword).block();
 
-        assertThat(response).isNotNull();
+        assertThat(response)
+                .isNotNull();
 
-        assertThat(response.documents()).isNotEmpty();
+        assertThat(response.documents())
+                .isNotEmpty();
 
-        KakaoPlaceSearchResponse.Document place = response.documents().getFirst();
+        KakaoPlaceSearchResponse.Document place = response
+                .documents()
+                .getFirst();
 
-        assertThat(place.category_group_code()).isEqualTo("AT4");
+        assertThat(place.category_group_code())
+                .isEqualTo("AT4");
 
         String address = place.road_address_name() == null || place.road_address_name().isBlank()
                 ? place.address_name() : place.road_address_name();

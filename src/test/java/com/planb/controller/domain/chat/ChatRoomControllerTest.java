@@ -64,7 +64,8 @@ class ChatRoomControllerTest {
 
         when(chatFacade.createChatRoom(
                 any(CreateChatRoomRequest.class)
-        )).thenReturn(response);
+        ))
+                .thenReturn(response);
 
         // when & then
         mockMvc.perform(post("/api/v1/chat/room/create")
@@ -100,7 +101,8 @@ class ChatRoomControllerTest {
         when(chatFacade.deleteChatRoom(
                 any(DeleteChatRoomRequest.class),
                 eq("testUser@example.com")
-        )).thenReturn(response);
+        ))
+                .thenReturn(response);
 
         // when & then
         mockMvc.perform(delete("/api/v1/chat/room/delete")

@@ -92,7 +92,8 @@ class PlannedPlaceServiceTest {
                 kor2ServiceHandler.searchKeywordOnly(
                         request.searchText()
                 )
-        ).thenReturn(
+        )
+                .thenReturn(
                 Mono.just(response)
         );
 
@@ -105,7 +106,9 @@ class PlannedPlaceServiceTest {
 
         assertEquals(
                 1,
-                result.plannedPlaces().size()
+                result
+                        .plannedPlaces()
+                        .size()
         );
 
         assertEquals(

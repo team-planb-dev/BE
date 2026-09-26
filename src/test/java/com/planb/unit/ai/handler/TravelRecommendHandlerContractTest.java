@@ -174,7 +174,8 @@ class TravelRecommendHandlerContractTest {
                                 "서울",
                                 "종로구"
                         )
-        ).thenReturn(new Kor2KeywordSearchResponse(
+        )
+                .thenReturn(new Kor2KeywordSearchResponse(
                 new Kor2KeywordSearchResponse.Response(
                         null,
                         new Kor2KeywordSearchResponse.Body(

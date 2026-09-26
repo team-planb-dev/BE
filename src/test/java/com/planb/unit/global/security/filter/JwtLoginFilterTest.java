@@ -294,7 +294,7 @@ class JwtLoginFilterTest {
     }
 
     @Test
-    @DisplayName("로그인 실패 시 , 401 응답 반환")
+    @DisplayName("로그인 실패 시 401 응답")
     void unsuccessfulAuthentication_success()
             throws Exception {
 
@@ -380,4 +380,3 @@ class JwtLoginFilterTest {
     }
 
 }
-

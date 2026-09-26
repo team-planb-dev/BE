@@ -96,7 +96,7 @@ class JwtFilterTest {
     }
 
     @Test
-    @DisplayName("access 토큰이 만료시 , 401 응답반환")
+    @DisplayName("만료된 access 토큰의 401 응답")
     void doFilterInternal_expiredAccessToken()
             throws Exception{
 
@@ -169,7 +169,7 @@ class JwtFilterTest {
     }
 
     @Test
-    @DisplayName("Redis에 UserAuthCache가 없을 시 , 401 응답 반환")
+    @DisplayName("Redis UserAuthCache 누락 시 401 응답")
     void doFilterInternal_userAuthCacheNotFound()
             throws Exception{
 

@@ -55,7 +55,8 @@ class PlanScheduleQueryServiceTest {
                         .findPlanSchedulesByPlanDayIds(
                                 planDayIds
                         )
-        ).thenReturn(
+        )
+                .thenReturn(
                 expected
         );
 

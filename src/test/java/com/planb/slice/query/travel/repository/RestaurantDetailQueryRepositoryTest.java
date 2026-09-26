@@ -209,61 +209,71 @@ class RestaurantDetailQueryRepositoryTest
         // then
         assertThat(
                 result.planScheduleId()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 planSchedule.getId()
         );
 
         assertThat(
                 result.menuName()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 "돼지국밥"
         );
 
         assertThat(
                 result.carbohydrate()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 55.0
         );
 
         assertThat(
                 result.sodium()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 850.0
         );
 
         assertThat(
                 result.fat()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 15.0
         );
 
         assertThat(
                 result.openTime()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 "09:00 ~ 21:00"
         );
 
         assertThat(
                 result.address()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 "부산광역시 중구"
         );
 
         assertThat(
                 result.longitude()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 "129.1234"
         );
 
         assertThat(
                 result.latitude()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 "35.1234"
         );
 
         assertThat(
                 result.imageUrl()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 "restaurant-image"
         );
     }
@@ -343,17 +353,20 @@ class RestaurantDetailQueryRepositoryTest
                         );
 
         // then
-        assertThat(result).hasSize(1);
+        assertThat(result)
+                .hasSize(1);
 
         assertThat(
                 result.get(0).planScheduleId()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 targetSchedule.getId()
         );
 
         assertThat(
                 result.get(0).menuName()
-        ).isEqualTo(
+        )
+                .isEqualTo(
                 "돼지국밥"
         );
     }
