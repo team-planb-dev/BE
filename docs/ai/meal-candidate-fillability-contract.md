@@ -1,5 +1,9 @@
 # 식사 후보 사용 가능성 계약
 
+> 상태: 과거 구현 기록
+> 이 문서의 후보 판정은 작성 당시 구조를 설명한다. 현재 식사 요구·면제·최종 거부 계약은
+> `docs/ai/meal-slot-policy.md`, `MealSlotPolicy`와 `PlanService`를 기준으로 확인한다.
+
 조사 기준일: 2026-09-20  
 기준 커밋: `98c161c`  
 범위: `TravelRecommendHandler`, `MissingSlotCompleter`, `PlanService`의 식사 후보 판정
@@ -21,7 +25,7 @@
 따라서 검증기는 보정할 수 있다고 판단했지만 실제 보정기는 후보를 사용할 수 없는 계약 불일치가 있었다.
 그 결과 AI 교정이 생략되거나 최종 일정이 `INVALID_AI_PLACE`로 잘못 거부될 수 있었다.
 
-## 확정 계약
+## 당시 확정 계약
 
 식사 후보는 다음 조건을 모두 만족할 때만 사용 가능하다.
 
@@ -33,7 +37,7 @@
 
 마지막 조건은 같은 장소명이나 같은 대표메뉴를 가진 여러 후보를 여러 슬롯 분량으로 세지 않기 위해 필요하다.
 
-## Source of truth
+## 당시 source of truth
 
 `MissingSlotCompleter`가 식사 후보 사용 가능성의 source of truth다.
 
