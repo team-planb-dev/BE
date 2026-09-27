@@ -36,6 +36,8 @@ import com.planb.domain.travel.repository.PlanRepository;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.global.config.exception.PlanEditExceptionEnum;
 import com.planb.global.config.exception.domain.BaseException;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -99,6 +101,8 @@ public class PlanService {
 
     private final MissingSlotCompleter missingSlotCompleter;
 
+    private final MeterRegistry meterRegistry;
+
     public Plan createPlan(CreatePlanRequest createPlanRequest){
 
         return Plan
@@ -113,31 +117,61 @@ public class PlanService {
     // AI 일정 생성 및 검색 원본 기반 슬롯 확정
     public CreatePlanAiResponse makePlanByAi(TravelPlanContext context) {
 
-        nutritionEvaluationCollector.start();
-
-        CreatePlanAiResponse validated;
-
-        List<NutritionEvaluationCollector.FoodNutritionEvaluation> evaluations;
-
-        // finishPlan의 식사 재보정도 같은 후보를 쓰므로 호출 단위 전체에서 살아 있어야 한다.
-        PlaceCandidateContext candidates = new PlaceCandidateContext();
+        Timer.Sample sample = Timer.start(meterRegistry);
+        String outcome = "failure";
+        String corrected = "false";
 
         try {
-            CreatePlanAiResponse response = travelRecommendHandler.createPlanByAi(context, candidates);
+            nutritionEvaluationCollector.start();
 
-            validated = validatePlaces(response, candidates, context, null);
+            CreatePlanAiResponse validated;
+
+            List<NutritionEvaluationCollector.FoodNutritionEvaluation> evaluations;
+
+            // finishPlan의 식사 재보정도 같은 후보를 쓰므로 호출 단위 전체에서 살아 있어야 한다.
+            PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+            CreatePlanAiResponse response;
+
+            try {
+                response = travelRecommendHandler.createPlanByAi(context, candidates);
+
+                validated = validatePlaces(response, candidates, context, null);
+            } finally {
+                evaluations = nutritionEvaluationCollector.finish();
+            }
+
+            CreatePlanAiResponse result = finishPlan(
+                    validated,
+                    context,
+                    evaluations,
+                    RouteAnchor.from(context.createTravelRequest().decidedLocation()),
+                    candidates,
+                    Set.of(),
+                    null
+            );
+
+            outcome = "success";
+            corrected = Boolean.toString(!response.equals(result));
+
+            return result;
         } finally {
-            evaluations = nutritionEvaluationCollector.finish();
+            sample.stop(
+                    Timer.builder("planb.travel.ai.orchestration")
+                            .tag(
+                                    "days",
+                                    Integer.toString(
+                                            context
+                                                    .createTravelRequest()
+                                                    .dateType()
+                                                    .getPlusDays() + 1
+                                    )
+                            )
+                            .tag("outcome", outcome)
+                            .tag("corrected", corrected)
+                            .register(meterRegistry)
+            );
         }
-
-        return finishPlan(
-                validated,
-                context,
-                evaluations,
-                RouteAnchor.from(context.createTravelRequest().decidedLocation()),
-                candidates,
-                Set.of(),
-                null);
     }
 
     // AI 일정 수정 및 검증된 기존 슬롯 복구

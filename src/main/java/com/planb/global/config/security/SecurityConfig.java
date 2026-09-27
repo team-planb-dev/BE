@@ -105,7 +105,6 @@ public class SecurityConfig {
 
         httpSecurity
                 .securityMatcher(
-                        "/actuator/**",
                         "/swagger-ui/**",
                         "/swagger-ui.html",
                         "/v3/api-docs/**",

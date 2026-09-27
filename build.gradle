@@ -32,10 +32,9 @@ repositories {
 
 dependencies {
 
-    /* Observability
+    /* Observability */
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
-     */
 
     /* Spring boot Web */
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
