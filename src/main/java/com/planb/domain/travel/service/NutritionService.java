@@ -6,6 +6,8 @@ import com.planb.domain.travel.entity.constant.NutritionEvaluationStatus;
 import com.planb.global.client.foodNtrCpnt.dto.request.FoodNtrCpntSearchRequest;
 import com.planb.global.client.foodNtrCpnt.dto.response.FoodNtrCpntResponse;
 import com.planb.global.client.foodNtrCpnt.handler.FoodNtrCpntHandler;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -13,6 +15,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @Service
@@ -27,6 +30,8 @@ public class NutritionService {
             Duration.ofSeconds(15);
 
     private final FoodNtrCpntHandler foodNtrCpntHandler;
+
+    private final MeterRegistry meterRegistry;
 
     // 음식 영양정보 조회 및 평가 가능 여부 판정
     public Mono<NutritionEvaluationResult> evaluateFoodNutrition(
@@ -56,23 +61,55 @@ public class NutritionService {
             List<DiseaseType> diseaseTypes
     ) {
 
-        return lookup(foodName)
-                .flatMap(items -> items.isEmpty() && retryable(foodName, standardFoodName)
-                        ? lookup(standardFoodName)
-                        .map(retried -> evaluated(retried, standardFoodName, diseaseTypes))
-                        : Mono.just(evaluated(items, foodName, diseaseTypes)))
-                .onErrorResume(failure -> {
+        return Mono.defer(() -> {
+            AtomicBoolean retried = new AtomicBoolean();
 
-                    log.warn(
-                            "영양정보 조회 실패 - foodName: {}, 원인: {}",
-                            foodName,
-                            failure.toString()
-                    );
+            return lookup(foodName)
+                    .flatMap(items -> {
+                        if (items.isEmpty() && retryable(foodName, standardFoodName)) {
+                            retried.set(true);
 
-                    return Mono.just(
-                            unavailable(diseaseTypes)
-                    );
-                });
+                            return lookup(standardFoodName)
+                                    .map(result -> evaluated(
+                                            result,
+                                            standardFoodName,
+                                            diseaseTypes
+                                    ));
+                        }
+
+                        return Mono.just(
+                                evaluated(items, foodName, diseaseTypes)
+                        );
+                    })
+                    .onErrorResume(failure -> {
+
+                        log.warn(
+                                "영양정보 조회 실패 - foodName: {}, 원인: {}",
+                                foodName,
+                                failure.toString()
+                        );
+
+                        return Mono.just(
+                                unavailable(diseaseTypes)
+                        );
+                    })
+                    .doOnNext(result -> recordEvaluation(
+                            result.status(),
+                            retried.get()
+                    ));
+        });
+    }
+
+    private void recordEvaluation(
+            NutritionEvaluationStatus status,
+            boolean retried
+    ) {
+
+        Counter.builder("planb.travel.nutrition.evaluation")
+                .tag("status", status.name().toLowerCase())
+                .tag("retried", Boolean.toString(retried))
+                .register(meterRegistry)
+                .increment();
     }
 
     // 조회 한 건에 상한을 건다. 재조회는 첫 조회와 예산을 나눠 쓰지 않는다.

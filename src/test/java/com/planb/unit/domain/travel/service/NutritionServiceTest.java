@@ -6,10 +6,11 @@ import com.planb.domain.travel.service.NutritionService;
 import com.planb.global.client.foodNtrCpnt.dto.request.FoodNtrCpntSearchRequest;
 import com.planb.global.client.foodNtrCpnt.dto.response.FoodNtrCpntResponse;
 import com.planb.global.client.foodNtrCpnt.handler.FoodNtrCpntHandler;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
@@ -19,6 +20,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -30,8 +32,19 @@ class NutritionServiceTest {
     @Mock
     private FoodNtrCpntHandler foodNtrCpntHandler;
 
-    @InjectMocks
     private NutritionService nutritionService;
+
+    private SimpleMeterRegistry meterRegistry;
+
+    @BeforeEach
+    void setUp() {
+
+        meterRegistry = new SimpleMeterRegistry();
+        nutritionService = new NutritionService(
+                foodNtrCpntHandler,
+                meterRegistry
+        );
+    }
 
     @Test
     @DisplayName("음식 이름 정확 일치 영양정보 선택")
@@ -93,6 +106,16 @@ class NutritionServiceTest {
                                 && result.fat() == 3.0
                 )
                 .verifyComplete();
+
+        assertEquals(
+                1.0,
+                meterRegistry
+                        .get("planb.travel.nutrition.evaluation")
+                        .tag("status", "not_evaluable")
+                        .tag("retried", "false")
+                        .counter()
+                        .count()
+        );
     }
 
     @Test
@@ -155,6 +178,7 @@ class NutritionServiceTest {
                                 && result.fat() == 3.0
                 )
                 .verifyComplete();
+
     }
 
     @Test
@@ -361,6 +385,16 @@ class NutritionServiceTest {
                                 && result.sodium() == 100.0
                 )
                 .verifyComplete();
+
+        assertEquals(
+                1.0,
+                meterRegistry
+                        .get("planb.travel.nutrition.evaluation")
+                        .tag("status", "not_evaluable")
+                        .tag("retried", "true")
+                        .counter()
+                        .count()
+        );
     }
 
     @Test

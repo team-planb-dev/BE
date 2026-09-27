@@ -12,6 +12,7 @@ import com.planb.ai.mcp.TourismTool;
 import com.planb.ai.prompt.AiPrompt;
 import com.planb.global.config.exception.AiFailure;
 import com.planb.global.config.exception.domain.AiOrchestrationException;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 import java.util.List;
 import java.util.function.Function;
@@ -22,7 +23,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.LoggerFactory;
@@ -56,8 +56,9 @@ class OpenAiClientTest {
     @Mock
     private BeanOutputConverter<TestDto> outputConverter;
 
-    @InjectMocks
     private OpenAiClient openAiClient;
+
+    private SimpleMeterRegistry meterRegistry;
 
     private final AiPrompt prompt =
             new AiPrompt() {
@@ -81,6 +82,12 @@ class OpenAiClientTest {
 
     @BeforeEach
     void schemaForMockConverter() {
+        meterRegistry = new SimpleMeterRegistry();
+        openAiClient = new OpenAiClient(
+                chatClient,
+                meterRegistry
+        );
+
         lenient().when(outputConverter.getJsonSchema())
                 .thenReturn("{} ");
     }
@@ -140,6 +147,16 @@ class OpenAiClientTest {
                         .noneMatch(event -> event
                                 .getFormattedMessage()
                                 .contains("model-raw-response"))
+        );
+
+        assertEquals(
+                1.0,
+                meterRegistry
+                        .get("planb.ai.retry")
+                        .tag("stage", "parse")
+                        .tag("outcome", "success")
+                        .timer()
+                        .count()
         );
     }
 
@@ -312,6 +329,16 @@ class OpenAiClientTest {
 
         assertEquals(valid, result);
         assertNotNull(candidates.find("kakao:first"));
+
+        assertEquals(
+                1.0,
+                meterRegistry
+                        .get("planb.ai.retry")
+                        .tag("stage", "correction")
+                        .tag("outcome", "success")
+                        .timer()
+                        .count()
+        );
     }
 
     @Test
@@ -510,6 +537,16 @@ class OpenAiClientTest {
         assertEquals(
                 AiFailure.RESPONSE_INVALID,
                 exception.getFailure()
+        );
+
+        assertEquals(
+                1.0,
+                meterRegistry
+                        .get("planb.ai.retry")
+                        .tag("stage", "correction")
+                        .tag("outcome", "failure")
+                        .timer()
+                        .count()
         );
 
         assertTrue(exception.getMessage().contains(reason));

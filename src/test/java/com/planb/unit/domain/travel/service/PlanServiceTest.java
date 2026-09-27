@@ -38,6 +38,7 @@ import com.planb.domain.travel.service.NutritionService;
 import com.planb.domain.travel.service.ScheduleNormalizer;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.global.config.exception.domain.BaseException;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -94,8 +95,12 @@ class PlanServiceTest {
 
     private PlanService planService;
 
+    private SimpleMeterRegistry meterRegistry;
+
     @BeforeEach
     void acceptAlreadyValidatedSlots() {
+
+        meterRegistry = new SimpleMeterRegistry();
 
         planService = new PlanService(
                 planRepository,
@@ -106,7 +111,8 @@ class PlanServiceTest {
                 kakaoMapServiceHandler,
                 nutritionEvaluationCollector,
                 nutritionService,
-                new MissingSlotCompleter(mock(com.planb.ai.mcp.TourismTool.class))
+                new MissingSlotCompleter(mock(com.planb.ai.mcp.TourismTool.class)),
+                meterRegistry
         );
 
         // travelMinutes가 0인 슬롯도 재조회 대상이라 기본 응답이 필요하다.
@@ -240,6 +246,17 @@ class PlanServiceTest {
 
         verify(travelRecommendHandler, never())
                 .reselectPlace(any(), any());
+
+        assertEquals(
+                1L,
+                meterRegistry
+                        .get("planb.travel.ai.orchestration")
+                        .tag("days", "2")
+                        .tag("outcome", "success")
+                        .tag("corrected", "false")
+                        .timer()
+                        .count()
+        );
     }
 
     @Test
@@ -570,6 +587,17 @@ class PlanServiceTest {
         assertEquals(
                 "PLAN.EXCEPTION.INVALID_AI_PLACE",
                 exception.getErrorCode()
+        );
+
+        assertEquals(
+                1L,
+                meterRegistry
+                        .get("planb.travel.ai.orchestration")
+                        .tag("days", "2")
+                        .tag("outcome", "failure")
+                        .tag("corrected", "false")
+                        .timer()
+                        .count()
         );
     }
 
@@ -1493,7 +1521,8 @@ class PlanServiceTest {
                         kakaoMapServiceHandler,
                         nutritionEvaluationCollector,
                         nutritionService,
-                        missingSlotCompleter
+                        missingSlotCompleter,
+                        meterRegistry
                 );
 
         when(

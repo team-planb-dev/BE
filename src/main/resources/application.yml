@@ -31,3 +31,15 @@ Logging:
     org.springframework.ai: INFO
     com.planb.global.client: DEBUG
     org.springframework.core.LocalVariableTableParameterNameDiscoverer: error # 에러 까지만 로깅
+
+management:
+  server:
+    port: ${MANAGEMENT_PORT:8081}
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
