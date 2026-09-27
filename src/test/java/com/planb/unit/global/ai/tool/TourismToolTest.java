@@ -1,5 +1,9 @@
 package com.planb.unit.global.ai.tool;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.planb.ai.dto.response.KakaoRouteResult;
 import com.planb.ai.dto.response.PlaceWithRouteResult;
 import com.planb.ai.mcp.NutritionEvaluationCollector;
@@ -13,12 +17,15 @@ import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
 import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
 import com.planb.global.client.kor2Service.handler.Kor2ServiceHandler;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
@@ -48,6 +55,23 @@ class TourismToolTest {
 
     @InjectMocks
     private TourismTool tourismTool;
+
+    private final Logger toolLogger = (Logger) LoggerFactory.getLogger(TourismTool.class);
+
+    private final ListAppender<ILoggingEvent> logs = new ListAppender<>();
+
+    @BeforeEach
+    void captureToolLogs() {
+
+        logs.start();
+        toolLogger.addAppender(logs);
+    }
+
+    @AfterEach
+    void releaseToolLogs() {
+
+        toolLogger.detachAppender(logs);
+    }
 
     @Test
     @DisplayName("음식점은 시군구 기반 키워드 검색에 위임")
@@ -782,6 +806,96 @@ class TourismToolTest {
         // 여기에 표준 품목명을 넣으면 조회는 성공하는데 화면은 빈칸이 된다.
         verify(nutritionEvaluationCollector)
                 .record(foodName, response);
+    }
+
+    @Test
+    @DisplayName("관광지 후보 조회는 호출 INFO 로그 1건만 남기고 외부 응답을 기록하지 않음")
+    void attractionSearchLogsCallOnlyWithoutResponse() {
+
+        when(
+                kor2ServiceHandler
+                        .searchAttractions(
+                                "서울",
+                                "종로구"
+                        )
+        )
+                .thenReturn(Mono.just(response(List.of(attraction("1")))));
+
+        tourismTool
+                .searchAttractionsByRegion(
+                        "서울",
+                        "종로구"
+                );
+
+        assertEquals(1, logCount(Level.INFO));
+        assertTrue(noLogContains("관광지 1"));
+    }
+
+    @Test
+    @DisplayName("음식점 검색은 호출 INFO 로그 1건만 남기고 외부 응답을 기록하지 않음")
+    void restaurantSearchLogsCallOnlyWithoutResponse() {
+
+        when(
+                kor2ServiceHandler
+                        .searchRestaurants(
+                                "돼지국밥",
+                                "부산",
+                                "해운대구"
+                        )
+        )
+                .thenReturn(Mono.just(response(List.of(attraction("2")))));
+
+        tourismTool
+                .searchRestaurantsByLocation(
+                        "돼지국밥",
+                        "부산",
+                        "해운대구"
+                );
+
+        assertEquals(1, logCount(Level.INFO));
+        assertTrue(noLogContains("관광지 2"));
+    }
+
+    @Test
+    @DisplayName("음식점 후보 조회는 호출 INFO 로그 1건만 남기고 외부 응답을 기록하지 않음")
+    void restaurantCandidateSearchLogsCallOnlyWithoutResponse() {
+
+        when(
+                kor2ServiceHandler
+                        .searchRestaurantCandidates(
+                                "강원특별자치도",
+                                "춘천시"
+                        )
+        )
+                .thenReturn(Mono.just(response(List.of(attraction("3")))));
+
+        tourismTool
+                .searchRestaurantCandidatesByRegion(
+                        "강원특별자치도",
+                        "춘천시"
+                );
+
+        assertEquals(1, logCount(Level.INFO));
+        assertTrue(noLogContains("관광지 3"));
+    }
+
+    private long logCount(Level level) {
+
+        return logs
+                .list
+                .stream()
+                .filter(event -> event.getLevel() == level)
+                .count();
+    }
+
+    private boolean noLogContains(String text) {
+
+        return logs
+                .list
+                .stream()
+                .noneMatch(event -> event
+                        .getFormattedMessage()
+                        .contains(text));
     }
 
     private Kor2KeywordSearchResponse response(
