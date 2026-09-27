@@ -1,26 +1,36 @@
 package com.planb.integration.global;
 
 import com.planb.integration.IntegrationTest;
+import com.planb.global.security.dto.UserAuthCache;
+import com.planb.global.security.repository.UserAuthCacheRepository;
+import com.planb.global.security.util.JwtUtil;
 import com.sun.net.httpserver.HttpServer;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.endpoint.web.WebEndpointsSupplier;
+import org.springframework.boot.test.web.server.LocalManagementPort;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ActuatorSecurityIntegrationTest extends IntegrationTest {
 
@@ -33,9 +43,23 @@ class ActuatorSecurityIntegrationTest extends IntegrationTest {
     @Autowired
     private MeterRegistry meterRegistry;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private UserAuthCacheRepository userAuthCacheRepository;
+
+    @LocalServerPort
+    private int applicationPort;
+
+    @LocalManagementPort
+    private int managementPort;
+
     @Test
     @DisplayName("Actuator 관리 엔드포인트 최소 노출과 무인증 접근 차단")
     void actuatorEndpointsProtected() throws Exception {
+
+        assertNotEquals(applicationPort, managementPort);
 
         Set<String> endpointIds = webEndpointsSupplier
                 .getEndpoints()
@@ -54,14 +78,73 @@ class ActuatorSecurityIntegrationTest extends IntegrationTest {
                 endpointIds
         );
 
-        mockMvc.perform(get("/actuator/health"))
-                .andExpect(status().is4xxClientError());
+        HttpResponse<Void> response = HttpClient
+                .newHttpClient()
+                .send(
+                        HttpRequest
+                                .newBuilder(URI.create(
+                                        "http://localhost:" + managementPort + "/actuator/prometheus"
+                                ))
+                                .GET()
+                                .build(),
+                        HttpResponse.BodyHandlers.discarding()
+                );
 
-        mockMvc.perform(get("/actuator/metrics"))
-                .andExpect(status().is4xxClientError());
+        assertTrue(response.statusCode() >= 400);
+        assertTrue(response.statusCode() < 500);
+    }
 
-        mockMvc.perform(get("/actuator/prometheus"))
-                .andExpect(status().is4xxClientError());
+    @Test
+    @DisplayName("인증된 일반 사용자의 공개 포트 Actuator 접근 차단")
+    void publicApplicationPortDoesNotServeActuator() throws Exception {
+
+        String username = "actuator-user";
+        String sessionId = "actuator-session";
+
+        userAuthCacheRepository.save(
+                username,
+                new UserAuthCache(
+                        1L,
+                        username,
+                        "USER",
+                        sessionId
+                ),
+                60_000L
+        );
+
+        String accessToken = jwtUtil.createJwt(
+                "access",
+                1L,
+                username,
+                "USER",
+                sessionId,
+                60_000L
+        );
+
+        for (String path : List.of(
+                "/actuator/health",
+                "/actuator/metrics",
+                "/actuator/prometheus"
+        )) {
+            HttpResponse<String> response = HttpClient
+                    .newHttpClient()
+                    .send(
+                            HttpRequest
+                                    .newBuilder(URI.create(
+                                            "http://localhost:" + applicationPort + path
+                                    ))
+                                    .header("Authorization", "Bearer " + accessToken)
+                                    .GET()
+                                    .build(),
+                            HttpResponse.BodyHandlers.ofString()
+                    );
+
+            assertTrue(
+                    response.body()
+                            .contains("\"success\":false"),
+                    path
+            );
+        }
     }
 
     @Test

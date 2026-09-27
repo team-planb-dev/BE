@@ -33,6 +33,8 @@ Logging:
     org.springframework.core.LocalVariableTableParameterNameDiscoverer: error # 에러 까지만 로깅
 
 management:
+  server:
+    port: ${MANAGEMENT_PORT:8081}
   prometheus:
     metrics:
       export:
