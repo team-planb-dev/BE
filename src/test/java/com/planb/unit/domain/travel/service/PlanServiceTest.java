@@ -243,6 +243,65 @@ class PlanServiceTest {
     }
 
     @Test
+    @DisplayName("동일 고정 응답 반복 처리의 동일 결과")
+    void makePlanByAiReturnsSameResultForSameFixedResponse() {
+
+        TravelPlanContext context =
+                travelPlanContext();
+
+        CreatePlanAiResponse response =
+                new CreatePlanAiResponse(
+                        List.of(
+                                planDay(
+                                        1,
+                                        List.of(
+                                                attraction("해운대해수욕장"),
+                                                cafe("스타벅스 하버타운점")
+                                        )
+                                ),
+                                planDay(
+                                        2,
+                                        List.of(
+                                                attraction("이기대"),
+                                                cafe("이디야커피 부산달맞이점")
+                                        )
+                                )
+                        )
+                );
+
+        when(
+                travelRecommendHandler
+                        .createPlanByAi(
+                                eq(context),
+                                any(PlaceCandidateContext.class)
+                        )
+        )
+                .thenReturn(response);
+
+        CreatePlanAiResponse first =
+                planService
+                        .makePlanByAi(context);
+
+        CreatePlanAiResponse second =
+                planService
+                        .makePlanByAi(context);
+
+        assertEquals(
+                first,
+                second
+        );
+
+        verify(
+                travelRecommendHandler,
+                times(2)
+        )
+                .createPlanByAi(
+                        eq(context),
+                        any(PlaceCandidateContext.class)
+                );
+    }
+
+    @Test
     @DisplayName("다음 날짜 첫 장소 이동시간 누락 시 이전 날짜 마지막 장소 기준 계산")
     void makePlanByAiUsesPreviousDayLastPlaceForMissingRoute() {
 

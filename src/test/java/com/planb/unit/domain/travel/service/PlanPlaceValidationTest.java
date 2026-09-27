@@ -656,6 +656,60 @@ class PlanPlaceValidationTest {
     }
 
     @Test
+    @DisplayName("후보 식별자와 정규화 장소명의 중복 사용 거부")
+    void rejectsDuplicatePlaceByCandidateIdAndCanonicalName() {
+
+        PlaceCandidateContext candidates =
+                new PlaceCandidateContext();
+
+        candidates
+                .record(
+                        tour(
+                                "1",
+                                "12",
+                                "해운대"
+                        )
+                );
+
+        PlanScheduleDetail schedule =
+                slot(
+                        "tour:1",
+                        "AI가 작성한 장소명",
+                        9
+                );
+
+        PlanPlaceResolver.Validation duplicateId =
+                helper
+                        .validate(
+                                schedule,
+                                candidates,
+                                Set.of("tour:1"),
+                                Set.of()
+                        );
+
+        PlanPlaceResolver.Validation duplicateName =
+                helper
+                        .validate(
+                                schedule,
+                                candidates,
+                                Set.of("해운대"),
+                                Set.of()
+                        );
+
+        assertFalse(duplicateId.valid());
+
+        assertFalse(duplicateName.valid());
+
+        assertTrue(duplicateId
+                .reason()
+                .contains("이미 사용한 장소"));
+
+        assertTrue(duplicateName
+                .reason()
+                .contains("이미 사용한 장소"));
+    }
+
+    @Test
     @DisplayName("호출별 후보 격리 및 재시도 이전 후보 제거")
     void candidateContextsAreIsolatedAndToolResetDropsPreviousAttempt() {
 
