@@ -39,6 +39,7 @@ import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
 import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
 import com.planb.global.config.exception.domain.BaseException;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import reactor.core.publisher.Mono;
@@ -79,7 +80,8 @@ class PlanPlaceValidationTest {
             kakao,
             nutrition,
             nutritionService,
-            new MissingSlotCompleter(tourismTool)
+            new MissingSlotCompleter(tourismTool),
+            new SimpleMeterRegistry()
     );
 
     private final LocalDate date = LocalDate.of(2026, 9, 10);

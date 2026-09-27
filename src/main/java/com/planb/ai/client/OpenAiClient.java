@@ -4,6 +4,8 @@ import com.planb.ai.mcp.PlanTourismTool;
 import com.planb.ai.prompt.AiPrompt;
 import com.planb.global.config.exception.AiFailure;
 import com.planb.global.config.exception.domain.AiOrchestrationException;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -23,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 @Slf4j
 @Component
@@ -30,6 +33,8 @@ import java.util.function.Predicate;
 public class OpenAiClient {
 
     private final ChatClient chatClient;
+
+    private final MeterRegistry meterRegistry;
 
     // JSON Schema 후처리 전용 매퍼, 도메인 커스텀 모듈 불필요
     private static final JsonMapper SCHEMA_MAPPER = JsonMapper.builder().build();
@@ -77,7 +82,10 @@ public class OpenAiClient {
             );
 
             try {
-                return callEntity(prompt, responseType, tools);
+                return retry(
+                        "parse",
+                        () -> callEntity(prompt, responseType, tools)
+                );
             } catch (RuntimeException retryFailure) {
                 throw upstreamFailure(retryFailure);
             }
@@ -167,14 +175,17 @@ public class OpenAiClient {
             );
 
             try {
-                return callAndValidate(
-                        prompt,
-                        outputConverter,
-                        validation,
-                        List.of(),
-                        null,
-                        invalidResponses,
-                        tools
+                return retry(
+                        "parse",
+                        () -> callAndValidate(
+                                prompt,
+                                outputConverter,
+                                validation,
+                                List.of(),
+                                null,
+                                invalidResponses,
+                                tools
+                        )
                 );
             } catch (RuntimeException retryFailure) {
                 throw upstreamFailure(retryFailure);
@@ -196,15 +207,41 @@ public class OpenAiClient {
                 failures
         );
 
-        return callAndValidate(
-                prompt,
-                outputConverter,
-                validation,
-                failures,
-                generated.content(),
-                invalidResponses,
-                tools
+        return retry(
+                "correction",
+                () -> callAndValidate(
+                        prompt,
+                        outputConverter,
+                        validation,
+                        failures,
+                        generated.content(),
+                        invalidResponses,
+                        tools
+                )
         );
+    }
+
+    private <T> T retry(
+            String stage,
+            Supplier<T> retry
+    ) {
+
+        Timer.Sample sample = Timer.start(meterRegistry);
+        String outcome = "failure";
+
+        try {
+            T result = retry.get();
+            outcome = "success";
+
+            return result;
+        } finally {
+            sample.stop(
+                    Timer.builder("planb.ai.retry")
+                            .tag("stage", stage)
+                            .tag("outcome", outcome)
+                            .register(meterRegistry)
+            );
+        }
     }
 
     private <T> T callAndValidate(
