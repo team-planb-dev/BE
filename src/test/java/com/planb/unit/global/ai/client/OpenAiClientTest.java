@@ -1,5 +1,9 @@
 package com.planb.unit.global.ai.client;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.planb.ai.client.OpenAiClient;
 import com.planb.ai.context.PlaceCandidateContext;
 import com.planb.ai.dto.response.PlaceWithRouteResult;
@@ -12,6 +16,7 @@ import com.planb.global.config.exception.domain.AiOrchestrationException;
 import java.util.List;
 import java.util.function.Function;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +25,7 @@ import org.mockito.Answers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.converter.BeanOutputConverter;
 import reactor.core.publisher.Flux;
@@ -69,10 +75,72 @@ class OpenAiClientTest {
     private record TestDto(String value) {
     }
 
+    private final Logger clientLogger = (Logger) LoggerFactory.getLogger(OpenAiClient.class);
+
+    private final ListAppender<ILoggingEvent> logs = new ListAppender<>();
+
     @BeforeEach
     void schemaForMockConverter() {
         lenient().when(outputConverter.getJsonSchema())
                 .thenReturn("{} ");
+    }
+
+    @BeforeEach
+    void captureClientLogs() {
+
+        logs.start();
+        clientLogger.addAppender(logs);
+    }
+
+    @AfterEach
+    void releaseClientLogs() {
+
+        clientLogger.detachAppender(logs);
+    }
+
+    @Test
+    @DisplayName("파싱 실패 후 재시도 경로는 WARN 2건을 남기고 모델 원본 응답을 기록하지 않음")
+    void parsingFailureLogsOmitRawModelResponse() {
+
+        String rawResponse = "{\"value\": \"model-raw-response\"";
+
+        PlanTourismTool tool = new PlanTourismTool(
+                mock(TourismTool.class),
+                new PlaceCandidateContext()
+        );
+
+        when(chatClient.prompt().system(prompt.system()).user(prompt.user()).tools(tool)
+                .options(any()).call().content())
+                .thenReturn(rawResponse);
+
+        when(outputConverter.convert(rawResponse))
+                .thenThrow(new IllegalArgumentException("잘못된 JSON"))
+                .thenReturn(new TestDto("ok"));
+
+        openAiClient.call(
+                prompt,
+                outputConverter,
+                tool
+        );
+
+        // 파싱 실패 1건, 재시도 안내 1건
+        assertEquals(
+                2,
+                logs
+                        .list
+                        .stream()
+                        .filter(event -> event.getLevel() == Level.WARN)
+                        .count()
+        );
+
+        assertTrue(
+                logs
+                        .list
+                        .stream()
+                        .noneMatch(event -> event
+                                .getFormattedMessage()
+                                .contains("model-raw-response"))
+        );
     }
 
     @Test

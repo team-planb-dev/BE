@@ -26,6 +26,8 @@ decorator:
 
 Logging:
   level:
-    org.springframework.ai: DEBUG
+    # Tool 호출 1회마다 DEBUG 4줄을 남겨 요청 로그 줄의 대부분을 차지한다.
+    # 호출 인자는 TourismTool INFO가 이미 남기므로 INFO로 낮춘다. 근거는 docs/perf/log-observability-round1.md
+    org.springframework.ai: INFO
     com.planb.global.client: DEBUG
     org.springframework.core.LocalVariableTableParameterNameDiscoverer: error # 에러 까지만 로깅

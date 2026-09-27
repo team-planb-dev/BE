@@ -81,9 +81,9 @@ public class TourismTool {
                 )
                 .map(this::selectAttractionCandidates)
                 .doOnNext(response ->
-                        log.info(
-                                "[AI TOOL] 지역 관광지 후보 조회 응답 - {}",
-                                response
+                        log.debug(
+                                "[AI TOOL] 지역 관광지 후보 조회 응답 - 후보 {}건",
+                                itemCount(response)
                         )
                 )
                 .block();
@@ -115,9 +115,9 @@ public class TourismTool {
                         locationSigungu
                 )
                 .doOnNext(response ->
-                        log.info(
-                                "[AI TOOL] 지역 음식점 검색 응답 - {}",
-                                response
+                        log.debug(
+                                "[AI TOOL] 지역 음식점 검색 응답 - 후보 {}건",
+                                itemCount(response)
                         )
                 )
                 .block();
@@ -143,12 +143,30 @@ public class TourismTool {
                         locationSigungu
                 )
                 .doOnNext(response ->
-                        log.info(
-                                "[AI TOOL] 지역 음식점 후보 조회 응답 - {}",
-                                response
+                        log.debug(
+                                "[AI TOOL] 지역 음식점 후보 조회 응답 - 후보 {}건",
+                                itemCount(response)
                         )
                 )
                 .block();
+    }
+
+    // 외부 응답 전체를 로그에 남기지 않고 후보 수만 기록한다.
+    private int itemCount(Kor2KeywordSearchResponse response) {
+
+        if (response.response() == null
+                || response.response().body() == null
+                || response.response().body().items() == null
+                || response.response().body().items().item() == null) {
+            return 0;
+        }
+
+        return response
+                .response()
+                .body()
+                .items()
+                .item()
+                .size();
     }
 
     private Kor2KeywordSearchResponse selectAttractionCandidates(
