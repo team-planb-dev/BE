@@ -452,9 +452,12 @@ public class OpenAiClient {
         try {
             return outputConverter.convert(content);
         } catch (RuntimeException e) {
+            // 모델 원본 응답은 크고 여러 줄이라 로그 한도를 소모하므로 길이만 남긴다.
             log.warn(
-                    "AI 구조화 응답 JSON 파싱 실패. 원본 응답: {}",
-                    content
+                    "AI 구조화 응답 JSON 파싱 실패. 응답 길이: {}",
+                    content == null
+                            ? 0
+                            : content.length()
             );
 
             throw new AiOrchestrationException(AiFailure.RESPONSE_UNPARSABLE, e);
