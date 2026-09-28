@@ -1,0 +1,51 @@
+{
+  "meta": {
+    "total_count": 3,
+    "pageable_count": 3,
+    "is_end": true
+  },
+  "documents": [
+    {
+      "id": "1{{hash:query}}",
+      "place_name": "{{param:query}}",
+      "category_name": "여행 > 관광,명소",
+      "category_group_code": "AT4",
+      "category_group_name": "관광명소",
+      "phone": "",
+      "address_name": "스텁시 스텁구 장소로 1",
+      "road_address_name": "스텁시 스텁구 장소로 1",
+      "x": "126.9780",
+      "y": "37.5665",
+      "place_url": "",
+      "distance": ""
+    },
+    {
+      "id": "2{{hash:query}}",
+      "place_name": "{{param:query}}",
+      "category_name": "음식점 > 카페",
+      "category_group_code": "CE7",
+      "category_group_name": "카페",
+      "phone": "",
+      "address_name": "스텁시 스텁구 장소로 1",
+      "road_address_name": "스텁시 스텁구 장소로 1",
+      "x": "126.9820",
+      "y": "37.5700",
+      "place_url": "",
+      "distance": ""
+    },
+    {
+      "id": "3{{hash:query}}",
+      "place_name": "{{param:query}}",
+      "category_name": "음식점 > 한식",
+      "category_group_code": "FD6",
+      "category_group_name": "음식점",
+      "phone": "",
+      "address_name": "스텁시 스텁구 장소로 1",
+      "road_address_name": "스텁시 스텁구 장소로 1",
+      "x": "126.9850",
+      "y": "37.5680",
+      "place_url": "",
+      "distance": ""
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "header": {
+    "resultCode": "00",
+    "resultMsg": "NORMAL SERVICE."
+  },
+  "body": {
+    "pageNo": 1,
+    "totalCount": 1,
+    "numOfRows": 100,
+    "items": [
+      {
+        "FOOD_CD": "STUB-{{hash:FOOD_NM_KR}}",
+        "FOOD_NM_KR": "{{param:FOOD_NM_KR}}",
+        "DB_GRP_NM": "음식",
+        "FOOD_CAT1_NM": "스텁",
+        "FOOD_REF_NM": "{{param:FOOD_NM_KR}}",
+        "SERVING_SIZE": "100g",
+        "AMT_NUM1": "150",
+        "AMT_NUM3": "8",
+        "AMT_NUM4": "5",
+        "AMT_NUM6": "20",
+        "AMT_NUM7": "3",
+        "AMT_NUM8": "2",
+        "AMT_NUM13": "400",
+        "AMT_NUM23": "30",
+        "AMT_NUM24": "1.5",
+        "AMT_NUM25": "0"
+      }
+    ]
+  }
+}

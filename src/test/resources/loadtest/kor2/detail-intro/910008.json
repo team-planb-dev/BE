@@ -1,0 +1,23 @@
+{
+  "response": {
+    "header": {
+      "resultCode": "0000",
+      "resultMsg": "OK"
+    },
+    "body": {
+      "items": {
+        "item": [
+          {
+            "contentid": "910008",
+            "contenttypeid": "39",
+            "firstmenu": "냉면",
+            "treatmenu": "냉면, 공깃밥"
+          }
+        ]
+      },
+      "numOfRows": 1,
+      "pageNo": 1,
+      "totalCount": 1
+    }
+  }
+}

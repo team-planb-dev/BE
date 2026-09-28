@@ -1,0 +1,23 @@
+{
+  "response": {
+    "header": {
+      "resultCode": "0000",
+      "resultMsg": "OK"
+    },
+    "body": {
+      "items": {
+        "item": [
+          {
+            "contentid": "910006",
+            "contenttypeid": "39",
+            "firstmenu": "된장찌개",
+            "treatmenu": "된장찌개, 공깃밥"
+          }
+        ]
+      },
+      "numOfRows": 1,
+      "pageNo": 1,
+      "totalCount": 1
+    }
+  }
+}
