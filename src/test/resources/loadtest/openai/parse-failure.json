@@ -1,0 +1,17 @@
+{
+  "id": "chatcmpl-planb-parse-failure",
+  "object": "chat.completion",
+  "created": 0,
+  "model": "planb-stub",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "stop",
+      "logprobs": null,
+      "message": {
+        "role": "assistant",
+        "content": "{"
+      }
+    }
+  ]
+}
