@@ -22,7 +22,6 @@ import tools.jackson.databind.JsonNode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -37,6 +36,12 @@ class TravelLoadTestSmokeIntegrationTest extends TravelApiTestSupport {
     private static final String GET_AI_PLAN_URL =
             "/api/v1/travel/get-ai-travel-plan";
 
+    private static final LocalDate START_DATE = LocalDate.of(
+            2030,
+            1,
+            1
+    );
+
     private static final ExternalHttpStubServer EXTERNAL_STUB =
             ExternalHttpStubServer.start(
                     0,
@@ -44,7 +49,11 @@ class TravelLoadTestSmokeIntegrationTest extends TravelApiTestSupport {
             );
 
     private static final OpenAiChatCompletionStub OPENAI_STUB =
-            new OpenAiChatCompletionStub();
+            OpenAiChatCompletionStub.startTravelPlan(
+                    0,
+                    START_DATE,
+                    START_DATE.plusDays(1)
+            );
 
     @DynamicPropertySource
     static void stubProperties(DynamicPropertyRegistry registry) {
@@ -120,24 +129,6 @@ class TravelLoadTestSmokeIntegrationTest extends TravelApiTestSupport {
     @DisplayName("로컬 외부 스텁 기반 일정 생성과 저장 재조회")
     void createsAndReadsPlanWithLocalStubs() throws Exception {
 
-        LocalDate startDate = LocalDate
-                .now()
-                .plusDays(7);
-
-        OPENAI_STUB.enqueueFixture(
-                "travel-attraction-tool-call.json",
-                Map.of()
-        );
-        OPENAI_STUB.enqueueFixture(
-                "travel-empty-plan.json",
-                Map.of(
-                        "startDate", startDate.toString(),
-                        "endDate", startDate
-                                .plusDays(1)
-                                .toString()
-                )
-        );
-
         String username = createUniqueUsername();
         createUser(username);
 
@@ -148,7 +139,7 @@ class TravelLoadTestSmokeIntegrationTest extends TravelApiTestSupport {
                 "스텁 서울 여행",
                 "서울",
                 "종로구",
-                startDate,
+                START_DATE,
                 DateType.ONE_NIGHT_TWO_DAYS,
                 Transportation.CAR,
                 "서울역",

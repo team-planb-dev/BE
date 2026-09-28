@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
 
 public final class OpenAiChatCompletionStub implements AutoCloseable {
 
@@ -29,11 +31,29 @@ public final class OpenAiChatCompletionStub implements AutoCloseable {
 
     private final List<String> requests = Collections.synchronizedList(new ArrayList<>());
 
+    private final Function<String, String> responseSelector;
+
     public OpenAiChatCompletionStub() {
+
+        this(
+                0,
+                null
+        );
+    }
+
+    private OpenAiChatCompletionStub(
+            int port,
+            Function<String, String> responseSelector
+    ) {
+
+        this.responseSelector = responseSelector;
 
         try {
             server = HttpServer.create(
-                    new InetSocketAddress("127.0.0.1", 0),
+                    new InetSocketAddress(
+                            "127.0.0.1",
+                            port
+                    ),
                     0
             );
         } catch (IOException exception) {
@@ -43,6 +63,33 @@ public final class OpenAiChatCompletionStub implements AutoCloseable {
         server.createContext("/v1/chat/completions", this::handle);
         server.setExecutor(executor);
         server.start();
+    }
+
+    public static OpenAiChatCompletionStub startTravelPlan(
+            int port,
+            LocalDate startDate,
+            LocalDate endDate
+    ) {
+
+        String toolCall = fixture(
+                "travel-attraction-tool-call.json",
+                Map.of()
+        );
+
+        String plan = fixture(
+                "travel-empty-plan.json",
+                Map.of(
+                        "startDate", startDate.toString(),
+                        "endDate", endDate.toString()
+                )
+        );
+
+        return new OpenAiChatCompletionStub(
+                port,
+                request -> request.contains("\"tool_call_id\"")
+                        ? plan
+                        : toolCall
+        );
     }
 
     public String baseUrl() {
@@ -65,16 +112,10 @@ public final class OpenAiChatCompletionStub implements AutoCloseable {
             Map<String, String> values
     ) {
 
-        String response = readFixture(fixtureName);
-
-        for (Map.Entry<String, String> entry : values.entrySet()) {
-            response = response.replace(
-                    "{{" + entry.getKey() + "}}",
-                    entry.getValue()
-            );
-        }
-
-        responses.add(response);
+        responses.add(fixture(
+                fixtureName,
+                values
+        ));
     }
 
     public List<String> requests() {
@@ -86,16 +127,19 @@ public final class OpenAiChatCompletionStub implements AutoCloseable {
 
     private void handle(HttpExchange exchange) throws IOException {
 
-        requests.add(
-                new String(
-                        exchange
-                                .getRequestBody()
-                                .readAllBytes(),
-                        StandardCharsets.UTF_8
-                )
+        String request = new String(
+                exchange
+                        .getRequestBody()
+                        .readAllBytes(),
+                StandardCharsets.UTF_8
         );
 
-        String response = responses.poll();
+        requests.add(request);
+
+        String response = responseSelector == null
+                ? responses.poll()
+                : responseSelector.apply(request);
+
         if (response == null) {
             response = "{\"error\":{\"message\":\"No scripted response\"}}";
             send(
@@ -136,11 +180,28 @@ public final class OpenAiChatCompletionStub implements AutoCloseable {
         }
     }
 
-    private String readFixture(String fixtureName) {
+    private static String fixture(
+            String fixtureName,
+            Map<String, String> values
+    ) {
+
+        String response = readFixture(fixtureName);
+
+        for (Map.Entry<String, String> entry : values.entrySet()) {
+            response = response.replace(
+                    "{{" + entry.getKey() + "}}",
+                    entry.getValue()
+            );
+        }
+
+        return response;
+    }
+
+    private static String readFixture(String fixtureName) {
 
         String path = FIXTURE_ROOT + fixtureName;
 
-        try (InputStream input = getClass()
+        try (InputStream input = OpenAiChatCompletionStub.class
                 .getClassLoader()
                 .getResourceAsStream(path)) {
 

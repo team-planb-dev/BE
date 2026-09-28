@@ -17,9 +17,19 @@ import org.springframework.ai.tool.annotation.Tool;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.function.Function;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -28,6 +38,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class OpenAiProtocolStubTest {
 
     private static final JsonMapper JSON_MAPPER = JsonMapper.builder().build();
+
+    private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 
     private final AiPrompt prompt = new AiPrompt() {
         @Override
@@ -232,6 +244,75 @@ class OpenAiProtocolStubTest {
         );
     }
 
+    @Test
+    @DisplayName("동시 요청별 Tool 상태 기반 응답 선택")
+    void responseSelectionByToolStateUnderConcurrency() throws Exception {
+
+        LocalDate startDate = LocalDate.of(
+                2030,
+                1,
+                1
+        );
+
+        try (OpenAiChatCompletionStub loadTestStub =
+                     OpenAiChatCompletionStub.startTravelPlan(
+                             0,
+                             startDate,
+                             startDate.plusDays(1)
+                     );
+             ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+
+            List<Callable<HttpResponse<String>>> calls = IntStream
+                    .range(
+                            0,
+                            20
+                    )
+                    .mapToObj(index -> (Callable<HttpResponse<String>>) () -> request(
+                            loadTestStub,
+                            index % 2 == 0
+                                    ? "{\"messages\":[{\"role\":\"user\",\"content\":\"plan\"}]}"
+                                    : "{\"messages\":[{\"role\":\"tool\",\"tool_call_id\":\"call_attractions_1\",\"content\":\"[]\"}]}"
+                    ))
+                    .toList();
+
+            List<Future<HttpResponse<String>>> responses = executor.invokeAll(calls);
+
+            for (int index = 0; index < responses.size(); index++) {
+                HttpResponse<String> response = responses
+                        .get(index)
+                        .get();
+
+                assertEquals(
+                        200,
+                        response.statusCode()
+                );
+
+                JsonNode message = JSON_MAPPER
+                        .readTree(response.body())
+                        .get("choices")
+                        .get(0)
+                        .get("message");
+
+                if (index % 2 == 0) {
+                    assertEquals(
+                            "searchAttractionsByRegion",
+                            message
+                                    .get("tool_calls")
+                                    .get(0)
+                                    .get("function")
+                                    .get("name")
+                                    .asText()
+                    );
+                } else {
+                    assertTrue(message
+                            .get("content")
+                            .asText()
+                            .contains(startDate.toString()));
+                }
+            }
+        }
+    }
+
     private List<String> validate(StubResponse response) {
 
         return "success".equals(response.value())
@@ -245,6 +326,26 @@ class OpenAiProtocolStubTest {
                 stub
                         .requests()
                         .get(index)
+        );
+    }
+
+    private HttpResponse<String> request(
+            OpenAiChatCompletionStub target,
+            String body
+    ) throws Exception {
+
+        HttpRequest request = HttpRequest
+                .newBuilder(URI.create(target.baseUrl() + "/chat/completions"))
+                .header(
+                        "Content-Type",
+                        "application/json"
+                )
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+
+        return HTTP_CLIENT.send(
+                request,
+                HttpResponse.BodyHandlers.ofString()
         );
     }
 
