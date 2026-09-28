@@ -18,6 +18,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class LoadTestProfileTest {
 
+    private static final String OPENAI_BASE_URL_KEY =
+            "spring.ai.openai.chat.base-url";
+
     private static final Map<Api, String> BASE_URL_KEYS = Map.of(
             Api.KOR2, "external.kor2-service.base-url",
             Api.KAKAO_MAP, "external.kakao-map.base-url",
@@ -65,6 +68,29 @@ class LoadTestProfileTest {
 
         BASE_URL_KEYS.forEach((api, key) -> assertThat(resolver.getProperty(key))
                 .isEqualTo("http://127.0.0.1:19090" + api.prefix()));
+    }
+
+    @Test
+    @DisplayName("OpenAI base URL은 로컬 스텁을 가리킴")
+    void openAiBaseUrlPointsAtLocalStub() throws IOException {
+
+        PropertySourcesPropertyResolver resolver = resolver(Map.of());
+
+        assertThat(resolver.getProperty(OPENAI_BASE_URL_KEY))
+                .isEqualTo("http://localhost:18081/v1");
+    }
+
+    @Test
+    @DisplayName("LOADTEST_OPENAI_STUB_URL로 OpenAI 스텁 주소 변경")
+    void openAiStubAddressOverride() throws IOException {
+
+        PropertySourcesPropertyResolver resolver = resolver(Map.of(
+                "LOADTEST_OPENAI_STUB_URL",
+                "http://127.0.0.1:19091"
+        ));
+
+        assertThat(resolver.getProperty(OPENAI_BASE_URL_KEY))
+                .isEqualTo("http://127.0.0.1:19091/v1");
     }
 
     @Test

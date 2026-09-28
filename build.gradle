@@ -159,3 +159,10 @@ tasks.register('externalHttpStub', JavaExec) {
     group = 'verification'
     description = 'Kor2, Kakao Map, Kakao Mobility, 식품영양성분 API 로컬 스텁 서버 실행 (loadtest 프로파일용)'
 }
+
+tasks.register('travelLoadTestStubs', JavaExec) {
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.planb.performance.TravelLoadTestStubServer'
+    group = 'verification'
+    description = 'OpenAI와 외부 HTTP API 로컬 스텁 서버를 함께 실행'
+}

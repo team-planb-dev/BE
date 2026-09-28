@@ -1,11 +1,10 @@
 # 부하 테스트 전용 프로파일. 실행: --spring.profiles.active=loadtest
 #
-# 외부 HTTP API 네 개(Kor2Service, Kakao Map, Kakao Mobility, 식품영양성분)를 로컬 스텁으로 돌린다.
-# 스텁 실행: ./gradlew externalHttpStub  (기본 주소 http://localhost:18080)
+# OpenAI와 외부 HTTP API 네 개(Kor2Service, Kakao Map, Kakao Mobility, 식품영양성분)를 로컬 스텁으로 돌린다.
+# 스텁 실행: ./gradlew travelLoadTestStubs
 #
 # 외부 API 키는 환경변수에서 읽지 않는다. 실행 셸에 실제 키가 있어도 부하 테스트가 실제 키를 쓰지 않게 하려는 것이다.
-# OpenAI 호출 차단은 이 파일만으로 되지 않는다. OpenAI 스텁 작업이 설정을 추가한다.
-# 근거와 사용법은 docs/perf/phase2-external-http-stubs.md 참고.
+# 근거와 사용법은 docs/perf/phase2-openai-stub.md와 docs/perf/phase2-external-http-stubs.md 참고.
 spring:
   config:
     activate:
@@ -32,6 +31,7 @@ spring:
     openai:
       api-key: loadtest-no-key
       chat:
+        base-url: ${LOADTEST_OPENAI_STUB_URL:http://localhost:18081}/v1
         model: ${OPENAI_MODEL:loadtest-model}
         reasoning-effort: ${OPENAI_REASONING_EFFORT:none}
     mcp:
