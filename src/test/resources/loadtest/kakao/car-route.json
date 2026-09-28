@@ -1,0 +1,28 @@
+{
+  "trans_id": "stub",
+  "routes": [
+    {
+      "result_code": 0,
+      "result_msg": "길찾기 성공",
+      "summary": {
+        "origin": {
+          "name": "",
+          "x": 127.0,
+          "y": 37.5
+        },
+        "destination": {
+          "name": "",
+          "x": 127.1,
+          "y": 37.6
+        },
+        "priority": "TIME",
+        "fare": {
+          "taxi": 8000,
+          "toll": 0
+        },
+        "distance": 5200,
+        "duration": 900
+      }
+    }
+  ]
+}

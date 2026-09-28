@@ -1,0 +1,23 @@
+{
+  "response": {
+    "header": {
+      "resultCode": "0000",
+      "resultMsg": "OK"
+    },
+    "body": {
+      "items": {
+        "item": [
+          {
+            "contentid": "910002",
+            "contenttypeid": "39",
+            "firstmenu": "불고기",
+            "treatmenu": "불고기, 공깃밥"
+          }
+        ]
+      },
+      "numOfRows": 1,
+      "pageNo": 1,
+      "totalCount": 1
+    }
+  }
+}

@@ -1,0 +1,60 @@
+# 부하 테스트 전용 프로파일. 실행: --spring.profiles.active=loadtest
+#
+# 외부 HTTP API 네 개(Kor2Service, Kakao Map, Kakao Mobility, 식품영양성분)를 로컬 스텁으로 돌린다.
+# 스텁 실행: ./gradlew externalHttpStub  (기본 주소 http://localhost:18080)
+#
+# 외부 API 키는 환경변수에서 읽지 않는다. 실행 셸에 실제 키가 있어도 부하 테스트가 실제 키를 쓰지 않게 하려는 것이다.
+# OpenAI 호출 차단은 이 파일만으로 되지 않는다. OpenAI 스텁 작업이 설정을 추가한다.
+# 근거와 사용법은 docs/perf/phase2-external-http-stubs.md 참고.
+spring:
+  config:
+    activate:
+      on-profile: common-loadtest
+  datasource:
+    url: ${DATABASE_URL}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_batch_fetch_size: 500
+    open-in-view: false
+
+  data:
+    redis:
+      url: ${REDIS_URL:redis://localhost:6379}
+
+  ai:
+    openai:
+      api-key: loadtest-no-key
+      chat:
+        model: ${OPENAI_MODEL:loadtest-model}
+        reasoning-effort: ${OPENAI_REASONING_EFFORT:none}
+    mcp:
+      server:
+        protocol: streamable
+
+
+jwt:
+  secret: ${JWT_SECRET}
+
+external:
+  kor2-service:
+    base-url: ${LOADTEST_STUB_URL:http://localhost:18080}/kor2
+    service-key: loadtest
+
+  kakao-map:
+    base-url: ${LOADTEST_STUB_URL:http://localhost:18080}/kakao-map
+    api-key: loadtest
+
+  kakao-mobility:
+    base-url: ${LOADTEST_STUB_URL:http://localhost:18080}/kakao-mobility
+    api-key: loadtest
+
+  food-ntr-cpnt:
+    base-url: ${LOADTEST_STUB_URL:http://localhost:18080}/food-nutrition
+    service-key: loadtest
