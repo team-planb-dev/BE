@@ -1,0 +1,17 @@
+{
+  "id": "chatcmpl-planb-travel-plan",
+  "object": "chat.completion",
+  "created": 0,
+  "model": "planb-stub",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "stop",
+      "logprobs": null,
+      "message": {
+        "role": "assistant",
+        "content": "{\"planDays\":[{\"dayNumber\":1,\"date\":\"{{startDate}}\",\"schedules\":[]},{\"dayNumber\":2,\"date\":\"{{endDate}}\",\"schedules\":[]}]}"
+      }
+    }
+  ]
+}
