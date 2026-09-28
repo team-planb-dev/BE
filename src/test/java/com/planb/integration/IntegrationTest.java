@@ -70,8 +70,13 @@ public abstract class IntegrationTest {
         );
 
         registry.add(
+                "spring.data.redis.url",
+                () -> "redis://" + redis.getHost() + ":" + redis.getMappedPort(6379)
+        );
+
+        registry.add(
                 "jwt.secret",
-                ()->"test-secret-key-must-be-at-least-32-bytes-long"
+                () -> "test-secret-key-must-be-at-least-32-bytes-long"
         );
     }
 

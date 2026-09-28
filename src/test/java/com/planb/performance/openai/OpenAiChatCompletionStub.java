@@ -11,12 +11,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-final class OpenAiChatCompletionStub implements AutoCloseable {
+public final class OpenAiChatCompletionStub implements AutoCloseable {
 
     private static final String FIXTURE_ROOT = "loadtest/openai/";
 
@@ -28,7 +29,7 @@ final class OpenAiChatCompletionStub implements AutoCloseable {
 
     private final List<String> requests = Collections.synchronizedList(new ArrayList<>());
 
-    OpenAiChatCompletionStub() {
+    public OpenAiChatCompletionStub() {
 
         try {
             server = HttpServer.create(
@@ -44,19 +45,39 @@ final class OpenAiChatCompletionStub implements AutoCloseable {
         server.start();
     }
 
-    String baseUrl() {
+    public String baseUrl() {
 
         return "http://127.0.0.1:" + server.getAddress().getPort() + "/v1";
     }
 
-    void enqueueFixtures(String... fixtureNames) {
+    public void enqueueFixtures(String... fixtureNames) {
 
         for (String fixtureName : fixtureNames) {
-            responses.add(readFixture(fixtureName));
+            enqueueFixture(
+                    fixtureName,
+                    Map.of()
+            );
         }
     }
 
-    List<String> requests() {
+    public void enqueueFixture(
+            String fixtureName,
+            Map<String, String> values
+    ) {
+
+        String response = readFixture(fixtureName);
+
+        for (Map.Entry<String, String> entry : values.entrySet()) {
+            response = response.replace(
+                    "{{" + entry.getKey() + "}}",
+                    entry.getValue()
+            );
+        }
+
+        responses.add(response);
+    }
+
+    public List<String> requests() {
 
         synchronized (requests) {
             return List.copyOf(requests);

@@ -1,0 +1,27 @@
+{
+  "id": "chatcmpl-planb-travel-tool-call",
+  "object": "chat.completion",
+  "created": 0,
+  "model": "planb-stub",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "tool_calls",
+      "logprobs": null,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "call_attractions_1",
+            "type": "function",
+            "function": {
+              "name": "searchAttractionsByRegion",
+              "arguments": "{\"locationDo\":\"서울\",\"locationSigungu\":\"종로구\"}"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
