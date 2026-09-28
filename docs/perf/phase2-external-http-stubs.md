@@ -2,7 +2,7 @@
 
 - Issue: #97
 - 기준 commit: `bb8180e` (`origin/dev`)
-- 범위: Kor2Service, Kakao Map, Kakao Mobility, 식품영양성분 API. OpenAI 스텁은 별도 Issue다
+- 범위: Kor2Service, Kakao Map, Kakao Mobility, 식품영양성분 API. OpenAI는 별도 스텁을 같은 실행 명령으로 기동한다
 
 ## 1. 목적
 
@@ -84,6 +84,8 @@ fixture 안의 `{{param:이름}}`은 요청 값으로, `{{hash:이름}}`은 `Str
 | `STUB_SCENARIO_<API>` | — | API별 덮어쓰기. `<API>`는 `KOR2`, `KAKAO_MAP`, `KAKAO_MOBILITY`, `FOOD_NUTRITION` |
 | `STUB_DELAY_MS` | `800` | `delay` 지연 시간 |
 | `STUB_TIMEOUT_MS` | `30000` | `timeout` 유지 시간 |
+| `OPENAI_STUB_PORT` | `18081` | OpenAI 호환 스텁 포트 |
+| `STUB_PLAN_START_DATE` | `2030-01-01` | 고정 1박 2일 일정의 시작일 |
 
 현재 애플리케이션에는 외부 HTTP timeout이 없다(`refactoring-plan.md` P8). `timeout` 시나리오는 그
 상태를 재현할 뿐이며 timeout 값은 여기서 정하지 않는다.
@@ -93,12 +95,14 @@ fixture 안의 `{{param:이름}}`은 요청 값으로, `{{hash:이름}}`은 `Str
 ### 4-1. 스텁 실행
 
 ```bash
-./gradlew externalHttpStub
+./gradlew travelLoadTestStubs
 # 식품영양성분만 5xx로
-STUB_SCENARIO_FOOD_NUTRITION=server-error ./gradlew externalHttpStub
+STUB_SCENARIO_FOOD_NUTRITION=server-error ./gradlew travelLoadTestStubs
 ```
 
-`localhost`에만 바인딩한다. 지연·timeout 요청은 가상 스레드로 처리해 동시 요청에 막히지 않는다.
+한 명령이 OpenAI 스텁과 외부 API 스텁을 함께 시작한다. `localhost`에만 바인딩하며
+지연·timeout 요청은 가상 스레드로 처리한다. 외부 API 스텁만 필요하면 기존
+`./gradlew externalHttpStub`도 사용할 수 있다.
 
 ### 4-2. 애플리케이션 실행
 
@@ -109,6 +113,7 @@ STUB_SCENARIO_FOOD_NUTRITION=server-error ./gradlew externalHttpStub
 `loadtest` 프로파일(`application-common-loadtest.yml`):
 
 - 네 base URL을 `${LOADTEST_STUB_URL:http://localhost:18080}/<접두어>`로 둔다
+- OpenAI base URL을 `${LOADTEST_OPENAI_STUB_URL:http://localhost:18081}/v1`로 둔다
 - 외부 API 키와 OpenAI 키는 **환경변수에서 읽지 않고 고정된 가짜 값**을 쓴다. 실행 셸에 실제
   키가 있어도 부하 테스트가 실제 키를 쓰지 않는다
 - DB, Redis, `JWT_SECRET`은 `local`처럼 환경변수로 받는다. 외부 API가 아니라 애플리케이션 자체의 설정이다
@@ -143,19 +148,17 @@ client**를 스텁에 연결한다. 요청 경로와 파라미터, 기존 DTO �
 | 테스트 | 확인하는 것 |
 |---|---|
 | `ExternalHttpStubServerTest` (14) | 여덟 엔드포인트, 도 지역의 지역코드→시군구코드→목록 호출 순서, 관광지 fixture의 `TourismTool` 후보 필터 통과, 음식점별 서로 다른 메뉴, 음식명 정확 일치, 검색어별 장소 안정성, 자동차 경로 분 환산, 같은 요청 같은 응답, 없는 경로 404, 네 시나리오와 API별 적용, 환경변수 파싱, 요청 기록과 초기화 |
-| `LoadTestProfileTest` (4) | `loadtest` 그룹, 네 base URL이 로컬 스텁을 가리킴, `LOADTEST_STUB_URL` 덮어쓰기, 실행 환경의 실제 키를 읽지 않음 |
+| `LoadTestProfileTest` (6) | `loadtest` 그룹, 외부 API와 OpenAI base URL이 로컬 스텁을 가리킴, 주소 덮어쓰기, 실행 환경의 실제 키를 읽지 않음 |
 
-단독 실행(`./gradlew externalHttpStub`)도 확인했다. 경로별 `200`, 환경변수 시나리오의 `503`,
-Kakao 검색어 반영과 ID 계산, 호출 수 집계, 종료를 확인했다.
+통합 실행(`./gradlew travelLoadTestStubs`)도 확인했다. OpenAI Tool 호출과 후속 일정 응답,
+외부 API 경로별 `200`, 환경변수 시나리오, 호출 수 집계와 종료를 확인했다.
 
 ## 7. 한계와 통합 단계로 넘길 것
 
-- **전체 생성 경로는 이 스텁만으로 결정적이지 않다.** `TourismTool.selectAttractionCandidates`가
-  관광지 후보를 `Collections.shuffle`로 섞는다. 스텁 응답이 같아도 모델에 전달되는 후보 순서가
-  실행마다 달라진다. 운영 코드라 이번 범위에서 바꾸지 않았다. 통합 단계에서 전체 경로의 결정성을
-  요구하려면 이 지점을 먼저 다뤄야 한다
-- `loadtest` 프로파일만으로는 OpenAI 호출이 막히지 않는다. 가짜 키 때문에 인증에서 거부되지만
-  네트워크 요청은 나간다. OpenAI 스텁 Issue가 이 설정 파일에 필요한 값을 추가한다
+- 현재 부하 fixture는 AI가 빈 일정을 반환하고 Java가 전체 관광 후보에서 정렬된 장소를 채운다.
+  향후 AI가 후보 순서에 따라 직접 장소를 선택하는 fixture로 바꾸면
+  `TourismTool.selectAttractionCandidates`의 shuffle 결정성을 별도로 다뤄야 한다
 - Kakao 검색어에 `+`가 있으면 스텁이 공백으로 해석한다. 현재 사용하는 검색어에는 해당하지 않는다
 - 시군구 목록은 요청 지역과 무관하게 같다. 도 지역이면 목록에 있는 시군구명만 쓸 수 있다
-- 통합 테스트(`TravelLoadTestSmokeIntegrationTest`)는 OpenAI 스텁과 함께 두 PR 병합 뒤에 추가한다
+- OpenAI 부하 fixture는 1박 2일 관광 일정 하나만 제공한다. 다른 일수·식사·복약 시나리오는
+  Phase 3 기준선 범위가 확장될 때 추가한다

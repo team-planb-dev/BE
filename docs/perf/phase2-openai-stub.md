@@ -47,19 +47,27 @@ Spring AI가 지원하는 OpenAI `baseUrl`을 JDK `HttpServer`로 연 로컬 주
 ```bash
 ./gradlew test \
   --tests "com.planb.performance.openai.OpenAiProtocolStubTest"
+
+# OpenAI와 외부 API 스텁을 함께 실행
+./gradlew travelLoadTestStubs
 ```
 
 실제 OpenAI API key와 외부 네트워크는 필요하지 않다.
 
-## 후속 통합 조건
+## 부하 테스트 모드
 
-Claude 담당 Kor2·Kakao·음식 API stub과 병합한 뒤 한 개의 Travel 전체 경로 fixture를
-맞춘다. 최종 AI 응답의 `candidateId`, contentId, 장소명과 좌표는 외부 stub 후보와
-동일해야 한다. 공통 load-test profile과 build 설정은 병렬 작업 중 수정하지 않는다.
+focused retry 테스트는 기존 FIFO fixture를 유지한다. 부하 테스트 모드는 공유 queue를
+사용하지 않고 요청 본문에 `tool_call_id`가 있는지로 응답을 고른다.
 
-동시 부하 기준선에서는 순서를 소비하는 fixture 대신 요청 본문의 Tool 결과 유무로
-응답하는 상태 비저장 성공 시나리오를 사용한다. 현재 queue 방식은 retry 순서를
-검증하는 focused test 전용이다.
+- 최초 요청: `searchAttractionsByRegion` Tool 호출
+- Tool 결과 후 요청: 2일짜리 빈 일정
+- Java 후처리: 외부 스텁 후보 중 하루 2개 관광지를 결정적으로 채우고 검증·저장
+
+기본 일정은 `2030-01-01`부터 1박 2일이다. `STUB_PLAN_START_DATE`로 시작일을 바꿀 수
+있으며 부하 요청도 같은 날짜를 사용해야 한다. `OPENAI_STUB_PORT` 기본값은 `18081`이다.
+
+`TravelLoadTestSmokeIntegrationTest`가 실제 Spring AI Tool 호출부터 candidate identity,
+좌표, 이동시간, Java validation, 저장과 재조회까지 한 경로로 검증한다.
 
 ## 근거
 
