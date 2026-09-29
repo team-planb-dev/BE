@@ -10,10 +10,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.endpoint.web.WebEndpointsSupplier;
+import org.springframework.boot.http.client.HttpClientSettings;
 import org.springframework.boot.test.web.server.LocalManagementPort;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.ApplicationContext;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -22,6 +25,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -30,8 +34,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@TestPropertySource(properties = "EXTERNAL_HTTP_READ_TIMEOUT=200ms")
 class ActuatorSecurityIntegrationTest extends IntegrationTest {
 
     @Autowired
@@ -42,6 +48,9 @@ class ActuatorSecurityIntegrationTest extends IntegrationTest {
 
     @Autowired
     private MeterRegistry meterRegistry;
+
+    @Autowired
+    private HttpClientSettings httpClientSettings;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -188,6 +197,75 @@ class ActuatorSecurityIntegrationTest extends IntegrationTest {
                             .find("http.client.requests")
                             .timer()
             );
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    @DisplayName("외부 HTTP 연결 및 응답 timeout 설정")
+    void externalHttpTimeoutSettingsApplied() {
+
+        assertEquals(
+                Duration.ofSeconds(5),
+                httpClientSettings.connectTimeout()
+        );
+        assertEquals(
+                Duration.ofMillis(200),
+                httpClientSettings.readTimeout()
+        );
+    }
+
+    @Test
+    @DisplayName("외부 HTTP 응답 timeout 초과 요청 차단")
+    void externalHttpReadTimeoutEnforced() throws IOException {
+
+        WebClient.Builder webClientBuilder = applicationContext
+                .getBean(WebClient.Builder.class);
+
+        HttpServer server = HttpServer.create(
+                new InetSocketAddress(0),
+                0
+        );
+
+        server.createContext("/slow", exchange -> {
+            try {
+                Thread.sleep(600L);
+
+                byte[] response = "late".getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, response.length);
+                exchange.getResponseBody().write(response);
+            } catch (InterruptedException e) {
+                Thread
+                        .currentThread()
+                        .interrupt();
+            } finally {
+                exchange.close();
+            }
+        });
+
+        server.start();
+
+        long started = System.nanoTime();
+
+        try {
+            assertThrows(
+                    WebClientRequestException.class,
+                    () -> webClientBuilder
+                            .build()
+                            .get()
+                            .uri("http://localhost:" + server.getAddress().getPort() + "/slow")
+                            .retrieve()
+                            .bodyToMono(String.class)
+                            .block()
+            );
+
+            long elapsedMillis =
+                    Duration
+                            .ofNanos(System.nanoTime() - started)
+                            .toMillis();
+
+            assertTrue(elapsedMillis < 1_000L);
         } finally {
             server.stop(0);
         }

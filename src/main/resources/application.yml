@@ -12,6 +12,10 @@ server:
 spring:
   application:
     name: default-setting # 추후 변경
+  http:
+    clients:
+      connect-timeout: ${EXTERNAL_HTTP_CONNECT_TIMEOUT:5s}
+      read-timeout: ${EXTERNAL_HTTP_READ_TIMEOUT:15s}
   profiles:
     active: local
     group:
