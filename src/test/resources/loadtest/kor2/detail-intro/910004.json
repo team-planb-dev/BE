@@ -1,0 +1,23 @@
+{
+  "response": {
+    "header": {
+      "resultCode": "0000",
+      "resultMsg": "OK"
+    },
+    "body": {
+      "items": {
+        "item": [
+          {
+            "contentid": "910004",
+            "contenttypeid": "39",
+            "firstmenu": "삼계탕",
+            "treatmenu": "삼계탕, 공깃밥"
+          }
+        ]
+      },
+      "numOfRows": 1,
+      "pageNo": 1,
+      "totalCount": 1
+    }
+  }
+}

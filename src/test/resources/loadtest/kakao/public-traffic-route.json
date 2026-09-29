@@ -1,0 +1,25 @@
+{
+  "status": "OK",
+  "properties": {
+    "total": 1,
+    "bus": 1,
+    "subway": 0,
+    "busAndSubway": 0,
+    "landingURL": ""
+  },
+  "routes": [
+    {
+      "properties": {
+        "type": "BUS",
+        "totalDistance": 2400,
+        "totalTime": 1200,
+        "transfers": 0,
+        "fare": {
+          "value": 1500,
+          "min": 1500,
+          "max": 1500
+        }
+      }
+    }
+  ]
+}

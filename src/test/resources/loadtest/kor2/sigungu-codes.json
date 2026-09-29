@@ -1,0 +1,97 @@
+{
+  "response": {
+    "header": {
+      "resultCode": "0000",
+      "resultMsg": "OK"
+    },
+    "body": {
+      "items": {
+        "item": [
+          {
+            "rnum": "1",
+            "code": "1",
+            "name": "강릉시"
+          },
+          {
+            "rnum": "2",
+            "code": "2",
+            "name": "경주시"
+          },
+          {
+            "rnum": "3",
+            "code": "3",
+            "name": "춘천시"
+          },
+          {
+            "rnum": "4",
+            "code": "4",
+            "name": "속초시"
+          },
+          {
+            "rnum": "5",
+            "code": "5",
+            "name": "포항시"
+          },
+          {
+            "rnum": "6",
+            "code": "6",
+            "name": "안동시"
+          },
+          {
+            "rnum": "7",
+            "code": "7",
+            "name": "전주시"
+          },
+          {
+            "rnum": "8",
+            "code": "8",
+            "name": "여수시"
+          },
+          {
+            "rnum": "9",
+            "code": "9",
+            "name": "순천시"
+          },
+          {
+            "rnum": "10",
+            "code": "10",
+            "name": "제주시"
+          },
+          {
+            "rnum": "11",
+            "code": "11",
+            "name": "서귀포시"
+          },
+          {
+            "rnum": "12",
+            "code": "12",
+            "name": "수원시"
+          },
+          {
+            "rnum": "13",
+            "code": "13",
+            "name": "청주시"
+          },
+          {
+            "rnum": "14",
+            "code": "14",
+            "name": "천안시"
+          },
+          {
+            "rnum": "15",
+            "code": "15",
+            "name": "창원시"
+          },
+          {
+            "rnum": "16",
+            "code": "16",
+            "name": "통영시"
+          }
+        ]
+      },
+      "numOfRows": 16,
+      "pageNo": 1,
+      "totalCount": 16
+    }
+  }
+}
