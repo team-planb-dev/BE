@@ -79,6 +79,6 @@ ended_ms=$(( $(date +%s) * 1000 ))
 echo >&2
 echo "testid=$testid  k6 종료 코드=$k6_status" >&2
 echo "Grafana: http://localhost:3000/d/travel-load?var-testid=${testid}&from=${started_ms}&to=${ended_ms}" >&2
-echo "중지: docker compose -f $here/docker-compose.yml down   (지표는 volume에 남는다. 지우려면 -v)" >&2
+echo "중지: SCRAPE_TOKEN_DIR=/tmp docker compose -f $here/docker-compose.yml down   (지표는 volume에 남는다. 지우려면 -v)" >&2
 
 exit "$k6_status"

@@ -96,7 +96,7 @@
     {
       "id": 2,
       "type": "timeseries",
-      "title": "k6 지연 p50/p95/p99 (ms)",
+      "title": "k6 지연 p50/p95/p99 (일정 생성)",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -109,7 +109,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "ms",
+          "unit": "s",
           "custom": {
             "lineWidth": 1,
             "fillOpacity": 8
@@ -164,7 +164,7 @@
           }
         }
       ],
-      "description": "plan_duration Trend. K6_PROMETHEUS_RW_TREND_STATS로 지정한 통계만 나온다."
+      "description": "plan_duration Trend. k6 remote write는 시간 지표를 초 단위로 보낸다. K6_PROMETHEUS_RW_TREND_STATS로 지정한 통계만 나온다."
     },
     {
       "id": 3,
@@ -266,7 +266,7 @@
         },
         {
           "refId": "B",
-          "expr": "increase(k6_dropped_iterations_total{testid=\"$testid\"}[10s])",
+          "expr": "sum(increase(k6_dropped_iterations_total{testid=\"$testid\"}[10s])) or vector(0)",
           "legendFormat": "dropped iterations (10초)",
           "datasource": {
             "type": "prometheus",
@@ -320,7 +320,7 @@
         },
         {
           "refId": "B",
-          "expr": "sum(rate(http_server_requests_seconds_count{uri=\"/api/v1/travel/add-with-recommend\",outcome!=\"SUCCESS\"}[10s]))",
+          "expr": "sum(rate(http_server_requests_seconds_count{uri=\"/api/v1/travel/add-with-recommend\",outcome!=\"SUCCESS\"}[10s])) or vector(0)",
           "legendFormat": "오류율(SUCCESS 아님)",
           "datasource": {
             "type": "prometheus",
@@ -329,7 +329,7 @@
         },
         {
           "refId": "C",
-          "expr": "sum(http_server_requests_active_seconds_active_count)",
+          "expr": "sum(http_server_requests_active_seconds_count)",
           "legendFormat": "in-flight 요청",
           "datasource": {
             "type": "prometheus",
@@ -510,7 +510,7 @@
           }
         }
       ],
-      "description": "애플리케이션 재시도만 센다. Spring AI·SDK 내부 HTTP 재시도는 이 지표에 없다."
+      "description": "애플리케이션 재시도만 센다. Spring AI·SDK 내부 HTTP 재시도는 이 지표에 없다. 재시도가 한 번도 없으면 meter가 만들어지지 않아 비어 있는 것이 정상이다."
     },
     {
       "id": 9,

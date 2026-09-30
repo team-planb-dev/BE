@@ -36,9 +36,10 @@ case "$command" in
         signup_body=$(printf '{"username":"%s","nickname":"observe-%s","password":"%s","recoveryQuestion":"FIRST_PET","recoveryAnswer":"콩이","ageRequirementAgreed":true,"serviceTermsAgreed":true,"privacyCollectionAgreed":true}' \
             "$username" "$suffix" "$password")
 
+        # 연결 자체가 실패하면 curl이 0이 아닌 코드로 끝나 set -e가 설명 없이 종료시킨다. 000으로 바꿔 원인을 출력한다.
         signup_status=$(curl -s -o /dev/null -w '%{http_code}' \
             -X POST -H 'Content-Type: application/json' \
-            -d "$signup_body" "${base_url}/api/v1/user/create")
+            -d "$signup_body" "${base_url}/api/v1/user/create") || signup_status=000
 
         if [ "$signup_status" != "201" ]; then
             echo "계정 생성 실패: HTTP ${signup_status}" >&2
@@ -50,7 +51,7 @@ case "$command" in
         # 응답 본문은 버리고 헤더만 받는다.
         login_headers=$(curl -s -D - -o /dev/null \
             -X POST -H 'Content-Type: application/json' \
-            -d "$login_body" "${base_url}/login")
+            -d "$login_body" "${base_url}/login") || login_headers=""
 
         token=$(printf '%s\n' "$login_headers" \
             | tr -d '\r' \

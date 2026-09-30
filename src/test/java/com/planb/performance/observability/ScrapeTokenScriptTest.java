@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 class ScrapeTokenScriptTest {
 
     private static final Path SCRIPT = Path.of("src/test/observability/scrape-token.sh");
-    private static final String JWT = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.c2lnbmF0dXJl";
+    private static final String JWT = "fake-header.fake-payload.fake-signature";
 
     private HttpServer server;
 
@@ -147,6 +147,20 @@ class ScrapeTokenScriptTest {
         Result result = run("create", token);
 
         assertThat(result.exitCode).isNotZero();
+        assertThat(token).doesNotExist();
+    }
+
+    @Test
+    @DisplayName("애플리케이션에 연결할 수 없으면 원인을 출력하고 실패로 끝남")
+    void explainsWhenTheApplicationIsUnreachable() throws Exception {
+
+        server.stop(0);
+        Path token = directory.resolve("token");
+
+        Result result = run("create", token);
+
+        assertThat(result.exitCode).isNotZero();
+        assertThat(result.output).contains("계정 생성 실패");
         assertThat(token).doesNotExist();
     }
 

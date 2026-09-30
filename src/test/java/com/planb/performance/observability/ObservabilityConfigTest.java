@@ -127,6 +127,8 @@ class ObservabilityConfigTest {
                 .contains("--tag \"testid=$testid\"")
                 .contains("trap cleanup EXIT")
                 .contains("scrape-token.sh\" remove")
+                // compose 파일이 SCRAPE_TOKEN_DIR를 필수로 요구하므로 종료 안내에도 변수를 넣어야 그대로 실행된다.
+                .contains("SCRAPE_TOKEN_DIR=/tmp docker compose")
                 .doesNotContain("k6:latest");
 
         assertThat(script).containsPattern("grafana/k6@sha256:[0-9a-f]{64}");
