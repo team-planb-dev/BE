@@ -1,0 +1,20 @@
+# 로컬 부하 측정용 Prometheus 설정. 컨테이너 경로 기준이다.
+# 30초짜리 부하에서도 시계열이 나오도록 scrape 간격을 2초로 둔다. rate() 구간은 간격의 4배 이상(8초 이상)을 쓴다.
+global:
+  scrape_interval: 2s
+  scrape_timeout: 2s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # 애플리케이션 관리 포트. 사용자 JWT를 요구하므로 scrape-token.sh가 만든 임시 파일을 쓴다.
+  # type을 생략하면 기본값 Bearer가 쓰여 `Authorization: Bearer <파일 내용>` 헤더가 만들어진다.
+  # 스텁 서버(18080, 18081)는 지표를 내보내지 않는다. 스텁이 병목인지는 이 스택으로 구분할 수 없다.
+  - job_name: travel-app
+    metrics_path: /actuator/prometheus
+    authorization:
+      credentials_file: /etc/prometheus/scrape-token/token
+    static_configs:
+      - targets: ['host.docker.internal:8081']

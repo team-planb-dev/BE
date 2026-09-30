@@ -1,0 +1,36 @@
+# 로컬 부하 측정용 Prometheus + Grafana. 사용법은 docs/perf/phase4a-observability.md 참고.
+# 실행: SCRAPE_TOKEN_DIR=<scrape-token.sh가 만든 디렉터리> docker compose -f docker-compose.yml up -d
+# 두 서비스는 127.0.0.1에만 노출한다. 공개 인터넷에 노출하지 않는다.
+services:
+  prometheus:
+    image: prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      # k6가 experimental-prometheus-rw로 결과를 보내려면 필요하다.
+      - --web.enable-remote-write-receiver
+      - --storage.tsdb.retention.time=2d
+    ports:
+      - "127.0.0.1:9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ${SCRAPE_TOKEN_DIR:?SCRAPE_TOKEN_DIR가 필요함 (scrape-token.sh create로 만든 디렉터리)}:/etc/prometheus/scrape-token:ro
+      - prometheus-data:/prometheus
+
+  grafana:
+    image: grafana/grafana:12.4.12@sha256:83be3e511ede559bee80e2215bb1987cb1246075461cb961beb515b0341e7aea
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_DEFAULT_THEME: light
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+
+volumes:
+  prometheus-data:
