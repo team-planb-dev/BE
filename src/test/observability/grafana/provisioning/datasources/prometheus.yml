@@ -1,0 +1,13 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      # scrape 간격과 같게 두어 rate() 구간 계산이 어긋나지 않게 한다.
+      timeInterval: 2s
