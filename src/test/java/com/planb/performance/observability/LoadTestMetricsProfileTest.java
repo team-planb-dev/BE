@@ -32,7 +32,7 @@ class LoadTestMetricsProfileTest {
     void orchestrationHasBucketsBeyondThirtySeconds() {
 
         assertThat(bounds(timer("planb.travel.ai.orchestration")))
-                .contains(30.0, 60.0, 120.0, 300.0);
+                .contains(3.0, 6.0, 8.0, 30.0, 60.0, 120.0, 300.0);
     }
 
     @Test
@@ -41,7 +41,7 @@ class LoadTestMetricsProfileTest {
 
         assertThat(bounds(timer("http.server.requests")))
                 .isNotEmpty()
-                .contains(0.1, 1.0);
+                .contains(0.1, 1.0, 3.0, 6.0, 8.0);
     }
 
     @Test

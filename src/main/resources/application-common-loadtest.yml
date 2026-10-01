@@ -30,6 +30,8 @@ spring:
   ai:
     openai:
       api-key: loadtest-no-key
+      timeout: 20s
+      max-retries: 0
       chat:
         base-url: ${LOADTEST_OPENAI_STUB_URL:http://localhost:18081}/v1
         model: ${OPENAI_MODEL:loadtest-model}
@@ -37,6 +39,11 @@ spring:
     mcp:
       server:
         protocol: streamable
+
+server:
+  tomcat:
+    mbeanregistry:
+      enabled: true
 
 
 jwt:
@@ -59,14 +66,14 @@ external:
     base-url: ${LOADTEST_STUB_URL:http://localhost:18080}/food-nutrition
     service-key: loadtest
 
-# Phase 4A-1: 부하 측정에서 p50/p95/p99를 Prometheus로 계산하기 위한 SLO 버킷. loadtest 프로파일에만 적용한다.
+# Phase 4A: 부하 측정에서 p50/p95/p99를 Prometheus로 계산하기 위한 SLO 버킷. loadtest 프로파일에만 적용한다.
 # 기본 Timer는 _count·_sum·_max만 내보내 histogram_quantile을 쓸 수 없고, percentile histogram 기본 범위는
 # 30초에서 끊긴다. 긴 일정 생성을 보려고 300초까지 이어지는 경계를 직접 지정한다.
-# 경계는 잠정값이다. Phase 4A-2에서 OpenAI 고정 지연이 정해지면 실행 전에 확정한다.
+# 3초 OpenAI 지연을 두 번 호출하는 Phase 4A-2 경로를 위해 3초·6초·8초 경계를 포함한다.
 # http.client.requests는 의존성 구분이 생기기 전까지, planb.ai.retry는 횟수와 결과만 보므로 버킷을 두지 않는다.
 management:
   metrics:
     distribution:
       slo:
-        planb.travel.ai.orchestration: 50ms,100ms,250ms,500ms,1s,2s,5s,10s,20s,30s,60s,120s,300s
-        http.server.requests: 10ms,50ms,100ms,250ms,500ms,1s,2s,5s,10s,20s,30s,60s,120s,300s
+        planb.travel.ai.orchestration: 50ms,100ms,250ms,500ms,1s,2s,3s,5s,6s,8s,10s,20s,30s,60s,120s,300s
+        http.server.requests: 10ms,50ms,100ms,250ms,500ms,1s,2s,3s,5s,6s,8s,10s,20s,30s,60s,120s,300s
