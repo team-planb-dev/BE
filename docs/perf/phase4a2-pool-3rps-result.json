@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "kind": "PROCESSED_EXPERIMENT_RESULT",
+    "grafanaDashboardExportContainsMeasurements": false,
+    "grafanaDashboardTitle": "Travel 일정 생성 부하 측정 (Phase 4A)"
+  },
+  "experiment": {
+    "name": "Phase 4A-2 Travel AI Hikari pool saturation",
+    "testId": "phase4a2-pool-20260930-215019",
+    "scenario": "plan-throughput",
+    "arrivalRateRequestsPerSecond": 3,
+    "durationSeconds": 60,
+    "gracefulStopSeconds": 30,
+    "preAllocatedVus": 24,
+    "maxVus": 60,
+    "openAiStubDelayMillisecondsPerCall": 3000,
+    "openAiCallsPerPlan": 2,
+    "hikariMaximumPoolSize": 10,
+    "measurementWindow": {
+      "fromEpochMilliseconds": 1790772627000,
+      "toEpochMilliseconds": 1790772748000
+    },
+    "grafanaUrl": "http://localhost:3000/d/travel-load?var-testid=phase4a2-pool-20260930-215019&from=1790772627000&to=1790772748000"
+  },
+  "k6": {
+    "scheduledIterations": 180,
+    "completedIterations": 140,
+    "droppedIterations": 33,
+    "interruptedIterations": 7,
+    "completedRatio": 0.7778,
+    "completedRequestSuccessRate": 1.0,
+    "checks": {
+      "total": 420,
+      "succeeded": 420,
+      "failed": 0,
+      "successRate": 1.0
+    },
+    "planDurationSeconds": {
+      "average": 20.11,
+      "minimum": 6.11,
+      "median": 20.57,
+      "p90": 30.07,
+      "p95": 31.48,
+      "p99": 32.78,
+      "maximum": 33.37
+    },
+    "vus": {
+      "minimum": 2,
+      "maximum": 57
+    },
+    "http": {
+      "requests": 145,
+      "failedRequests": 0,
+      "failureRate": 0.0
+    }
+  },
+  "prometheus": {
+    "hikari": {
+      "activeMaximum": 10,
+      "idleMaximum": 10,
+      "pendingMaximum": 47,
+      "pendingContinuousSecondsApproximate": 84,
+      "connectionUsageMaximumSeconds": 6.685,
+      "activeAtEnd": 0,
+      "pendingAtEnd": 0
+    },
+    "tomcatApplicationConnector": {
+      "busyThreadsMaximum": 57,
+      "currentThreadsMaximum": 58,
+      "configuredMaximumThreads": 200,
+      "busyRatioMaximum": 0.285
+    },
+    "cpu": {
+      "processUsageMaximum": 0.0665,
+      "systemUsageMaximum": 0.4512
+    },
+    "http": {
+      "activePostRequestsMaximum": 57,
+      "activePostRequestsAtEnd": 0,
+      "server5xxObserved": 0
+    }
+  },
+  "comparisonWithOneRequestPerSecond": {
+    "planDurationP50Multiplier": 3.37,
+    "planDurationP95Multiplier": 4.78,
+    "planDurationP99Multiplier": 4.92,
+    "planDurationMaximumMultiplier": 5.0,
+    "hikariConnectionUsageSeconds": {
+      "oneRequestPerSecond": 6.663,
+      "threeRequestsPerSecond": 6.685
+    },
+    "hikariPendingMaximum": {
+      "oneRequestPerSecond": 0,
+      "threeRequestsPerSecond": 47
+    }
+  },
+  "conclusion": {
+    "leadingConstraint": "HIKARI_CONNECTION_POOL",
+    "hikariPoolSaturationConfirmed": true,
+    "tomcatThreadSaturationConfirmed": false,
+    "processCpuSaturationConfirmed": false,
+    "reason": "Hikari active reached 10/10 and pending reached 47 for approximately 84 seconds while Tomcat busy ratio remained at 28.5% and process CPU peaked at 6.7%.",
+    "nextDecision": "Reduce the transaction boundary around external AI calls before increasing the pool size or evaluating virtual threads."
+  },
+  "limitations": [
+    "Local deterministic stubs were used instead of real external APIs.",
+    "The experiment used one test account and one application instance.",
+    "The result does not represent production maximum throughput.",
+    "Improvement must be verified with the same experiment after transaction-boundary refactoring."
+  ]
+}

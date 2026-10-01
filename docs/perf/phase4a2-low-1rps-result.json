@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "kind": "PROCESSED_EXPERIMENT_RESULT",
+    "grafanaDashboardExportContainsMeasurements": false,
+    "grafanaDashboardTitle": "Travel 일정 생성 부하 측정 (Phase 4A)"
+  },
+  "experiment": {
+    "name": "Phase 4A-2 Travel AI low-rate baseline",
+    "testId": "phase4a2-low-20260930-165254",
+    "scenario": "plan-throughput",
+    "arrivalRateRequestsPerSecond": 1,
+    "durationSeconds": 60,
+    "openAiStubDelayMillisecondsPerCall": 3000,
+    "openAiCallsPerPlan": 2,
+    "hikariMaximumPoolSize": 10,
+    "measurementWindow": {
+      "from": "2026-09-30T07:53:03.000Z",
+      "to": "2026-09-30T07:54:40.000Z"
+    },
+    "grafanaUrl": "http://localhost:3000/d/travel-load/9bb63db?var-testid=phase4a2-low-20260930-165254&from=2026-09-30T07:53:03.000Z&to=2026-09-30T07:54:40.000Z&timezone=browser&orgId=1"
+  },
+  "k6": {
+    "scheduledIterationsApproximate": 60,
+    "completedIterations": 61,
+    "droppedIterations": 0,
+    "interruptedIterations": 0,
+    "completedRequestSuccessRate": 1.0,
+    "checkSuccessRate": 1.0,
+    "planDurationSeconds": {
+      "p50": 6.1089707945,
+      "p95": 6.59260532435,
+      "p99": 6.65987993447,
+      "maximum": 6.676698587
+    },
+    "vus": {
+      "maximum": 6
+    },
+    "http": {
+      "server5xxObserved": 0,
+      "timeoutsObserved": 0
+    }
+  },
+  "prometheus": {
+    "hikari": {
+      "activeMaximum": 6,
+      "pendingMaximum": 0,
+      "connectionUsageMaximumSeconds": 6.663,
+      "activeAtEnd": 0,
+      "pendingAtEnd": 0
+    },
+    "tomcatApplicationConnector": {
+      "busyThreadsMaximum": 7,
+      "currentThreadsMaximum": 10,
+      "configuredMaximumThreads": 200,
+      "busyRatioMaximum": 0.035
+    },
+    "cpu": {
+      "processUsageMaximum": 0.135,
+      "systemUsageMaximum": 0.325
+    },
+    "http": {
+      "activeRequestsAtEnd": 0,
+      "server5xxObserved": 0
+    }
+  },
+  "conclusion": {
+    "leadingConstraint": "NOT_SATURATED_AT_ONE_REQUEST_PER_SECOND",
+    "hikariPoolSaturationConfirmed": false,
+    "tomcatThreadSaturationConfirmed": false,
+    "processCpuSaturationConfirmed": false,
+    "reason": "All 61 iterations completed successfully. Hikari active peaked at 6/10 with no pending connections, while Tomcat busy ratio peaked at 3.5%.",
+    "nextDecision": "Increase the arrival rate to three requests per second to test whether the Hikari pool becomes the leading constraint."
+  },
+  "limitations": [
+    "Local deterministic stubs were used instead of real external APIs.",
+    "The experiment used one test account and one application instance.",
+    "This low-rate run is a baseline and does not represent production maximum throughput."
+  ]
+}
