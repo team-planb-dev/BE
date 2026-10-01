@@ -45,6 +45,10 @@ class LoadTestProfileTest {
 
         assertThat(yaml("application-common-loadtest.yml").getProperty("spring.config.activate.on-profile"))
                 .isEqualTo("common-loadtest");
+
+        assertThat(yaml("application-common-loadtest.yml")
+                .getProperty("spring.ai.mcp.server.protocol"))
+                .isEqualTo("streamable");
     }
 
     @Test
@@ -78,6 +82,21 @@ class LoadTestProfileTest {
 
         assertThat(resolver.getProperty(OPENAI_BASE_URL_KEY))
                 .isEqualTo("http://localhost:18081/v1");
+
+        assertThat(resolver.getProperty("spring.ai.openai.timeout"))
+                .isEqualTo("20s");
+
+        assertThat(resolver.getProperty("spring.ai.openai.max-retries"))
+                .isEqualTo("0");
+    }
+
+    @Test
+    @DisplayName("loadtest 프로파일의 Tomcat MBean registry 활성화")
+    void tomcatMBeanRegistryEnabled() throws IOException {
+
+        assertThat(yaml("application-common-loadtest.yml")
+                .getProperty("server.tomcat.mbeanregistry.enabled"))
+                .isEqualTo(true);
     }
 
     @Test

@@ -125,13 +125,21 @@ class ObservabilityConfigTest {
                 .contains("K6_PROMETHEUS_RW_SERVER_URL=")
                 .contains("K6_PROMETHEUS_RW_TREND_STATS=p(50),p(95),p(99),avg,max")
                 .contains("--tag \"testid=$testid\"")
+                .contains("GRACEFUL_STOP")
+                .contains("Grafana live:")
+                .contains("SCRAPE_DRAIN_SECONDS")
+                .contains("needs_drain=1")
                 .contains("trap cleanup EXIT")
+                .contains("trap '' INT TERM HUP")
                 .contains("scrape-token.sh\" remove")
                 // compose 파일이 SCRAPE_TOKEN_DIR를 필수로 요구하므로 종료 안내에도 변수를 넣어야 그대로 실행된다.
                 .contains("SCRAPE_TOKEN_DIR=/tmp docker compose")
                 .doesNotContain("k6:latest");
 
         assertThat(script).containsPattern("grafana/k6@sha256:[0-9a-f]{64}");
+
+        assertThat(Files.readString(Path.of("src/test/k6/travel-plan.js")))
+                .contains("gracefulStop: __ENV.GRACEFUL_STOP || '30s'");
     }
 
     @Test
@@ -175,6 +183,8 @@ class ObservabilityConfigTest {
                 "외부 HTTP 호스트별",
                 "Hikari 커넥션",
                 "usage",
+                "Tomcat 요청 스레드",
+                "일정 생성 HTTP 실패율",
                 "JVM",
                 "CPU",
                 "scrape 대상"
@@ -217,6 +227,70 @@ class ObservabilityConfigTest {
         }
 
         assertThat(dashboard.path("templating").toString()).contains("testid");
+
+        assertThat(dashboard.toString())
+                .contains("tomcat_threads_busy_threads")
+                .contains("tomcat_threads_current_threads")
+                .contains("tomcat_threads_config_max_threads")
+                .contains("tomcat_threads_busy_threads / tomcat_threads_config_max_threads")
+                .contains("increase(k6_http_reqs_total")
+                .contains("error_code=\\\"1050\\\"")
+                .contains("status=~\\\"5..\\\"")
+                .contains("uri=\\\"/api/v1/travel/add-with-recommend\\\"");
+    }
+
+    @Test
+    @DisplayName("관측 실행 정리 중 반복 중단에도 임시 토큰 삭제")
+    void cleanupRemovesTokenAfterRepeatedInterrupts() throws Exception {
+
+        Path tokenDirectory = Files.createTempDirectory("planb-observability-token-");
+        Path token = tokenDirectory.resolve("token");
+
+        Files.writeString(
+                token,
+                "secret"
+        );
+
+        ProcessBuilder processBuilder = new ProcessBuilder(
+                "bash",
+                "-c",
+                "source \"$SCRIPT\"; "
+                        + "token_dir=\"$TOKEN_DIRECTORY\"; "
+                        + "needs_drain=1; "
+                        + "drain_seconds=1; "
+                        + "cleanup & cleanup_pid=$!; "
+                        + "sleep 0.1; "
+                        + "kill -INT \"$cleanup_pid\"; "
+                        + "kill -TERM \"$cleanup_pid\"; "
+                        + "wait \"$cleanup_pid\"; "
+                        + "test ! -e \"$TOKEN_DIRECTORY/token\""
+        )
+                .redirectErrorStream(true);
+
+        processBuilder
+                .environment()
+                .put(
+                        "SCRIPT",
+                        ROOT
+                                .resolve("run-observed-load.sh")
+                                .toAbsolutePath()
+                                .toString()
+                );
+        processBuilder
+                .environment()
+                .put(
+                        "TOKEN_DIRECTORY",
+                        tokenDirectory.toString()
+                );
+
+        Process process = processBuilder.start();
+
+        assertThat(process.waitFor())
+                .as(new String(process.getInputStream().readAllBytes()))
+                .isZero();
+
+        assertThat(token).doesNotExist();
+        assertThat(tokenDirectory).doesNotExist();
     }
 
     private List<String> panelTitles() throws IOException {

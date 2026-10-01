@@ -8,15 +8,18 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 public final class OpenAiChatCompletionStub implements AutoCloseable {
@@ -33,20 +36,41 @@ public final class OpenAiChatCompletionStub implements AutoCloseable {
 
     private final Function<String, String> responseSelector;
 
+    private final Duration responseDelay;
+
+    private final AtomicInteger activeRequests = new AtomicInteger();
+
+    private final AtomicInteger maxConcurrentRequests = new AtomicInteger();
+
     public OpenAiChatCompletionStub() {
+
+        this(Duration.ZERO);
+    }
+
+    public OpenAiChatCompletionStub(Duration responseDelay) {
 
         this(
                 0,
-                null
+                null,
+                responseDelay
         );
     }
 
     private OpenAiChatCompletionStub(
             int port,
-            Function<String, String> responseSelector
+            Function<String, String> responseSelector,
+            Duration responseDelay
     ) {
 
         this.responseSelector = responseSelector;
+        this.responseDelay = Objects.requireNonNull(
+                responseDelay,
+                "responseDelay"
+        );
+
+        if (this.responseDelay.isNegative()) {
+            throw new IllegalArgumentException("OpenAI 스텁 응답 지연은 음수일 수 없습니다.");
+        }
 
         try {
             server = HttpServer.create(
@@ -71,6 +95,21 @@ public final class OpenAiChatCompletionStub implements AutoCloseable {
             LocalDate endDate
     ) {
 
+        return startTravelPlan(
+                port,
+                startDate,
+                endDate,
+                Duration.ZERO
+        );
+    }
+
+    public static OpenAiChatCompletionStub startTravelPlan(
+            int port,
+            LocalDate startDate,
+            LocalDate endDate,
+            Duration responseDelay
+    ) {
+
         String toolCall = fixture(
                 "travel-attraction-tool-call.json",
                 Map.of()
@@ -88,7 +127,8 @@ public final class OpenAiChatCompletionStub implements AutoCloseable {
                 port,
                 request -> request.contains("\"tool_call_id\"")
                         ? plan
-                        : toolCall
+                        : toolCall,
+                responseDelay
         );
     }
 
@@ -125,6 +165,11 @@ public final class OpenAiChatCompletionStub implements AutoCloseable {
         }
     }
 
+    public int maxConcurrentRequests() {
+
+        return maxConcurrentRequests.get();
+    }
+
     private void handle(HttpExchange exchange) throws IOException {
 
         String request = new String(
@@ -136,26 +181,46 @@ public final class OpenAiChatCompletionStub implements AutoCloseable {
 
         requests.add(request);
 
-        String response = responseSelector == null
-                ? responses.poll()
-                : responseSelector.apply(request);
+        int concurrentRequests = activeRequests.incrementAndGet();
 
-        if (response == null) {
-            response = "{\"error\":{\"message\":\"No scripted response\"}}";
+        maxConcurrentRequests.accumulateAndGet(
+                concurrentRequests,
+                Math::max
+        );
+
+        try {
+            String response = responseSelector == null
+                    ? responses.poll()
+                    : responseSelector.apply(request);
+
+            if (response == null) {
+                response = "{\"error\":{\"message\":\"No scripted response\"}}";
+                send(
+                        exchange,
+                        500,
+                        response
+                );
+
+                return;
+            }
+
+            try {
+                Thread.sleep(responseDelay);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                exchange.close();
+
+                return;
+            }
+
             send(
                     exchange,
-                    500,
+                    200,
                     response
             );
-
-            return;
+        } finally {
+            activeRequests.decrementAndGet();
         }
-
-        send(
-                exchange,
-                200,
-                response
-        );
     }
 
     private void send(

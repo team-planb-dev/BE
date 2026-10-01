@@ -63,24 +63,9 @@ class OpenAiProtocolStubTest {
     void setUp() {
 
         stub = new OpenAiChatCompletionStub();
-
-        OpenAiChatOptions options = OpenAiChatOptions
-                .builder()
-                .baseUrl(stub.baseUrl())
-                .apiKey("planb-stub")
-                .model("planb-stub")
-                .timeout(Duration.ofSeconds(2))
-                .maxRetries(0)
-                .build();
-
-        OpenAiChatModel model = OpenAiChatModel
-                .builder()
-                .options(options)
-                .build();
-
-        openAiClient = new OpenAiClient(
-                ChatClient.create(model),
-                new SimpleMeterRegistry()
+        openAiClient = openAiClient(
+                stub,
+                Duration.ofSeconds(2)
         );
 
         outputConverter = new BeanOutputConverter<>(StubResponse.class);
@@ -311,6 +296,177 @@ class OpenAiProtocolStubTest {
                 }
             }
         }
+    }
+
+    @Test
+    @DisplayName("일정 생성 OpenAI 스텁의 고정 응답 지연")
+    void fixedResponseDelay() throws Exception {
+
+        LocalDate startDate = LocalDate.of(
+                2030,
+                1,
+                1
+        );
+
+        try (OpenAiChatCompletionStub loadTestStub =
+                     OpenAiChatCompletionStub.startTravelPlan(
+                             0,
+                             startDate,
+                             startDate.plusDays(1),
+                             Duration.ofMillis(100)
+                     )) {
+
+            long startedAt = System.nanoTime();
+
+            HttpResponse<String> response = request(
+                    loadTestStub,
+                    "{\"messages\":[{\"role\":\"user\",\"content\":\"plan\"}]}"
+            );
+
+            long elapsedMillis = Duration
+                    .ofNanos(System.nanoTime() - startedAt)
+                    .toMillis();
+
+            assertEquals(200, response.statusCode());
+            assertTrue(
+                    elapsedMillis >= 80,
+                    "고정 지연 100ms보다 너무 빨리 응답함: " + elapsedMillis + "ms"
+            );
+        }
+    }
+
+    @Test
+    @DisplayName("음수 OpenAI 스텁 응답 지연 거부")
+    void negativeResponseDelay() {
+
+        LocalDate startDate = LocalDate.of(
+                2030,
+                1,
+                1
+        );
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> OpenAiChatCompletionStub.startTravelPlan(
+                        0,
+                        startDate,
+                        startDate.plusDays(1),
+                        Duration.ofMillis(-1)
+                )
+        );
+    }
+
+    @Test
+    @DisplayName("고정 지연 중 동시 OpenAI 스텁 응답")
+    void concurrentFixedResponseDelay() throws Exception {
+
+        LocalDate startDate = LocalDate.of(
+                2030,
+                1,
+                1
+        );
+
+        try (OpenAiChatCompletionStub loadTestStub =
+                     OpenAiChatCompletionStub.startTravelPlan(
+                             0,
+                             startDate,
+                             startDate.plusDays(1),
+                             Duration.ofMillis(300)
+                     );
+             ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+
+            List<Callable<HttpResponse<String>>> calls = IntStream
+                    .range(
+                            0,
+                            6
+                    )
+                    .mapToObj(index -> (Callable<HttpResponse<String>>) () -> request(
+                            loadTestStub,
+                            "{\"messages\":[{\"role\":\"user\",\"content\":\"plan\"}]}"
+                    ))
+                    .toList();
+
+            List<Future<HttpResponse<String>>> responses = executor.invokeAll(calls);
+
+            for (Future<HttpResponse<String>> response : responses) {
+                assertEquals(
+                        200,
+                        response
+                                .get()
+                                .statusCode()
+                );
+            }
+
+            assertTrue(
+                    loadTestStub.maxConcurrentRequests() > 1,
+                    "고정 지연 응답이 겹쳐 처리되지 않음"
+            );
+        }
+    }
+
+    @Test
+    @DisplayName("고정 지연 OpenAI Tool 왕복 2회")
+    void delayedToolCallingRoundTrip() {
+
+        try (OpenAiChatCompletionStub delayedStub =
+                     new OpenAiChatCompletionStub(Duration.ofMillis(100))) {
+
+            delayedStub.enqueueFixtures(
+                    "tool-call.json",
+                    "success.json"
+            );
+
+            StubTool tool = new StubTool();
+            long startedAt = System.nanoTime();
+
+            StubResponse response = openAiClient(
+                    delayedStub,
+                    Duration.ofSeconds(1)
+            ).call(
+                    prompt,
+                    outputConverter,
+                    tool
+            );
+
+            long elapsedMillis = Duration
+                    .ofNanos(System.nanoTime() - startedAt)
+                    .toMillis();
+
+            assertEquals(new StubResponse("success"), response);
+            assertEquals(1, tool.callCount());
+            assertEquals(
+                    2,
+                    delayedStub
+                            .requests()
+                            .size()
+            );
+            assertTrue(elapsedMillis >= 180);
+        }
+    }
+
+    private OpenAiClient openAiClient(
+            OpenAiChatCompletionStub target,
+            Duration timeout
+    ) {
+
+        OpenAiChatOptions options = OpenAiChatOptions
+                .builder()
+                .baseUrl(target.baseUrl())
+                .apiKey("planb-stub")
+                .model("planb-stub")
+                .timeout(timeout)
+                .maxRetries(0)
+                .build();
+
+        OpenAiChatModel model = OpenAiChatModel
+                .builder()
+                .options(options)
+                .build();
+
+        return new OpenAiClient(
+                ChatClient.create(model),
+                new SimpleMeterRegistry()
+        );
     }
 
     private List<String> validate(StubResponse response) {
