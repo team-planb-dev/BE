@@ -8,29 +8,49 @@
 #   BASE_URL            애플리케이션 주소 (호스트에서 본 값, 기본 http://localhost:8080)
 #   MANAGEMENT_URL      관리 포트 주소 (기본 http://localhost:8081)
 #   TESTID              이번 실행의 식별자. k6 지표의 testid 라벨이 된다 (기본 UTC 시각)
-#   SCENARIO, PLAN_RATE, PLAN_DURATION, PRE_ALLOCATED_VUS, MAX_VUS, STUB_PLAN_START_DATE  k6 스크립트로 전달한다
+#   SCENARIO, PLAN_RATE, PLAN_DURATION, PRE_ALLOCATED_VUS, MAX_VUS, GRACEFUL_STOP, STUB_PLAN_START_DATE  k6 스크립트로 전달한다
+#   SCRAPE_DRAIN_SECONDS  k6 종료·중단 후 남은 요청을 수집할 시간 (기본 30초)
 #   DOCKER              docker 실행 파일 (기본 docker)
 #
 # 임시 JWT 파일은 성공·실패·중단과 관계없이 종료 때 지운다. 토큰이 없어지면 travel-app target은 DOWN이 되며 정상이다.
 set -euo pipefail
 
-here="$(cd "$(dirname "$0")" && pwd)"
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 docker="${DOCKER:-docker}"
 
 base_url="${BASE_URL:-http://localhost:8080}"
 management_url="${MANAGEMENT_URL:-http://localhost:8081}"
 testid="${TESTID:-$(date -u +%Y%m%dT%H%M%SZ)}"
+drain_seconds="${SCRAPE_DRAIN_SECONDS:-30}"
 
 # 다이제스트로 고정한다. remote write 출력은 실험 기능이라 k6 버전이 바뀌면 동작이 달라질 수 있다.
 k6_image='grafana/k6@sha256:e66db15b860113878fa74670e31f5e274830b7b6e42c8bff28b2f2d86a257603'
 
-token_dir="$(mktemp -d)"
+token_dir=""
+needs_drain=0
+
+drain() {
+    echo "남은 요청 지표 ${drain_seconds}초 수집 중..." >&2
+    sleep "$drain_seconds"
+}
 
 cleanup() {
-    "$here/scrape-token.sh" remove "$token_dir/token" || true
-    rmdir "$token_dir" 2>/dev/null || true
+    trap '' INT TERM HUP
+
+    if [ "$needs_drain" -eq 1 ]; then
+        drain || true
+    fi
+
+    if [ -n "$token_dir" ]; then
+        "$here/scrape-token.sh" remove "$token_dir/token" || true
+        rmdir "$token_dir" 2>/dev/null || true
+    fi
+
     echo "임시 토큰 파일 삭제 완료" >&2
 }
+
+main() {
+token_dir="$(mktemp -d)"
 trap cleanup EXIT
 
 BASE_URL="$base_url" "$here/scrape-token.sh" create "$token_dir/token"
@@ -52,13 +72,16 @@ fi
 
 started_ms=$(( $(date +%s) * 1000 ))
 
+echo "Grafana live: http://localhost:3000/d/travel-load?var-testid=${testid}&from=${started_ms}&to=now" >&2
+
 k6_env=(-e "BASE_URL=http://host.docker.internal:${base_url##*:}" -e "MANAGEMENT_URL=http://host.docker.internal:${management_url##*:}")
 
-for name in SCENARIO PLAN_RATE PLAN_DURATION PRE_ALLOCATED_VUS MAX_VUS STUB_PLAN_START_DATE; do
+for name in SCENARIO PLAN_RATE PLAN_DURATION PRE_ALLOCATED_VUS MAX_VUS GRACEFUL_STOP STUB_PLAN_START_DATE; do
     [ -n "${!name:-}" ] && k6_env+=(-e "$name=${!name}")
 done
 
 set +e
+needs_drain=1
 "$docker" run --rm \
     --add-host=host.docker.internal:host-gateway \
     -v "$here/../k6:/scripts:ro" \
@@ -72,8 +95,9 @@ set +e
 k6_status=$?
 set -e
 
-# 마지막 push가 Prometheus에 반영될 시간을 준다.
-sleep 6
+# k6가 종료되어도 서버에 남은 요청과 마지막 scrape를 보존한다.
+needs_drain=0
+drain
 ended_ms=$(( $(date +%s) * 1000 ))
 
 echo >&2
@@ -82,3 +106,8 @@ echo "Grafana: http://localhost:3000/d/travel-load?var-testid=${testid}&from=${s
 echo "중지: SCRAPE_TOKEN_DIR=/tmp docker compose -f $here/docker-compose.yml down   (지표는 volume에 남는다. 지우려면 -v)" >&2
 
 exit "$k6_status"
+}
+
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+    main "$@"
+fi

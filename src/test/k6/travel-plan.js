@@ -40,7 +40,7 @@ export const options = {
                 duration: __ENV.PLAN_DURATION || '30s',
                 preAllocatedVUs: Number(__ENV.PRE_ALLOCATED_VUS || 5),
                 maxVUs: Number(__ENV.MAX_VUS || 10),
-                gracefulStop: '10s',
+                gracefulStop: __ENV.GRACEFUL_STOP || '30s',
             },
         },
     thresholds: {
