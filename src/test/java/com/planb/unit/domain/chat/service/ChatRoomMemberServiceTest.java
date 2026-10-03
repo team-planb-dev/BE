@@ -18,8 +18,12 @@ import com.planb.domain.chat.entity.ChatRoomMember;
 import com.planb.domain.chat.repository.ChatRoomMemberRepository;
 import com.planb.domain.chat.service.ChatRoomMemberService;
 import com.planb.domain.user.entity.User;
+import com.planb.query.chat.service.ChatRoomMemberQueryService;
+import com.planb.domain.travel.entity.Travel;
+import com.planb.global.config.exception.domain.ForbiddenException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -27,6 +31,9 @@ class ChatRoomMemberServiceTest {
 
     @Mock
     private ChatRoomMemberRepository chatRoomMemberRepository;
+
+    @Mock
+    private ChatRoomMemberQueryService chatRoomMemberQueryService;
 
     @InjectMocks
     private ChatRoomMemberService chatRoomMemberService;
@@ -130,5 +137,58 @@ class ChatRoomMemberServiceTest {
 
         assertThat(result.message())
                 .isEqualTo("woojuice@example.com님이 퇴장하셨습니다.");
+    }
+
+    @Test
+    @DisplayName("여행 채팅방 기존 구성원의 중복 등록 생략")
+    void ensureExistingMember() {
+
+        ChatRoom room = ChatRoom.builder().id(1L).build();
+        User user = User.builder().id(2L).build();
+        when(chatRoomMemberQueryService.checkSubscriberWithRoomId(1L, 2L))
+                .thenReturn(true);
+
+        chatRoomMemberService.ensureMember(room, user);
+
+        verify(chatRoomMemberRepository, never())
+                .save(any());
+    }
+
+    @Test
+    @DisplayName("여행 채팅방 신규 구성원 등록")
+    void ensureNewMember() {
+
+        ChatRoom room = ChatRoom.builder().id(1L).build();
+        User user = User.builder().id(2L).username("user@example.com").build();
+        when(chatRoomMemberQueryService.checkSubscriberWithRoomId(1L, 2L))
+                .thenReturn(false);
+
+        chatRoomMemberService.ensureMember(room, user);
+
+        verify(chatRoomMemberRepository)
+                .save(any(ChatRoomMember.class));
+    }
+
+    @Test
+    @DisplayName("인증 사용자와 다른 멤버십 변경 거부")
+    void rejectOtherUserMembershipChange() {
+
+        User user = User.builder().id(2L).build();
+
+        assertThatThrownBy(() -> chatRoomMemberService.validateRequestedUser(3L, user))
+                .isInstanceOf(ForbiddenException.class);
+    }
+
+    @Test
+    @DisplayName("여행 채팅방의 비소유자 변경 거부")
+    void rejectOtherTravelOwner() {
+
+        User owner = User.builder().id(1L).build();
+        User participant = User.builder().id(2L).build();
+        Travel travel = Travel.builder().user(owner).build();
+        ChatRoom room = ChatRoom.builder().travel(travel).build();
+
+        assertThatThrownBy(() -> chatRoomMemberService.validateTravelRoomOwner(room, participant))
+                .isInstanceOf(ForbiddenException.class);
     }
 }

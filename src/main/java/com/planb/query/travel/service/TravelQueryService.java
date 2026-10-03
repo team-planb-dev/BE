@@ -1,6 +1,9 @@
 package com.planb.query.travel.service;
 
 import com.planb.domain.travel.entity.constant.TravelListFilter;
+import com.planb.domain.travel.dto.response.TravelListItemResponse;
+import com.planb.domain.travel.dto.response.TravelListResponse;
+import com.planb.global.config.exception.domain.ForbiddenException;
 import com.planb.query.travel.dto.response.TravelConditionQueryResponse;
 import com.planb.query.travel.dto.response.TravelListItemQueryResponse;
 import com.planb.query.travel.repository.TravelQueryRepository;
@@ -55,5 +58,39 @@ public class TravelQueryService {
     public boolean existsByIdAndUserId(Long travelId, Long userId){
 
         return travelQueryRepository.existsByIdAndUserId(travelId, userId);
+    }
+
+    public void validateOwner(
+            Long travelId,
+            Long userId
+    ) {
+
+        if (!existsByIdAndUserId(travelId, userId)) {
+            throw new ForbiddenException(
+                    new Object[]{"해당 여행에 대한 접근 권한이 없습니다."}
+            );
+        }
+    }
+
+    public TravelListResponse getTravelListResponse(
+            Long userId,
+            TravelListFilter filter
+    ) {
+
+        LocalDate today = LocalDate.now();
+        List<TravelListItemQueryResponse> travels = getTravelList(userId, filter, today);
+        Map<Long, String> thumbnailUrls = getThumbnailUrls(travels
+                .stream()
+                .map(TravelListItemQueryResponse::travelId)
+                .toList());
+
+        return new TravelListResponse(travels
+                .stream()
+                .map(travel -> TravelListItemResponse.of(
+                        travel,
+                        today,
+                        thumbnailUrls.get(travel.travelId())
+                ))
+                .toList());
     }
 }

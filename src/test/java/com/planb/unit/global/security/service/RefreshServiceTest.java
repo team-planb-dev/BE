@@ -45,6 +45,38 @@ class RefreshServiceTest {
     @InjectMocks
     private RefreshService refreshService;
 
+    @Test
+    @DisplayName("Refresh Token 누락 예외 매핑")
+    void reissueWithoutRefreshToken() {
+
+        when(cookieUtil.findCookie(request))
+                .thenReturn(null);
+
+        assertThatThrownBy(() -> refreshService.reissue(request))
+                .isInstanceOf(BaseException.class)
+                .extracting("errorCode")
+                .isEqualTo(BaseExceptionEnum.REFRESH_TOKEN_EXPIRED.getCode());
+    }
+
+    @Test
+    @DisplayName("Refresh Token 만료 예외 매핑")
+    void reissueWithExpiredRefreshToken() {
+
+        String refresh = "expired-refresh-token";
+
+        when(cookieUtil.findCookie(request))
+                .thenReturn(refresh);
+
+        doThrow(new ExpiredJwtException(null, null, "expired"))
+                .when(jwtUtil)
+                .isExpired(refresh);
+
+        assertThatThrownBy(() -> refreshService.reissue(request))
+                .isInstanceOf(BaseException.class)
+                .extracting("errorCode")
+                .isEqualTo(BaseExceptionEnum.REFRESH_TOKEN_NOT_FOUND.getCode());
+    }
+
 
     @Test
     @DisplayName("refresh cookie가 없을 시, REFRESH_NULL 상태반환")

@@ -53,6 +53,7 @@ import com.planb.domain.travel.service.PlanService;
 import com.planb.domain.travel.service.RestaurantDetailService;
 import com.planb.domain.travel.service.TravelService;
 import com.planb.global.config.exception.PlanEditExceptionEnum;
+import com.planb.global.config.exception.TravelExceptionEnum;
 import com.planb.global.config.exception.domain.BaseException;
 import com.planb.global.config.exception.domain.ForbiddenException;
 import com.planb.global.security.dto.UserAuthCache;
@@ -73,6 +74,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
@@ -82,11 +84,14 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -255,1648 +260,211 @@ class TravelFacadeTest {
     }
 
     @Test
-    @DisplayName("사용자 입력 데이터 기반 여행 일정 생성")
+    @DisplayName("여행 일정 생성의 Service 호출 순서")
     void makeTravelOptionsAndRecommend() {
 
-        // given
-        Long userId = 1L;
         String username = "testUser@example.com";
+        CreateTravelRequest request = mock(CreateTravelRequest.class);
+        List<TravelHealthContext> healthContexts = List.of();
+        CreatePlanAiResponse aiResponse = new CreatePlanAiResponse(List.of());
+        CreatePlanResponse response = mock(CreatePlanResponse.class);
 
-        UserAuthCache userAuthCache =
-                new UserAuthCache(
-                        userId,
-                        username,
-                        "ROLE_USER"
-                );
+        when(userQueryService.findUserIdInCache(username))
+                .thenReturn(1L);
+        when(travelService.loadHealthContexts(request, 1L))
+                .thenReturn(healthContexts);
+        when(planService.makePlanByAi(request, healthContexts))
+                .thenReturn(aiResponse);
+        when(travelService.saveGeneratedPlan(request, 1L, aiResponse))
+                .thenReturn(response);
 
-        CreateTravelRequest createTravelRequest =
-                new CreateTravelRequest(
-                        "부산 여행",
-                        "부산",
-                        "해운대구",
-                        LocalDate.of(2026, 9, 1),
-                        DateType.ONE_NIGHT_TWO_DAYS,
-                        Transportation.CAR,
-                        "해운대해수욕장",
-                        List.of(
-                                new CreateTravelRequest.PlannedPlaceDetail(
-                                        "해운대해수욕장",
-                                        "부산광역시 해운대구"
-                                )
-                        ),
-                        TravelStyle.LESS_WALK,
-                        TravelTheme.TASTE,
-                        List.of("돼지국밥"),
-                        List.of("밀면"),
-                        List.of(100L)
-                );
-
-        Travel travel =
-                Travel.builder()
-                        .id(1L)
-                        .travelName("부산 여행")
-                        .locationDo("부산")
-                        .locationSigungu("해운대구")
-                        .startDate(LocalDate.of(2026, 9, 1))
-                        .endDate(LocalDate.of(2026, 9, 2))
-                        .dateType(DateType.ONE_NIGHT_TWO_DAYS)
-                        .transportation(Transportation.CAR)
-                        .decidedLocation("해운대해수욕장")
-                        .travelStyle(TravelStyle.LESS_WALK)
-                        .travelTheme(TravelTheme.TASTE)
-                        .localFoods(List.of("돼지국밥"))
-                        .recommendFoods(List.of("밀면"))
-                        .build();
-
-        List<PlannedPlace> plannedPlaces =
-                List.of(
-                        PlannedPlace.builder()
-                                .travel(travel)
-                                .locationName("해운대해수욕장")
-                                .location("부산광역시 해운대구")
-                                .build()
-                );
-
-        Plan plan =
-                Plan.builder()
-                        .id(10L)
-                        .travel(travel)
-                        .planName("부산 여행")
-                        .build();
-
-        Health health =
-                Health.builder()
-                        .id(100L)
-                        .travelerName("본인")
-                        .sensitiveAgree(true)
-                        .hasMedication(true)
-                        .healthInfo(
-                                new HealthInfo(
-                                        List.of(DiseaseType.DIABETES),
-                                        WalkType.MODERATE
-                                )
-                        )
-                        .mealInfo(
-                                new MealInfo(
-                                        true,
-                                        true,
-                                        LocalTime.of(8, 0),
-                                        false,
-                                        LocalTime.of(12, 0),
-                                        true,
-                                        LocalTime.of(18, 0)
-                                )
-                        )
-                        .build();
-
-        List<FoodInfo> foodInfos =
-                List.of(
-                        FoodInfo.builder()
-                                .health(health)
-                                .foodName("새우")
-                                .foodType(FoodType.ALLERGY)
-                                .build()
-                );
-
-        List<MedicationInfo> medicationInfos =
-                List.of(
-                        MedicationInfo.builder()
-                                .health(health)
-                                .drugName("혈압약")
-                                .medicationBasis(MedicationBasis.WITH_MEAL)
-                                .mealMedicationRules(
-                                        Set.of(
-                                                new MealMedicationRule(
-                                                        RelatedMeal.LUNCH,
-                                                        MealTiming.AFTER_MEAL,
-                                                        30
-                                                )
-                                        )
-                                )
-                                .build()
-                );
-
-        List<TravelHealthContext> healthContexts =
-                List.of(
-                        TravelHealthContext.from(
-                                health,
-                                foodInfos,
-                                medicationInfos
-                        )
-                );
-
-        assertThat(
-                healthContexts
-                        .getFirst()
-                        .mealInfo()
-                        .applied()
-        )
-                .isTrue();
-
-        assertThat(
-                healthContexts
-                        .getFirst()
-                        .mealInfo()
-                        .breakfastApplied()
-        )
-                .isTrue();
-
-        assertThat(
-                healthContexts
-                        .getFirst()
-                        .mealInfo()
-                        .lunchApplied()
-        )
-                .isFalse();
-
-        assertThat(
-                healthContexts
-                        .getFirst()
-                        .mealInfo()
-                        .dinnerApplied()
-        )
-                .isTrue();
-
-        CreatePlanAiResponse.RestaurantDetail aiRestaurantDetail =
-                new CreatePlanAiResponse.RestaurantDetail(
-                        "돼지국밥",
-                        50.0,
-                        800.0,
-                        15.0,
-                        "09:00 ~ 21:00",
-                        "부산광역시 부산진구",
-                        "129.0756",
-                        "35.1795",
-                        "restaurant.jpg"
-                );
-
-        CreatePlanAiResponse.PlanScheduleDetail scheduleDetail =
-                new CreatePlanAiResponse.PlanScheduleDetail(
-                        ScheduleType.LUNCH,
-                        CourseType.RESTAURANT,
-                        LocalTime.of(12, 0),
-                        LocalTime.of(13, 0),
-                        "부산돼지국밥",
-                        "부산광역시 부산진구",
-                        "129.0756",
-                        "35.1795",
-                        "image-url",
-                        "thumbnail-url",
-                        60,
-                        20,
-                        Set.of(RecommendationTag.LOCAL_FOOD),
-                        null,
-                        aiRestaurantDetail
-                );
-
-        CreatePlanAiResponse.PlanDayDetail planDayDetail =
-                new CreatePlanAiResponse.PlanDayDetail(
-                        1,
-                        LocalDate.of(2026, 9, 1),
-                        List.of(scheduleDetail)
-                );
-
-        CreatePlanAiResponse createPlanAiResponse =
-                new CreatePlanAiResponse(
-                        List.of(planDayDetail)
-                );
-
-        Set<RecommendationTag> aggregatedTags =
-                Set.of(RecommendationTag.LOCAL_FOOD);
-
-        PlanDay planDay =
-                PlanDay.builder()
-                        .id(1000L)
-                        .plan(plan)
-                        .dayNumber(1)
-                        .planDate(LocalDate.of(2026, 9, 1))
-                        .build();
-
-        List<PlanSchedule> planSchedules =
-                List.of(
-                        PlanSchedule.builder()
-                                .id(10000L)
-                                .planDay(planDay)
-                                .scheduleType(ScheduleType.LUNCH)
-                                .courseType(CourseType.RESTAURANT)
-                                .locationName("부산돼지국밥")
-                                .build()
-                );
-
-        List<RestaurantDetail> restaurantDetails =
-                List.of(
-                        RestaurantDetail.builder()
-                                .planSchedule(planSchedules.get(0))
-                                .menuName("돼지국밥")
-                                .carbohydrate(50.0)
-                                .sodium(800.0)
-                                .fat(15.0)
-                                .build()
-                );
-
-        when(
-                userQueryService
-                        .findByUsernameInCache(
-                                username
-                        )
-        )
-                .thenReturn(
-                userAuthCache
+        CreatePlanResponse result = travelFacade.makeTravelOptionsAndRecommend(
+                request,
+                username
         );
 
-        when(
-                travelService
-                        .createTravel(
-                                createTravelRequest,
-                                userId
-                        )
-        )
-                .thenReturn(
-                travel
-        );
+        assertThat(result).isSameAs(response);
 
-        when(
-                plannedPlaceService
-                        .makePlannedPlace(
-                                CreatePlannedPlaceRequest.from(
-                                        travel,
-                                        createTravelRequest
-                                )
-                        )
-        )
-                .thenReturn(
-                plannedPlaces
-        );
-
-        when(
-                planService
-                        .createPlan(
-                                new CreatePlanRequest(
-                                        travel,
-                                        createTravelRequest.travelName()
-                                )
-                        )
-        )
-                .thenReturn(
-                plan
-        );
-
-        when(
-                healthQueryService
-                        .checkHealthWithUser(
-                                health.getId(),
-                                userId
-                        )
-        )
-                .thenReturn(
-                true
-        );
-
-        when(
-                healthService
-                        .getHealthById(
-                                health.getId()
-                        )
-        )
-                .thenReturn(
-                health
-        );
-
-        when(
-                foodInfoService
-                        .getFoodInfoList(
-                                health.getId()
-                        )
-        )
-                .thenReturn(
-                foodInfos
-        );
-
-        when(
-                medicationInfoService
-                        .findAllByHealthId(
-                                health.getId()
-                        )
-        )
-                .thenReturn(
-                medicationInfos
-        );
-
-        when(
-                planService
-                        .makePlanByAi(
-                                new TravelPlanContext(
-                                        createTravelRequest,
-                                        healthContexts
-                                )
-                        )
-        )
-                .thenReturn(
-                createPlanAiResponse
-        );
-
-        when(
-                planService
-                        .aggregateTags(
-                                createPlanAiResponse.planDays()
-                        )
-        )
-                .thenReturn(
-                aggregatedTags
-        );
-
-        when(
-                planDayService
-                        .createPlanDay(
-                                new CreatePlanDayRequest(
-                                        plan,
-                                        planDayDetail.dayNumber(),
-                                        planDayDetail.date()
-                                )
-                        )
-        )
-                .thenReturn(
-                planDay
-        );
-
-        when(
-                planScheduleService
-                        .makePlanScheduleList(
-                                planDay,
-                                planDayDetail.schedules()
-                        )
-        )
-                .thenReturn(
-                planSchedules
-        );
-
-        when(
-                restaurantDetailService
-                        .makeRestaurantDetailList(
-                                planSchedules,
-                                planDayDetail.schedules()
-                        )
-        )
-                .thenReturn(
-                restaurantDetails
-        );
-
-        // when
-        CreatePlanResponse result =
-                travelFacade.makeTravelOptionsAndRecommend(
-                        createTravelRequest,
-                        username
-                );
-
-        // then
-        assertThat(
-                result.tags()
-        )
-                .isEqualTo(
-                aggregatedTags
-        );
-
-        assertThat(
-                result.planDays()
-        )
-                .isSameAs(
-                createPlanAiResponse.planDays()
-        );
-
-        assertThat(
-                plan.getTags()
-        )
-                .isEqualTo(
-                aggregatedTags
-        );
-
-        verify(
-                travelService
-        ).saveTravel(
-                travel
-        );
-
-        verify(
-                plannedPlaceService
-        ).savePlannedPlaceList(
-                plannedPlaces
-        );
-
-        verify(
-                planService,
-                times(2)
-        ).savePlan(
-                plan
-        );
-
-        verify(
-                planDayService
-        ).savePlanDay(
-                planDay
-        );
-
-        verify(
-                planScheduleService
-        ).savePlanScheduleAll(
-                planSchedules
-        );
-
-        verify(
-                restaurantDetailService
-        ).saveRestaurantDetailAll(
-                restaurantDetails
-        );
+        InOrder order = inOrder(userQueryService, travelService, planService);
+        order.verify(userQueryService).findUserIdInCache(username);
+        order.verify(travelService).loadHealthContexts(request, 1L);
+        order.verify(planService).makePlanByAi(request, healthContexts);
+        order.verify(travelService).saveGeneratedPlan(request, 1L, aiResponse);
     }
+
+
+
 
     @Test
     @DisplayName("Travel ID와 Username을 기준으로 AI 여행일정 전체 조회")
     void getAiPlan() {
 
-        // given
-        Long travelId = 1L;
-        Long userId = 1L;
         String username = "testUser@example.com";
-        Long planId = 10L;
-        Long planDayId = 100L;
-        Long planScheduleId = 1000L;
+        GetAiPlanRequest request = new GetAiPlanRequest(1L);
+        GetAiPlanResponse response = mock(GetAiPlanResponse.class);
 
-        GetAiPlanRequest request =
-                new GetAiPlanRequest(
-                        travelId
-                );
+        when(userQueryService.findUserIdInCache(username))
+                .thenReturn(2L);
+        when(travelService.findHealthIdsByTravelId(1L))
+                .thenReturn(List.of());
+        when(healthQueryService.getHealthSummaryListByHealthIds(List.of()))
+                .thenReturn(List.of());
+        when(medicationInfoQueryService.getMedicationTimesByHealthIds(List.of()))
+                .thenReturn(List.of());
+        when(planQueryService.getPlanDetailResponse(1L, List.of(), List.of()))
+                .thenReturn(response);
 
-        UserAuthCache userAuthCache =
-                new UserAuthCache(
-                        userId,
-                        username,
-                        "ROLE_USER"
-                );
+        GetAiPlanResponse result = travelFacade.getAiPlan(request, username);
 
-        TravelConditionQueryResponse travelCondition =
-                new TravelConditionQueryResponse(
-                        TravelStyle.LESS_WALK,
-                        TravelTheme.TASTE
-                );
-
-        List<HealthSummaryQueryResponse> healthSummaries =
-                List.of(
-                        new HealthSummaryQueryResponse(
-                                1L,
-                                "동행인1",
-                                true,
-                                List.of(DiseaseType.DIABETES),
-                                false
-                        ),
-                        new HealthSummaryQueryResponse(
-                                2L,
-                                "동행인2",
-                                true,
-                                List.of(DiseaseType.HIGH_BLOOD_PRESSURE),
-                                false
-                        )
-                );
-
-        List<LocalTime> medicationTimes =
-                List.of(
-                        LocalTime.of(8, 0),
-                        LocalTime.of(20, 0)
-                );
-
-        PlanQueryResponse plan =
-                new PlanQueryResponse(
-                        planId,
-                        "부산 여행",
-                        Set.of(
-                                RecommendationTag.MEAL_TIME_APPLIED,
-                                RecommendationTag.LOCAL_FOOD
-                        )
-                );
-
-        PlanDayQueryResponse planDay =
-                new PlanDayQueryResponse(
-                        planDayId,
-                        1,
-                        LocalDate.of(
-                                2026,
-                                9,
-                                1
-                        )
-                );
-
-        Plan planEntity =
-                Plan.builder()
-                        .id(planId)
-                        .planName("부산 여행")
-                        .build();
-
-        PlanDay planDayEntity =
-                PlanDay.builder()
-                        .id(planDayId)
-                        .plan(planEntity)
-                        .dayNumber(1)
-                        .planDate(
-                                LocalDate.of(
-                                        2026,
-                                        9,
-                                        1
-                                )
-                        )
-                        .build();
-
-        PlanSchedule planSchedule =
-                PlanSchedule.builder()
-                        .id(planScheduleId)
-                        .planDay(planDayEntity)
-                        .scheduleType(
-                                ScheduleType.LUNCH
-                        )
-                        .courseType(
-                                CourseType.RESTAURANT
-                        )
-                        .startTime(
-                                LocalTime.of(12, 0)
-                        )
-                        .endTime(
-                                LocalTime.of(13, 0)
-                        )
-                        .locationName(
-                                "부산 식당"
-                        )
-                        .location(
-                                "부산"
-                        )
-                        .imageUrl(
-                                "image.jpg"
-                        )
-                        .thumbNailImageUrl(
-                                "thumbnail.jpg"
-                        )
-                        .stayMinutes(
-                                60
-                        )
-                        .travelMinutes(
-                                20
-                        )
-                        .tags(
-                                Set.of(
-                                        RecommendationTag.LOCAL_FOOD
-                                )
-                        )
-                        .build();
-
-        RestaurantDetailQueryResponse restaurantDetail =
-                new RestaurantDetailQueryResponse(
-                        planScheduleId,
-                        "돼지국밥",
-                        50.0,
-                        800.0,
-                        15.0,
-                        "09:00 ~ 21:00",
-                        "부산광역시 해운대구",
-                        "129.1604",
-                        "35.1631",
-                        "restaurant.jpg"
-                );
-
-        when(
-                userQueryService
-                        .findByUsernameInCache(
-                                username
-                        )
-        )
-                .thenReturn(
-                userAuthCache
-        );
-
-        when(
-                travelQueryService
-                        .existsByIdAndUserId(
-                                travelId,
-                                userId
-                        )
-        )
-                .thenReturn(
-                true
-        );
-
-        when(
-                travelQueryService
-                        .getTravelConditionQueryResponse(
-                                travelId
-                        )
-        )
-                .thenReturn(
-                travelCondition
-        );
-
-        when(
-                healthQueryService
-                        .getHealthSummaryListByHealthIds(
-                                List.of()
-                        )
-        )
-                .thenReturn(
-                healthSummaries
-        );
-
-        when(
-                medicationInfoQueryService
-                        .getMedicationTimesByHealthIds(
-                                List.of()
-                        )
-        )
-                .thenReturn(
-                medicationTimes
-        );
-
-        when(
-                planQueryService
-                        .getPlanByTravelId(
-                                travelId
-                        )
-        )
-                .thenReturn(
-                plan
-        );
-
-        when(
-                planDayQueryService
-                        .getPlanDaysByPlanId(
-                                planId
-                        )
-        )
-                .thenReturn(
-                List.of(
-                        planDay
-                )
-        );
-
-        when(
-                planScheduleQueryService
-                        .getPlanSchedulesByPlanDayIds(
-                                List.of(
-                                        planDayId
-                                )
-                        )
-        )
-                .thenReturn(
-                List.of(
-                        planSchedule
-                )
-        );
-
-        when(
-                restaurantDetailQueryService
-                        .getRestaurantDetailsByPlanScheduleIds(
-                                List.of(
-                                        planScheduleId
-                                )
-                        )
-        )
-                .thenReturn(
-                List.of(
-                        restaurantDetail
-                )
-        );
-
-        // when
-        GetAiPlanResponse result =
-                travelFacade.getAiPlan(
-                        request,
-                        username
-                );
-
-        // then
-        assertThat(
-                result.planName()
-        )
-                .isEqualTo(
-                "부산 여행"
-        );
-
-        assertThat(
-                result.travelStyle()
-        )
-                .isEqualTo(
-                TravelStyle.LESS_WALK
-        );
-
-        assertThat(
-                result.travelTheme()
-        )
-                .isEqualTo(
-                TravelTheme.TASTE
-        );
-
-        assertThat(
-                result.diseaseTypes()
-        )
-                .containsExactlyInAnyOrder(
-                DiseaseType.DIABETES,
-                DiseaseType.HIGH_BLOOD_PRESSURE
-        );
-
-        assertThat(
-                result.medicationTimes()
-        )
-                .containsExactly(
-                LocalTime.of(8, 0),
-                LocalTime.of(20, 0)
-        );
-
-        assertThat(
-                result.tags()
-        )
-                .containsExactlyInAnyOrder(
-                RecommendationTag.MEAL_TIME_APPLIED,
-                RecommendationTag.LOCAL_FOOD
-        );
-
-        assertThat(
-                result.planDays()
-        )
-                .hasSize(1);
-
-        GetAiPlanResponse.PlanDayDetail resultPlanDay =
-                result.planDays()
-                        .get(0);
-
-        assertThat(
-                resultPlanDay.dayNumber()
-        )
-                .isEqualTo(
-                1
-        );
-
-        assertThat(
-                resultPlanDay.date()
-        )
-                .isEqualTo(
-                LocalDate.of(
-                        2026,
-                        9,
-                        1
-                )
-        );
-
-        assertThat(
-                resultPlanDay.schedules()
-        )
-                .hasSize(1);
-
-        GetAiPlanResponse.PlanScheduleDetail resultSchedule =
-                resultPlanDay.schedules()
-                        .get(0);
-
-        assertThat(
-                resultSchedule.scheduleType()
-        )
-                .isEqualTo(
-                ScheduleType.LUNCH
-        );
-
-        assertThat(
-                resultSchedule.courseType()
-        )
-                .isEqualTo(
-                CourseType.RESTAURANT
-        );
-
-        assertThat(
-                resultSchedule.locationName()
-        )
-                .isEqualTo(
-                "부산 식당"
-        );
-
-        assertThat(
-                resultSchedule.tags()
-        )
-                .containsExactly(
-                RecommendationTag.LOCAL_FOOD
-        );
-
-        assertThat(
-                resultSchedule.restaurantDetail()
-        )
-                .isNotNull();
-
-        assertThat(
-                resultSchedule
-                        .restaurantDetail()
-                        .menuName()
-        )
-                .isEqualTo(
-                "돼지국밥"
-        );
-
-        assertThat(
-                resultSchedule
-                        .restaurantDetail()
-                        .carbohydrate()
-        )
-                .isEqualTo(
-                50.0
-        );
-
-        assertThat(
-                resultSchedule
-                        .restaurantDetail()
-                        .sodium()
-        )
-                .isEqualTo(
-                800.0
-        );
-
-        assertThat(
-                resultSchedule
-                        .restaurantDetail()
-                        .fat()
-        )
-                .isEqualTo(
-                15.0
-        );
-
-        verify(
-                userQueryService
-        ).findByUsernameInCache(
-                username
-        );
-
-        verify(
-                travelQueryService
-        ).existsByIdAndUserId(
-                travelId,
-                userId
-        );
-
-        verify(
-                travelQueryService
-        ).getTravelConditionQueryResponse(
-                travelId
-        );
-
-        verify(
-                healthQueryService
-        ).getHealthSummaryListByHealthIds(
-                List.of()
-        );
-
-        verify(
-                medicationInfoQueryService
-        ).getMedicationTimesByHealthIds(
-                List.of()
-        );
-
-        verify(
-                planQueryService
-        ).getPlanByTravelId(
-                travelId
-        );
-
-        verify(
-                planDayQueryService
-        ).getPlanDaysByPlanId(
-                planId
-        );
-
-        verify(
-                planScheduleQueryService
-        ).getPlanSchedulesByPlanDayIds(
-                List.of(
-                        planDayId
-                )
-        );
-
-        verify(
-                restaurantDetailQueryService
-        ).getRestaurantDetailsByPlanScheduleIds(
-                List.of(
-                        planScheduleId
-                )
-        );
+        assertThat(result).isSameAs(response);
+        verify(travelQueryService).validateOwner(1L, 2L);
     }
 
     @Test
     @DisplayName("Travel 소유자가 아닌 경우 접근 거부")
     void getAiPlanThrowsForbiddenWhenNotOwner() {
 
-        // given
-        Long travelId = 1L;
-        Long userId = 1L;
         String username = "testUser@example.com";
+        GetAiPlanRequest request = new GetAiPlanRequest(1L);
+        when(userQueryService.findUserIdInCache(username))
+                .thenReturn(2L);
+        org.mockito.Mockito.doThrow(new ForbiddenException(new Object[]{"권한 없음"}))
+                .when(travelQueryService)
+                .validateOwner(1L, 2L);
 
-        GetAiPlanRequest request =
-                new GetAiPlanRequest(
-                        travelId
-                );
+        assertThatThrownBy(() -> travelFacade.getAiPlan(request, username))
+                .isInstanceOf(ForbiddenException.class);
 
-        UserAuthCache userAuthCache =
-                new UserAuthCache(
-                        userId,
-                        username,
-                        "ROLE_USER"
-                );
-
-        when(
-                userQueryService
-                        .findByUsernameInCache(
-                                username
-                        )
-        )
-                .thenReturn(
-                userAuthCache
-        );
-
-        when(
-                travelQueryService
-                        .existsByIdAndUserId(
-                                travelId,
-                                userId
-                        )
-        )
-                .thenReturn(
-                false
-        );
-
-        // when & then
-        assertThatThrownBy(
-                () -> travelFacade.getAiPlan(
-                        request,
-                        username
-                )
-        )
-                .isInstanceOf(
-                ForbiddenException.class
-        );
-
-        verify(
-                travelQueryService
-        ).existsByIdAndUserId(
-                travelId,
-                userId
-        );
-
-        verify(
-                travelQueryService,
-                never()
-        ).getTravelConditionQueryResponse(
-                travelId
-        );
+        verify(planQueryService, never())
+                .getPlanDetailResponse(any(), any(), any());
     }
 
     @Test
     @DisplayName("수정안 저장 확정 시 기존 PlanDay 삭제 후 수정안 기반 재생성")
     void confirmEditPlan() {
 
-        // given
-        Long travelId = 1L;
-        Long userId = 1L;
         String username = "testUser@example.com";
-        Long planId = 10L;
-
-        GetAiPlanRequest request =
-                new GetAiPlanRequest(
-                        travelId
-                );
-
-        UserAuthCache userAuthCache =
-                new UserAuthCache(
-                        userId,
-                        username,
-                        "ROLE_USER"
-                );
-
-        Travel confirmedTravel =
-                Travel.builder()
-                        .id(travelId)
-                        .travelName("부산 여행")
-                        .build();
-
-        Plan plan =
-                Plan.builder()
-                        .id(planId)
-                        .planName("부산 여행")
-                        .build();
-
-        PlanDay existingPlanDay =
-                PlanDay.builder()
-                        .id(100L)
-                        .plan(plan)
-                        .dayNumber(1)
-                        .build();
-
-        PlanSchedule existingPlanSchedule =
-                PlanSchedule.builder()
-                        .id(1000L)
-                        .planDay(existingPlanDay)
-                        .scheduleType(ScheduleType.LUNCH)
-                        .courseType(CourseType.RESTAURANT)
-                        .build();
-
-        CreatePlanAiResponse.PlanScheduleDetail scheduleDetail =
-                new CreatePlanAiResponse.PlanScheduleDetail(
-                        ScheduleType.LUNCH,
-                        CourseType.RESTAURANT,
-                        LocalTime.of(12, 0),
-                        LocalTime.of(13, 0),
-                        "수정된 식당",
-                        "부산광역시 부산진구",
-                        "129.0756",
-                        "35.1795",
-                        "image-url",
-                        "thumbnail-url",
-                        60,
-                        20,
-                        Set.of(RecommendationTag.LOCAL_FOOD),
-                        null,
-                        null
-                );
-
-        CreatePlanAiResponse.PlanDayDetail planDayDetail =
-                new CreatePlanAiResponse.PlanDayDetail(
-                        1,
-                        LocalDate.of(2026, 9, 1),
-                        List.of(scheduleDetail)
-                );
-
-        EditPlanAiResponse editPlanAiResponse =
-                new EditPlanAiResponse(
-                        "부산 여행",
-                        List.of(planDayDetail),
-                        List.of("점심 식당을 변경했습니다"),
-                        true
-                );
-
-        PlanQueryResponse planQueryResponse =
-                new PlanQueryResponse(
-                        planId,
-                        "부산 여행",
-                        Set.of(RecommendationTag.LOCAL_FOOD)
-                );
-
-        Set<RecommendationTag> aggregatedTags =
-                Set.of(RecommendationTag.LOCAL_FOOD);
-
-        PlanDay newPlanDay =
-                PlanDay.builder()
-                        .id(200L)
-                        .plan(plan)
-                        .dayNumber(1)
-                        .planDate(LocalDate.of(2026, 9, 1))
-                        .build();
-
-        List<PlanSchedule> newPlanSchedules =
-                List.of(
-                        PlanSchedule.builder()
-                                .id(2000L)
-                                .planDay(newPlanDay)
-                                .scheduleType(ScheduleType.LUNCH)
-                                .courseType(CourseType.RESTAURANT)
-                                .locationName("수정된 식당")
-                                .build()
-                );
-
-        List<RestaurantDetail> newRestaurantDetails = List.of();
-
-        when(
-                userQueryService
-                        .findByUsernameInCache(username)
-        )
-                .thenReturn(
-                userAuthCache
+        GetAiPlanRequest request = new GetAiPlanRequest(1L);
+        CreatePlanResponse expected = new CreatePlanResponse(
+                1L,
+                false,
+                Set.of(RecommendationTag.LOCAL_FOOD),
+                List.of()
         );
 
-        when(
-                travelQueryService
-                        .existsByIdAndUserId(travelId, userId)
-        )
-                .thenReturn(
-                true
-        );
+        when(userQueryService.findUserIdInCache(username))
+                .thenReturn(2L);
+        when(travelService.confirmEditPlan(1L))
+                .thenReturn(expected);
 
-        when(
-                planEditCacheService
-                        .consumeEditResult(travelId)
-        )
-                .thenReturn(
-                Optional.of(editPlanAiResponse)
-        );
+        CreatePlanResponse result = travelFacade.confirmEditPlan(request, username);
 
-        when(
-                planQueryService
-                        .getPlanByTravelId(travelId)
-        )
-                .thenReturn(
-                planQueryResponse
-        );
-
-        when(
-                planService
-                        .findPlanById(planId)
-        )
-                .thenReturn(
-                plan
-        );
-
-        when(
-                planDayService
-                        .findAllByPlan(plan)
-        )
-                .thenReturn(
-                List.of(existingPlanDay)
-        );
-
-        when(
-                planScheduleService
-                        .findAllByPlanDayIn(
-                                List.of(existingPlanDay)
-                        )
-        )
-                .thenReturn(
-                List.of(existingPlanSchedule)
-        );
-
-        when(
-                planService
-                        .aggregateTags(
-                                editPlanAiResponse.planDays()
-                        )
-        )
-                .thenReturn(
-                aggregatedTags
-        );
-
-        when(
-                planDayService
-                        .createPlanDay(
-                                new CreatePlanDayRequest(
-                                        plan,
-                                        planDayDetail.dayNumber(),
-                                        planDayDetail.date()
-                                )
-                        )
-        )
-                .thenReturn(
-                newPlanDay
-        );
-
-        when(
-                planScheduleService
-                        .makePlanScheduleList(
-                                newPlanDay,
-                                planDayDetail.schedules()
-                        )
-        )
-                .thenReturn(
-                newPlanSchedules
-        );
-
-        when(
-                restaurantDetailService
-                        .makeRestaurantDetailList(
-                                newPlanSchedules,
-                                planDayDetail.schedules()
-                        )
-        )
-                .thenReturn(
-                newRestaurantDetails
-        );
-
-        when(
-                travelService
-                        .findTravelById(
-                                travelId
-                        )
-        )
-                .thenReturn(
-                confirmedTravel
-        );
-
-        // when
-        CreatePlanResponse result =
-                travelFacade.confirmEditPlan(
-                        request,
-                        username
-                );
-
-        // then
-        assertThat(
-                result.tags()
-        )
-                .isEqualTo(
-                aggregatedTags
-        );
-
-        assertThat(
-                result.planDays()
-        )
-                .isSameAs(
-                editPlanAiResponse.planDays()
-        );
-
-        assertThat(
-                plan.getTags()
-        )
-                .isEqualTo(
-                aggregatedTags
-        );
-
-        verify(
-                restaurantDetailService
-        ).deleteAllByPlanScheduleIn(
-                List.of(existingPlanSchedule)
-        );
-
-        verify(
-                planScheduleService
-        ).deleteAllByPlanDayIn(
-                List.of(existingPlanDay)
-        );
-
-        verify(
-                planDayService
-        ).deleteAllByPlan(
-                plan
-        );
-
-        verify(
-                planService
-        ).savePlan(
-                plan
-        );
-
-        verify(
-                planDayService
-        ).savePlanDay(
-                newPlanDay
-        );
-
-        verify(
-                planScheduleService
-        ).savePlanScheduleAll(
-                newPlanSchedules
-        );
-
-        verify(
-                restaurantDetailService
-        ).saveRestaurantDetailAll(
-                newRestaurantDetails
-        );
-
-        verify(
-                planEditCacheService
-        ).markConfirmed(
-                travelId,
-                editPlanAiResponse
-        );
+        assertThat(result).isSameAs(expected);
+        verify(travelQueryService)
+                .validateOwner(1L, 2L);
+        verify(travelService)
+                .confirmEditPlan(1L);
     }
 
     @Test
     @DisplayName("Redis 수정안 부재 또는 만료 시 예외 발생")
     void confirmEditPlanThrowsWhenEditResultNotFound() {
 
-        // given
-        Long travelId = 1L;
-        Long userId = 1L;
         String username = "testUser@example.com";
+        GetAiPlanRequest request = new GetAiPlanRequest(1L);
 
-        GetAiPlanRequest request =
-                new GetAiPlanRequest(
-                        travelId
-                );
+        when(userQueryService.findUserIdInCache(username))
+                .thenReturn(2L);
+        when(travelService.confirmEditPlan(1L))
+                .thenThrow(new BaseException(PlanEditExceptionEnum.EDIT_RESULT_NOT_FOUND));
 
-        UserAuthCache userAuthCache =
-                new UserAuthCache(
-                        userId,
-                        username,
-                        "ROLE_USER"
-                );
+        assertThatThrownBy(() -> travelFacade.confirmEditPlan(request, username))
+                .isInstanceOf(BaseException.class)
+                .hasMessage(PlanEditExceptionEnum.EDIT_RESULT_NOT_FOUND.getMessage());
 
-        when(
-                userQueryService
-                        .findByUsernameInCache(username)
-        )
-                .thenReturn(
-                userAuthCache
-        );
-
-        when(
-                travelQueryService
-                        .existsByIdAndUserId(travelId, userId)
-        )
-                .thenReturn(
-                true
-        );
-
-        when(
-                planEditCacheService
-                        .consumeEditResult(travelId)
-        )
-                .thenReturn(
-                Optional.empty()
-        );
-
-        when(
-                planEditCacheService
-                        .findConfirmedResult(travelId)
-        )
-                .thenReturn(
-                Optional.empty()
-        );
-
-        // when & then
-        assertThatThrownBy(
-                () -> travelFacade.confirmEditPlan(
-                        request,
-                        username
-                )
-        )
-                .isInstanceOf(
-                BaseException.class
-        ).satisfies(exception -> {
-
-            BaseException baseException = (BaseException) exception;
-
-            assertThat(
-                    baseException.getMessage()
-            )
-                    .isEqualTo(
-                    PlanEditExceptionEnum.EDIT_RESULT_NOT_FOUND.getMessage()
-            );
-        });
-
-        verify(
-                planQueryService,
-                never()
-        ).getPlanByTravelId(
-                travelId
-        );
+        verify(travelQueryService)
+                .validateOwner(1L, 2L);
     }
 
     @Test
     @DisplayName("확정 완료 후 재확정 요청의 동일 응답 반환과 재저장 생략")
     void confirmEditPlanReturnsSameResponseWhenAlreadyConfirmed() {
 
-        // given
-        Long travelId = 1L;
-        Long userId = 1L;
         String username = "testUser@example.com";
-
-        GetAiPlanRequest request =
-                new GetAiPlanRequest(
-                        travelId
-                );
-
-        UserAuthCache userAuthCache =
-                new UserAuthCache(
-                        userId,
-                        username,
-                        "ROLE_USER"
-                );
-
-        EditPlanAiResponse confirmedResult =
-                new EditPlanAiResponse(
-                        "부산 여행",
-                        List.of(),
-                        List.of("점심 식당을 변경했습니다"),
-                        true
-                );
-
-        Travel confirmedTravel =
-                Travel.builder()
-                        .travelName("확정된 여행")
-                        .build();
-
-        when(
-                userQueryService
-                        .findByUsernameInCache(username)
-        )
-                .thenReturn(
-                userAuthCache
+        GetAiPlanRequest request = new GetAiPlanRequest(1L);
+        CreatePlanResponse expected = new CreatePlanResponse(
+                1L,
+                false,
+                Set.of(),
+                List.of()
         );
 
-        when(
-                travelQueryService
-                        .existsByIdAndUserId(travelId, userId)
-        )
-                .thenReturn(
-                true
-        );
+        when(userQueryService.findUserIdInCache(username))
+                .thenReturn(2L);
+        when(travelService.confirmEditPlan(1L))
+                .thenReturn(expected);
 
-        when(
-                planEditCacheService
-                        .consumeEditResult(travelId)
-        )
-                .thenReturn(
-                Optional.empty()
-        );
+        CreatePlanResponse result = travelFacade.confirmEditPlan(request, username);
 
-        when(
-                planEditCacheService
-                        .findConfirmedResult(travelId)
-        )
-                .thenReturn(
-                Optional.of(confirmedResult)
-        );
-
-        when(
-                travelService
-                        .findTravelById(travelId)
-        )
-                .thenReturn(
-                confirmedTravel
-        );
-
-        // when
-        CreatePlanResponse result =
-                travelFacade.confirmEditPlan(
-                        request,
-                        username
-                );
-
-        // then
-        assertThat(
-                result
-        )
-                .isNotNull();
-
-        verify(
-                planQueryService,
-                never()
-        ).getPlanByTravelId(
-                travelId
-        );
-
-        verify(
-                planDayService,
-                never()
-        ).savePlanDay(
-                org.mockito.ArgumentMatchers.any()
-        );
+        assertThat(result).isSameAs(expected);
+        verify(travelService)
+                .confirmEditPlan(1L);
     }
 
     @Test
     @DisplayName("Travel 소유자가 아닌 경우 저장 확정 접근 거부")
     void confirmEditPlanThrowsForbiddenWhenNotOwner() {
 
-        // given
-        Long travelId = 1L;
-        Long userId = 1L;
         String username = "testUser@example.com";
+        GetAiPlanRequest request = new GetAiPlanRequest(1L);
 
-        GetAiPlanRequest request =
-                new GetAiPlanRequest(
-                        travelId
-                );
+        when(userQueryService.findUserIdInCache(username))
+                .thenReturn(2L);
+        org.mockito.Mockito.doThrow(new ForbiddenException(new Object[]{"권한 없음"}))
+                .when(travelQueryService)
+                .validateOwner(1L, 2L);
 
-        UserAuthCache userAuthCache =
-                new UserAuthCache(
-                        userId,
-                        username,
-                        "ROLE_USER"
-                );
+        assertThatThrownBy(() -> travelFacade.confirmEditPlan(request, username))
+                .isInstanceOf(ForbiddenException.class);
 
-        when(
-                userQueryService
-                        .findByUsernameInCache(username)
-        )
-                .thenReturn(
-                userAuthCache
-        );
-
-        when(
-                travelQueryService
-                        .existsByIdAndUserId(travelId, userId)
-        )
-                .thenReturn(
-                false
-        );
-
-        // when & then
-        assertThatThrownBy(
-                () -> travelFacade.confirmEditPlan(
-                        request,
-                        username
-                )
-        )
-                .isInstanceOf(
-                ForbiddenException.class
-        );
-
-        verify(
-                planEditCacheService,
-                never()
-        ).consumeEditResult(
-                travelId
-        );
+        verify(travelService, never())
+                .confirmEditPlan(1L);
     }
 
     @Test
     @DisplayName("수정 미리보기 취소 시 Redis 캐시만 삭제")
     void cancelEditPlan() {
 
-        // given
-        Long travelId = 1L;
-        Long userId = 1L;
         String username = "testUser@example.com";
+        GetAiPlanRequest request = new GetAiPlanRequest(1L);
+        when(userQueryService.findUserIdInCache(username))
+                .thenReturn(2L);
 
-        GetAiPlanRequest request =
-                new GetAiPlanRequest(
-                        travelId
-                );
+        travelFacade.cancelEditPlan(request, username);
 
-        UserAuthCache userAuthCache =
-                new UserAuthCache(
-                        userId,
-                        username,
-                        "ROLE_USER"
-                );
-
-        when(
-                userQueryService
-                        .findByUsernameInCache(username)
-        )
-                .thenReturn(
-                userAuthCache
-        );
-
-        when(
-                travelQueryService
-                        .existsByIdAndUserId(travelId, userId)
-        )
-                .thenReturn(
-                true
-        );
-
-        // when
-        travelFacade.cancelEditPlan(
-                request,
-                username
-        );
-
-        // then
-        verify(
-                planEditCacheService
-        ).deleteEditResult(
-                travelId
-        );
+        verify(travelQueryService)
+                .validateOwner(1L, 2L);
+        verify(planEditCacheService)
+                .deleteEditResult(1L);
     }
 
     @Test
     @DisplayName("Travel 소유자가 아닌 경우 취소 접근 거부")
     void cancelEditPlanThrowsForbiddenWhenNotOwner() {
 
-        // given
-        Long travelId = 1L;
-        Long userId = 1L;
         String username = "testUser@example.com";
+        GetAiPlanRequest request = new GetAiPlanRequest(1L);
+        when(userQueryService.findUserIdInCache(username))
+                .thenReturn(2L);
+        org.mockito.Mockito.doThrow(new ForbiddenException(new Object[]{"권한 없음"}))
+                .when(travelQueryService)
+                .validateOwner(1L, 2L);
 
-        GetAiPlanRequest request =
-                new GetAiPlanRequest(
-                        travelId
-                );
+        assertThatThrownBy(() -> travelFacade.cancelEditPlan(request, username))
+                .isInstanceOf(ForbiddenException.class);
 
-        UserAuthCache userAuthCache =
-                new UserAuthCache(
-                        userId,
-                        username,
-                        "ROLE_USER"
-                );
-
-        when(
-                userQueryService
-                        .findByUsernameInCache(username)
-        )
-                .thenReturn(
-                userAuthCache
-        );
-
-        when(
-                travelQueryService
-                        .existsByIdAndUserId(travelId, userId)
-        )
-                .thenReturn(
-                false
-        );
-
-        // when & then
-        assertThatThrownBy(
-                () -> travelFacade.cancelEditPlan(
-                        request,
-                        username
-                )
-        )
-                .isInstanceOf(
-                ForbiddenException.class
-        );
-
-        verify(
-                planEditCacheService,
-                never()
-        ).deleteEditResult(
-                travelId
-        );
+        verify(planEditCacheService, never())
+                .deleteEditResult(1L);
     }
 
     @Test
@@ -1949,197 +517,8 @@ class TravelFacadeTest {
     }
 
 
-    @Test
-    @DisplayName("민감정보에 동의하지 않은 동행인은 AI 컨텍스트에서 제외")
-    void healthContextExcludesCompanionWithoutSensitiveAgree() {
 
-        // given
-        Long userId = 1L;
-        String username = "testUser@example.com";
 
-        UserAuthCache userAuthCache =
-                new UserAuthCache(
-                        userId,
-                        username,
-                        "ROLE_USER"
-                );
 
-        Health agreed =
-                Health.builder()
-                        .id(100L)
-                        .travelerName("동의 동행인")
-                        .sensitiveAgree(true)
-                        .hasMedication(false)
-                        .healthInfo(
-                                new HealthInfo(
-                                        List.of(DiseaseType.DIABETES),
-                                        WalkType.MODERATE
-                                )
-                        )
-                        .mealInfo(
-                                new MealInfo(
-                                        true,
-                                        true,
-                                        LocalTime.of(8, 0),
-                                        true,
-                                        LocalTime.of(12, 0),
-                                        true,
-                                        LocalTime.of(18, 0)
-                                )
-                        )
-                        .build();
-
-        // 동의하지 않은 구성원은 건강 정보와 식사 정보가 없다.
-        Health notAgreed =
-                Health.builder()
-                        .id(101L)
-                        .travelerName("미동의 동행인")
-                        .sensitiveAgree(false)
-                        .hasMedication(false)
-                        .build();
-
-        CreateTravelRequest createTravelRequest =
-                new CreateTravelRequest(
-                        "부산 여행",
-                        "부산",
-                        "해운대구",
-                        LocalDate.of(2026, 9, 1),
-                        DateType.ONE_NIGHT_TWO_DAYS,
-                        Transportation.CAR,
-                        "해운대해수욕장",
-                        List.of(
-                                new CreateTravelRequest.PlannedPlaceDetail(
-                                        "해운대해수욕장",
-                                        "부산광역시 해운대구"
-                                )
-                        ),
-                        TravelStyle.LESS_WALK,
-                        TravelTheme.TASTE,
-                        List.of("돼지국밥"),
-                        List.of("밀면"),
-                        List.of(100L, 101L)
-                );
-
-        Travel travel =
-                Travel.builder()
-                        .id(1L)
-                        .travelName("부산 여행")
-                        .build();
-
-        Plan plan =
-                Plan.builder()
-                        .id(10L)
-                        .travel(travel)
-                        .planName("부산 여행")
-                        .build();
-
-        when(
-                userQueryService
-                        .findByUsernameInCache(username)
-        )
-                .thenReturn(
-                userAuthCache
-        );
-
-        when(
-                healthQueryService
-                        .checkHealthWithUser(100L, userId)
-        )
-                .thenReturn(
-                true
-        );
-
-        when(
-                healthQueryService
-                        .checkHealthWithUser(101L, userId)
-        )
-                .thenReturn(
-                true
-        );
-
-        when(
-                healthService
-                        .getHealthById(100L)
-        )
-                .thenReturn(
-                agreed
-        );
-
-        when(
-                healthService
-                        .getHealthById(101L)
-        )
-                .thenReturn(
-                notAgreed
-        );
-
-        when(
-                travelService
-                        .createTravel(createTravelRequest, userId)
-        )
-                .thenReturn(
-                travel
-        );
-
-        when(
-                planService
-                        .createPlan(any(CreatePlanRequest.class))
-        )
-                .thenReturn(
-                plan
-        );
-
-        when(
-                foodInfoService
-                        .getFoodInfoList(100L)
-        )
-                .thenReturn(
-                List.of()
-        );
-
-        when(
-                medicationInfoService
-                        .findAllByHealthId(100L)
-        )
-                .thenReturn(
-                List.of()
-        );
-
-        CreatePlanAiResponse emptyAiResponse =
-                new CreatePlanAiResponse(List.of());
-
-        ArgumentCaptor<TravelPlanContext> contextCaptor =
-                ArgumentCaptor.forClass(TravelPlanContext.class);
-
-        when(
-                planService
-                        .makePlanByAi(contextCaptor.capture())
-        )
-                .thenReturn(
-                emptyAiResponse
-        );
-
-        when(
-                planService
-                        .aggregateTags(List.of())
-        )
-                .thenReturn(
-                Set.of()
-        );
-
-        // when
-        travelFacade.makeTravelOptionsAndRecommend(
-                createTravelRequest,
-                username
-        );
-
-        // then - 건강 정보가 없는 구성원을 컨텍스트에 넣으면 그 자리에서 읽을 값이 없다
-        assertThat(
-                contextCaptor
-                        .getValue()
-                        .healthContexts()
-        ).extracting(TravelHealthContext::travelerName)
-                .containsExactly("동의 동행인");
-    }
 
 }

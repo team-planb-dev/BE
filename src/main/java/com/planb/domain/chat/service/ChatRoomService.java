@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.planb.domain.chat.dto.request.CreateChatRoomRequest;
 import com.planb.domain.chat.dto.response.CreateChatRoomResponse;
+import com.planb.domain.chat.dto.response.DeleteChatRoomResponse;
 import com.planb.domain.chat.entity.ChatRoom;
 import com.planb.domain.chat.repository.ChatRoomRepository;
 import com.planb.domain.travel.entity.Travel;
@@ -55,6 +56,32 @@ public class ChatRoomService {
         chatRoomRepository.save(chatRoom);
 
         return chatRoom;
+    }
+
+    public CreateChatRoomResponse travelChatRoomResponse(
+            ChatRoom chatRoom,
+            boolean existing
+    ) {
+
+        return new CreateChatRoomResponse(
+                chatRoom.getId(),
+                chatRoom.getChatRoomName(),
+                chatRoom.getCreatedAt(),
+                existing ? "채팅방이 조회되었습니다." : "채팅방이 생성되었습니다."
+        );
+    }
+
+    public DeleteChatRoomResponse deletedChatRoomResponse(
+            ChatRoom chatRoom,
+            Long deletedMessageCount
+    ) {
+
+        return new DeleteChatRoomResponse(
+                chatRoom.getId(),
+                chatRoom.getChatRoomName(),
+                "삭제 보관된 메시지 갯수: " + deletedMessageCount,
+                "채팅방이 삭제되었습니다."
+        );
     }
     // 채팅방 유저 이름 중복 확인 ( QueryDSL )
 }

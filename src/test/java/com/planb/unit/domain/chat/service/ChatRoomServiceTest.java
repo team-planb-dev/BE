@@ -132,4 +132,21 @@ class ChatRoomServiceTest {
         assertThat(result.isDeleted())
                 .isFalse();
     }
+
+    @Test
+    @DisplayName("여행 채팅방 조회와 생성 응답 문구 구분")
+    void travelChatRoomResponse() {
+
+        ChatRoom room = ChatRoom.builder()
+                .id(1L)
+                .chatRoomName("부산 여행")
+                .build();
+
+        CreateChatRoomResponse existing = chatRoomService.travelChatRoomResponse(room, true);
+        CreateChatRoomResponse created = chatRoomService.travelChatRoomResponse(room, false);
+
+        assertThat(existing.chatRoomId()).isEqualTo(1L);
+        assertThat(existing.message()).isEqualTo("채팅방이 조회되었습니다.");
+        assertThat(created.message()).isEqualTo("채팅방이 생성되었습니다.");
+    }
 }

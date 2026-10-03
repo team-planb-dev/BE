@@ -3,6 +3,14 @@ package com.planb.query.user.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.planb.domain.user.entity.AccountRecovery;
+import com.planb.domain.user.dto.request.CheckNicknameDuplicationRequest;
+import com.planb.domain.user.dto.request.CheckUsernameDuplicationRequest;
+import com.planb.domain.user.dto.request.FindUsernameRequest;
+import com.planb.domain.user.dto.request.UserCreateRequest;
+import com.planb.domain.user.dto.response.CheckNicknameDuplicationResponse;
+import com.planb.domain.user.dto.response.CheckUsernameDuplicationResponse;
+import com.planb.domain.user.dto.response.FindUsernameResponse;
+import com.planb.domain.user.dto.response.UserReadResponse;
 import com.planb.domain.user.entity.User;
 import com.planb.domain.user.entity.constant.RecoveryQuestion;
 import com.planb.global.config.exception.BaseExceptionEnum;
@@ -48,6 +56,51 @@ public class UserQueryService {
 
         return userQueryRepository
                 .existsByUsername(username);
+    }
+
+    public void validateNotDuplicated(UserCreateRequest request) {
+
+        if (checkDuplicateUsername(request.username())) {
+            throw new BaseException(BaseExceptionEnum.DUPLICATE_USERNAME);
+        }
+
+        if (checkDuplicateNickname(request.nickname())) {
+            throw new BaseException(BaseExceptionEnum.DUPLICATE_NICKNAME);
+        }
+    }
+
+    public UserReadResponse findReadResponseByUsername(String username) {
+
+        return UserReadResponse.from(findByUsername(username));
+    }
+
+    public FindUsernameResponse findUsernameResponse(FindUsernameRequest request) {
+
+        User user = findByAccountRecovery(
+                request.nickname(),
+                request.recoveryQuestion(),
+                request.recoveryAnswer()
+        );
+
+        return FindUsernameResponse.of(user.getUsername());
+    }
+
+    public CheckUsernameDuplicationResponse checkUsernameDuplicationResponse(
+            CheckUsernameDuplicationRequest request
+    ) {
+
+        return CheckUsernameDuplicationResponse.result(
+                checkDuplicateUsername(request.username())
+        );
+    }
+
+    public CheckNicknameDuplicationResponse checkNicknameDuplicationResponse(
+            CheckNicknameDuplicationRequest request
+    ) {
+
+        return CheckNicknameDuplicationResponse.result(
+                checkDuplicateNickname(request.nickname())
+        );
     }
 
     /**
@@ -96,5 +149,10 @@ public class UserQueryService {
                 .orElseThrow(()-> new BaseException(BaseExceptionEnum
                         .USER_NOT_FOUND));
 
+    }
+
+    public Long findUserIdInCache(String username) {
+
+        return findByUsernameInCache(username).userId();
     }
 }

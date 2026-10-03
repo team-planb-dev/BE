@@ -781,6 +781,12 @@ public class UserQueryService {
 - 외부 API, AI API, 장시간 수행되는 작업은 가능한 트랜잭션 외부에서 처리한다.
 - 새로운 트랜잭션 전파(`REQUIRES_NEW` 등)가 필요한 경우에는 코드 리뷰를 통해 사용 목적을 공유한다.
 
+여행 AI 일정 생성은 외부 호출 중 DB 커넥션을 점유하지 않도록 요청 단위 트랜잭션 원칙의 예외로 둔다.
+Facade는 Service 호출 순서만 관리하고, `TravelTransactionService`가 `TransactionTemplate`으로 조회·저장 경계를 실행한다.
+건강정보를 readOnly 트랜잭션 안에 값 snapshot으로 완성하고, AI 생성과 검증은 트랜잭션 밖에서 수행한다.
+동행인 존재·소유권을 다시 확인한 뒤 Travel부터 RestaurantDetail까지 하나의 write 트랜잭션으로 저장한다.
+AI 검증 실패 시 저장을 시작하지 않으며, write 중 실패하면 전체를 롤백한다.
+
 ---
 
 # 10. Comment & Javadoc Convention
