@@ -1,6 +1,12 @@
 package com.planb.query.travel.service;
 
 import com.planb.domain.travel.entity.Plan;
+import com.planb.domain.travel.entity.PlanSchedule;
+import com.planb.domain.travel.dto.response.GetAiPlanResponse;
+import com.planb.domain.health.dto.response.HealthSummaryQueryResponse;
+import com.planb.query.travel.dto.response.PlanDayQueryResponse;
+import com.planb.query.travel.dto.response.RestaurantDetailQueryResponse;
+import com.planb.query.travel.dto.response.TravelConditionQueryResponse;
 import com.planb.domain.travel.entity.constant.RecommendationTag;
 import com.planb.domain.travel.repository.PlanRepository;
 import com.planb.query.travel.dto.response.PlanBasicQueryResponse;
@@ -10,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
+import java.time.LocalTime;
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -18,6 +26,56 @@ public class PlanQueryService {
 
     private final PlanQueryRepository planQueryRepository;
     private final PlanRepository planRepository;
+    private final TravelQueryService travelQueryService;
+    private final PlanDayQueryService planDayQueryService;
+    private final PlanScheduleQueryService planScheduleQueryService;
+    private final RestaurantDetailQueryService restaurantDetailQueryService;
+
+    public GetAiPlanResponse getPlanDetailResponse(
+            Long travelId,
+            List<HealthSummaryQueryResponse> healthSummaries,
+            List<LocalTime> medicationTimes
+    ) {
+
+        TravelConditionQueryResponse travelCondition =
+                travelQueryService.getTravelConditionQueryResponse(travelId);
+        PlanQueryResponse plan = getPlanByTravelId(travelId);
+        List<PlanDayQueryResponse> days = planDayQueryService.getPlanDaysByPlanId(plan.planId());
+
+        List<Long> planDayIds = days
+                .stream()
+                .map(PlanDayQueryResponse::planDayId)
+                .toList();
+
+        List<PlanSchedule> schedules = planScheduleQueryService.getPlanSchedulesByPlanDayIds(
+                planDayIds
+        );
+
+        List<Long> scheduleIds = schedules
+                .stream()
+                .map(PlanSchedule::getId)
+                .toList();
+
+        List<RestaurantDetailQueryResponse> restaurants =
+                restaurantDetailQueryService.getRestaurantDetailsByPlanScheduleIds(
+                        scheduleIds
+                );
+
+        return GetAiPlanResponse.from(
+                plan,
+                travelCondition,
+                healthSummaries,
+                medicationTimes,
+                days,
+                schedules,
+                restaurants
+        );
+    }
+
+    public GetAiPlanResponse getSharedPlanDetailResponse(Long travelId) {
+
+        return getPlanDetailResponse(travelId, List.of(), List.of());
+    }
 
     // travelId로 Plan객체 조회하기 (RecommendationTag 포함)
     public PlanQueryResponse getPlanByTravelId(Long travelId){

@@ -5,6 +5,7 @@ import com.planb.domain.travel.entity.constant.TravelTheme;
 import com.planb.query.travel.dto.response.TravelConditionQueryResponse;
 import com.planb.query.travel.repository.TravelQueryRepository;
 import com.planb.query.travel.service.TravelQueryService;
+import com.planb.global.config.exception.domain.ForbiddenException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -108,5 +110,16 @@ class TravelQueryServiceTest {
                         travelId,
                         userId
                 );
+    }
+
+    @Test
+    @DisplayName("여행 소유자가 아닌 사용자 접근 거부")
+    void validateOwnerRejectsNonOwner() {
+
+        when(travelQueryRepository.existsByIdAndUserId(1L, 2L))
+                .thenReturn(false);
+
+        assertThatThrownBy(() -> travelQueryService.validateOwner(1L, 2L))
+                .isInstanceOf(ForbiddenException.class);
     }
 }

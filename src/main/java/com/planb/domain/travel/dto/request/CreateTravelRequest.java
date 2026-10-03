@@ -99,8 +99,8 @@ public record CreateTravelRequest(
                 plannedPlaceDetails,
                 travel.getTravelStyle(),
                 travel.getTravelTheme(),
-                travel.getLocalFoods(),
-                travel.getRecommendFoods(),
+                List.copyOf(travel.getLocalFoods()),
+                List.copyOf(travel.getRecommendFoods()),
                 healthIds
         );
     }

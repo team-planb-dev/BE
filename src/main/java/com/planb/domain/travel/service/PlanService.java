@@ -20,6 +20,7 @@ import com.planb.domain.travel.dto.nutrition.NutritionEvaluationResult;
 import com.planb.domain.travel.dto.request.CreatePlanRequest;
 import com.planb.domain.travel.dto.request.CreateTravelRequest;
 import com.planb.domain.travel.dto.response.GetAiPlanResponse;
+import com.planb.domain.travel.dto.response.EditPlanPreviewResponse;
 import com.planb.domain.travel.entity.Plan;
 import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.NutritionEvaluationStatus;
@@ -61,6 +62,22 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class PlanService {
+
+    public EditPlanPreviewResponse createEditPreviewResponse(
+            GetAiPlanResponse currentPlan,
+            EditPlanAiResponse editResponse
+    ) {
+
+        return new EditPlanPreviewResponse(currentPlan, editResponse);
+    }
+
+    public EditPlanPreviewResponse createEditPreviewResponse(
+            PlanEditContext context,
+            EditPlanAiResponse editResponse
+    ) {
+
+        return createEditPreviewResponse(context.currentPlan(), editResponse);
+    }
 
     // 실제 근거가 있는 NutritionType만 RecommendationTag로 매핑 (평가는 되지만 대응 태그가 없는 타입 제외)
     private static final Map<NutritionType, RecommendationTag> NUTRITION_REFERENCE_TAGS = Map.of(
@@ -112,6 +129,14 @@ public class PlanService {
                 .travel(createPlanRequest
                         .travel())
                 .build();
+    }
+
+    public CreatePlanAiResponse makePlanByAi(
+            CreateTravelRequest request,
+            List<TravelHealthContext> healthContexts
+    ) {
+
+        return makePlanByAi(new TravelPlanContext(request, healthContexts));
     }
 
     // AI 일정 생성 및 검색 원본 기반 슬롯 확정
