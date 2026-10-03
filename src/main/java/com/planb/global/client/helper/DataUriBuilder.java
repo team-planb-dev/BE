@@ -15,20 +15,22 @@ public class DataUriBuilder {
     private final Map<String, Object> queryParams =
             new LinkedHashMap<>();
 
-    private DataUriBuilder
-            (String baseUrl,
-             String path,
-             String serviceKey) {
+    private DataUriBuilder(
+            String baseUrl,
+            String path,
+            String serviceKey
+    ) {
 
         this.baseUrl = baseUrl;
         this.path = path;
         this.serviceKey = serviceKey;
     }
 
-    public static DataUriBuilder from
-            (String baseUrl,
-             String path,
-             String serviceKey) {
+    public static DataUriBuilder from(
+            String baseUrl,
+            String path,
+            String serviceKey
+    ) {
 
         return new DataUriBuilder(
                 baseUrl,

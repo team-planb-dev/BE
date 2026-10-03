@@ -98,13 +98,17 @@ class JwtAuthenticationProviderTest {
                 .getUsername())
                 .isEqualTo(username);
 
-        verify(jwtUtil).isExpired(parsedToken);
+        verify(jwtUtil)
+                .isExpired(parsedToken);
 
-        verify(jwtUtil).getCategory(parsedToken);
+        verify(jwtUtil)
+                .getCategory(parsedToken);
 
-        verify(jwtUtil).getUsername(parsedToken);
+        verify(jwtUtil)
+                .getUsername(parsedToken);
 
-        verify(userAuthCacheRepository).findByUsername(username);
+        verify(userAuthCacheRepository)
+                .findByUsername(username);
     }
 
     @Test
@@ -213,9 +217,11 @@ class JwtAuthenticationProviderTest {
         )
                 .isInstanceOf(BaseException.class);
 
-        verify(jwtUtil).isExpired(parsedToken);
+        verify(jwtUtil)
+                .isExpired(parsedToken);
 
-        verify(jwtUtil).getCategory(parsedToken);
+        verify(jwtUtil)
+                .getCategory(parsedToken);
 
         verify(jwtUtil, never())
                 .getUsername(parsedToken);
@@ -256,12 +262,16 @@ class JwtAuthenticationProviderTest {
         )
                 .isInstanceOf(BaseException.class);
 
-        verify(jwtUtil).isExpired(parsedToken);
+        verify(jwtUtil)
+                .isExpired(parsedToken);
 
-        verify(jwtUtil).getCategory(parsedToken);
+        verify(jwtUtil)
+                .getCategory(parsedToken);
 
-        verify(jwtUtil).getUsername(parsedToken);
+        verify(jwtUtil)
+                .getUsername(parsedToken);
 
-        verify(userAuthCacheRepository).findByUsername(username);
+        verify(userAuthCacheRepository)
+                .findByUsername(username);
     }
 }

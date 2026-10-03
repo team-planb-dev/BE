@@ -11,14 +11,14 @@ public class BaseException extends RuntimeException {
     private final String errorCode;
     private final String message;
 
-    public BaseException(MessageCommInterface messageCommInterface){
+    public BaseException(MessageCommInterface messageCommInterface) {
         super(messageCommInterface.getMessage());
         this.errorCode = messageCommInterface.getCode();
         this.message = messageCommInterface.getMessage();
     }
 
     public BaseException(MessageCommInterface messageCommInterface,
-                         Object[] messageParameters){
+                         Object[] messageParameters) {
 
         super(messageParameters != null
                 ? MessageFormat.format(messageCommInterface.getMessage(), messageParameters)

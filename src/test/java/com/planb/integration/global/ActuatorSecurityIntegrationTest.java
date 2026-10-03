@@ -149,7 +149,8 @@ class ActuatorSecurityIntegrationTest extends IntegrationTest {
                     );
 
             assertTrue(
-                    response.body()
+                    response
+                            .body()
                             .contains("\"success\":false"),
                     path
             );
@@ -176,7 +177,9 @@ class ActuatorSecurityIntegrationTest extends IntegrationTest {
         server.createContext("/health", exchange -> {
             byte[] response = "ok".getBytes(StandardCharsets.UTF_8);
             exchange.sendResponseHeaders(200, response.length);
-            exchange.getResponseBody().write(response);
+            exchange
+                    .getResponseBody()
+                    .write(response);
             exchange.close();
         });
 
@@ -186,7 +189,9 @@ class ActuatorSecurityIntegrationTest extends IntegrationTest {
             String response = firstBuilder
                     .build()
                     .get()
-                    .uri("http://localhost:" + server.getAddress().getPort() + "/health")
+                    .uri("http://localhost:" + server
+                            .getAddress()
+                            .getPort() + "/health")
                     .retrieve()
                     .bodyToMono(String.class)
                     .block();
@@ -234,7 +239,9 @@ class ActuatorSecurityIntegrationTest extends IntegrationTest {
 
                 byte[] response = "late".getBytes(StandardCharsets.UTF_8);
                 exchange.sendResponseHeaders(200, response.length);
-                exchange.getResponseBody().write(response);
+                exchange
+                        .getResponseBody()
+                        .write(response);
             } catch (InterruptedException e) {
                 Thread
                         .currentThread()
@@ -254,7 +261,9 @@ class ActuatorSecurityIntegrationTest extends IntegrationTest {
                     () -> webClientBuilder
                             .build()
                             .get()
-                            .uri("http://localhost:" + server.getAddress().getPort() + "/slow")
+                            .uri("http://localhost:" + server
+                                    .getAddress()
+                                    .getPort() + "/slow")
                             .retrieve()
                             .bodyToMono(String.class)
                             .block()

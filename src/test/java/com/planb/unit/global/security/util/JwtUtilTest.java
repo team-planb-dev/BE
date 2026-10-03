@@ -21,7 +21,7 @@ class JwtUtilTest {
 
     @Test
     @DisplayName("JWT 생성 성공")
-    void createJWT_Success(){
+    void createJWT_Success() {
 
 
         // given
@@ -33,12 +33,14 @@ class JwtUtilTest {
 
         // when
         String token = jwtUtil
-                .createJwt(category,
-                        1L,
-                        username,
-                        role,
-                        "sess-1",
-                        expiredMs);
+                .createJwt(
+                category,
+                1L,
+                username,
+                role,
+                "sess-1",
+                expiredMs
+        );
 
         // then
         assertThat(token)

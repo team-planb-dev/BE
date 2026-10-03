@@ -20,7 +20,7 @@ public class JwtAuthenticationProvider {
 
     private final UserAuthCacheRepository userAuthCacheRepository;
 
-    public Authentication authenticate(String authorizationHeader){
+    public Authentication authenticate(String authorizationHeader) {
 
         // Bearer 접두사 확인 및 토큰 추출
         String parsedToken = extractToken(authorizationHeader);
@@ -47,14 +47,15 @@ public class JwtAuthenticationProvider {
                 authPrincipal,
                 null,
                 authPrincipal
-                        .getAuthorities());
+                        .getAuthorities()
+        );
 
     }
 
 
 
     // Bearer 접두사 확인 및 토큰 추출
-    private String extractToken(String authorizationHeader){
+    private String extractToken(String authorizationHeader) {
 
         if (authorizationHeader == null
                 || authorizationHeader.isBlank()
@@ -70,15 +71,15 @@ public class JwtAuthenticationProvider {
     }
 
     // 토큰 만료 여부확인 처리 메소드
-    private void handleExpiredAuthorization(String parsedToken){
+    private void handleExpiredAuthorization(String parsedToken) {
 
-        if (jwtUtil.isExpired(parsedToken)){
+        if (jwtUtil.isExpired(parsedToken)) {
             throw new BaseException(BaseExceptionEnum.JWT_EXPIRED);
         }
 
     }
 
-    private void checkAccessTokenCategory(String accessToken){
+    private void checkAccessTokenCategory(String accessToken) {
         String category = jwtUtil.getCategory(accessToken);
 
         if (!ACCESS_TOKEN_CATEGORY.equals(category)) {

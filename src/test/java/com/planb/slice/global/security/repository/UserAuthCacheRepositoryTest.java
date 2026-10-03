@@ -79,7 +79,9 @@ class UserAuthCacheRepositoryTest {
         userAuthCacheRepository.save(
                 username,
                 userAuthCache,
-                Duration.ofMinutes(10).toMillis()
+                Duration
+                        .ofMinutes(10)
+                        .toMillis()
         );
 
         Optional<UserAuthCache> result =
@@ -116,7 +118,9 @@ class UserAuthCacheRepositoryTest {
         // given
         String username = "testUser@example.com";
 
-        long expiredMs = Duration.ofMinutes(10).toMillis();
+        long expiredMs = Duration
+                .ofMinutes(10)
+                .toMillis();
         UserAuthCache userAuthCache = createUserAuthCache();
 
         // when

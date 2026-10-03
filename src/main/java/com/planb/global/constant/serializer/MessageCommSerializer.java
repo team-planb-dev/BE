@@ -19,9 +19,11 @@ public class MessageCommSerializer extends StdSerializer<MessageCommInterface> {
 
     // API 호출 결과에 대해서
     @Override
-    public void serialize(MessageCommInterface value,
-                          JsonGenerator gen,
-                          SerializerProvider provider)
+    public void serialize(
+            MessageCommInterface value,
+            JsonGenerator gen,
+            SerializerProvider provider
+    )
             throws IOException {
 
         gen.writeStartObject();

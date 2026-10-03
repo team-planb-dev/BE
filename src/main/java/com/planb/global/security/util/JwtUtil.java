@@ -16,7 +16,7 @@ public class JwtUtil {
     private SecretKey secretKey;
 
     public JwtUtil
-            (@Value("${jwt.secret}")String secret){
+            (@Value("${jwt.secret}")String secret) {
 
         secretKey = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8),
                 Jwts
@@ -28,7 +28,7 @@ public class JwtUtil {
 
     }
 
-    public String getUsername(String token){
+    public String getUsername(String token) {
 
         return Jwts
                 .parser()
@@ -42,7 +42,7 @@ public class JwtUtil {
     /**
      * 서명 검증 후 만료된 토큰의 username 조회
      */
-    public String getUsernameAllowingExpired(String token){
+    public String getUsernameAllowingExpired(String token) {
 
         try {
 
@@ -56,7 +56,7 @@ public class JwtUtil {
         }
     }
 
-    public String getCategory(String token){
+    public String getCategory(String token) {
         return Jwts
                 .parser()
                 .verifyWith(secretKey)
@@ -66,7 +66,7 @@ public class JwtUtil {
                 .get("category", String.class);
     }
 
-    public Long getUserId(String token){
+    public Long getUserId(String token) {
 
         return Jwts
                 .parser()
@@ -77,9 +77,9 @@ public class JwtUtil {
                 .get("userId", Long.class);
     }
 
-    // 로그인마다 새로 발급되는 세션 식별자.
-    // 같은 계정의 이전 세션 토큰을 가려내는 데만 쓴다.
-    public String getSessionId(String token){
+    // 로그인마다 새로 발급되는 세션 식별자
+    // 동일 계정의 이전 세션 토큰 구분용 값
+    public String getSessionId(String token) {
 
         return Jwts
                 .parser()
@@ -90,7 +90,7 @@ public class JwtUtil {
                 .get("sessionId", String.class);
     }
 
-    public String getRole(String token){
+    public String getRole(String token) {
 
         return Jwts
                 .parser()
@@ -101,7 +101,7 @@ public class JwtUtil {
                 .get("role", String.class);
     }
 
-    public Boolean isExpired(String token){
+    public Boolean isExpired(String token) {
 
         return Jwts
                 .parser()
@@ -120,9 +120,10 @@ public class JwtUtil {
             String role,
             String sessionId,
             Long expiredMs
-    ){
+    ) {
 
-        return Jwts.builder()
+        return Jwts
+                .builder()
                 .claim("category", category)
                 .claim("userId", userId)
                 .claim("username", username)

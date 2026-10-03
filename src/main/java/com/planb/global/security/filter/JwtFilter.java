@@ -39,16 +39,17 @@ public class JwtFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal
-            (HttpServletRequest request,
-             HttpServletResponse response,
-             FilterChain filterChain)
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    )
             throws ServletException, IOException {
 
         String accessToken = extractToken(request);
 
         // 빈 토큰 여부 검사
-        if (accessToken == null){
+        if (accessToken == null) {
             log.info("No Access Token: {}", LocalDateTime.now());
             filterChain.doFilter(request, response);
             return;
@@ -59,14 +60,14 @@ public class JwtFilter extends OncePerRequestFilter {
 
             jwtUtil.isExpired(accessToken);
 
-        } catch (ExpiredJwtException e){
+        } catch (ExpiredJwtException e) {
 
             handleExpiredJwt(response);
             return;
         }
 
         // 토큰 카테고리 검사
-        if (!checkTokenCategory(jwtUtil.getCategory(accessToken))){
+        if (!checkTokenCategory(jwtUtil.getCategory(accessToken))) {
             log.info("Token Invalid Category: {}", LocalDateTime.now());
             handleInvalidTokenCategory(response);
             return;
@@ -75,7 +76,7 @@ public class JwtFilter extends OncePerRequestFilter {
         // Redis Cache에서 회원정보 조회
 
         Authentication authentication = makeAuthentication(accessToken, response);
-        if (authentication == null){
+        if (authentication == null) {
             return;
         }
 
@@ -87,9 +88,9 @@ public class JwtFilter extends OncePerRequestFilter {
 
     }
 
-    private String extractToken(HttpServletRequest request){
+    private String extractToken(HttpServletRequest request) {
         String header = request.getHeader("Authorization");
-        if (header == null || !header.startsWith("Bearer ")){
+        if (header == null || !header.startsWith("Bearer ")) {
             return null;
         }
         return header.substring(7);
@@ -102,10 +103,12 @@ public class JwtFilter extends OncePerRequestFilter {
         ApiResult<?> result = ApiResult.fail(BaseExceptionEnum.JWT_EXPIRED);
 
         JsonResponseUtils
-                .writeJsonResponse(HttpStatus
+                .writeJsonResponse(
+                HttpStatus
                                 .UNAUTHORIZED,
-                        httpServletResponse,
-                        result);
+                httpServletResponse,
+                result
+        );
     }
 
     private void handleInvalidTokenCategory
@@ -114,10 +117,12 @@ public class JwtFilter extends OncePerRequestFilter {
         ApiResult<?> result = ApiResult.fail(BaseExceptionEnum.INVALID_TOKEN_CATEGORY);
 
         JsonResponseUtils
-                .writeJsonResponse(HttpStatus
+                .writeJsonResponse(
+                HttpStatus
                                 .UNAUTHORIZED,
-                        httpServletResponse,
-                        result);
+                httpServletResponse,
+                result
+        );
     }
 
     private void handleRedisMissToken
@@ -126,18 +131,20 @@ public class JwtFilter extends OncePerRequestFilter {
         ApiResult<?> result = ApiResult.fail(BaseExceptionEnum.ENTITY_NOT_FOUND);
 
         JsonResponseUtils
-                .writeJsonResponse(HttpStatus.UNAUTHORIZED,
-                        httpServletResponse,
-                        result);
+                .writeJsonResponse(
+                HttpStatus.UNAUTHORIZED,
+                httpServletResponse,
+                result
+        );
     }
 
     private boolean checkTokenCategory
-            (String category){
+            (String category) {
         return "access".equals(category);
     }
 
     private boolean isCurrentSession(String token,
-                                     UserAuthCache userAuthCache){
+                                     UserAuthCache userAuthCache) {
 
         String sessionId = jwtUtil.getSessionId(token);
 
@@ -152,9 +159,11 @@ public class JwtFilter extends OncePerRequestFilter {
         ApiResult<?> result = ApiResult.fail(BaseExceptionEnum.SESSION_EXPIRED);
 
         JsonResponseUtils
-                .writeJsonResponse(HttpStatus.UNAUTHORIZED,
-                        httpServletResponse,
-                        result);
+                .writeJsonResponse(
+                HttpStatus.UNAUTHORIZED,
+                httpServletResponse,
+                result
+        );
     }
 
     private Authentication makeAuthentication(String token,
@@ -166,14 +175,14 @@ public class JwtFilter extends OncePerRequestFilter {
         Optional<UserAuthCache> userAuthCache = userAuthCacheRepository
                 .findByUsername(username);
 
-        if (userAuthCache.isEmpty()){
+        if (userAuthCache.isEmpty()) {
             handleRedisMissToken(httpServletResponse);
             return null;
         }
 
-        // 캐시에는 마지막 로그인의 세션 식별자만 남는다.
-        // 다르면 이 토큰은 축출된 이전 세션의 것이다.
-        if (!isCurrentSession(token, userAuthCache.get())){
+        // 최근 로그인 세션 식별자만 캐시에 보존
+        // 캐시 식별자와 다른 토큰은 축출된 이전 세션
+        if (!isCurrentSession(token, userAuthCache.get())) {
             log.info("Stale Session Token: {}", LocalDateTime.now());
             handleStaleSession(httpServletResponse);
             return null;

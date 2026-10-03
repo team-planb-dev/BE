@@ -107,19 +107,27 @@ public class KakaoMapServiceHandler {
         );
     }
 
-    // 장소 검색 후 이동수단에 따른 경로 조회.
+    // 장소 검색 후 이동수단에 따른 경로 조회
     // 장소를 찾지 못하거나 경로 조회(대중교통/자동차)가 실패해도 예외를 던지지 않고,
-    // travelMinutes/distanceMeters가 null인 결과로 대체합니다(STEP 7 정책).
+    // travelMinutes/distanceMeters가 null인 결과로 대체(STEP 7 정책)
     public Mono<KakaoRouteResult> getRoute(
             String origin,
             String destination,
             Transportation transportation
     ) {
 
-        return getRoute(origin, destination, transportation, null, null, null, null);
+        return getRoute(
+                origin,
+                destination,
+                transportation,
+                null,
+                null,
+                null,
+                null
+        );
     }
 
-    // 확정된 좌표를 우선 사용하고, 좌표가 없는 지점만 이름으로 검색한다.
+    // 확정 좌표 우선 사용과 좌표 누락 지점의 이름 검색
     public Mono<KakaoRouteResult> getRoute(
             String origin,
             String destination,
@@ -132,14 +140,27 @@ public class KakaoMapServiceHandler {
 
         return Mono
                 .zip(
-                        routeCoordinates(origin, originX, originY),
-                        routeCoordinates(destination, destinationX, destinationY))
+                        routeCoordinates(
+                                origin,
+                                originX,
+                                originY
+                        ),
+                        routeCoordinates(
+                                destination,
+                                destinationX,
+                                destinationY
+                        ))
                 .flatMap(points -> {
                     List<String> start = points.getT1();
                     List<String> end = points.getT2();
 
                     return switch (transportation) {
-                        case TRANSIT -> getPublicTrafficRoute(start.get(0), start.get(1), end.get(0), end.get(1))
+                        case TRANSIT -> getPublicTrafficRoute(
+                                start.get(0),
+                                start.get(1),
+                                end.get(0),
+                                end.get(1)
+                        )
                                 .map(response -> kakaoMapRouteHelper.makePublicTrafficRouteResult(
                                         origin,
                                         destination,
@@ -148,9 +169,20 @@ public class KakaoMapServiceHandler {
                                                 start.get(0),
                                                 start.get(1),
                                                 end.get(0),
-                                                end.get(1))));
-                        case CAR -> getCarRoute(start.get(0), start.get(1), end.get(0), end.get(1))
-                                .map(response -> kakaoMobilityRouteHelper.makeCarRouteResult(origin, destination, response));
+                                                end.get(1)
+                                        )
+                                ));
+                        case CAR -> getCarRoute(
+                                start.get(0),
+                                start.get(1),
+                                end.get(0),
+                                end.get(1)
+                        )
+                                .map(response -> kakaoMobilityRouteHelper.makeCarRouteResult(
+                                        origin,
+                                        destination,
+                                        response
+                                ));
                     };
                 })
                 .switchIfEmpty(Mono.error(new IllegalStateException("경로 조회 응답 없음")))
@@ -170,9 +202,15 @@ public class KakaoMapServiceHandler {
                             originY,
                             destinationX,
                             destinationY,
-                            exception);
+                            exception
+                    );
 
-                    return Mono.just(new KakaoRouteResult(origin, destination, null, null));
+                    return Mono.just(new KakaoRouteResult(
+                                    origin,
+                                    destination,
+                                    null,
+                                    null
+                            ));
                 });
     }
 
@@ -197,7 +235,7 @@ public class KakaoMapServiceHandler {
     }
 
     // 실제 장소(카페 또는 TourAPI에서 검색되지 않는 관광지) 존재 확인
-    // + 이전 장소로부터의 이동시간 조회.
+    // + 이전 장소로부터의 이동시간 조회
     // excludeNames와 일치하는 장소는 이미 사용된 것으로 간주, found=false로 처리
     public Mono<PlaceWithRouteResult> findPlaceWithRoute(
             String keyword,
@@ -222,7 +260,8 @@ public class KakaoMapServiceHandler {
                                 previousLongitude,
                                 previousLatitude,
                                 response,
-                                transportation)
+                                transportation
+                        )
                                 .map(minutes -> kakaoPlaceSearchHelper.toResult(response, minutes))
                                 .switchIfEmpty(Mono.fromSupplier(() ->
                                         kakaoPlaceSearchHelper.toResult(response, null)))
@@ -241,7 +280,8 @@ public class KakaoMapServiceHandler {
             Transportation transportation
     ) {
 
-        return Mono.justOrEmpty(previousLocation)
+        return Mono
+                .justOrEmpty(previousLocation)
                 .filter(location -> !location.isBlank())
                 .flatMap(location ->
                         getRoute(
@@ -251,7 +291,8 @@ public class KakaoMapServiceHandler {
                                 previousLongitude,
                                 previousLatitude,
                                 kakaoPlaceSearchHelper.firstPlaceLongitude(response),
-                                kakaoPlaceSearchHelper.firstPlaceLatitude(response)))
+                                kakaoPlaceSearchHelper.firstPlaceLatitude(response)
+                        ))
                 .flatMap(route -> Mono.justOrEmpty(route.travelMinutes()))
                 .onErrorResume(e -> Mono.empty());
     }

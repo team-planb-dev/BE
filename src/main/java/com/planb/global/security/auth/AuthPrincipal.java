@@ -17,7 +17,7 @@ public class AuthPrincipal implements UserDetails {
     private final String username;
     private final String role;
 
-    public AuthPrincipal(UserAuthCache userAuthCache){
+    public AuthPrincipal(UserAuthCache userAuthCache) {
         this.userId = userAuthCache.userId();
         this.username = userAuthCache.username();
         this.role = userAuthCache.role();

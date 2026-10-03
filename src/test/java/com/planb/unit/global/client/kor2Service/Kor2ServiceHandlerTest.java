@@ -80,10 +80,14 @@ class Kor2ServiceHandlerTest {
                         eq(Kor2KeywordSearchResponse.class)
                 );
 
-        assertThat(uri.getValue().getPath())
+        assertThat(uri
+                        .getValue()
+                        .getPath())
                 .isEqualTo("/areaBasedList2");
 
-        assertThat(uri.getValue().getQuery())
+        assertThat(uri
+                        .getValue()
+                        .getQuery())
                 .contains("areaCode=1")
                 .contains("contentTypeId=12")
                 .doesNotContain("sigunguCode")
@@ -130,10 +134,14 @@ class Kor2ServiceHandlerTest {
                         eq(Kor2KeywordSearchResponse.class)
                 );
 
-        assertThat(uri.getValue().getPath())
+        assertThat(uri
+                        .getValue()
+                        .getPath())
                 .isEqualTo("/areaBasedList2");
 
-        assertThat(uri.getValue().getQuery())
+        assertThat(uri
+                        .getValue()
+                        .getQuery())
                 .contains("areaCode=32")
                 .contains("sigunguCode=1")
                 .contains("contentTypeId=12")
@@ -181,17 +189,21 @@ class Kor2ServiceHandlerTest {
                         eq(Kor2KeywordSearchResponse.class)
                 );
 
-        assertThat(uri.getValue().getPath())
+        assertThat(uri
+                        .getValue()
+                        .getPath())
                 .isEqualTo("/searchKeyword2");
 
-        assertThat(uri.getValue().getQuery())
+        assertThat(uri
+                        .getValue()
+                        .getQuery())
                 .contains("keyword=쌈밥")
                 .contains("areaCode=35")
                 .contains("sigunguCode=2")
                 .contains("contentTypeId=39");
     }
 
-    // 광역 지역은 관광지 조회와 같은 기준으로 시/도 전체를 검색해야 한다
+    // 관광지 조회와 동일한 광역 지역의 시·도 전체 검색
     @Test
     @DisplayName("광역 지역 음식점은 시군구 코드 없이 시/도 전체 키워드 검색")
     void searchesRestaurantsAcrossMetropolitanArea() {
@@ -230,7 +242,9 @@ class Kor2ServiceHandlerTest {
                         eq(Kor2KeywordSearchResponse.class)
                 );
 
-        assertThat(uri.getValue().getQuery())
+        assertThat(uri
+                        .getValue()
+                        .getQuery())
                 .contains("keyword=밀면")
                 .contains("areaCode=6")
                 .contains("contentTypeId=39")
@@ -286,10 +300,14 @@ class Kor2ServiceHandlerTest {
                         eq(Kor2KeywordSearchResponse.class)
                 );
 
-        assertThat(uri.getValue().getPath())
+        assertThat(uri
+                        .getValue()
+                        .getPath())
                 .isEqualTo("/areaBasedList2");
 
-        assertThat(uri.getValue().getQuery())
+        assertThat(uri
+                        .getValue()
+                        .getQuery())
                 .contains("areaCode=32")
                 .contains("sigunguCode=13")
                 .contains("contentTypeId=39")
@@ -333,10 +351,14 @@ class Kor2ServiceHandlerTest {
                         eq(Kor2KeywordSearchResponse.class)
                 );
 
-        assertThat(uri.getValue().getPath())
+        assertThat(uri
+                        .getValue()
+                        .getPath())
                 .isEqualTo("/areaBasedList2");
 
-        assertThat(uri.getValue().getQuery())
+        assertThat(uri
+                        .getValue()
+                        .getQuery())
                 .contains("areaCode=1")
                 .contains("contentTypeId=39")
                 .doesNotContain("sigunguCode")

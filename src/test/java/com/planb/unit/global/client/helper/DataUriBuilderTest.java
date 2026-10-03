@@ -24,7 +24,8 @@ class DataUriBuilderTest {
                 "testServiceKey";
 
         URI result =
-                DataUriBuilder.from(
+                DataUriBuilder
+                        .from(
                                 baseUrl,
                                 path,
                                 serviceKey
@@ -52,7 +53,8 @@ class DataUriBuilderTest {
                 "testServiceKey";
 
         URI result =
-                DataUriBuilder.from(
+                DataUriBuilder
+                        .from(
                                 baseUrl,
                                 path,
                                 serviceKey
@@ -90,7 +92,8 @@ class DataUriBuilderTest {
                 "testServiceKey";
 
         URI result =
-                DataUriBuilder.from(
+                DataUriBuilder
+                        .from(
                                 baseUrl,
                                 path,
                                 serviceKey
@@ -123,7 +126,8 @@ class DataUriBuilderTest {
                 "testServiceKey";
 
         URI result =
-                DataUriBuilder.from(
+                DataUriBuilder
+                        .from(
                                 baseUrl,
                                 path,
                                 serviceKey

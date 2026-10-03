@@ -25,7 +25,7 @@ public class BaseEntity {
 
     private Instant deletedAt;
 
-    protected void markDeleted(){
+    protected void markDeleted() {
         this.deletedAt = Instant.now();
     }
 }

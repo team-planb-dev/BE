@@ -22,8 +22,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints
             (StompEndpointRegistry registry) {
 
-        // 핸드셰이크 origin 검사는 MVC CORS 설정과 별개다.
-        // 비워 두면 같은 origin만 통과해 로컬 프론트에서 403이 난다.
+        // MVC CORS 설정과 별개인 핸드셰이크 origin 검사
+        // origin 미설정 시 로컬 프런트의 403 위험
         registry
                 .addEndpoint("/ws-stomp")
                 .setAllowedOrigins(CorsMvcConfig.ALLOWED_ORIGINS);

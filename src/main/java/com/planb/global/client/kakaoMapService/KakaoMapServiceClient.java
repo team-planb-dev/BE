@@ -20,7 +20,7 @@ public class KakaoMapServiceClient extends ApiClient<KakaoMapServiceProperties> 
         return properties.apiKey();
     }
 
-    public String baseUrl(){
+    public String baseUrl() {
         return properties.baseUrl();
     }
 

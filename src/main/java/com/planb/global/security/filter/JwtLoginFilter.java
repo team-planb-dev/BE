@@ -43,13 +43,15 @@ public class JwtLoginFilter extends UsernamePasswordAuthenticationFilter {
     private final CookieUtil cookieUtil;
     private final SessionIdGenerator sessionIdGenerator;
 
-    public JwtLoginFilter(ObjectMapper objectMapper,
-                          AuthenticationManager authenticationManager,
-                          JwtUtil jwtUtil,
-                          RefreshService refreshService,
-                          UserAuthCacheService userAuthCacheService,
-                          CookieUtil cookieUtil,
-                          SessionIdGenerator sessionIdGenerator){
+    public JwtLoginFilter(
+            ObjectMapper objectMapper,
+            AuthenticationManager authenticationManager,
+            JwtUtil jwtUtil,
+            RefreshService refreshService,
+            UserAuthCacheService userAuthCacheService,
+            CookieUtil cookieUtil,
+            SessionIdGenerator sessionIdGenerator
+    ) {
 
         this.objectMapper = objectMapper;
         this.authenticationManager = authenticationManager;
@@ -81,21 +83,23 @@ public class JwtLoginFilter extends UsernamePasswordAuthenticationFilter {
 
             return authenticationManager.authenticate(authenticationToken);
 
-        } catch (IOException e){
+        } catch (IOException e) {
             throw new AuthenticationServiceException("JSON 파싱 오류", e);
         }
 
     }
 
     @Override
-    protected void successfulAuthentication
-            (HttpServletRequest request,
-             HttpServletResponse response,
-             FilterChain chain,
-             Authentication authResult)
+    protected void successfulAuthentication(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain chain,
+            Authentication authResult
+    )
             throws IOException, ServletException {
 
-        String role = authResult.getAuthorities()
+        String role = authResult
+                .getAuthorities()
                 .stream()
                 .findFirst()
                 .map(GrantedAuthority::getAuthority)
@@ -108,8 +112,8 @@ public class JwtLoginFilter extends UsernamePasswordAuthenticationFilter {
         Long userId = userDetails.getUserId();
         String username = userDetails.getUsername();
 
-        // 이번 로그인을 직전 로그인과 구분하는 식별자.
-        // 두 토큰과 캐시에 같은 값이 들어가야 JwtFilter가 옛 세션을 가려낸다.
+        // 이번 로그인을 직전 로그인과 구분하는 식별자
+        // 이전 세션 구분을 위한 두 토큰·캐시 식별자 일치
         String sessionId = sessionIdGenerator.generate();
 
         // access 토큰 생성
@@ -119,7 +123,8 @@ public class JwtLoginFilter extends UsernamePasswordAuthenticationFilter {
                 username,
                 role,
                 sessionId,
-                TokenExpiration.ACCESS_TOKEN_EXPIRED_MS);
+                TokenExpiration.ACCESS_TOKEN_EXPIRED_MS
+        );
 
         // refresh 토큰 생성
         String refresh = jwtUtil.createJwt(
@@ -128,49 +133,60 @@ public class JwtLoginFilter extends UsernamePasswordAuthenticationFilter {
                 username,
                 role,
                 sessionId,
-                TokenExpiration.REFRESH_TOKEN_EXPIRED_MS);
+                TokenExpiration.REFRESH_TOKEN_EXPIRED_MS
+        );
 
         UserAuthCache userAuthCache = new UserAuthCache(
                 userId,
                 username,
                 role,
-                sessionId);
+                sessionId
+        );
 
         // User의 간단한 정보를 담은 DTO를 Redis에 저장
         userAuthCacheService.saveUserAuthCache(userAuthCache);
 
         // 같은 계정의 이전 세션을 끊는다. 비밀번호가 맞은 뒤에만 해야
-        // 남의 계정에 틀린 비밀번호를 넣어 로그아웃시키는 일이 생기지 않는다.
+        // 다른 계정의 오입력 비밀번호로 인한 강제 로그아웃 방지
         refreshService.deleteRefreshByUsername(username);
 
         // cache에 refresh 토큰 추가
         refreshService.addRefresh(username, refresh);
 
-        log.info("로그인 성공:{} " + " [ Time ]:{}", username, LocalDate.now());
+        log.info(
+                "로그인 성공:{} " + " [ Time ]:{}",
+                username,
+                LocalDate.now()
+        );
 
         response.setHeader("Authorization", "Bearer " + access);
         response.addCookie(cookieUtil.createCookie("refreshToken", refresh));
 
         ApiResult<?> result = ApiResult
-                .success(new LoginResponse(username,
+                .success(new LoginResponse(
+                        username,
                         "로그인에 성공하였습니다.",
                         LocalDate
                                 .now()
-                                .toString()));
+                                .toString()
+                ));
 
         JsonResponseUtils
-                .writeJsonResponse(HttpStatus
+                .writeJsonResponse(
+                HttpStatus
                         .OK,
-                        response,
-                        result);
+                response,
+                result
+        );
 
     }
 
     @Override
-    protected void unsuccessfulAuthentication
-            (HttpServletRequest request,
-             HttpServletResponse response,
-             AuthenticationException failed)
+    protected void unsuccessfulAuthentication(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            AuthenticationException failed
+    )
             throws IOException, ServletException {
 
         ApiResult<?> result = ApiResult

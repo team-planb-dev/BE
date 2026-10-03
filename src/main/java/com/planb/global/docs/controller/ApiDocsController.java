@@ -45,17 +45,19 @@ public class ApiDocsController {
             )
     )
     @PostMapping("/login")
-    public ResponseEntity<ApiResult<LoginResponse>> login(){
+    public ResponseEntity<ApiResult<LoginResponse>> login() {
 
         return ResponseEntity
                 .status(HttpStatus
                         .OK)
                 .body(ApiResult
-                        .success(new LoginResponse("test1",
+                        .success(new LoginResponse(
+                                "test1",
                                 "로그인에 성공하였습니다.",
                                 LocalDate
                                         .now()
-                                        .toString())));
+                                        .toString()
+                        )));
 
     }
 
@@ -68,16 +70,18 @@ public class ApiDocsController {
                     """
     )
     @PostMapping("/logout")
-    public ResponseEntity<FilterSuccessResponse> logout(){
+    public ResponseEntity<FilterSuccessResponse> logout() {
 
         return ResponseEntity
                 .status(HttpStatus
                         .OK)
-                .body(new FilterSuccessResponse(true,
+                .body(new FilterSuccessResponse(
+                        true,
                         "Method : /logout ",
                         "로그아웃에 성공하였습니다.",
                         LocalDate
                                 .now()
-                                .toString()));
+                                .toString()
+                ));
     }
 }

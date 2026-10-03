@@ -45,7 +45,7 @@ public class SecurityConfig {
 
 
     @Bean
-    public BCryptPasswordEncoder bCryptPasswordEncoder(){
+    public BCryptPasswordEncoder bCryptPasswordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
@@ -71,27 +71,31 @@ public class SecurityConfig {
     }
 
     @Bean
-    public JwtLogoutFilter jwtLogoutFilter(){
-        return new JwtLogoutFilter(jwtUtil,
+    public JwtLogoutFilter jwtLogoutFilter() {
+        return new JwtLogoutFilter(
+                jwtUtil,
                 refreshService,
                 userAuthCacheService,
                 cookieUtil,
-                refreshTokenValidator);
+                refreshTokenValidator
+        );
     }
 
     @Bean
-    public JwtLoginFilter jwtLoginFilter(AuthenticationManager authenticationManager){
-        return new JwtLoginFilter(objectMapper,
+    public JwtLoginFilter jwtLoginFilter(AuthenticationManager authenticationManager) {
+        return new JwtLoginFilter(
+                objectMapper,
                 authenticationManager,
                 jwtUtil,
                 refreshService,
                 userAuthCacheService,
                 cookieUtil,
-                sessionIdGenerator);
+                sessionIdGenerator
+        );
     }
 
     @Bean
-    public JwtFilter jwtFilter(){
+    public JwtFilter jwtFilter() {
         return new JwtFilter(jwtUtil,
                 userAuthCacheRepository);
 
@@ -117,7 +121,8 @@ public class SecurityConfig {
                         "/ws-stomp/**"
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll()
+                        .anyRequest()
+                                .permitAll()
                 )
                 .csrf(AbstractHttpConfigurer::disable);
 
@@ -152,13 +157,17 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         httpSecurity
                 .authorizeHttpRequests((auth)->auth
-                        .requestMatchers("/login",
-                                "/api/v1/user/create",
-                                "/api/v1/refresh/reissue",
-                                "/api/v1/user/check/duplication/**",
-                                "/api/v1/user/recovery/**",
-                                "/api/v1/travel/shared/**").permitAll()
-                        .anyRequest().authenticated()
+                        .requestMatchers(
+                        "/login",
+                        "/api/v1/user/create",
+                        "/api/v1/refresh/reissue",
+                        "/api/v1/user/check/duplication/**",
+                        "/api/v1/user/recovery/**",
+                        "/api/v1/travel/shared/**"
+                )
+                                        .permitAll()
+                        .anyRequest()
+                                .authenticated()
                 );
 
         return httpSecurity.build();
