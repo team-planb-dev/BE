@@ -28,17 +28,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
- * Travel 부하 테스트용 외부 HTTP 스텁 서버.
- *
- * <p>Kor2Service, Kakao Map, Kakao Mobility, 식품영양성분 API를 하나의 로컬 서버에서 경로 접두어로
- * 나눠 흉내 낸다. 각 client의 {@code external.<이름>.base-url}을 {@link #baseUrl(Api)}로 바꾸면
- * 운영 코드 수정 없이 실제 외부 호출이 사라진다.
- *
- * <p>응답은 {@code src/test/resources/loadtest/} 아래 fixture에서 읽는다. 요청을 따라가야 하는 값
- * (음식명, Kakao 장소명과 ID)은 fixture의 {@code {{param:이름}}}, {@code {{hash:이름}}} 자리에
- * 요청 파라미터로 채운다. 같은 요청은 항상 같은 응답을 받는다.
- *
- * <p>단독 실행은 Gradle {@code externalHttpStub} 태스크를 쓴다. 설정은 {@link Settings#fromEnvironment}를 본다.
+ * 여행 부하 테스트용 외부 HTTP 응답 스텁
+ * 고정 fixture와 요청 파라미터로 생성하는 결정적 응답
  */
 public final class ExternalHttpStubServer implements AutoCloseable {
 
@@ -82,10 +73,11 @@ public final class ExternalHttpStubServer implements AutoCloseable {
     }
 
     /**
+     * API별 응답 시나리오와 지연 시간 설정
      * @param defaultScenario 모든 API에 적용할 시나리오
-     * @param overrides       API별로 덮어쓸 시나리오
-     * @param delay           DELAY 시나리오에서 응답을 늦출 시간
-     * @param timeout         TIMEOUT 시나리오에서 응답 없이 연결을 붙잡을 시간
+     * @param overrides API별로 덮어쓸 시나리오
+     * @param delay DELAY 시나리오에서 응답을 늦출 시간
+     * @param timeout TIMEOUT 시나리오에서 응답 없이 연결을 붙잡을 시간
      */
     public record Settings(
             Scenario defaultScenario,
@@ -108,8 +100,7 @@ public final class ExternalHttpStubServer implements AutoCloseable {
         }
 
         /**
-         * {@code STUB_SCENARIO}, {@code STUB_SCENARIO_<API>}, {@code STUB_DELAY_MS}, {@code STUB_TIMEOUT_MS}를 읽는다.
-         * 시나리오 값은 {@code normal}, {@code delay}, {@code client-error}, {@code server-error}, {@code timeout}이다.
+         * 환경변수에 따른 스텁 응답 설정
          */
         public static Settings fromEnvironment(Map<String, String> environment) {
 
@@ -206,7 +197,8 @@ public final class ExternalHttpStubServer implements AutoCloseable {
     }
 
     /**
-     * @param port 0이면 빈 포트를 고른다
+     * 지정 포트의 스텁 시작, 0은 임의 포트
+     * @param port 0은 임의 포트 선택
      */
     public static ExternalHttpStubServer start(
             int port,
@@ -586,7 +578,7 @@ public final class ExternalHttpStubServer implements AutoCloseable {
     }
 
     /**
-     * 부하 테스트용 단독 실행. {@code STUB_PORT}(기본 18080)와 {@link Settings#fromEnvironment}의 변수를 읽는다.
+     * 기본 포트 18080의 부하 테스트용 스텁 단독 실행
      */
     public static void main(String[] args) throws InterruptedException {
 

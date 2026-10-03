@@ -156,12 +156,7 @@ public class PlanPlaceResolver {
     }
 
     /**
-     * 이미 확정해 저장한 슬롯을 편집 대상 밖에서 다시 사용할 수 있는지 확인한다.
-     *
-     * 장소 자체는 생성 시점에 검증해 저장한 것이므로 외부 검색으로 다시 확인하지 않는다.
-     * 저장 출처(TourAPI)와 재검증 출처(카카오)의 장소명 표기와 좌표가 서로 달라
-     * 같은 장소를 다른 장소로 판정하던 문제를 없애기 위해서다.
-     * 여기서는 저장된 값만으로 판단할 수 있는 구조 정합과 중복 사용만 본다.
+     * 저장된 장소의 구조 정합성과 중복 사용 확인
      */
     public Validation verifyExisting(
             GetAiPlanResponse.PlanScheduleDetail old,
@@ -276,12 +271,7 @@ public class PlanPlaceResolver {
     }
 
     /**
-     * 어긋난 scheduleType/courseType 조합을 courseType 기준으로 맞춘다.
-     *
-     * 장소 유형과 묶여 있는 쪽은 courseType이다. scheduleType은 ACTIVITY 하나로
-     * ATTRACTION/CAFE_REST/PARK_WALK/MUST_HAVE를 구분할 수 없어 반대 방향은 불가능하다.
-     * 재선택은 장소만 바꾸고 유형은 원본을 그대로 들고 가므로, 여기서 맞추지 않으면
-     * 같은 조합 오류로 재시도가 전부 실패하고 일정 생성 자체가 무너진다.
+     * courseType 기준의 일정·장소 유형 정합성 보정
      */
     private PlanScheduleDetail alignCombination(PlanScheduleDetail slot) {
 

@@ -29,11 +29,7 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * AI가 채우지 못한 관광 슬롯과 식사 슬롯을 이번 호출의 검색 후보로 채운다.
- *
- * 두 가지 모두 후보 목록만 있으면 Java가 결정할 수 있는 값이다.
- * AI 재시도에 맡기면 한 번의 교정으로 두 조건을 동시에 맞춰야 하고,
- * 한쪽을 고치다 다른 쪽을 버리면 재시도가 소진되어 일정 생성 자체가 실패한다.
+ * 검색 후보를 이용한 관광·식사 누락 슬롯 보충
  */
 @Slf4j
 @Component
@@ -50,15 +46,12 @@ public class MissingSlotCompleter {
     private final TourismTool tourismTool;
 
     /**
-     * 비어 있는 관광·식사 슬롯을 이번 호출의 검색 후보로 채운다.
-     *
-     * @param response       채울 일정
+     * 이번 호출의 후보를 이용한 누락 슬롯 보충
+     * @param response 채울 일정
      * @param healthContexts 관광지 개수와 식사시각의 기준
-     * @param candidates     이번 호출에서 검색한 후보
-     * @param usedNames      이 응답 밖에서 이미 쓴 장소명. 날짜 일부만 넘길 때 나머지 날짜를 알려준다.
-     *                       변형하지 않으므로 불변 집합을 넘겨도 된다.
-     * @param usedMenus      이 응답 밖에서 이미 쓴 메뉴명. 장소명과 같은 이유로 받는다.
-     *                       변형하지 않으므로 불변 집합을 넘겨도 된다.
+     * @param candidates 이번 호출에서 검색한 후보
+     * @param usedNames 다른 날짜에서 이미 사용한 장소명, 불변 집합 허용
+     * @param usedMenus 다른 날짜에서 이미 사용한 메뉴명, 불변 집합 허용
      * @return 채워 넣은 일정
      */
     public CreatePlanAiResponse complete(
@@ -181,10 +174,7 @@ public class MissingSlotCompleter {
     }
 
     /**
-     * 슬롯 추가나 정렬로 직전 장소가 바뀐 기존 슬롯의 이동시간을 무효화한다.
-     *
-     * 새 슬롯의 이동시간은 처음부터 null이다. 기존 슬롯은 자신을 향하는 경로의 출발지가
-     * 바뀐 경우에만 null로 돌려 뒤의 확정 좌표 기반 경로 조회가 다시 계산하게 한다.
+     * 출발 장소가 바뀐 슬롯의 이동시간 무효화
      */
     private CreatePlanAiResponse invalidateChangedTravelMinutes(
             CreatePlanAiResponse response,
@@ -501,13 +491,7 @@ public class MissingSlotCompleter {
     }
 
     /**
-     * 식사 슬롯 하나를 만든다.
-     *
-     * 메뉴명은 검색 키워드가 아니라 TourAPI 상세의 대표메뉴를 쓴다.
-     * 상세를 얻지 못한 후보는 메뉴를 확정할 수 없으므로 건너뛰고 다음 후보를 본다.
-     *
-     * 대표메뉴가 이미 쓰인 후보도 건너뛴다. 식당 이름이 달라도 같은 음식이면
-     * 여행자에게는 같은 끼니가 두 번 나온 것이다.
+     * TourAPI 대표메뉴가 확인된 후보만 이용한 식사 슬롯 생성
      */
     private CreatePlanAiResponse.PlanScheduleDetail mealSlot(
             ScheduleType mealType,
@@ -611,10 +595,8 @@ public class MissingSlotCompleter {
     }
 
     /**
-     * 직전 확정 장소에서 직선거리가 가장 가까운 미사용 후보.
-     *
-     * 목록 순서대로 고르면 하루 동선이 지역 전체로 튄다.
-     * 좌표를 모르면 비교할 근거가 없으므로 목록 순서를 따른다.
+     * 직전 장소 기준의 가장 가까운 미사용 후보 선택
+     * 출발 좌표가 없으면 첫 번째 미사용 후보 선택
      */
     private PlaceCandidateContext.Candidate nearestUnused(
             List<PlaceCandidateContext.Candidate> pool,
@@ -693,11 +675,7 @@ public class MissingSlotCompleter {
     }
 
     /**
-     * 채워 넣을 슬롯의 시작시각.
-     *
-     * 하루의 빈틈 중 가장 이른 곳에 넣는다. 마지막 일정 뒤에만 붙이면
-     * 저녁 식사 다음으로 밀려 심야 관광이 되어버린다.
-     * 낮에 들어갈 틈이 없을 때만 마지막 일정 뒤에 붙인다.
+     * 하루의 빈 시간대에 들어갈 슬롯 시작시각
      */
     private LocalTime nextStartTime(
             List<CreatePlanAiResponse.PlanScheduleDetail> schedules

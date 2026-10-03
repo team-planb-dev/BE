@@ -388,11 +388,8 @@ public class TravelService {
     }
 
     /**
-     * 이번 여행에 참여할 구성원을 Travel과 연결해 저장한다.
-     *
-     * 같은 구성원이 중복 전달되어도 관계는 한 번만 저장한다.
-     *
-     * @param travel  구성원을 연결할 여행
+     * 중복 없이 저장하는 여행별 참여 구성원 연결
+     * @param travel 구성원을 연결할 여행
      * @param healths 이번 여행에 참여할 구성원
      */
     public void saveTravelHealths(
@@ -412,8 +409,7 @@ public class TravelService {
     }
 
     /**
-     * 여행에 연결된 구성원을 조회한다.
-     *
+     * 여행 생성 시 선택한 구성원 조회
      * @param travelId 조회할 여행 id
      * @return 여행 생성 당시 선택한 구성원
      */

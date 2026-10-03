@@ -147,7 +147,7 @@ public class TravelRecommendHandler {
     }
 
     /**
-     * AI의 음식명 키워드 검색 후보가 부족할 때 같은 여행 지역의 음식점 후보를 보충한다.
+     * AI 검색 후보 부족 시 여행 지역의 음식점 보충
      */
     public void collectRestaurantCandidates(
             TravelPlanContext context,
@@ -284,9 +284,7 @@ public class TravelRecommendHandler {
     }
 
     /**
-     * 후보로 채우고도 남는 부족분만 교정 사유로 남긴다.
-     *
-     * 사유 하나가 슬롯 하나에 대응하므로, 채울 수 있는 수만큼 앞에서 덜어낸다.
+     * 후보 보충 후 남은 누락 슬롯의 교정 사유
      */
     private static List<String> unfillable(
             List<String> failures,

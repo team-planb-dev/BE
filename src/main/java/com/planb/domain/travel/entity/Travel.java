@@ -120,9 +120,7 @@ public class Travel {
 
 
     /**
-     * 일정을 저장 확정 상태로 바꾼다.
-     *
-     * 이미 저장된 여행에 다시 호출해도 상태가 바뀌지 않아 중복 요청에 안전하다.
+     * 여행 일정의 저장 확정
      */
     public void markSaved() {
 
@@ -130,10 +128,7 @@ public class Travel {
     }
 
     /**
-     * 공유 토큰을 발급한다.
-     *
-     * 이미 발급된 토큰이 있으면 그대로 두어 기존에 공유한 링크가 계속 열리도록 한다.
-     *
+     * 기존 공유 링크를 유지하는 공유 토큰 발급
      * @param shareToken 새로 발급할 토큰
      */
     public void issueShareToken(String shareToken) {
