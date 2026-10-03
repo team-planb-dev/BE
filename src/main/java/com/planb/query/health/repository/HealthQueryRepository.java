@@ -33,8 +33,7 @@ public class HealthQueryRepository {
 
 
     /**
-     * 여행에 선택된 구성원만 건강 요약으로 조회한다.
-     *
+     * 여행에 선택된 구성원의 건강 요약 조회
      * @param healthIds 조회할 구성원 id
      * @return 구성원 건강 요약 목록
      */
@@ -49,12 +48,7 @@ public class HealthQueryRepository {
 
 
     /**
-     * 건강 요약을 조회한다.
-     *
-     * 관리 질환은 컬렉션이라 알레르기 집계 쿼리에 함께 넣을 수 없다.
-     * 집계로 요약을 만든 뒤 질환만 한 번 더 읽어 붙인다. 질의는 집계 1회, 엔티티 1회,
-     * 질환 컬렉션 배치 1회로 3회다. default_batch_fetch_size가 500이라
-     * 구성원이 500명까지 늘어도 질의 횟수는 그대로다.
+     * 집계 정보와 관리 질환을 결합한 건강 요약 조회
      */
     private List<HealthSummaryQueryResponse> findHealthSummaryList(BooleanExpression condition) {
 
