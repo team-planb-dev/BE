@@ -10,8 +10,6 @@ import com.planb.domain.user.dto.response.CheckUsernameDuplicationResponse;
 import com.planb.domain.user.dto.response.FindUsernameResponse;
 import com.planb.domain.user.dto.response.RecoveryQuestionResponse;
 import com.planb.domain.user.dto.response.ResetPasswordResponse;
-import com.planb.global.config.exception.BaseExceptionEnum;
-import com.planb.global.config.exception.domain.BaseException;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -26,14 +24,10 @@ import com.planb.global.security.service.RefreshService;
 import com.planb.global.security.service.UserAuthCacheService;
 import com.planb.query.user.service.UserQueryService;
 
-import java.time.Instant;
 import java.util.List;
 
 /**
- * 사용자 계정의 생성, 조회, 삭제와 중복 검증 흐름을 조합하는 Facade.
- *
- * 사용자 저장소와 인증 캐시의 조회 경로를 Controller에 노출하지 않고
- * 계정 단위의 비즈니스 흐름으로 제공한다.
+ * 사용자 계정 관리 흐름을 조합
  */
 @Component
 @RequiredArgsConstructor
@@ -46,201 +40,106 @@ public class UserFacade {
 
 
     /**
-     * 회원가입 요청으로 사용자를 생성하고 영속화한다.
-     *
-     * @param userCreateRequest 생성할 사용자 정보
-     * @return 생성된 사용자 정보
+     * 사용자 계정을 생성
      */
     @Transactional
     public UserCreateResponse create(UserCreateRequest userCreateRequest){
 
-        // 어느 값이 겹쳤는지 알려주려면 저장 전에 확인해야 한다.
-        // DB의 uk_users_username, uk_users_nickname은 동시 가입을 막는 최종 방어선으로 남는다.
-        validateNotDuplicated(userCreateRequest);
+        userQueryService.validateNotDuplicated(userCreateRequest); // 계정 중복 검증
 
-        // 유저 생성
-        User user = userService.create(userCreateRequest);
+        User user = userService.create(userCreateRequest); // 사용자 생성
 
-        // DB에 저장
-        userService.save(user);
+        userService.save(user); // 사용자 저장
 
-        return new UserCreateResponse(user.getUsername(),
-                Instant.now(),
-                Instant.now());
-    }
-
-
-    private void validateNotDuplicated(UserCreateRequest userCreateRequest){
-
-        if (userQueryService
-                .checkDuplicateUsername(userCreateRequest
-                        .username())) {
-
-            throw new BaseException(BaseExceptionEnum
-                    .DUPLICATE_USERNAME);
-        }
-
-        if (userQueryService
-                .checkDuplicateNickname(userCreateRequest
-                        .nickname())) {
-
-            throw new BaseException(BaseExceptionEnum
-                    .DUPLICATE_NICKNAME);
-        }
+        return userService.createResponse(user); // 생성 결과 반환
     }
 
 
     /**
-     * username으로 사용자를 확인하고 인증 세션을 제거한 뒤 계정을 soft delete 처리한다.
-     *
-     * @param username 삭제할 사용자의 username
-     * @return 삭제 처리된 사용자 정보
+     * 사용자 계정 탈퇴 처리
      */
     @Transactional
     public UserDeleteResponse delete(String username){
 
-        User user = userQueryService
-                .findByUsername(username);
+        User user = userQueryService.findByUsername(username); // 사용자 조회
 
-        userAuthCacheService.deleteUserAuthCache(username);
+        userAuthCacheService.deleteUserAuthCache(username); // 인증 캐시 삭제
 
-        refreshService.deleteRefreshByUsername(username);
+        refreshService.deleteRefreshByUsername(username); // Refresh Token 삭제
 
-        userService.delete(user);
+        userService.delete(user); // 사용자 탈퇴 처리
 
-        return new UserDeleteResponse(user.getUsername(),
-                user.getDeletedAt());
+        return userService.deleteResponse(user); // 탈퇴 결과 반환
     }
 
     /**
-     * 마이페이지에 보여줄 사용자 정보를 조회한다.
-     *
-     * 닉네임은 인증 캐시에 없고, 캐시에 넣으면 인증 요청마다 읽히는 값이 넓어진다.
-     * 마이페이지는 호출이 드물어 저장소에서 바로 읽는 편이 싸다.
-     *
-     * @param username 조회할 사용자의 username
-     * @return 마이페이지용 사용자 정보
+     * 사용자 정보를 조회
      */
     @Transactional(readOnly = true)
     public UserReadResponse findByUsername(String username){
 
-        return UserReadResponse
-                .from(userQueryService
-                        .findByUsername(username));
+        return userQueryService.findReadResponseByUsername(username); // 사용자 정보 조회
     }
 
     /**
-     * 회원가입과 계정 복구 화면에서 선택할 수 있는 복구 질문 목록을 반환한다.
-     *
-     * @return 복구 질문 코드와 문구 목록
+     * 계정 복구 질문 목록을 조회
      */
     public List<RecoveryQuestionResponse> findRecoveryQuestions(){
 
-        return RecoveryQuestionResponse
-                .all();
+        return userService.findRecoveryQuestions(); // 복구 질문 조회
     }
 
 
     /**
-     * 계정 복구 질문과 답변으로 가입된 이메일을 찾는다.
-     *
-     * @param findUsernameRequest 복구 질문과 답변
-     * @return 마스킹된 이메일
+     * 계정 복구 정보로 사용자 이메일을 조회
      */
     @Transactional(readOnly = true)
     public FindUsernameResponse findUsername(FindUsernameRequest findUsernameRequest){
 
-        User user = userQueryService
-                .findByAccountRecovery(
-                        findUsernameRequest
-                                .nickname(),
-                        findUsernameRequest
-                                .recoveryQuestion(),
-                        findUsernameRequest
-                                .recoveryAnswer()
-                );
-
-        return FindUsernameResponse
-                .of(user.getUsername());
+        return userQueryService.findUsernameResponse(findUsernameRequest); // 사용자 이메일 조회
     }
 
 
     /**
-     * 이메일과 계정 복구 질문/답변을 확인한 뒤 비밀번호를 재설정한다.
-     *
-     * 비밀번호가 바뀌면 기존 토큰과 인증 캐시는 더 이상 유효하지 않아야 하므로 함께 제거한다.
-     *
-     * @param resetPasswordRequest 이메일, 복구 질문, 복구 답변, 새 비밀번호
-     * @return 재설정된 계정 정보
+     * 계정 복구 정보로 비밀번호를 재설정
      */
     @Transactional
     public ResetPasswordResponse resetPassword(ResetPasswordRequest resetPasswordRequest){
 
-        User user = userQueryService
-                .findByUsername(resetPasswordRequest
-                        .username());
+        User user = userQueryService.findByUsername(resetPasswordRequest.username()); // 사용자 조회
 
-        boolean matched = user
-                .getAccountRecovery() != null
-                && user
-                        .getAccountRecovery()
-                        .matches(
-                                resetPasswordRequest
-                                        .recoveryQuestion(),
-                                resetPasswordRequest
-                                        .recoveryAnswer()
-                        );
+        ResetPasswordResponse response = userService.resetPassword(user, resetPasswordRequest); // 복구 정보 검증 및 비밀번호 변경
 
-        if (!matched) {
-            throw new BaseException(BaseExceptionEnum
-                    .RECOVERY_ANSWER_MISMATCH);
-        }
+        userAuthCacheService.deleteUserAuthCache(resetPasswordRequest.username()); // 인증 캐시 삭제
 
-        userService.resetPassword(user,
-                resetPasswordRequest
-                        .newPassword());
+        refreshService.deleteRefreshByUsername(resetPasswordRequest.username()); // Refresh Token 삭제
 
-        userAuthCacheService.deleteUserAuthCache(user
-                .getUsername());
-
-        refreshService.deleteRefreshByUsername(user
-                .getUsername());
-
-        return new ResetPasswordResponse(user.getUsername(),
-                Instant.now());
+        return response;
     }
 
 
     /**
-     * 회원가입 전에 username 사용 가능 여부를 확인한다.
-     *
-     * @param checkUsernameDuplicationRequest 확인할 username
-     * @return username 중복 여부
+     * 사용자 이메일 중복 여부를 조회
      */
     @Transactional(readOnly = true)
     public CheckUsernameDuplicationResponse checkUsernameDuplication
             (CheckUsernameDuplicationRequest checkUsernameDuplicationRequest){
 
-        return CheckUsernameDuplicationResponse
-                .result(userQueryService
-                        .checkDuplicateUsername(checkUsernameDuplicationRequest
-                                .username()));
+        return userQueryService.checkUsernameDuplicationResponse(
+                checkUsernameDuplicationRequest
+        ); // 사용자 이메일 중복 조회
     }
 
     /**
-     * 회원가입 전에 nickname 사용 가능 여부를 확인한다.
-     *
-     * @param checkNicknameDuplicationRequest 확인할 nickname
-     * @return nickname 중복 여부
+     * 사용자 닉네임 중복 여부를 조회
      */
     @Transactional(readOnly = true)
     public CheckNicknameDuplicationResponse checkNicknameDuplication
             (CheckNicknameDuplicationRequest checkNicknameDuplicationRequest){
 
-        return CheckNicknameDuplicationResponse
-                .result(userQueryService
-                        .checkDuplicateNickname(checkNicknameDuplicationRequest
-                                .nickname()));
+        return userQueryService.checkNicknameDuplicationResponse(
+                checkNicknameDuplicationRequest
+        ); // 사용자 닉네임 중복 조회
     }
 
 

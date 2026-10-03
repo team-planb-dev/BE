@@ -1,7 +1,10 @@
 package com.planb.domain.health.service;
 
 import com.planb.domain.health.dto.request.CreateFoodInfoRequest;
+import com.planb.domain.health.dto.request.AddCompanionRequest;
+import com.planb.domain.health.dto.request.UpdateCompanionRequest;
 import com.planb.domain.health.entity.FoodInfo;
+import com.planb.domain.health.entity.Health;
 import com.planb.domain.health.repository.FoodInfoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,6 +16,26 @@ import java.util.List;
 public class FoodInfoService {
 
     private final FoodInfoRepository foodInfoRepository;
+
+    public void saveForCompanion(
+            AddCompanionRequest request,
+            Health health
+    ) {
+
+        if (!request.sensitiveAgree()) {
+            return;
+        }
+
+        saveFoodInfoAll(makeFoodInfoList(request.toFoodInfoRequest(health)));
+    }
+
+    public void saveForCompanion(
+            UpdateCompanionRequest request,
+            Health health
+    ) {
+
+        saveForCompanion(request.toAddCompanionRequest(), health);
+    }
 
     public List<FoodInfo> makeFoodInfoList(CreateFoodInfoRequest request){
 

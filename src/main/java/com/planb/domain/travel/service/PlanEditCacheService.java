@@ -4,6 +4,8 @@ import com.planb.ai.dto.response.EditPlanAiResponse;
 import com.planb.domain.travel.repository.PlanEditCacheRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -42,6 +44,27 @@ public class PlanEditCacheService {
     public void markConfirmed(Long travelId, EditPlanAiResponse response) {
 
         planEditCacheRepository.saveConfirmed(travelId, response, CONFIRMED_TTL_MS);
+    }
+
+    public void markConfirmedAfterCommit(
+            Long travelId,
+            EditPlanAiResponse response
+    ) {
+
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            markConfirmed(travelId, response);
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+
+                    @Override
+                    public void afterCommit() {
+                        markConfirmed(travelId, response);
+                    }
+                }
+        );
     }
 
     // 이미 확정된 요청의 재시도인지 판별한다.

@@ -161,10 +161,6 @@ class ChatFacadeTest {
                 .roomId())
                 .thenReturn(roomId);
 
-        when(user
-                .getId())
-                .thenReturn(userId);
-
         when(userQueryService
                 .findByUsername(username))
                 .thenReturn(user);
@@ -174,13 +170,8 @@ class ChatFacadeTest {
                 .thenReturn(chatRoom);
 
         when(chatRoomMemberService
-                .addChatUser(any(AddChatUserRequest.class)))
+                .addChatUser(chatRoom, user))
                 .thenReturn(expectedResponse);
-
-        ArgumentCaptor<AddChatUserRequest> requestCaptor =
-                ArgumentCaptor.forClass(
-                        AddChatUserRequest.class
-                );
 
         // when
         AddChatUserResponse result =
@@ -203,6 +194,9 @@ class ChatFacadeTest {
         inOrder.verify(userQueryService)
                 .findByUsername(username);
 
+        inOrder.verify(chatRoomMemberService)
+                .validateRequestedUser(userId, user);
+
         inOrder.verify(chatRoomMemberQueryService)
                 .validateDuplicateMemberWithRoom(
                         roomId,
@@ -213,18 +207,10 @@ class ChatFacadeTest {
                 .findChatRoomByRoomId(roomId);
 
         inOrder.verify(chatRoomMemberService)
-                .addChatUser(requestCaptor.capture());
+                .validateTravelRoomOwner(chatRoom, user);
 
-        AddChatUserRequest capturedRequest =
-                requestCaptor.getValue();
-
-        assertThat(capturedRequest
-                .user())
-                .isSameAs(user);
-
-        assertThat(capturedRequest
-                .chatRoom())
-                .isSameAs(chatRoom);
+        inOrder.verify(chatRoomMemberService)
+                .addChatUser(chatRoom, user);
 
         verifyNoInteractions(
                 chatMessageQueryService,
@@ -260,10 +246,6 @@ class ChatFacadeTest {
                 .findByUsername(username))
                 .thenReturn(user);
 
-        when(user
-                .getId())
-                .thenReturn(userId);
-
         doThrow(new BaseException(
                 WebSocketExceptionEnum.USER_ROOM_DUPLICATED
         ))
@@ -289,11 +271,13 @@ class ChatFacadeTest {
 
         verifyNoInteractions(
                 chatRoomQueryService,
-                chatRoomMemberService,
                 chatMessageQueryService,
                 chatRoomService,
                 chatMessageService
         );
+
+        verify(chatRoomMemberService)
+                .validateRequestedUser(userId, user);
     }
 
     @Test
@@ -328,10 +312,6 @@ class ChatFacadeTest {
                 .roomId())
                 .thenReturn(roomId);
 
-        when(user
-                .getId())
-                .thenReturn(userId);
-
         when(userQueryService
                 .findByUsername(username))
                 .thenReturn(user);
@@ -345,13 +325,8 @@ class ChatFacadeTest {
                 .thenReturn(chatRoom);
 
         when(chatRoomMemberService
-                .deleteChatUser(any(DeleteChatUserRequest.class)))
+                .deleteChatUser(chatRoomMember, chatRoom, user))
                 .thenReturn(expectedResponse);
-
-        ArgumentCaptor<DeleteChatUserRequest> requestCaptor =
-                ArgumentCaptor.forClass(
-                        DeleteChatUserRequest.class
-                );
 
         // when
         DeleteChatUserResponse result =
@@ -374,6 +349,9 @@ class ChatFacadeTest {
         inOrder.verify(userQueryService)
                 .findByUsername(username);
 
+        inOrder.verify(chatRoomMemberService)
+                .validateRequestedUser(userId, user);
+
         inOrder.verify(chatRoomMemberQueryService)
                 .findByUserId(roomId, userId);
 
@@ -381,22 +359,7 @@ class ChatFacadeTest {
                 .findChatRoomByRoomId(roomId);
 
         inOrder.verify(chatRoomMemberService)
-                .deleteChatUser(requestCaptor.capture());
-
-        DeleteChatUserRequest capturedRequest =
-                requestCaptor.getValue();
-
-        assertThat(capturedRequest
-                .chatRoomMember())
-                .isSameAs(chatRoomMember);
-
-        assertThat(capturedRequest
-                .user())
-                .isSameAs(user);
-
-        assertThat(capturedRequest
-                .chatRoom())
-                .isSameAs(chatRoom);
+                .deleteChatUser(chatRoomMember, chatRoom, user);
 
         verifyNoInteractions(
                 chatMessageQueryService,
@@ -432,32 +395,27 @@ class ChatFacadeTest {
                 .findByUsername(username))
                 .thenReturn(user);
 
-        when(user
-                .getId())
-                .thenReturn(10L);
-
-        when(chatRoomMemberQueryService
-                .checkSubscriberWithRoomId(
-                        roomId,
-                        10L
-                ))
-                .thenReturn(true);
-
         when(chatRoomQueryService
                 .findChatRoomByRoomId(roomId))
                 .thenReturn(chatRoom);
 
-        when(chatRoom
-                .getId())
+        when(chatRoom.getId())
                 .thenReturn(roomId);
-
-        when(chatRoom
-                .getChatRoomName())
-                .thenReturn(chatRoomName);
 
         when(chatMessageQueryService
                 .softDeleteAllMessageInChatRoom(roomId))
                 .thenReturn(deletedMessageCount);
+
+        DeleteChatRoomResponse expectedResponse =
+                new DeleteChatRoomResponse(
+                        roomId,
+                        chatRoomName,
+                        "삭제 보관된 메시지 갯수: 3",
+                        "채팅방이 삭제되었습니다."
+                );
+
+        when(chatRoomService.deletedChatRoomResponse(chatRoom, deletedMessageCount))
+                .thenReturn(expectedResponse);
 
         // when
         DeleteChatRoomResponse result =
@@ -483,6 +441,7 @@ class ChatFacadeTest {
                 userQueryService,
                 chatRoomQueryService,
                 chatRoomMemberQueryService,
+                chatRoomMemberService,
                 chatRoomService,
                 chatMessageQueryService
         );
@@ -490,14 +449,14 @@ class ChatFacadeTest {
         inOrder.verify(userQueryService)
                 .findByUsername(username);
 
-        inOrder.verify(chatRoomMemberQueryService)
-                .checkSubscriberWithRoomId(
-                        roomId,
-                        10L
-                );
+        inOrder.verify(chatRoomMemberService)
+                .validateRoomMember(roomId, user);
 
         inOrder.verify(chatRoomQueryService)
                 .findChatRoomByRoomId(roomId);
+
+        inOrder.verify(chatRoomMemberService)
+                .validateTravelRoomOwner(chatRoom, user);
 
         inOrder.verify(chatRoomMemberQueryService)
                 .deleteAllChatRoomMemberByRoomId(roomId);
@@ -508,632 +467,212 @@ class ChatFacadeTest {
         inOrder.verify(chatMessageQueryService)
                 .softDeleteAllMessageInChatRoom(roomId);
 
+        inOrder.verify(chatRoomService)
+                .deletedChatRoomResponse(chatRoom, deletedMessageCount);
+
         verifyNoInteractions(
-                chatRoomMemberService,
                 chatMessageService
         );
     }
 
     @Test
-    @DisplayName("일반 채팅 메시지를 생성 & 저장 후, 채팅방에 발행")
+    @DisplayName("사용자 메시지 저장 및 발행 위임")
     void publishMessageSuccess() {
 
-        // given
-        Long roomId = 1L;
-        String username = "testUser@example.com";
-        String messageContent = "안녕하세요";
-
         SendChatMessageRequest request =
-                mock(SendChatMessageRequest.class);
+                new SendChatMessageRequest(MessageType.TALK, "안녕하세요");
 
-        ChatRoom chatRoom =
-                mock(ChatRoom.class);
+        chatFacade.publishMessage(1L, request, "user@example.com");
 
-        User sender =
-                mock(User.class);
-
-        ChatMessage chatMessage =
-                mock(ChatMessage.class);
-
-        SendChatMessageResponse response =
-                mock(SendChatMessageResponse.class);
-
-        when(request
-                .message())
-                .thenReturn(messageContent);
-
-        when(chatRoomQueryService
-                .findChatRoomByRoomId(roomId))
-                .thenReturn(chatRoom);
-
-        when(userQueryService
-                .findByUsername(username))
-                .thenReturn(sender);
-
-        when(chatMessageService
-                .createChatMessage(
-                        chatRoom,
-                        sender,
-                        messageContent
-                ))
-                .thenReturn(chatMessage);
-
-        when(chatMessageService
-                .makeChatResponse(
-                        roomId,
-                        sender,
-                        chatMessage
-                ))
-                .thenReturn(response);
-
-        // when
-        chatFacade.publishMessage(
-                roomId,
-                request,
-                username
-        );
-
-        // then
-        InOrder inOrder = inOrder(
-                chatRoomQueryService,
-                userQueryService,
-                chatMessageService
-        );
-
-        inOrder.verify(chatRoomQueryService)
-                .findChatRoomByRoomId(roomId);
-
-        inOrder.verify(userQueryService)
-                .findByUsername(username);
-
-        inOrder.verify(chatMessageService)
-                .createChatMessage(
-                        chatRoom,
-                        sender,
-                        messageContent
-                );
-
-        inOrder.verify(chatMessageService)
-                .saveMessage(chatMessage);
-
-        inOrder.verify(chatMessageService)
-                .makeChatResponse(
-                        roomId,
-                        sender,
-                        chatMessage
-                );
-
-        inOrder.verify(chatMessageService)
-                .publishMessage(
-                        roomId,
-                        response
-                );
-
-        verifyNoInteractions(
-                chatRoomMemberQueryService,
-                chatMessageQueryService,
-                chatRoomService,
-                chatRoomMemberService
-        );
+        verify(chatMessageService)
+                .publishUserMessage(1L, "안녕하세요", "user@example.com");
     }
 
     @Test
-    @DisplayName("입장 시스템 메시지를 생성한 뒤, 채팅방에 발행")
+    @DisplayName("입장 시스템 메시지 발행 위임")
     void publishEnterSystemMessageSuccess() {
 
-        // given
-        Long roomId = 1L;
-        Long userId = 10L;
-        String username = "testUser@example.com";
-        String nickname = "테스트유저";
-        String systemMessage =
-                nickname + "님이 입장했습니다.";
-
-        MessageType messageType =
-                MessageType.ENTER;
-
-        User participant =
-                mock(User.class);
-
-        when(userQueryService
-                .findByUsername(username))
-                .thenReturn(participant);
-
-        when(participant
-                .getId())
-                .thenReturn(userId);
-
-        when(participant
-                .getNickname())
-                .thenReturn(nickname);
-
-        when(chatMessageService
-                .createSystemMessage(
-                        messageType,
-                        nickname
-                ))
-                .thenReturn(systemMessage);
-
-        ArgumentCaptor<SendChatMessageResponse> responseCaptor =
-                ArgumentCaptor.forClass(
-                        SendChatMessageResponse.class
-                );
-
-        // when
         chatFacade.publishSystemMessage(
-                roomId,
-                username,
-                messageType
-        );
-
-        // then
-        verify(userQueryService)
-                .findByUsername(username);
-
-        verify(chatMessageService)
-                .createSystemMessage(
-                        messageType,
-                        nickname
-                );
-
-        verify(chatMessageService)
-                .publishMessage(
-                        eq(roomId),
-                        responseCaptor.capture()
-                );
-
-        SendChatMessageResponse response =
-                responseCaptor.getValue();
-
-        assertThat(response)
-                .isNotNull();
-
-        assertThat(response.type())
-                .isEqualTo(messageType);
-
-        assertThat(response.roomId())
-                .isEqualTo(roomId);
-
-        assertThat(response.senderId())
-                .isEqualTo(userId);
-
-        assertThat(response.senderNickname())
-                .isEqualTo(nickname);
-
-        assertThat(response.message())
-                .isEqualTo(systemMessage);
-
-        assertThat(response.sendTime())
-                .isNotNull();
-
-        verifyNoInteractions(
-                chatRoomQueryService,
-                chatRoomMemberQueryService,
-                chatMessageQueryService,
-                chatRoomService,
-                chatRoomMemberService
-        );
-    }
-
-    @Test
-    @DisplayName("퇴장 시스템 메시지를 생성한 뒤 채팅방에 발행")
-    void publishLeaveSystemMessageSuccess() {
-
-        // given
-        Long roomId = 1L;
-        Long userId = 10L;
-        String username = "testUser@example.com";
-        String nickname = "테스트유저";
-        String systemMessage =
-                nickname + "님이 퇴장했습니다.";
-
-        MessageType messageType =
-                MessageType.LEAVE;
-
-        User participant =
-                mock(User.class);
-
-        when(userQueryService
-                .findByUsername(username))
-                .thenReturn(participant);
-
-        when(participant
-                .getId())
-                .thenReturn(userId);
-
-        when(participant
-                .getNickname())
-                .thenReturn(nickname);
-
-        when(chatMessageService
-                .createSystemMessage(
-                        messageType,
-                        nickname
-                ))
-                .thenReturn(systemMessage);
-
-        ArgumentCaptor<SendChatMessageResponse> responseCaptor =
-                ArgumentCaptor.forClass(
-                        SendChatMessageResponse.class
-                );
-
-        // when
-        chatFacade.publishSystemMessage(
-                roomId,
-                username,
-                messageType
-        );
-
-        // then
-        verify(userQueryService)
-                .findByUsername(username);
-
-        verify(chatMessageService)
-                .createSystemMessage(
-                        messageType,
-                        nickname
-                );
-
-        verify(chatMessageService)
-                .publishMessage(
-                        eq(roomId),
-                        responseCaptor.capture()
-                );
-
-        SendChatMessageResponse response =
-                responseCaptor.getValue();
-
-        assertThat(response)
-                .isNotNull();
-
-        assertThat(response.type())
-                .isEqualTo(messageType);
-
-        assertThat(response.roomId())
-                .isEqualTo(roomId);
-
-        assertThat(response.senderId())
-                .isEqualTo(userId);
-
-        assertThat(response.senderNickname())
-                .isEqualTo(nickname);
-
-        assertThat(response.message())
-                .isEqualTo(systemMessage);
-
-        assertThat(response.sendTime())
-                .isNotNull();
-
-        verifyNoInteractions(
-                chatRoomQueryService,
-                chatRoomMemberQueryService,
-                chatMessageQueryService,
-                chatRoomService,
-                chatRoomMemberService
-        );
-    }
-
-    @Test
-    @DisplayName("시스템 메시지는 DB에 저장하지 않고 바로 발행")
-    void publishSystemMessageDoesNotSaveMessage() {
-
-        // given
-        Long roomId = 1L;
-        String username = "testUser@example.com";
-        String nickname = "테스트유저";
-
-        User participant =
-                mock(User.class);
-
-        when(userQueryService
-                .findByUsername(username))
-                .thenReturn(participant);
-
-        when(participant
-                .getId())
-                .thenReturn(10L);
-
-        when(participant
-                .getNickname())
-                .thenReturn(nickname);
-
-        when(chatMessageService
-                .createSystemMessage(
-                        MessageType.ENTER,
-                        nickname
-                ))
-                .thenReturn(
-                        "테스트유저님이 입장했습니다."
-                );
-
-        // when
-        chatFacade.publishSystemMessage(
-                roomId,
-                username,
+                1L,
+                "user@example.com",
                 MessageType.ENTER
         );
 
-        // then
-        verify(chatMessageService, never())
-                .saveMessage(any(ChatMessage.class));
+        verify(chatMessageService)
+                .publishSystemMessage(1L, "user@example.com", MessageType.ENTER);
+    }
+
+    @Test
+    @DisplayName("퇴장 시스템 메시지 발행 위임")
+    void publishLeaveSystemMessageSuccess() {
+
+        chatFacade.publishSystemMessage(
+                1L,
+                "user@example.com",
+                MessageType.LEAVE
+        );
 
         verify(chatMessageService)
-                .publishMessage(
-                        eq(roomId),
-                        any(SendChatMessageResponse.class)
-                );
+                .publishSystemMessage(1L, "user@example.com", MessageType.LEAVE);
+    }
+
+    @Test
+    @DisplayName("시스템 메시지 Service 위임")
+    void publishSystemMessageDoesNotSaveMessage() {
+
+        chatFacade.publishSystemMessage(
+                1L,
+                "user@example.com",
+                MessageType.ENTER
+        );
+
+        verify(chatMessageService)
+                .publishSystemMessage(1L, "user@example.com", MessageType.ENTER);
+        verifyNoInteractions(chatMessageQueryService);
     }
 
     @Test
     @DisplayName("travel 소유자이고 이미 채팅방이 있으면 기존 채팅방을 반환")
     void findOrCreateTravelChatRoomReturnsExistingRoom() {
 
-        // given
         Long travelId = 1L;
-        Long userId = 10L;
         String username = "testUser@example.com";
-
         User user = mock(User.class);
-        ChatRoom chatRoom = mock(ChatRoom.class);
+        ChatRoom room = mock(ChatRoom.class);
+        CreateChatRoomResponse expected = mock(CreateChatRoomResponse.class);
 
         when(userQueryService.findByUsername(username))
                 .thenReturn(user);
-
         when(user.getId())
-                .thenReturn(userId);
-
-        when(travelQueryService.existsByIdAndUserId(travelId, userId))
-                .thenReturn(true);
-
+                .thenReturn(10L);
         when(chatRoomQueryService.findChatRoomByTravelId(travelId))
-                .thenReturn(Optional.of(chatRoom));
+                .thenReturn(Optional.of(room));
+        when(chatRoomService.travelChatRoomResponse(room, true))
+                .thenReturn(expected);
 
-        when(chatRoom.getId())
-                .thenReturn(100L);
+        CreateChatRoomResponse result = chatFacade.findOrCreateTravelChatRoom(
+                travelId,
+                username
+        );
 
-        when(chatRoom.getChatRoomName())
-                .thenReturn("부산 여행");
-
-        // when
-        CreateChatRoomResponse result =
-                chatFacade.findOrCreateTravelChatRoom(travelId, username);
-
-        // then
-        assertThat(result.chatRoomId())
-                .isEqualTo(100L);
-
-        assertThat(result.chatRoomName())
-                .isEqualTo("부산 여행");
-
-        assertThat(result.message())
-                .isEqualTo("채팅방이 조회되었습니다.");
-
-        verify(travelService, never())
-                .findTravelById(any());
-
+        assertThat(result).isSameAs(expected);
+        verify(travelQueryService)
+                .validateOwner(travelId, 10L);
+        verify(chatRoomMemberService)
+                .ensureMember(room, user);
         verify(chatRoomService, never())
                 .createChatRoomForTravel(any());
-
-        ArgumentCaptor<AddChatUserRequest> requestCaptor =
-                ArgumentCaptor.forClass(AddChatUserRequest.class);
-
-        verify(chatRoomMemberService)
-                .addChatUser(requestCaptor.capture());
-
-        assertThat(requestCaptor
-                .getValue()
-                .chatRoom())
-                .isSameAs(chatRoom);
-
-        assertThat(requestCaptor
-                .getValue()
-                .user())
-                .isSameAs(user);
     }
 
     @Test
     @DisplayName("travel 소유자이고 채팅방이 없으면 새로 생성")
     void findOrCreateTravelChatRoomCreatesNewRoom() {
 
-        // given
         Long travelId = 1L;
-        Long userId = 10L;
         String username = "testUser@example.com";
-
         User user = mock(User.class);
         Travel travel = mock(Travel.class);
-        ChatRoom chatRoom = mock(ChatRoom.class);
+        ChatRoom room = mock(ChatRoom.class);
+        CreateChatRoomResponse expected = mock(CreateChatRoomResponse.class);
 
         when(userQueryService.findByUsername(username))
                 .thenReturn(user);
-
         when(user.getId())
-                .thenReturn(userId);
-
-        when(travelQueryService.existsByIdAndUserId(travelId, userId))
-                .thenReturn(true);
-
+                .thenReturn(10L);
         when(chatRoomQueryService.findChatRoomByTravelId(travelId))
                 .thenReturn(Optional.empty());
-
         when(travelService.findTravelById(travelId))
                 .thenReturn(travel);
-
         when(chatRoomService.createChatRoomForTravel(travel))
-                .thenReturn(chatRoom);
+                .thenReturn(room);
+        when(chatRoomService.travelChatRoomResponse(room, false))
+                .thenReturn(expected);
 
-        when(chatRoom.getId())
-                .thenReturn(200L);
-
-        when(chatRoom.getChatRoomName())
-                .thenReturn("부산 여행");
-
-        // when
-        CreateChatRoomResponse result =
-                chatFacade.findOrCreateTravelChatRoom(travelId, username);
-
-        // then
-        assertThat(result.chatRoomId())
-                .isEqualTo(200L);
-
-        assertThat(result.message())
-                .isEqualTo("채팅방이 생성되었습니다.");
-
-        verify(travelService)
-                .findTravelById(travelId);
-
-        verify(chatRoomService)
-                .createChatRoomForTravel(travel);
-
-        ArgumentCaptor<AddChatUserRequest> requestCaptor =
-                ArgumentCaptor.forClass(AddChatUserRequest.class);
-
-        verify(chatRoomMemberService)
-                .addChatUser(requestCaptor.capture());
-
-        assertThat(requestCaptor
-                .getValue()
-                .chatRoom())
-                .isSameAs(chatRoom);
-
-        assertThat(requestCaptor
-                .getValue()
-                .user())
-                .isSameAs(user);
-    }
-
-    @Test
-    @DisplayName("travel 채팅방에 이미 가입한 소유자는 중복 등록하지 않음")
-    void findOrCreateTravelChatRoomDoesNotAddExistingMember() {
-
-        // given
-        Long travelId = 1L;
-        Long userId = 10L;
-        Long roomId = 100L;
-        String username = "testUser@example.com";
-
-        User user = mock(User.class);
-        ChatRoom chatRoom = mock(ChatRoom.class);
-
-        when(userQueryService
-                .findByUsername(username))
-                .thenReturn(user);
-
-        when(user
-                .getId())
-                .thenReturn(userId);
-
-        when(travelQueryService
-                .existsByIdAndUserId(
-                        travelId,
-                        userId
-                ))
-                .thenReturn(true);
-
-        when(chatRoomQueryService
-                .findChatRoomByTravelId(travelId))
-                .thenReturn(Optional.of(chatRoom));
-
-        when(chatRoom
-                .getId())
-                .thenReturn(roomId);
-
-        when(chatRoomMemberQueryService
-                .checkSubscriberWithRoomId(
-                        roomId,
-                        userId
-                ))
-                .thenReturn(true);
-
-        // when
-        chatFacade.findOrCreateTravelChatRoom(
+        CreateChatRoomResponse result = chatFacade.findOrCreateTravelChatRoom(
                 travelId,
                 username
         );
 
-        // then
+        assertThat(result).isSameAs(expected);
+        verify(travelQueryService)
+                .validateOwner(travelId, 10L);
+        verify(chatRoomMemberService)
+                .ensureMember(room, user);
+    }
+
+    @Test
+    @DisplayName("여행 채팅방 멤버십 보장 위임")
+    void findOrCreateTravelChatRoomDoesNotAddExistingMember() {
+
+        Long travelId = 1L;
+        String username = "testUser@example.com";
+        User user = mock(User.class);
+        ChatRoom room = mock(ChatRoom.class);
+
+        when(userQueryService.findByUsername(username))
+                .thenReturn(user);
+        when(user.getId())
+                .thenReturn(10L);
+        when(chatRoomQueryService.findChatRoomByTravelId(travelId))
+                .thenReturn(Optional.of(room));
+
+        chatFacade.findOrCreateTravelChatRoom(travelId, username);
+
+        verify(chatRoomMemberService)
+                .ensureMember(room, user);
         verify(chatRoomMemberService, never())
-                .addChatUser(any(AddChatUserRequest.class));
+                .addChatUser(any());
     }
 
     @Test
     @DisplayName("travel 소유자가 아니면 예외 발생")
     void findOrCreateTravelChatRoomThrowsWhenNotOwner() {
 
-        // given
         Long travelId = 1L;
-        Long userId = 10L;
         String username = "testUser@example.com";
-
         User user = mock(User.class);
 
         when(userQueryService.findByUsername(username))
                 .thenReturn(user);
-
         when(user.getId())
-                .thenReturn(userId);
+                .thenReturn(10L);
+        org.mockito.Mockito.doThrow(new ForbiddenException(new Object[]{"권한 없음"}))
+                .when(travelQueryService)
+                .validateOwner(travelId, 10L);
 
-        when(travelQueryService.existsByIdAndUserId(travelId, userId))
-                .thenReturn(false);
-
-        // when & then
-        assertThatThrownBy(() ->
-                chatFacade.findOrCreateTravelChatRoom(travelId, username))
+        assertThatThrownBy(() -> chatFacade.findOrCreateTravelChatRoom(
+                travelId,
+                username
+        ))
                 .isInstanceOf(ForbiddenException.class);
 
-        verifyNoInteractions(
-                chatRoomQueryService,
-                travelService,
-                chatRoomService
-        );
+        verifyNoInteractions(chatRoomQueryService, chatRoomService, chatRoomMemberService);
     }
 
     @Test
     @DisplayName("채팅방에 연결된 travelId 조회")
     void getTravelIdByRoomIdReturnsTravelId() {
 
-        // given
-        Long roomId = 1L;
+        when(chatRoomQueryService.getTravelIdByRoomId(1L))
+                .thenReturn(10L);
 
-        Travel travel = mock(Travel.class);
-        ChatRoom chatRoom = mock(ChatRoom.class);
+        assertThat(chatFacade.getTravelIdByRoomId(1L))
+                .isEqualTo(10L);
 
-        when(chatRoomQueryService.findChatRoomByRoomId(roomId))
-                .thenReturn(chatRoom);
-
-        when(chatRoom.getTravel())
-                .thenReturn(travel);
-
-        when(travel.getId())
-                .thenReturn(50L);
-
-        // when
-        Long result = chatFacade.getTravelIdByRoomId(roomId);
-
-        // then
-        assertThat(result)
-                .isEqualTo(50L);
+        verify(chatRoomQueryService)
+                .getTravelIdByRoomId(1L);
     }
 
     @Test
     @DisplayName("채팅방에 travel이 연결되어 있지 않으면 예외 발생")
     void getTravelIdByRoomIdThrowsWhenNotLinked() {
 
-        // given
-        Long roomId = 1L;
+        when(chatRoomQueryService.getTravelIdByRoomId(1L))
+                .thenThrow(new BaseException(WebSocketExceptionEnum.TRAVEL_NOT_LINKED));
 
-        ChatRoom chatRoom = mock(ChatRoom.class);
-
-        when(chatRoomQueryService.findChatRoomByRoomId(roomId))
-                .thenReturn(chatRoom);
-
-        when(chatRoom.getTravel())
-                .thenReturn(null);
-
-        // when & then
         BaseException exception = assertThrows(
                 BaseException.class,
-                () -> chatFacade.getTravelIdByRoomId(roomId)
+                () -> chatFacade.getTravelIdByRoomId(1L)
         );
 
         assertThat(exception.getErrorCode())
@@ -1147,20 +686,10 @@ class ChatFacadeTest {
     @DisplayName("채팅방에 연결된 travelId를 Optional로 조회")
     void findTravelIdByRoomIdReturnsValueWhenLinked() {
 
-        // given
         Long roomId = 1L;
 
-        Travel travel = mock(Travel.class);
-        ChatRoom chatRoom = mock(ChatRoom.class);
-
-        when(chatRoomQueryService.findChatRoomByRoomId(roomId))
-                .thenReturn(chatRoom);
-
-        when(chatRoom.getTravel())
-                .thenReturn(travel);
-
-        when(travel.getId())
-                .thenReturn(50L);
+        when(chatRoomQueryService.findTravelIdByRoomId(roomId))
+                .thenReturn(Optional.of(50L));
 
         // when
         Optional<Long> result =
@@ -1175,16 +704,10 @@ class ChatFacadeTest {
     @DisplayName("채팅방에 travel이 연결되어 있지 않으면 빈 값 반환")
     void findTravelIdByRoomIdReturnsEmptyWhenNotLinked() {
 
-        // given
         Long roomId = 1L;
 
-        ChatRoom chatRoom = mock(ChatRoom.class);
-
-        when(chatRoomQueryService.findChatRoomByRoomId(roomId))
-                .thenReturn(chatRoom);
-
-        when(chatRoom.getTravel())
-                .thenReturn(null);
+        when(chatRoomQueryService.findTravelIdByRoomId(roomId))
+                .thenReturn(Optional.empty());
 
         // when
         Optional<Long> result =
@@ -1196,361 +719,77 @@ class ChatFacadeTest {
     }
 
     @Test
-    @DisplayName("AI 봇 명의로 메시지를 생성 & 저장 후, 채팅방에 발행")
+    @DisplayName("AI 응답 저장 및 발행 위임")
     void publishAiReplySuccess() {
 
-        // given
-        Long roomId = 1L;
-        String message = "변경 사항 없음";
+        EditPlanPreviewResponse preview = mock(EditPlanPreviewResponse.class);
 
-        EditPlanAiResponse editPlanAiResponse =
-                new EditPlanAiResponse(
-                        "부산 여행",
-                        List.of(),
-                        List.of("변경 사항 없음"),
-                        true
-                );
+        chatFacade.publishAiReply(1L, "수정안", preview, MessageType.TALK);
 
-        EditPlanPreviewResponse preview =
-                new EditPlanPreviewResponse(null, editPlanAiResponse);
-
-        User aiUser = mock(User.class);
-        ChatRoom chatRoom = mock(ChatRoom.class);
-        ChatMessage chatMessage = mock(ChatMessage.class);
-        SendChatMessageResponse response = mock(SendChatMessageResponse.class);
-
-        when(userQueryService
-                .findByUsername(SystemAccountConstants.AI_BOT_USERNAME))
-                .thenReturn(aiUser);
-
-        when(chatRoomQueryService.findChatRoomByRoomId(roomId))
-                .thenReturn(chatRoom);
-
-        when(chatMessageService
-                .createChatMessage(chatRoom, aiUser, message))
-                .thenReturn(chatMessage);
-
-        when(chatMessageService
-                .makeAiChatResponse(
-                        roomId,
-                        aiUser,
-                        chatMessage,
-                        preview,
-                        MessageType.TALK
-                ))
-                .thenReturn(response);
-
-        // when
-        chatFacade.publishAiReply(
-                roomId,
-                message,
-                preview,
-                MessageType.TALK
-        );
-
-        // then
-        InOrder inOrder = inOrder(
-                userQueryService,
-                chatRoomQueryService,
-                chatMessageService
-        );
-
-        inOrder.verify(userQueryService)
-                .findByUsername(SystemAccountConstants.AI_BOT_USERNAME);
-
-        inOrder.verify(chatRoomQueryService)
-                .findChatRoomByRoomId(roomId);
-
-        inOrder.verify(chatMessageService)
-                .createChatMessage(chatRoom, aiUser, message);
-
-        inOrder.verify(chatMessageService)
-                .saveMessage(chatMessage);
-
-        inOrder.verify(chatMessageService)
-                .makeAiChatResponse(
-                        roomId,
-                        aiUser,
-                        chatMessage,
-                        preview,
-                        MessageType.TALK
-                );
-
-        inOrder.verify(chatMessageService)
-                .publishMessage(roomId, response);
+        verify(chatMessageService)
+                .publishAiReply(1L, "수정안", preview, MessageType.TALK);
     }
 
     @Test
-    @DisplayName("TALK 응답 컨텐츠를 결정한 뒤 AI 응답으로 발행")
+    @DisplayName("대화 응답 발행 위임")
     void publishTalkReplySuccess() {
 
-        // given
-        Long roomId = 1L;
+        EditPlanPreviewResponse preview = mock(EditPlanPreviewResponse.class);
 
-        EditPlanAiResponse editPlanAiResponse =
-                new EditPlanAiResponse(
-                        "부산 여행",
-                        List.of(),
-                        List.of("변경 사항 없음"),
-                        true
-                );
-
-        EditPlanPreviewResponse preview =
-                new EditPlanPreviewResponse(null, editPlanAiResponse);
-
-        AiReplyContent content =
-                new AiReplyContent("변경 사항 없음", preview);
-
-        User aiUser = mock(User.class);
-        ChatRoom chatRoom = mock(ChatRoom.class);
-        ChatMessage chatMessage = mock(ChatMessage.class);
-        SendChatMessageResponse response = mock(SendChatMessageResponse.class);
-
-        when(chatMessageService.resolveAiReplyContent(preview))
-                .thenReturn(content);
-
-        when(userQueryService
-                .findByUsername(SystemAccountConstants.AI_BOT_USERNAME))
-                .thenReturn(aiUser);
-
-        when(chatRoomQueryService.findChatRoomByRoomId(roomId))
-                .thenReturn(chatRoom);
-
-        when(chatMessageService
-                .createChatMessage(chatRoom, aiUser, "변경 사항 없음"))
-                .thenReturn(chatMessage);
-
-        when(chatMessageService
-                .makeAiChatResponse(
-                        roomId,
-                        aiUser,
-                        chatMessage,
-                        preview,
-                        MessageType.TALK
-                ))
-                .thenReturn(response);
-
-        // when
-        chatFacade.publishTalkReply(roomId, preview);
-
-        // then
-        verify(chatMessageService)
-                .resolveAiReplyContent(preview);
+        chatFacade.publishTalkReply(1L, preview);
 
         verify(chatMessageService)
-                .publishMessage(roomId, response);
+                .publishTalkReply(1L, preview);
     }
 
     @Test
-    @DisplayName("travel과 연결되지 않은 채팅방인 경우 인사 메시지 미발행")
+    @DisplayName("AI 인사 조건 확인 위임")
     void publishAiGreetingIfNeededSkipsWhenNotTravelLinked() {
 
-        // given
-        Long roomId = 1L;
-        String username = "testUser@example.com";
+        chatFacade.publishAiGreetingIfNeeded(1L, "user@example.com");
 
-        ChatRoom chatRoom = mock(ChatRoom.class);
-
-        when(chatRoomQueryService.findChatRoomByRoomId(roomId))
-                .thenReturn(chatRoom);
-
-        when(chatRoom.getTravel())
-                .thenReturn(null);
-
-        // when
-        chatFacade.publishAiGreetingIfNeeded(roomId, username);
-
-        // then
-        verifyNoInteractions(
-                userQueryService,
-                chatMessageService
-        );
+        verify(chatMessageService)
+                .publishAiGreetingIfNeeded(1L, "user@example.com");
     }
 
     @Test
-    @DisplayName("이미 메시지가 존재하는 채팅방인 경우 인사 메시지 미발행")
+    @DisplayName("기존 메시지 확인 위임")
     void publishAiGreetingIfNeededSkipsWhenMessageExists() {
 
-        // given
-        Long roomId = 1L;
-        Long travelId = 50L;
-        String username = "testUser@example.com";
+        chatFacade.publishAiGreetingIfNeeded(1L, "user@example.com");
 
-        Travel travel = mock(Travel.class);
-        ChatRoom chatRoom = mock(ChatRoom.class);
-
-        when(chatRoomQueryService.findChatRoomByRoomId(roomId))
-                .thenReturn(chatRoom);
-
-        when(chatRoom.getTravel())
-                .thenReturn(travel);
-
-        when(travel.getId())
-                .thenReturn(travelId);
-
-        when(chatMessageService.existsAnyMessage(roomId))
-                .thenReturn(true);
-
-        // when
-        chatFacade.publishAiGreetingIfNeeded(roomId, username);
-
-        // then
         verify(chatMessageService)
-                .existsAnyMessage(roomId);
-
-        verifyNoInteractions(userQueryService);
-
-        verify(chatMessageService, never())
-                .resolveGreetingMessages(any(), any());
+                .publishAiGreetingIfNeeded(1L, "user@example.com");
     }
 
     @Test
-    @DisplayName("최초 입장 시 사용자와 AI 닉네임 기준 인사 메시지 2건 발행")
+    @DisplayName("첫 AI 인사 발행 위임")
     void publishAiGreetingIfNeededPublishesGreetings() {
 
-        // given
-        Long roomId = 1L;
-        Long travelId = 50L;
-        String username = "testUser@example.com";
-        String userNickname = "우주";
-        String aiNickname = "AI 비서";
+        chatFacade.publishAiGreetingIfNeeded(1L, "user@example.com");
 
-        List<String> greetingMessages =
-                List.of(
-                        "안녕하세요. " + userNickname + "님의 여행 일정을 계획해줄 " + aiNickname + "예요.",
-                        "일정을 어떻게 수정하고 싶나요?"
-                );
-
-        Travel travel = mock(Travel.class);
-        ChatRoom chatRoom = mock(ChatRoom.class);
-        User participant = mock(User.class);
-        User aiUser = mock(User.class);
-        ChatMessage chatMessage = mock(ChatMessage.class);
-        SendChatMessageResponse response = mock(SendChatMessageResponse.class);
-
-        when(chatRoomQueryService.findChatRoomByRoomId(roomId))
-                .thenReturn(chatRoom);
-
-        when(chatRoom.getTravel())
-                .thenReturn(travel);
-
-        when(travel.getId())
-                .thenReturn(travelId);
-
-        when(chatMessageService.existsAnyMessage(roomId))
-                .thenReturn(false);
-
-        when(userQueryService.findByUsername(username))
-                .thenReturn(participant);
-
-        when(userQueryService.findByUsername(SystemAccountConstants.AI_BOT_USERNAME))
-                .thenReturn(aiUser);
-
-        when(participant.getNickname())
-                .thenReturn(userNickname);
-
-        when(aiUser.getNickname())
-                .thenReturn(aiNickname);
-
-        when(chatMessageService.resolveGreetingMessages(userNickname, aiNickname))
-                .thenReturn(greetingMessages);
-
-        when(chatMessageService.createChatMessage(eq(chatRoom), eq(aiUser), any()))
-                .thenReturn(chatMessage);
-
-        when(chatMessageService.makeAiChatResponse(
-                eq(roomId), eq(aiUser), eq(chatMessage), eq(null), eq(MessageType.TALK)))
-                .thenReturn(response);
-
-        // when
-        chatFacade.publishAiGreetingIfNeeded(roomId, username);
-
-        // then
         verify(chatMessageService)
-                .resolveGreetingMessages(userNickname, aiNickname);
-
-        verify(chatMessageService, times(2))
-                .publishMessage(roomId, response);
+                .publishAiGreetingIfNeeded(1L, "user@example.com");
     }
 
     @Test
-    @DisplayName("CONFIRM 완료 메시지 조회 후 AI 응답 발행")
+    @DisplayName("확정 응답 발행 위임")
     void publishConfirmReplySuccess() {
 
-        // given
-        Long roomId = 1L;
-        String confirmMessage = "일정을 저장했어요!";
-
-        User aiUser = mock(User.class);
-        ChatRoom chatRoom = mock(ChatRoom.class);
-        ChatMessage chatMessage = mock(ChatMessage.class);
-        SendChatMessageResponse response = mock(SendChatMessageResponse.class);
-
-        when(chatMessageService.resolveConfirmMessage())
-                .thenReturn(confirmMessage);
-
-        when(userQueryService.findByUsername(SystemAccountConstants.AI_BOT_USERNAME))
-                .thenReturn(aiUser);
-
-        when(chatRoomQueryService.findChatRoomByRoomId(roomId))
-                .thenReturn(chatRoom);
-
-        when(chatMessageService.createChatMessage(chatRoom, aiUser, confirmMessage))
-                .thenReturn(chatMessage);
-
-        when(chatMessageService.makeAiChatResponse(
-                roomId, aiUser, chatMessage, null, MessageType.CONFIRM))
-                .thenReturn(response);
-
-        // when
-        chatFacade.publishConfirmReply(roomId);
-
-        // then
-        verify(chatMessageService)
-                .resolveConfirmMessage();
+        chatFacade.publishConfirmReply(1L);
 
         verify(chatMessageService)
-                .publishMessage(roomId, response);
+                .publishConfirmReply(1L);
     }
 
     @Test
-    @DisplayName("CANCEL 완료 메시지 조회 후 AI 응답 발행")
+    @DisplayName("취소 응답 발행 위임")
     void publishCancelReplySuccess() {
 
-        // given
-        Long roomId = 1L;
-        String cancelMessage = "기존 일정을 유지했어요!";
-
-        User aiUser = mock(User.class);
-        ChatRoom chatRoom = mock(ChatRoom.class);
-        ChatMessage chatMessage = mock(ChatMessage.class);
-        SendChatMessageResponse response = mock(SendChatMessageResponse.class);
-
-        when(chatMessageService.resolveCancelMessage())
-                .thenReturn(cancelMessage);
-
-        when(userQueryService.findByUsername(SystemAccountConstants.AI_BOT_USERNAME))
-                .thenReturn(aiUser);
-
-        when(chatRoomQueryService.findChatRoomByRoomId(roomId))
-                .thenReturn(chatRoom);
-
-        when(chatMessageService.createChatMessage(chatRoom, aiUser, cancelMessage))
-                .thenReturn(chatMessage);
-
-        when(chatMessageService.makeAiChatResponse(
-                roomId, aiUser, chatMessage, null, MessageType.CANCEL))
-                .thenReturn(response);
-
-        // when
-        chatFacade.publishCancelReply(roomId);
-
-        // then
-        verify(chatMessageService)
-                .resolveCancelMessage();
+        chatFacade.publishCancelReply(1L);
 
         verify(chatMessageService)
-                .publishMessage(roomId, response);
+                .publishCancelReply(1L);
     }
 
     @Test
@@ -1568,12 +807,6 @@ class ChatFacadeTest {
         User requester =
                 mock(User.class);
 
-        User owner =
-                mock(User.class);
-
-        Travel travel =
-                mock(Travel.class);
-
         ChatRoom chatRoom =
                 mock(ChatRoom.class);
 
@@ -1583,23 +816,17 @@ class ChatFacadeTest {
         when(request.roomId())
                 .thenReturn(roomId);
 
-        when(requester.getId())
-                .thenReturn(userId);
-
-        when(owner.getId())
-                .thenReturn(20L);
-
-        when(travel.getUser())
-                .thenReturn(owner);
-
-        when(chatRoom.getTravel())
-                .thenReturn(travel);
-
         when(userQueryService.findByUsername(username))
                 .thenReturn(requester);
 
         when(chatRoomQueryService.findChatRoomByRoomId(roomId))
                 .thenReturn(chatRoom);
+
+        doThrow(new ForbiddenException(
+                new Object[]{"해당 여행 채팅방에 대한 접근 권한이 없습니다."}
+        ))
+                .when(chatRoomMemberService)
+                .validateTravelRoomOwner(chatRoom, requester);
 
         // when & then
         assertThatThrownBy(() ->
@@ -1610,7 +837,7 @@ class ChatFacadeTest {
                 .isInstanceOf(ForbiddenException.class);
 
         verify(chatRoomMemberService, never())
-                .addChatUser(any());
+                .addChatUser(any(ChatRoom.class), any(User.class));
     }
 
     @Test
@@ -1628,41 +855,23 @@ class ChatFacadeTest {
         User requester =
                 mock(User.class);
 
-        User owner =
-                mock(User.class);
-
-        Travel travel =
-                mock(Travel.class);
-
         ChatRoom chatRoom =
                 mock(ChatRoom.class);
 
         when(request.roomId())
                 .thenReturn(roomId);
 
-        when(requester.getId())
-                .thenReturn(userId);
-
-        when(owner.getId())
-                .thenReturn(20L);
-
-        when(travel.getUser())
-                .thenReturn(owner);
-
-        when(chatRoom.getTravel())
-                .thenReturn(travel);
-
         when(userQueryService.findByUsername(username))
                 .thenReturn(requester);
 
-        when(chatRoomMemberQueryService.checkSubscriberWithRoomId(
-                roomId,
-                userId
-        ))
-                .thenReturn(true);
-
         when(chatRoomQueryService.findChatRoomByRoomId(roomId))
                 .thenReturn(chatRoom);
+
+        doThrow(new ForbiddenException(
+                new Object[]{"해당 여행 채팅방에 대한 접근 권한이 없습니다."}
+        ))
+                .when(chatRoomMemberService)
+                .validateTravelRoomOwner(chatRoom, requester);
 
         // when & then
         assertThatThrownBy(() ->

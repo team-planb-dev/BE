@@ -24,6 +24,19 @@ public class RefreshService {
     private final CookieUtil cookieUtil;
     private final UserAuthCacheService userAuthCacheService;
 
+    public ReissueResponse reissue(HttpServletRequest request) {
+
+        ReissueResponse response = refreshCookies(request);
+
+        return switch (response.status()) {
+            case REFRESH_EXPIRED ->
+                    throw new BaseException(BaseExceptionEnum.REFRESH_TOKEN_NOT_FOUND);
+            case REFRESH_NULL ->
+                    throw new BaseException(BaseExceptionEnum.REFRESH_TOKEN_EXPIRED);
+            default -> response;
+        };
+    }
+
     public ReissueResponse refreshCookies(HttpServletRequest request){
 
         String refresh = cookieUtil.findCookie(request);

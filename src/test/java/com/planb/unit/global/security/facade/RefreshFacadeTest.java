@@ -47,7 +47,7 @@ class RefreshFacadeTest {
         );
 
         when(refreshService
-                .refreshCookies(request))
+                .reissue(request))
                 .thenReturn(response);
 
         // when
@@ -60,6 +60,6 @@ class RefreshFacadeTest {
                 .isSameAs(response);
 
         verify(refreshService)
-                .refreshCookies(request);
+                .reissue(request);
     }
 }

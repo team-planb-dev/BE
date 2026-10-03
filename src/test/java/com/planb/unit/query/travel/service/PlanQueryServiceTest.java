@@ -7,6 +7,10 @@ import com.planb.query.travel.dto.response.PlanBasicQueryResponse;
 import com.planb.query.travel.dto.response.PlanQueryResponse;
 import com.planb.query.travel.repository.PlanQueryRepository;
 import com.planb.query.travel.service.PlanQueryService;
+import com.planb.query.travel.service.TravelQueryService;
+import com.planb.query.travel.service.PlanDayQueryService;
+import com.planb.query.travel.service.PlanScheduleQueryService;
+import com.planb.query.travel.service.RestaurantDetailQueryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,6 +34,18 @@ class PlanQueryServiceTest {
     @Mock
     private PlanRepository planRepository;
 
+    @Mock
+    private TravelQueryService travelQueryService;
+
+    @Mock
+    private PlanDayQueryService planDayQueryService;
+
+    @Mock
+    private PlanScheduleQueryService planScheduleQueryService;
+
+    @Mock
+    private RestaurantDetailQueryService restaurantDetailQueryService;
+
     private PlanQueryService planQueryService;
 
     @BeforeEach
@@ -37,7 +53,11 @@ class PlanQueryServiceTest {
         planQueryService =
                 new PlanQueryService(
                         planQueryRepository,
-                        planRepository
+                        planRepository,
+                        travelQueryService,
+                        planDayQueryService,
+                        planScheduleQueryService,
+                        restaurantDetailQueryService
                 );
     }
 

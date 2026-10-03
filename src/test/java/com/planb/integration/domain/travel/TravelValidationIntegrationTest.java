@@ -25,6 +25,7 @@ import com.planb.domain.travel.repository.*;
 import com.planb.ai.context.PlanEditContext;
 import com.planb.ai.context.TravelPlanContext;
 import com.planb.domain.travel.service.PlanEditCacheService;
+import com.planb.domain.travel.service.RestaurantDetailService;
 import com.planb.domain.travel.service.NutritionService;
 import com.planb.domain.travel.entity.constant.NutritionEvaluationStatus;
 import com.planb.global.client.kakaoMapService.dto.response.KakaoPlaceSearchResponse;
@@ -33,9 +34,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.http.MediaType;
 import org.mockito.ArgumentCaptor;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.test.web.servlet.MvcResult;
 import reactor.core.publisher.Mono;
 import tools.jackson.databind.JsonNode;
@@ -46,6 +50,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -68,6 +73,9 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     @MockitoBean
     private NutritionService nutritionService;
 
+    @MockitoSpyBean
+    private RestaurantDetailService restaurantDetailService;
+
     @Autowired
     private TravelRepository travels;
 
@@ -88,6 +96,12 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
 
     @Autowired
     private TravelHealthRepository travelHealths;
+
+    @Autowired
+    private PlannedPlaceRepository plannedPlaces;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @Autowired
     private HealthRepository healths;
@@ -217,6 +231,86 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                 .isEqualTo(before);
         verify(handler, times(2))
                 .reselectPlace(any(), any());
+    }
+
+    @Test
+    @DisplayName("AI 일정 생성 중 트랜잭션과 임시 여행 데이터 부재")
+    void creationRunsAiBeforeOpeningWriteTransaction() throws Exception {
+
+        List<Long> before = counts();
+
+        doAnswer(invocation -> {
+            assertThat(TransactionSynchronizationManager.isActualTransactionActive())
+                    .isFalse();
+            assertThat(counts())
+                    .isEqualTo(before);
+
+            return fixture(1, invocation.getArgument(1), false);
+        })
+                .when(handler)
+                .createPlanByAi(any(), any());
+
+        success(postApi("/add-with-recommend", request));
+
+        assertThat(travels.count())
+                .isEqualTo(before.getFirst() + 1);
+    }
+
+    @Test
+    @DisplayName("음식점 상세 저장 후 실패 시 여행과 연결 데이터 롤백")
+    void creationRollsBackAllRowsWhenFinalWriteFails() throws Exception {
+
+        List<Long> before = counts();
+        List<Long> foodBefore = foodCounts();
+        request = new CreateTravelRequest(
+                request.travelName(),
+                request.locationDo(),
+                request.locationSigungu(),
+                request.startDate(),
+                request.dateType(),
+                request.transportation(),
+                request.decidedLocation(),
+                List.of(new CreateTravelRequest.PlannedPlaceDetail("부산역", "부산")),
+                request.travelStyle(),
+                request.travelTheme(),
+                List.of("돼지국밥"),
+                List.of("밀면"),
+                request.healthIds()
+        );
+
+        AtomicBoolean failedAfterRestaurantInsert = new AtomicBoolean();
+        doAnswer(invocation -> {
+            assertThat(invocation.<List<?>>getArgument(0))
+                    .isNotEmpty();
+            invocation.callRealMethod();
+            restaurants.flush();
+            assertThat(restaurants.count())
+                    .isGreaterThan(before.get(4));
+            assertThat(plannedPlaces.count())
+                    .isGreaterThan(before.get(5));
+            assertThat(travelHealths.count())
+                    .isGreaterThan(before.get(6));
+            assertThat(foodCounts().get(0))
+                    .isGreaterThan(foodBefore.get(0));
+            assertThat(foodCounts().get(1))
+                    .isGreaterThan(foodBefore.get(1));
+            failedAfterRestaurantInsert.set(true);
+            throw new IllegalStateException("write fails");
+        })
+                .when(restaurantDetailService)
+                .saveRestaurantDetailAll(any());
+
+        JsonNode result = postApi("/add-with-recommend", request);
+
+        assertThat(result.path("success")
+                .asBoolean())
+                .isFalse();
+        assertThat(failedAfterRestaurantInsert)
+                .isTrue();
+        assertThat(counts())
+                .isEqualTo(before);
+        assertThat(foodCounts())
+                .isEqualTo(foodBefore);
     }
 
     @Test
@@ -1374,7 +1468,29 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
 
     private List<Long> counts() {
 
-        return List.of(travels.count(), plans.count(), days.count(), schedules.count(), restaurants.count());
+        return List.of(
+                travels.count(),
+                plans.count(),
+                days.count(),
+                schedules.count(),
+                restaurants.count(),
+                plannedPlaces.count(),
+                travelHealths.count()
+        );
+    }
+
+    private List<Long> foodCounts() {
+
+        return List.of(
+                jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM travel_local_food",
+                        Long.class
+                ),
+                jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM travel_recommend_food",
+                        Long.class
+                )
+        );
     }
 
     private JsonNode postApi(String path, Object payload) throws Exception {
