@@ -22,10 +22,14 @@ class LoadTestProfileTest {
             "spring.ai.openai.chat.base-url";
 
     private static final Map<Api, String> BASE_URL_KEYS = Map.of(
-            Api.KOR2, "external.kor2-service.base-url",
-            Api.KAKAO_MAP, "external.kakao-map.base-url",
-            Api.KAKAO_MOBILITY, "external.kakao-mobility.base-url",
-            Api.FOOD_NUTRITION, "external.food-ntr-cpnt.base-url"
+            Api.KOR2,
+            "external.kor2-service.base-url",
+            Api.KAKAO_MAP,
+            "external.kakao-map.base-url",
+            Api.KAKAO_MOBILITY,
+            "external.kakao-mobility.base-url",
+            Api.FOOD_NUTRITION,
+            "external.food-ntr-cpnt.base-url"
     );
 
     private static final List<String> KEY_PROPERTIES = List.of(
@@ -40,10 +44,12 @@ class LoadTestProfileTest {
     @DisplayName("loadtest 프로파일은 common-loadtest 설정 묶음을 켬")
     void loadtestProfileActivatesCommonLoadtest() throws IOException {
 
-        assertThat(yaml("application.yml").getProperty("spring.profiles.group.loadtest"))
+        assertThat(yaml("application.yml")
+                        .getProperty("spring.profiles.group.loadtest"))
                 .isEqualTo("common-loadtest");
 
-        assertThat(yaml("application-common-loadtest.yml").getProperty("spring.config.activate.on-profile"))
+        assertThat(yaml("application-common-loadtest.yml")
+                        .getProperty("spring.config.activate.on-profile"))
                 .isEqualTo("common-loadtest");
 
         assertThat(yaml("application-common-loadtest.yml")
@@ -117,11 +123,15 @@ class LoadTestProfileTest {
     void externalKeysNeverComeFromEnvironment() throws IOException {
 
         PropertySourcesPropertyResolver resolver = resolver(Map.of(
-                "KOR2_SERVICE_KEY", "real-key",
-                "KAKAO_REST_API_KEY", "real-key",
-                "FOOD_NTR_CPNT_KEY", "real-key",
-                "OPENAI_API_KEY", "real-key"
-        ));
+                        "KOR2_SERVICE_KEY",
+                        "real-key",
+                        "KAKAO_REST_API_KEY",
+                        "real-key",
+                        "FOOD_NTR_CPNT_KEY",
+                        "real-key",
+                        "OPENAI_API_KEY",
+                        "real-key"
+                ));
 
         KEY_PROPERTIES.forEach(key -> assertThat(resolver.getProperty(key))
                 .isNotBlank()

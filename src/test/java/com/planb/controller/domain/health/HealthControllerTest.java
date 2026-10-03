@@ -80,10 +80,12 @@ class HealthControllerTest {
                 .thenReturn(response);
 
         // when & then
-        mockMvc.perform(post("/api/v1/health/add-traveler")
+        mockMvc
+                .perform(post("/api/v1/health/add-traveler")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(jsonPath("$.success")
                         .value(true));
 
@@ -118,10 +120,12 @@ class HealthControllerTest {
                 .thenReturn(response);
 
         // when & then
-        mockMvc.perform(delete("/api/v1/health/delete-companion")
+        mockMvc
+                .perform(delete("/api/v1/health/delete-companion")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(jsonPath("$.success")
                         .value(true));
 
@@ -160,10 +164,12 @@ class HealthControllerTest {
                 .thenReturn(response);
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get("/api/v1/health/get-companion-summary")
                 )
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(jsonPath("$.success")
                         .value(true));
 

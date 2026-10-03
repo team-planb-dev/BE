@@ -74,7 +74,8 @@ public record RebuildPlanDayPrompt(
                                     context,
                                     target,
                                     current,
-                                    reason));
+                                    reason
+                            ));
         } catch (JsonProcessingException exception) {
             throw new AiOrchestrationException(AiFailure.CONTEXT_SERIALIZATION_FAILED, exception);
         }

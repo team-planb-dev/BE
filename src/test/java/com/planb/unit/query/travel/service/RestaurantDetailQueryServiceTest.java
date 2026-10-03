@@ -73,7 +73,8 @@ class RestaurantDetailQueryServiceTest {
 
         verify(
                 restaurantDetailQueryRepository
-        ).findRestaurantDetailsByPlanScheduleIds(
+        )
+                .findRestaurantDetailsByPlanScheduleIds(
                 planScheduleIds
         );
     }

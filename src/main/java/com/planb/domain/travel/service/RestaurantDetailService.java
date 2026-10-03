@@ -19,7 +19,7 @@ public class RestaurantDetailService {
 
     public RestaurantDetail createRestaurantDetail
             (PlanSchedule planSchedule,
-             CreateRestaurantDetailRequest createRestaurantDetailRequest){
+             CreateRestaurantDetailRequest createRestaurantDetailRequest) {
 
         return RestaurantDetail
                 .builder()
@@ -58,7 +58,8 @@ public class RestaurantDetailService {
             (List<PlanSchedule> planSchedules,
              List<CreatePlanAiResponse.PlanScheduleDetail> scheduleDetails) {
 
-        return IntStream.range(
+        return IntStream
+                .range(
                         0,
                         scheduleDetails.size()
                 )
@@ -85,12 +86,12 @@ public class RestaurantDetailService {
      */
 
     // RestaurantDetail 객체 저장하기
-    public void saveRestaurantDetailAll(List<RestaurantDetail> restaurantDetails){
+    public void saveRestaurantDetailAll(List<RestaurantDetail> restaurantDetails) {
         restaurantDetailRepository.saveAll(restaurantDetails);
     }
 
     // 특정 PlanSchedule 목록에 속한 RestaurantDetail 리스트 일괄 삭제하기
-    public void deleteAllByPlanScheduleIn(List<PlanSchedule> planSchedules){
+    public void deleteAllByPlanScheduleIn(List<PlanSchedule> planSchedules) {
         restaurantDetailRepository.deleteAllByPlanScheduleIn(planSchedules);
     }
 }

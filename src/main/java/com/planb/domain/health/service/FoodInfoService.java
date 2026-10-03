@@ -37,7 +37,7 @@ public class FoodInfoService {
         saveForCompanion(request.toAddCompanionRequest(), health);
     }
 
-    public List<FoodInfo> makeFoodInfoList(CreateFoodInfoRequest request){
+    public List<FoodInfo> makeFoodInfoList(CreateFoodInfoRequest request) {
 
         return request
                 .data()
@@ -58,12 +58,12 @@ public class FoodInfoService {
      */
 
     // FoodInfo 객체 모음 저장
-    public void saveFoodInfoAll(List<FoodInfo> foodInfos){
+    public void saveFoodInfoAll(List<FoodInfo> foodInfos) {
         foodInfoRepository.saveAll(foodInfos);
     }
 
     // HealthId로 FoodInfo 전체 조회하기
-    public List<FoodInfo> getFoodInfoList(Long healthId){
+    public List<FoodInfo> getFoodInfoList(Long healthId) {
 
         return foodInfoRepository.findAllByHealthId(healthId);
     }

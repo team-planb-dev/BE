@@ -34,9 +34,11 @@ public class ChatAiReplyMessageHelper {
             "수정 결과가 만료되었어요. 일정을 다시 수정해 주세요.";
 
     // 편집 미리보기 결과 기준 AI 응답 메시지 가공
-    public String makeReplyMessage(EditPlanPreviewResponse preview){
+    public String makeReplyMessage(EditPlanPreviewResponse preview) {
 
-        if (!preview.after().processable()) {
+        if (!preview
+                .after()
+                .processable()) {
             return UNSUPPORTED_REQUEST_MESSAGE;
         }
 
@@ -44,7 +46,7 @@ public class ChatAiReplyMessageHelper {
     }
 
     // 일정 수정 처리 실패 안내 메시지 생성
-    // 내부 예외 문구 대신 기존 클라이언트 오류 분류의 안전한 메시지만 사용한다.
+    // 내부 예외 문구를 제외한 안전한 클라이언트 오류 메시지 사용
     public String makeEditFailedMessage(Exception exception) {
 
         if (exception instanceof AiOrchestrationException aiException) {
@@ -85,19 +87,19 @@ public class ChatAiReplyMessageHelper {
     }
 
     // 수정 확정(CONFIRM) 완료 메시지 생성
-    public String makeConfirmMessage(){
+    public String makeConfirmMessage() {
 
         return CONFIRM_COMPLETED_MESSAGE;
     }
 
     // 수정 취소(CANCEL) 완료 메시지 생성
-    public String makeCancelMessage(){
+    public String makeCancelMessage() {
 
         return CANCEL_COMPLETED_MESSAGE;
     }
 
     // 채팅방 입장 시 AI 인사 메시지 목록 생성
-    public List<String> makeGreetingMessages(String userNickname, String aiNickname){
+    public List<String> makeGreetingMessages(String userNickname, String aiNickname) {
 
         String introMessage =
                 "안녕하세요. " + userNickname + "님의 여행 일정을 계획해줄 "

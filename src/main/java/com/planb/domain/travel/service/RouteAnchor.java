@@ -6,9 +6,7 @@ import com.planb.domain.travel.dto.response.GetAiPlanResponse;
 import java.util.List;
 
 /**
- * 부분 일정 재계산에 필요한 앞 구간의 출발 장소와 좌표
- * @param previousLocation 직전 장소 이름, 일정 첫 슬롯에서는 여행 출발지
- * @param previousPlace 직전 장소의 좌표를 가진 슬롯, 출발지 기준이면 null 허용
+ * 부분 일정 재계산용 직전 장소와 좌표, 출발지 기준 좌표는 선택값
  */
 public record RouteAnchor(
 
@@ -16,9 +14,9 @@ public record RouteAnchor(
         CreatePlanAiResponse.PlanScheduleDetail previousPlace
 ) {
 
-    // 일정 전체를 계산할 때의 기준점.
-    // decidedLocation은 사용자 입력 문자열이라 좌표를 모르고, 경로 조회에서 이름으로 검색된다.
-    // 동명 장소가 여러 곳이면 엉뚱한 출발지가 잡힐 수 있다.
+    // 일정 전체를 계산할 때의 기준점
+    // 좌표가 없는 사용자 입력 decidedLocation의 이름 검색
+    // 동명 장소에 따른 잘못된 출발지 선택 가능성
     public static RouteAnchor from(String decidedLocation) {
 
         return new RouteAnchor(decidedLocation, null);
@@ -40,7 +38,9 @@ public record RouteAnchor(
                 .schedules()
                 .stream()
                 .filter(slot -> slot.locationName() != null
-                        && !slot.locationName().isBlank())
+                        && !slot
+                                .locationName()
+                                .isBlank())
                 .toList();
 
         if (places.isEmpty()) {

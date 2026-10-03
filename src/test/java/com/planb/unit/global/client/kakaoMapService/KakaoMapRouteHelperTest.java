@@ -191,7 +191,7 @@ class KakaoMapRouteHelperTest {
     @DisplayName("도보권 대중교통 경로 없음의 도보 시간 추정")
     void estimatesWalkingWhenNoTransitRouteWithinWalkableDistance() {
 
-        // 경복궁 -> 스타벅스 경복궁역점. 직선 약 375m 구간이라 대중교통 경로가 없다.
+        // 경복궁→스타벅스 경복궁역점 직선 약 375m의 대중교통 경로 없음
         KakaoRouteResult result =
                 kakaoMapRouteHelper.makePublicTrafficRouteResult(
                         "경복궁",
@@ -221,7 +221,7 @@ class KakaoMapRouteHelperTest {
     @DisplayName("도보권을 넘는 대중교통 경로 없음의 추정 포기")
     void failsWhenNoTransitRouteBeyondWalkableDistance() {
 
-        // 직선 약 2.6km. 도보로 제시하면 일정 자체가 비현실적이 된다.
+        // 도보 추천에 부적절한 직선 약 2.6km 구간
         assertThrows(
                 IllegalStateException.class,
                 () -> kakaoMapRouteHelper.makePublicTrafficRouteResult(

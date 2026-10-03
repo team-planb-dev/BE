@@ -81,7 +81,8 @@ public class ChatSessionEventListener {
             return;
         }
 
-        Optional.ofNullable(
+        Optional
+                .ofNullable(
                         subscriptionRegistry.unsubscribe(
                                 sessionId,
                                 subscriptionId
@@ -106,7 +107,8 @@ public class ChatSessionEventListener {
     @EventListener
     public void handleDisconnect(SessionDisconnectEvent event) {
 
-        subscriptionRegistry.disconnect(event.getSessionId())
+        subscriptionRegistry
+                .disconnect(event.getSessionId())
                 .forEach(subscription ->
                         publishPresenceMessage(
                                 subscription.roomId(),

@@ -37,7 +37,7 @@ public class RefreshService {
         };
     }
 
-    public ReissueResponse refreshCookies(HttpServletRequest request){
+    public ReissueResponse refreshCookies(HttpServletRequest request) {
 
         String refresh = cookieUtil.findCookie(request);
 
@@ -62,48 +62,55 @@ public class RefreshService {
             );
         }
 
-        // 인증 캐시는 로그인에서만 저장되므로 access 토큰보다 먼저 사라진다.
-        // 여기서 같은 세션으로 다시 채우지 않으면 새 access 토큰도 곧바로 거부된다.
+        // access 토큰보다 먼저 만료되는 로그인 인증 캐시
+        // 인증 캐시 미복원 시 새 access 토큰의 즉시 거부 방지
         restoreUserAuthCache(refresh);
 
-        return new ReissueResponse(ReissueResponse.ReissueStatus.REFRESH_REISSUED,
+        return new ReissueResponse(
+                ReissueResponse.ReissueStatus.REFRESH_REISSUED,
                 LocalDateTime
                         .now()
                         .toString(),
                 resetAccessToken(request),
-                reissueRefresh(request));
+                reissueRefresh(request)
+        );
     }
 
-    private ReissueResponse handleRefreshTokenNull(){
-        return new ReissueResponse(ReissueResponse.ReissueStatus.REFRESH_NULL,
+    private ReissueResponse handleRefreshTokenNull() {
+        return new ReissueResponse(
+                ReissueResponse.ReissueStatus.REFRESH_NULL,
                 LocalDateTime
                         .now()
                         .toString(),
                 null,
-                null);
+                null
+        );
     }
 
-    private ReissueResponse handleRefreshTokenExpired(){
-        return new ReissueResponse(ReissueResponse.ReissueStatus.REFRESH_EXPIRED,
+    private ReissueResponse handleRefreshTokenExpired() {
+        return new ReissueResponse(
+                ReissueResponse.ReissueStatus.REFRESH_EXPIRED,
                 LocalDateTime
                         .now()
                         .toString(),
                 null,
-                null);
+                null
+        );
     }
 
-    private void restoreUserAuthCache(String refresh){
+    private void restoreUserAuthCache(String refresh) {
 
         userAuthCacheService.saveUserAuthCache(new UserAuthCache(
-                jwtUtil.getUserId(refresh),
-                jwtUtil.getUsername(refresh),
-                jwtUtil.getRole(refresh),
-                jwtUtil.getSessionId(refresh)));
+                        jwtUtil.getUserId(refresh),
+                        jwtUtil.getUsername(refresh),
+                        jwtUtil.getRole(refresh),
+                        jwtUtil.getSessionId(refresh)
+                ));
     }
 
     // access 토큰을 초기화 하는 메소드
     private String resetAccessToken
-    (HttpServletRequest request){
+    (HttpServletRequest request) {
 
         String refresh = cookieUtil.findCookie(request);
 
@@ -111,28 +118,32 @@ public class RefreshService {
         String role = jwtUtil.getRole(refresh);
 
         return jwtUtil
-                .createJwt("access",
-                        jwtUtil.getUserId(refresh),
-                        username,
-                        role,
-                        jwtUtil.getSessionId(refresh),
-                        TokenExpiration.ACCESS_TOKEN_EXPIRED_MS);
+                .createJwt(
+                "access",
+                jwtUtil.getUserId(refresh),
+                username,
+                role,
+                jwtUtil.getSessionId(refresh),
+                TokenExpiration.ACCESS_TOKEN_EXPIRED_MS
+        );
     }
 
     private String reissueRefresh
-            (HttpServletRequest request){
+            (HttpServletRequest request) {
 
         String refresh = cookieUtil.findCookie(request);
 
         String username = jwtUtil.getUsername(refresh);
 
         String newRefresh = jwtUtil
-                .createJwt("refresh",
-                        jwtUtil.getUserId(refresh),
-                        username,
-                        jwtUtil.getRole(refresh),
-                        jwtUtil.getSessionId(refresh),
-                        TokenExpiration.REFRESH_TOKEN_EXPIRED_MS);
+                .createJwt(
+                "refresh",
+                jwtUtil.getUserId(refresh),
+                username,
+                jwtUtil.getRole(refresh),
+                jwtUtil.getSessionId(refresh),
+                TokenExpiration.REFRESH_TOKEN_EXPIRED_MS
+        );
 
         deleteRefresh(refresh);
 
@@ -143,25 +154,29 @@ public class RefreshService {
     }
 
     public void addRefresh(String username,
-                           String refresh){
+                           String refresh) {
 
         userTokenCacheRepository
-                .save("refresh:user:"+username,
-                        refresh,
-                        TokenExpiration.REFRESH_TOKEN_EXPIRED_MS);
+                .save(
+                "refresh:user:"+username,
+                refresh,
+                TokenExpiration.REFRESH_TOKEN_EXPIRED_MS
+        );
 
         userTokenCacheRepository
-                .save("refresh:refreshToken:"+refresh,
-                        username,
-                        TokenExpiration.REFRESH_TOKEN_EXPIRED_MS);
+                .save(
+                "refresh:refreshToken:"+refresh,
+                username,
+                TokenExpiration.REFRESH_TOKEN_EXPIRED_MS
+        );
 
     }
 
-    public void deleteRefresh(String refresh){
+    public void deleteRefresh(String refresh) {
 
         String username = jwtUtil.getUsername(refresh);
 
-        if (username == null){
+        if (username == null) {
             return;
         }
 

@@ -26,7 +26,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
-    public User create(UserCreateRequest userCreateRequest){
+    public User create(UserCreateRequest userCreateRequest) {
 
         return User
                 .builder()
@@ -43,7 +43,8 @@ public class UserService {
                                 userCreateRequest
                                         .serviceTermsAgreed(),
                                 userCreateRequest
-                                        .privacyCollectionAgreed()))
+                                        .privacyCollectionAgreed()
+                        ))
                 .accountRecovery(
                         AccountRecovery.of(
                                 userCreateRequest
@@ -56,11 +57,11 @@ public class UserService {
 
     }
 
-    public void save(User user){
+    public void save(User user) {
         userRepository.save(user);
     }
 
-    public void delete(User user){
+    public void delete(User user) {
         user.delete();
     }
 
@@ -101,7 +102,9 @@ public class UserService {
     ) {
 
         boolean matched = user.getAccountRecovery() != null
-                && user.getAccountRecovery().matches(
+                && user
+                        .getAccountRecovery()
+                        .matches(
                         request.recoveryQuestion(),
                         request.recoveryAnswer()
                 );

@@ -37,7 +37,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OpenAiProtocolStubTest {
 
-    private static final JsonMapper JSON_MAPPER = JsonMapper.builder().build();
+    private static final JsonMapper JSON_MAPPER = JsonMapper
+            .builder()
+            .build();
 
     private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 
@@ -194,7 +196,9 @@ class OpenAiProtocolStubTest {
                         .size()
         );
 
-        String correctionRequest = stub.requests().get(1);
+        String correctionRequest = stub
+                .requests()
+                .get(1);
         assertTrue(correctionRequest.contains("Java 검증 교정 요청"));
         assertTrue(correctionRequest.contains("value는 success여야 합니다."));
         assertTrue(correctionRequest.contains("invalid"));
@@ -422,7 +426,8 @@ class OpenAiProtocolStubTest {
             StubResponse response = openAiClient(
                     delayedStub,
                     Duration.ofSeconds(1)
-            ).call(
+            )
+                    .call(
                     prompt,
                     outputConverter,
                     tool

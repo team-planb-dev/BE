@@ -12,7 +12,7 @@ public class UserDetailsImpl implements UserDetails {
 
     private final User user;
 
-    public UserDetailsImpl(User user){
+    public UserDetailsImpl(User user) {
         this.user = user;
     }
 
@@ -33,7 +33,7 @@ public class UserDetailsImpl implements UserDetails {
         return user.getUsername();
     }
 
-    public Long getUserId(){
+    public Long getUserId() {
         return user.getId();
     }
 }

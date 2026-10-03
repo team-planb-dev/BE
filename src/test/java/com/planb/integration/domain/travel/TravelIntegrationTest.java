@@ -60,7 +60,9 @@ class TravelIntegrationTest extends TravelApiTestSupport {
 
         // given
         LocalDate startDate =
-                LocalDate.now().plusDays(7);
+                LocalDate
+                        .now()
+                        .plusDays(7);
 
         String username = createUniqueUsername();
         createUser(username);
@@ -142,7 +144,8 @@ class TravelIntegrationTest extends TravelApiTestSupport {
         LoginResult loginResult = login(username);
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get(RECOMMEND_LOCAL_FOOD_URL)
                                 .param("locationDo", "제주특별자치도")
                                 .param("locationSigungu", "제주시")
@@ -152,7 +155,8 @@ class TravelIntegrationTest extends TravelApiTestSupport {
                                 )
                 )
                 .andExpect(
-                        status().isOk()
+                        status()
+                                .isOk()
                 )
                 .andExpect(
                         jsonPath("$.success")
@@ -179,7 +183,8 @@ class TravelIntegrationTest extends TravelApiTestSupport {
 
         // when
         MvcResult mvcResult =
-                mockMvc.perform(
+                mockMvc
+                        .perform(
                                 get(SEARCH_PLANNED_PLACE_URL)
                                         .param("searchText", "전주한옥마을")
                                         .header(
@@ -188,16 +193,19 @@ class TravelIntegrationTest extends TravelApiTestSupport {
                                         )
                         )
                         .andExpect(
-                                request().asyncStarted()
+                                request()
+                                        .asyncStarted()
                         )
                         .andReturn();
 
         // then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         asyncDispatch(mvcResult)
                 )
                 .andExpect(
-                        status().isOk()
+                        status()
+                                .isOk()
                 )
                 .andExpect(
                         jsonPath("$.success")
@@ -227,7 +235,9 @@ class TravelIntegrationTest extends TravelApiTestSupport {
                         travelName,
                         "강원특별자치도",
                         "강릉시",
-                        LocalDate.now().plusDays(7),
+                        LocalDate
+                                .now()
+                                .plusDays(7),
                         DateType.ONE_NIGHT_TWO_DAYS,
                         Transportation.TRANSIT,
                         "강릉역",
@@ -252,7 +262,8 @@ class TravelIntegrationTest extends TravelApiTestSupport {
 
         // when : AI 일정 생성 (실제 OpenAI + 실제 외부 API + 실제 DB 저장까지 전부 연결)
         MvcResult createResult =
-                mockMvc.perform(
+                mockMvc
+                        .perform(
                                 post(ADD_WITH_RECOMMEND_URL)
                                         .header(
                                                 "Authorization",
@@ -268,7 +279,8 @@ class TravelIntegrationTest extends TravelApiTestSupport {
                                         )
                         )
                         .andExpect(
-                                status().isOk()
+                                status()
+                                        .isOk()
                         )
                         .andExpect(
                                 jsonPath("$.success")
@@ -305,12 +317,15 @@ class TravelIntegrationTest extends TravelApiTestSupport {
                 travelRepository
                         .findAll()
                         .stream()
-                        .filter(t -> t.getTravelName().equals(travelName))
+                        .filter(t -> t
+                                .getTravelName()
+                                .equals(travelName))
                         .findFirst()
                         .orElseThrow();
 
         // then : 방금 생성한 일정 재조회 시 최상위 tags 생성 시점과 동일하게 저장/재조회 확인
-        MvcResult retrieved = mockMvc.perform(
+        MvcResult retrieved = mockMvc
+                .perform(
                         get(GET_AI_PLAN_URL)
                                 .param(
                                         "travelId",
@@ -322,7 +337,8 @@ class TravelIntegrationTest extends TravelApiTestSupport {
                                 )
                 )
                 .andExpect(
-                        status().isOk()
+                        status()
+                                .isOk()
                 )
                 .andExpect(
                         jsonPath("$.success")
@@ -355,12 +371,21 @@ class TravelIntegrationTest extends TravelApiTestSupport {
                 .path("data");
 
         JsonNode stored = objectMapper
-                .readTree(retrieved.getResponse()
+                .readTree(retrieved
+                        .getResponse()
                         .getContentAsString())
                 .path("data");
 
-        TravelPlanAssertions.assertPlan(created, createTravelRequest.startDate(), true);
-        TravelPlanAssertions.assertPlan(stored, createTravelRequest.startDate(), false);
+        TravelPlanAssertions.assertPlan(
+                created,
+                createTravelRequest.startDate(),
+                true
+        );
+        TravelPlanAssertions.assertPlan(
+                stored,
+                createTravelRequest.startDate(),
+                false
+        );
         TravelPlanAssertions.assertMealMedication(
                 stored,
                 LocalTime.of(12, 0)
@@ -369,7 +394,12 @@ class TravelIntegrationTest extends TravelApiTestSupport {
         assertThat(TravelPlanAssertions.codes(stored.path("tags")))
                 .isEqualTo(TravelPlanAssertions.codes(created.path("tags")));
 
-        verifyEditLifecycle(travel.getId(), loginResult, stored, createTravelRequest.startDate());
+        verifyEditLifecycle(
+                travel.getId(),
+                loginResult,
+                stored,
+                createTravelRequest.startDate()
+        );
     }
 
     // 실제 수정 미리보기·확정·재조회 검증
@@ -383,39 +413,54 @@ class TravelIntegrationTest extends TravelApiTestSupport {
         JsonNode preview = editRequest(
                 "/edit-plan/preview",
                 new EditPlanRequest(travelId, "1일차 일정을 관광지 위주로 통째로 다시 짜주세요. 2일차는 유지해주세요."),
-                login);
+                login
+        );
 
-        JsonNode after = preview.path("data")
+        JsonNode after = preview
+                .path("data")
                 .path("after");
-        assertThat(after.path("processable")
+        assertThat(after
+                        .path("processable")
                 .asBoolean())
                 .isTrue();
-        TravelPlanAssertions.assertPlan(after, startDate, true);
+        TravelPlanAssertions.assertPlan(
+                after,
+                startDate,
+                true
+        );
         TravelPlanAssertions.assertMealMedication(
                 after,
                 LocalTime.of(12, 0)
         );
         TravelPlanAssertions.assertSameDays(original.path("planDays"), getStored(travelId, login)
                 .path("planDays"));
-        assertThat(after.path("planDays")
+        assertThat(after
+                        .path("planDays")
                 .get(1))
                 .isNotNull();
         TravelPlanAssertions.assertSameDaysIgnoringInboundTravel(
-                objectMapper.valueToTree(List.of(original.path("planDays")
+                objectMapper.valueToTree(List.of(original
+                                        .path("planDays")
                         .get(1))),
-                objectMapper.valueToTree(List.of(after.path("planDays")
+                objectMapper.valueToTree(List.of(after
+                                        .path("planDays")
                         .get(1))));
 
         JsonNode confirmed = editRequest(
                 "/edit-plan/confirm",
                 new GetAiPlanRequest(travelId),
-                login)
+                login
+        )
                         .path("data");
 
         TravelPlanAssertions.assertSameDays(after.path("planDays"), confirmed.path("planDays"));
         TravelPlanAssertions.assertSameDays(after.path("planDays"), getStored(travelId, login)
                 .path("planDays"));
-        TravelPlanAssertions.assertPlan(confirmed, startDate, true);
+        TravelPlanAssertions.assertPlan(
+                confirmed,
+                startDate,
+                true
+        );
 
     }
 
@@ -437,7 +482,8 @@ class TravelIntegrationTest extends TravelApiTestSupport {
                         .value(true))
                 .andReturn();
 
-        return objectMapper.readTree(result.getResponse()
+        return objectMapper.readTree(result
+                        .getResponse()
                 .getContentAsString());
     }
 
@@ -454,7 +500,9 @@ class TravelIntegrationTest extends TravelApiTestSupport {
                         .value(true))
                 .andReturn();
 
-        return objectMapper.readTree(result.getResponse()
+        return objectMapper
+                .readTree(result
+                        .getResponse()
                 .getContentAsString())
                 .path("data");
     }
@@ -475,7 +523,8 @@ class TravelIntegrationTest extends TravelApiTestSupport {
                         .isOk())
                 .andReturn();
 
-        String body = result.getResponse()
+        String body = result
+                .getResponse()
                 .getContentAsString();
         ApiResultEnvelope response = objectMapper.readValue(body, ApiResultEnvelope.class);
 
@@ -484,10 +533,12 @@ class TravelIntegrationTest extends TravelApiTestSupport {
                 .isTrue();
 
         TravelPlanAssertions.assertPlan(
-                objectMapper.readTree(body)
+                objectMapper
+                        .readTree(body)
                         .path("data"),
                 createTravelRequest.startDate(),
-                true);
+                true
+        );
 
         return response.data();
     }

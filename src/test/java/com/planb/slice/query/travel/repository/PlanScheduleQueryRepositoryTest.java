@@ -66,13 +66,21 @@ class PlanScheduleQueryRepositoryTest
         PlanDay day1 = createPlanDay(
                 plan,
                 1,
-                LocalDate.of(2026, 9, 1)
+                LocalDate.of(
+                        2026,
+                        9,
+                        1
+                )
         );
 
         PlanDay day2 = createPlanDay(
                 plan,
                 2,
-                LocalDate.of(2026, 9, 2)
+                LocalDate.of(
+                        2026,
+                        9,
+                        2
+                )
         );
 
         PlanSchedule schedule1 = createPlanSchedule(
@@ -140,7 +148,11 @@ class PlanScheduleQueryRepositoryTest
         PlanDay planDay = createPlanDay(
                 plan,
                 1,
-                LocalDate.of(2026, 9, 1)
+                LocalDate.of(
+                        2026,
+                        9,
+                        1
+                )
         );
 
         createPlanSchedule(
@@ -204,7 +216,11 @@ class PlanScheduleQueryRepositoryTest
         PlanDay planDay = createPlanDay(
                 plan,
                 1,
-                LocalDate.of(2026, 9, 1)
+                LocalDate.of(
+                        2026,
+                        9,
+                        1
+                )
         );
 
         createPlanSchedule(
@@ -281,13 +297,21 @@ class PlanScheduleQueryRepositoryTest
         PlanDay targetDay = createPlanDay(
                 plan,
                 1,
-                LocalDate.of(2026, 9, 1)
+                LocalDate.of(
+                        2026,
+                        9,
+                        1
+                )
         );
 
         PlanDay otherDay = createPlanDay(
                 plan,
                 2,
-                LocalDate.of(2026, 9, 2)
+                LocalDate.of(
+                        2026,
+                        9,
+                        2
+                )
         );
 
         PlanSchedule targetSchedule = createPlanSchedule(
@@ -329,7 +353,9 @@ class PlanScheduleQueryRepositoryTest
                 .hasSize(1);
 
         assertThat(
-                result.get(0).getId()
+                result
+                        .get(0)
+                        .getId()
         )
                 .isEqualTo(
                 targetSchedule.getId()
@@ -338,7 +364,8 @@ class PlanScheduleQueryRepositoryTest
 
     private User createUser() {
 
-        User user = User.builder()
+        User user = User
+                .builder()
                 .username("test" + System.nanoTime() + "@example.com")
                 .password("password")
                 .role("ROLE_USER")
@@ -365,7 +392,8 @@ class PlanScheduleQueryRepositoryTest
 
     private Travel createTravel(String travelName) {
 
-        Travel travel = Travel.builder()
+        Travel travel = Travel
+                .builder()
                 .user(createUser())
                 .travelName(travelName)
                 .build();
@@ -380,7 +408,8 @@ class PlanScheduleQueryRepositoryTest
             String planName
     ) {
 
-        Plan plan = Plan.builder()
+        Plan plan = Plan
+                .builder()
                 .travel(travel)
                 .planName(planName)
                 .build();
@@ -396,7 +425,8 @@ class PlanScheduleQueryRepositoryTest
             LocalDate planDate
     ) {
 
-        PlanDay planDay = PlanDay.builder()
+        PlanDay planDay = PlanDay
+                .builder()
                 .plan(plan)
                 .dayNumber(dayNumber)
                 .planDate(planDate)
@@ -417,7 +447,8 @@ class PlanScheduleQueryRepositoryTest
     ) {
 
         PlanSchedule planSchedule =
-                PlanSchedule.builder()
+                PlanSchedule
+                        .builder()
                         .planDay(planDay)
                         .scheduleType(scheduleType)
                         .courseType(courseType)

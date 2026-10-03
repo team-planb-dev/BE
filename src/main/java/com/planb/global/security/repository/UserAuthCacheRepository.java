@@ -14,9 +14,11 @@ public class UserAuthCacheRepository  {
 
     private final RedisTemplate<String, UserAuthCache> userAuthredisTemplate;
 
-    public void save(String username,
-                     UserAuthCache userAuthCache,
-                     Long expiredMs){
+    public void save(
+            String username,
+            UserAuthCache userAuthCache,
+            Long expiredMs
+    ) {
 
         userAuthredisTemplate
                 .opsForValue()
@@ -29,7 +31,7 @@ public class UserAuthCacheRepository  {
                 );
     }
 
-    public Optional<UserAuthCache> findByUsername(String username){
+    public Optional<UserAuthCache> findByUsername(String username) {
 
         UserAuthCache userAuthCache =  userAuthredisTemplate
                 .opsForValue()

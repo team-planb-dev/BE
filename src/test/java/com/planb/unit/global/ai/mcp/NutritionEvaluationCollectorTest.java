@@ -44,8 +44,12 @@ class NutritionEvaluationCollectorTest {
                 collector.finish();
 
         assertEquals(2, collected.size());
-        assertEquals("돼지국밥", collected.get(0).foodName());
-        assertEquals("밀면", collected.get(1).foodName());
+        assertEquals("돼지국밥", collected
+                        .get(0)
+                        .foodName());
+        assertEquals("밀면", collected
+                        .get(1)
+                        .foodName());
     }
 
     @Test
@@ -63,7 +67,9 @@ class NutritionEvaluationCollectorTest {
                 collector.finish();
 
         assertEquals(1, collected.size());
-        assertEquals("밀면", collected.get(0).foodName());
+        assertEquals("밀면", collected
+                        .get(0)
+                        .foodName());
     }
 
     @Test

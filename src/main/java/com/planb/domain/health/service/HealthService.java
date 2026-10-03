@@ -46,7 +46,9 @@ public class HealthService {
 
         updateHealth(
                 health,
-                request.toAddCompanionRequest().toHealthRequest()
+                request
+                        .toAddCompanionRequest()
+                        .toHealthRequest()
         );
     }
 
@@ -86,8 +88,8 @@ public class HealthService {
 
 
     // 개인정보 동의 여부에 따른 Health 객체 생성
-    public Health validSensitiveAgree(CreateHealthRequest request, User user){
-        if (request.sensitiveAgree()){
+    public Health validSensitiveAgree(CreateHealthRequest request, User user) {
+        if (request.sensitiveAgree()) {
             return makeHealthWithSensitiveAgree(request, user);
         } else {
             return makeHealthWithoutSensitiveAgree(
@@ -99,7 +101,7 @@ public class HealthService {
     }
 
     // Health 객체 생성 (정보동의 O)
-    private Health makeHealthWithSensitiveAgree(CreateHealthRequest request, User user){
+    private Health makeHealthWithSensitiveAgree(CreateHealthRequest request, User user) {
 
         return Health
                 .builder()
@@ -139,14 +141,15 @@ public class HealthService {
                                         .dinnerApplied(),
                                 request
                                         .mealInfo()
-                                        .dinnerTime()))
+                                        .dinnerTime()
+                        ))
                 .user(user)
                 .build();
     }
 
     // Health 객체 생성 (정보동의 X)
     private Health makeHealthWithoutSensitiveAgree
-    (CreateHealthWithoutSensitiveAgreeRequest request, User user){
+    (CreateHealthWithoutSensitiveAgreeRequest request, User user) {
 
         return Health
                 .builder()
@@ -166,17 +169,20 @@ public class HealthService {
     ) {
 
         if (!request.sensitiveAgree()) {
-            health.update(request
+            health.update(
+                    request
                             .travelerName(),
                     false,
                     false,
                     null,
-                    null);
+                    null
+            );
 
             return;
         }
 
-        health.update(request
+        health.update(
+                request
                         .travelerName(),
                 true,
                 request
@@ -209,7 +215,9 @@ public class HealthService {
                                 .dinnerApplied(),
                         request
                                 .mealInfo()
-                                .dinnerTime()));
+                                .dinnerTime()
+                )
+        );
     }
 
 
@@ -218,17 +226,17 @@ public class HealthService {
      */
 
     // Health 객체 저장하기
-    public void saveHealth(Health health){
+    public void saveHealth(Health health) {
         healthRepository.save(health);
     }
 
     // Health 객체 삭제하기
-    public void deleteHealthById(Long id){
+    public void deleteHealthById(Long id) {
         healthRepository.deleteById(id);
     }
 
     // Health 객체 조회하기
-    public Health getHealthById(Long id){
+    public Health getHealthById(Long id) {
         return healthRepository
                 .findById(id)
                 .orElseThrow(()->
@@ -236,7 +244,7 @@ public class HealthService {
                                 .HEALTH_NOT_FOUND));
     }
 
-    public List<Health> getHealthListByUserId(Long userId){
+    public List<Health> getHealthListByUserId(Long userId) {
         return healthRepository.findAllByUserId(userId);
 
     }

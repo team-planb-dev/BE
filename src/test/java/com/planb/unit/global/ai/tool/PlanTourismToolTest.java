@@ -76,10 +76,18 @@ class PlanTourismToolTest {
                         "종로구"
                 );
 
-        assertEquals("tour:123", result.getFirst().candidateId());
-        assertEquals("경복궁", result.getFirst().name());
-        assertEquals("126.9769", result.getFirst().longitude());
-        assertEquals("37.5796", result.getFirst().latitude());
+        assertEquals("tour:123", result
+                        .getFirst()
+                        .candidateId());
+        assertEquals("경복궁", result
+                        .getFirst()
+                        .name());
+        assertEquals("126.9769", result
+                        .getFirst()
+                        .longitude());
+        assertEquals("37.5796", result
+                        .getFirst()
+                        .latitude());
         assertSame(
                 result.getFirst(),
                 candidates.find("tour:123")
@@ -134,10 +142,18 @@ class PlanTourismToolTest {
                         "춘천시"
                 );
 
-        assertEquals("tour:456", result.getFirst().candidateId());
-        assertEquals("춘천식당", result.getFirst().name());
-        assertEquals("127.7300", result.getFirst().longitude());
-        assertEquals("37.8800", result.getFirst().latitude());
+        assertEquals("tour:456", result
+                        .getFirst()
+                        .candidateId());
+        assertEquals("춘천식당", result
+                        .getFirst()
+                        .name());
+        assertEquals("127.7300", result
+                        .getFirst()
+                        .longitude());
+        assertEquals("37.8800", result
+                        .getFirst()
+                        .latitude());
         assertSame(
                 result.getFirst(),
                 candidates.find("tour:456")
@@ -232,7 +248,8 @@ class PlanTourismToolTest {
         verify(
                 tourismTool,
                 times(1)
-        ).searchAttractionsByRegion(
+        )
+                .searchAttractionsByRegion(
                 "서울",
                 "종로구"
         );
@@ -291,7 +308,7 @@ class PlanTourismToolTest {
     @DisplayName("직전 장소가 이번 호출 후보면 확정 좌표를 함께 전달")
     void passesConfirmedCoordinatesOfPreviousCandidate() {
 
-        // 이름만 넘기면 카카오가 전국에서 동명 장소를 다시 찾아 엉뚱한 좌표를 쓴다.
+        // 카카오의 전국 동명 장소 재검색 방지를 위한 확정 좌표 사용
         TourismTool tourismTool = mock(TourismTool.class);
         PlaceCandidateContext candidates = new PlaceCandidateContext();
 
@@ -320,7 +337,8 @@ class PlanTourismToolTest {
                 CourseType.CAFE_REST
         );
 
-        verify(tourismTool).findPlaceWithRoute(
+        verify(tourismTool)
+                .findPlaceWithRoute(
                 "경주 카페 황남다락",
                 "첨성대",
                 Transportation.TRANSIT,
@@ -340,44 +358,49 @@ class PlanTourismToolTest {
                 mock(Kor2ServiceHandler.class),
                 kakao,
                 mock(NutritionService.class),
-                mock(NutritionEvaluationCollector.class));
+                mock(NutritionEvaluationCollector.class)
+        );
         PlaceCandidateContext candidates = new PlaceCandidateContext();
 
         candidates.record(new PlaceWithRouteResult(
-                true,
-                "불국사",
-                "경상북도 경주시 불국로 385",
-                "129.331843",
-                "35.789915",
-                null,
-                "kakao:origin",
-                "",
-                "문화,예술 > 종교 > 불교 > 절,사찰"));
+                        true,
+                        "불국사",
+                        "경상북도 경주시 불국로 385",
+                        "129.331843",
+                        "35.789915",
+                        null,
+                        "kakao:origin",
+                        "",
+                        "문화,예술 > 종교 > 불교 > 절,사찰"
+                ));
         candidates.record(new PlaceWithRouteResult(
-                true,
-                "교동쌈밥",
-                "경상북도 경주시 첨성로 77",
-                "129.219431",
-                "35.834921",
-                null,
-                "kakao:destination",
-                "FD6",
-                "음식점"));
+                        true,
+                        "교동쌈밥",
+                        "경상북도 경주시 첨성로 77",
+                        "129.219431",
+                        "35.834921",
+                        null,
+                        "kakao:destination",
+                        "FD6",
+                        "음식점"
+                ));
 
         KakaoRouteResult expected = new KakaoRouteResult(
                 "불국사",
                 "교동쌈밥",
                 15000,
-                35);
+                35
+        );
 
         when(kakao.getRoute(
-                "불국사",
-                "교동쌈밥",
-                Transportation.TRANSIT,
-                "129.331843",
-                "35.789915",
-                "129.219431",
-                "35.834921"))
+                        "불국사",
+                        "교동쌈밥",
+                        Transportation.TRANSIT,
+                        "129.331843",
+                        "35.789915",
+                        "129.219431",
+                        "35.834921"
+                ))
                 .thenReturn(Mono.just(expected));
 
         PlanTourismTool tool = new PlanTourismTool(tourismTool, candidates);
@@ -385,19 +408,21 @@ class PlanTourismToolTest {
         KakaoRouteResult result = tool.getRoute(
                 "kakao:origin",
                 "kakao:destination",
-                Transportation.TRANSIT);
+                Transportation.TRANSIT
+        );
 
         assertSame(expected, result);
 
         verify(kakao)
                 .getRoute(
-                        "불국사",
-                        "교동쌈밥",
-                        Transportation.TRANSIT,
-                        "129.331843",
-                        "35.789915",
-                        "129.219431",
-                        "35.834921");
+                "불국사",
+                "교동쌈밥",
+                Transportation.TRANSIT,
+                "129.331843",
+                "35.789915",
+                "129.219431",
+                "35.834921"
+        );
     }
     private Kor2KeywordSearchResponse response(
             Kor2KeywordSearchResponse.Item item

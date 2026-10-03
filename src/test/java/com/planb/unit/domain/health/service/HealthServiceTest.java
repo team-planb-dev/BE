@@ -139,7 +139,8 @@ class HealthServiceTest {
 
         // given
         Health health =
-                Health.builder()
+                Health
+                        .builder()
                         .travelerName("강우주")
                         .user(user)
                         .build();

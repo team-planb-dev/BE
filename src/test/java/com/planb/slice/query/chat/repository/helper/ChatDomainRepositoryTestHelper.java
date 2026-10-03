@@ -19,12 +19,13 @@ public class ChatDomainRepositoryTestHelper {
 
     private final TestEntityManager entityManager;
 
-    public User createUser
-            (String username,
-             String password,
-             String role,
-             String nickname,
-             boolean deleted) {
+    public User createUser(
+            String username,
+            String password,
+            String role,
+            String nickname,
+            boolean deleted
+    ) {
 
         User user = User
                 .builder()
@@ -35,7 +36,8 @@ public class ChatDomainRepositoryTestHelper {
                         new TermsAgreement(
                                 true,
                                 true,
-                                true))
+                                true
+                        ))
                 .nickname(nickname)
                 .deleted(deleted)
                 .accountRecovery(
@@ -65,12 +67,13 @@ public class ChatDomainRepositoryTestHelper {
     }
 
     // ChatMessage 생성
-    public ChatMessage createChatMessage
-    (ChatRoom chatRoom,
-     User sender,
-     String message,
-     Instant sendAt,
-     boolean deleted) {
+    public ChatMessage createChatMessage(
+            ChatRoom chatRoom,
+            User sender,
+            String message,
+            Instant sendAt,
+            boolean deleted
+    ) {
 
         ChatMessage chatMessage = ChatMessage
                 .builder()

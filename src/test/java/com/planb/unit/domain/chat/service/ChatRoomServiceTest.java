@@ -40,7 +40,8 @@ class ChatRoomServiceTest {
         chatRoomService.deleteChatRoom(chatRoom);
 
         // then
-        verify(chatRoom).delete();
+        verify(chatRoom)
+                .delete();
     }
 
     @Test
@@ -63,9 +64,10 @@ class ChatRoomServiceTest {
 
                     ReflectionTestUtils
                             .setField(
-                                    chatRoom,
-                                    "id",
-                                    1L);
+                            chatRoom,
+                            "id",
+                            1L
+                    );
                     return chatRoom;
                 });
 
@@ -137,7 +139,8 @@ class ChatRoomServiceTest {
     @DisplayName("여행 채팅방 조회와 생성 응답 문구 구분")
     void travelChatRoomResponse() {
 
-        ChatRoom room = ChatRoom.builder()
+        ChatRoom room = ChatRoom
+                .builder()
                 .id(1L)
                 .chatRoomName("부산 여행")
                 .build();
@@ -145,8 +148,11 @@ class ChatRoomServiceTest {
         CreateChatRoomResponse existing = chatRoomService.travelChatRoomResponse(room, true);
         CreateChatRoomResponse created = chatRoomService.travelChatRoomResponse(room, false);
 
-        assertThat(existing.chatRoomId()).isEqualTo(1L);
-        assertThat(existing.message()).isEqualTo("채팅방이 조회되었습니다.");
-        assertThat(created.message()).isEqualTo("채팅방이 생성되었습니다.");
+        assertThat(existing.chatRoomId())
+                .isEqualTo(1L);
+        assertThat(existing.message())
+                .isEqualTo("채팅방이 조회되었습니다.");
+        assertThat(created.message())
+                .isEqualTo("채팅방이 생성되었습니다.");
     }
 }

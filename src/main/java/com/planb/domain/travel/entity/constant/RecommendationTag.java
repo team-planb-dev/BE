@@ -105,7 +105,7 @@ public enum RecommendationTag implements CodeCommInterface {
 
         return switch (courseType) {
 
-            // PlanService.deterministicTagsFor가 두 유형을 같은 분기로 다루므로 허용 목록도 같아야 한다.
+            // PlanService.deterministicTagsFor와 일치하는 두 유형의 태그 허용 목록
             case RESTAURANT, LOCAL_FOOD -> Set.of(
                     MEAL_TIME_APPLIED,
                     LOCAL_FOOD,

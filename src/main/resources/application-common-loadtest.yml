@@ -1,10 +1,10 @@
 # 부하 테스트 전용 프로파일. 실행: --spring.profiles.active=loadtest
-#
-# OpenAI와 외부 HTTP API 네 개(Kor2Service, Kakao Map, Kakao Mobility, 식품영양성분)를 로컬 스텁으로 돌린다.
+
+# OpenAI와 외부 HTTP API 네 개의 로컬 스텁 사용
 # 스텁 실행: ./gradlew travelLoadTestStubs
-#
-# 외부 API 키는 환경변수에서 읽지 않는다. 실행 셸에 실제 키가 있어도 부하 테스트가 실제 키를 쓰지 않게 하려는 것이다.
-# 근거와 사용법은 docs/perf/phase2-openai-stub.md와 docs/perf/phase2-external-http-stubs.md 참고.
+
+# 실제 키 사용 방지를 위한 외부 API 키 환경변수 미참조
+# 근거와 사용법은 docs/perf/phase2-openai-stub.md와 docs/perf/phase2-external-http-stubs.md 참고
 spring:
   config:
     activate:
@@ -66,11 +66,11 @@ external:
     base-url: ${LOADTEST_STUB_URL:http://localhost:18080}/food-nutrition
     service-key: loadtest
 
-# Phase 4A: 부하 측정에서 p50/p95/p99를 Prometheus로 계산하기 위한 SLO 버킷. loadtest 프로파일에만 적용한다.
-# 기본 Timer는 _count·_sum·_max만 내보내 histogram_quantile을 쓸 수 없고, percentile histogram 기본 범위는
-# 30초에서 끊긴다. 긴 일정 생성을 보려고 300초까지 이어지는 경계를 직접 지정한다.
-# 3초 OpenAI 지연을 두 번 호출하는 Phase 4A-2 경로를 위해 3초·6초·8초 경계를 포함한다.
-# http.client.requests는 의존성 구분이 생기기 전까지, planb.ai.retry는 횟수와 결과만 보므로 버킷을 두지 않는다.
+# Phase 4A: 부하 측정 p50/p95/p99용 SLO 버킷, loadtest 프로파일 한정
+# 기본 Timer의 _count·_sum·_max만으로는 histogram_quantile 계산 불가
+# 긴 일정 생성을 위한 percentile histogram 최대 300초 버킷 경계
+# Phase 4A-2의 OpenAI 3초 지연 2회 측정을 위한 3초·6초·8초 경계
+# http.client.requests와 횟수·결과만 집계하는 planb.ai.retry의 버킷 제외
 management:
   metrics:
     distribution:

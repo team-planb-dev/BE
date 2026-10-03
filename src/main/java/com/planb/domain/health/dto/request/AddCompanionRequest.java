@@ -102,8 +102,7 @@ public record AddCompanionRequest(
         내부 파싱 메소드 정리
          */
         /**
-         * 민감정보 동의 시 필수 건강·식사 정보 검증
-         * @throws BaseException 동의했는데 건강 정보나 식사 정보가 없는 경우
+         * 민감정보 동의 시 건강·식사 정보 누락 검증
          */
         public CreateHealthRequest toHealthRequest() {
 
@@ -146,7 +145,8 @@ public record AddCompanionRequest(
         public CreateFoodInfoRequest toFoodInfoRequest(Health health) {
 
             List<CreateFoodInfoRequest.FoodInfoDetail> data =
-                    foodInfoList.stream()
+                    foodInfoList
+                            .stream()
                             .map(food ->
                                     new CreateFoodInfoRequest.FoodInfoDetail(
                                             food.foodName(),
@@ -166,7 +166,8 @@ public record AddCompanionRequest(
         ) {
 
             List<CreateMedicationInfoRequest.MedicationInfoDetail> data =
-                    medicationInfoList.stream()
+                    medicationInfoList
+                            .stream()
                             .map(medication ->
                                     new CreateMedicationInfoRequest.MedicationInfoDetail(
                                             medication.drugName(),

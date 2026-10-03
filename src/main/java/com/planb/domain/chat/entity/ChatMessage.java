@@ -37,7 +37,7 @@ public class ChatMessage extends BaseEntity {
     @Column(nullable = false, length = 1)
     private boolean deleted;
 
-    public void deleteOneMessage(){
+    public void deleteOneMessage() {
         this.deleted = true;
         markDeleted();
     }

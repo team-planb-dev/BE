@@ -15,35 +15,41 @@ public class UserTokenCacheRepository {
     private final RedisTemplate<String, String> refreshTokenRedisTemplate;
 
     // 저장
-    public void save(String key,
-                     String value,
-                     Long expiredMs){
+    public void save(
+            String key,
+            String value,
+            Long expiredMs
+    ) {
 
         refreshTokenRedisTemplate
                 .opsForValue()
-                .set(key,
-                        value,
-                        expiredMs,
-                        TimeUnit.MILLISECONDS);
+                .set(
+                key,
+                value,
+                expiredMs,
+                TimeUnit.MILLISECONDS
+        );
 
     }
 
-    public Object findByKey(String key){
+    public Object findByKey(String key) {
 
-        Object value = refreshTokenRedisTemplate.opsForValue().get(key);
+        Object value = refreshTokenRedisTemplate
+                .opsForValue()
+                .get(key);
 
-        if (value == null){
+        if (value == null) {
             throw new BaseException(BaseExceptionEnum.REFRESH_TOKEN_NOT_FOUND);
         }
 
         return value;
     }
 
-    public void delete(String key){
+    public void delete(String key) {
         refreshTokenRedisTemplate.delete(key);
     }
 
-    public boolean exists(String key){
+    public boolean exists(String key) {
         return refreshTokenRedisTemplate
                 .hasKey(key);
     }

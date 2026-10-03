@@ -20,7 +20,7 @@ public class HealthQueryService {
 
 
     // userId를 통해 건강 요약정보 가져오기
-    public List<HealthSummaryQueryResponse> getHealthSummaryList(Long userId){
+    public List<HealthSummaryQueryResponse> getHealthSummaryList(Long userId) {
 
         return healthQueryRepository.findHealthSummaryList(userId);
     }
@@ -41,14 +41,14 @@ public class HealthQueryService {
     }
 
     // 여행에 선택된 구성원만 건강 요약정보 가져오기
-    public List<HealthSummaryQueryResponse> getHealthSummaryListByHealthIds(List<Long> healthIds){
+    public List<HealthSummaryQueryResponse> getHealthSummaryListByHealthIds(List<Long> healthIds) {
 
         return healthQueryRepository.findHealthSummaryListByHealthIds(healthIds);
     }
 
     public boolean checkHealthWithUser
             (Long healthId,
-             Long userId){
+             Long userId) {
 
         return healthQueryRepository
                 .existsByHealthIdAndUserId(

@@ -152,7 +152,7 @@ tasks.register('externalTest', Test) {
     description = '실제 외부 API(OpenAI 등)를 호출하는 통합테스트만 실행'
 }
 
-// 부하 테스트용 외부 HTTP 스텁 단독 실행. STUB_PORT, STUB_SCENARIO 등 환경변수로 설정한다.
+// 부하 테스트용 외부 HTTP 스텁 단독 실행, STUB_PORT·STUB_SCENARIO 환경변수 설정
 tasks.register('externalHttpStub', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'com.planb.performance.external.ExternalHttpStubServer'

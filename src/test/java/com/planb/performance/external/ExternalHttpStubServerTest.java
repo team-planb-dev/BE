@@ -81,7 +81,8 @@ class ExternalHttpStubServerTest {
                 )
                 .block();
 
-        assertThat(items(response)).isNotEmpty();
+        assertThat(items(response))
+                .isNotEmpty();
 
         List<RecordedRequest> requests = stub.requests(Api.KOR2);
 
@@ -126,7 +127,8 @@ class ExternalHttpStubServerTest {
                                 "종로구"
                         )
                         .block()
-        ).size();
+        )
+                .size();
 
         List<Kor2KeywordSearchResponse.Item> candidates = items(
                 tool.searchAttractionsByRegion(
@@ -135,7 +137,8 @@ class ExternalHttpStubServerTest {
                 )
         );
 
-        assertThat(candidates).hasSize(fixtureSize);
+        assertThat(candidates)
+                .hasSize(fixtureSize);
     }
 
     @Test
@@ -154,7 +157,8 @@ class ExternalHttpStubServerTest {
                         .block()
         );
 
-        assertThat(restaurants).isNotEmpty();
+        assertThat(restaurants)
+                .isNotEmpty();
 
         assertThat(stub
                 .requests(Api.KOR2)
@@ -176,7 +180,8 @@ class ExternalHttpStubServerTest {
                         .firstmenu())
                 .collect(Collectors.toSet());
 
-        assertThat(menus).hasSize(restaurants.size());
+        assertThat(menus)
+                .hasSize(restaurants.size());
     }
 
     @Test
@@ -213,11 +218,16 @@ class ExternalHttpStubServerTest {
         PlaceWithRouteResult again = findCafe("스텁 카페 하나");
         PlaceWithRouteResult other = findCafe("스텁 카페 둘");
 
-        assertThat(first.found()).isTrue();
-        assertThat(again).isEqualTo(first);
-        assertThat(other.candidateId()).isNotEqualTo(first.candidateId());
-        assertThat(other.placeName()).isNotEqualTo(first.placeName());
-        assertThat(first.travelMinutes()).isNotNull();
+        assertThat(first.found())
+                .isTrue();
+        assertThat(again)
+                .isEqualTo(first);
+        assertThat(other.candidateId())
+                .isNotEqualTo(first.candidateId());
+        assertThat(other.placeName())
+                .isNotEqualTo(first.placeName());
+        assertThat(first.travelMinutes())
+                .isNotNull();
 
         assertThat(stub.requests(Api.KAKAO_MAP))
                 .extracting(RecordedRequest::path)
@@ -247,7 +257,8 @@ class ExternalHttpStubServerTest {
                 ))
                 .block();
 
-        assertThat(route.travelMinutes()).isPositive();
+        assertThat(route.travelMinutes())
+                .isPositive();
 
         assertThat(stub
                 .requests(Api.KAKAO_MOBILITY)
@@ -266,7 +277,10 @@ class ExternalHttpStubServerTest {
         String url = stub.baseUrl(Api.KOR2)
                 + "/areaBasedList2?serviceKey=x&contentTypeId=39&areaCode=1";
 
-        assertThat(get(url).body()).isEqualTo(get(url).body());
+        assertThat(get(url)
+                        .body())
+                .isEqualTo(get(url)
+                        .body());
     }
 
     @Test
@@ -275,7 +289,9 @@ class ExternalHttpStubServerTest {
 
         start(Settings.normal());
 
-        assertThat(get(stub.baseUrl(Api.KOR2) + "/unknown").statusCode()).isEqualTo(404);
+        assertThat(get(stub.baseUrl(Api.KOR2) + "/unknown")
+                        .statusCode())
+                .isEqualTo(404);
     }
 
     @Test
@@ -302,7 +318,8 @@ class ExternalHttpStubServerTest {
                                 "종로구"
                         )
                         .block()
-        )).isNotEmpty();
+        ))
+                .isNotEmpty();
     }
 
     @Test
@@ -347,10 +364,12 @@ class ExternalHttpStubServerTest {
 
         long elapsedMs = (System.nanoTime() - started) / 1_000_000;
 
-        assertThat(restaurants).isNotEmpty();
+        assertThat(restaurants)
+                .isNotEmpty();
 
-        // 지역코드 조회와 목록 조회 두 번 모두 지연된다.
-        assertThat(elapsedMs).isGreaterThanOrEqualTo(600);
+        // 지역코드·목록 조회 모두 지연
+        assertThat(elapsedMs)
+                .isGreaterThanOrEqualTo(600);
     }
 
     @Test
@@ -376,7 +395,8 @@ class ExternalHttpStubServerTest {
                 .block())
                 .isInstanceOf(WebClientRequestException.class);
 
-        assertThat((System.nanoTime() - started) / 1_000_000).isGreaterThanOrEqualTo(300);
+        assertThat((System.nanoTime() - started) / 1_000_000)
+                .isGreaterThanOrEqualTo(300);
     }
 
     @Test
@@ -384,16 +404,24 @@ class ExternalHttpStubServerTest {
     void settingsFromEnvironment() {
 
         Settings settings = Settings.fromEnvironment(Map.of(
-                "STUB_SCENARIO", "delay",
-                "STUB_SCENARIO_KAKAO_MAP", "server-error",
-                "STUB_DELAY_MS", "40",
-                "STUB_TIMEOUT_MS", "900"
-        ));
+                        "STUB_SCENARIO",
+                        "delay",
+                        "STUB_SCENARIO_KAKAO_MAP",
+                        "server-error",
+                        "STUB_DELAY_MS",
+                        "40",
+                        "STUB_TIMEOUT_MS",
+                        "900"
+                ));
 
-        assertThat(settings.scenarioOf(Api.KOR2)).isEqualTo(Scenario.DELAY);
-        assertThat(settings.scenarioOf(Api.KAKAO_MAP)).isEqualTo(Scenario.SERVER_ERROR);
-        assertThat(settings.delay()).isEqualTo(Duration.ofMillis(40));
-        assertThat(settings.timeout()).isEqualTo(Duration.ofMillis(900));
+        assertThat(settings.scenarioOf(Api.KOR2))
+                .isEqualTo(Scenario.DELAY);
+        assertThat(settings.scenarioOf(Api.KAKAO_MAP))
+                .isEqualTo(Scenario.SERVER_ERROR);
+        assertThat(settings.delay())
+                .isEqualTo(Duration.ofMillis(40));
+        assertThat(settings.timeout())
+                .isEqualTo(Duration.ofMillis(900));
     }
 
     @Test
@@ -409,11 +437,13 @@ class ExternalHttpStubServerTest {
                 )
                 .block();
 
-        assertThat(stub.requests(Api.KOR2)).isNotEmpty();
+        assertThat(stub.requests(Api.KOR2))
+                .isNotEmpty();
 
         stub.clear();
 
-        assertThat(stub.requests(Api.KOR2)).isEmpty();
+        assertThat(stub.requests(Api.KOR2))
+                .isEmpty();
     }
 
     private void start(Settings settings) {

@@ -207,24 +207,34 @@ class TravelQueryRepositoryTest
     void findAllByUserIdReturnsUpcomingTravels() {
 
         // given
-        LocalDate today = LocalDate.of(2026, 9, 10);
+        LocalDate today = LocalDate.of(
+                2026,
+                9,
+                10
+        );
 
         User owner = createUser();
 
-        createTravel("지난 여행",
+        createTravel(
+                "지난 여행",
                 owner,
                 today.minusDays(5),
-                today.minusDays(3));
+                today.minusDays(3)
+        );
 
-        Travel ongoing = createTravel("여행 중",
+        Travel ongoing = createTravel(
+                "여행 중",
                 owner,
                 today.minusDays(1),
-                today.plusDays(1));
+                today.plusDays(1)
+        );
 
-        Travel upcoming = createTravel("예정 여행",
+        Travel upcoming = createTravel(
+                "예정 여행",
                 owner,
                 today.plusDays(7),
-                today.plusDays(8));
+                today.plusDays(8)
+        );
 
         entityManager.flush();
         entityManager.clear();
@@ -252,14 +262,20 @@ class TravelQueryRepositoryTest
     void findAllByUserIdReturnsTravelTheme() {
 
         // given
-        LocalDate today = LocalDate.of(2026, 9, 10);
+        LocalDate today = LocalDate.of(
+                2026,
+                9,
+                10
+        );
 
         User owner = createUser();
 
-        Travel upcoming = createTravel("예정 여행",
+        Travel upcoming = createTravel(
+                "예정 여행",
                 owner,
                 today.plusDays(7),
-                today.plusDays(8));
+                today.plusDays(8)
+        );
 
         entityManager.flush();
         entityManager.clear();
@@ -273,7 +289,7 @@ class TravelQueryRepositoryTest
                                 today
                         );
 
-        // then - 프로젝션은 생성자 인자 순서로 맞추므로 자리를 잘못 넣어도 컴파일은 통과한다
+        // then - 컴파일에서 검출되지 않는 프로젝션 생성자 인자 순서 오류
         assertThat(result)
                 .extracting(
                         TravelListItemQueryResponse::travelId,
@@ -294,20 +310,28 @@ class TravelQueryRepositoryTest
     void findAllByUserIdExcludesUnsavedTravels() {
 
         // given
-        LocalDate today = LocalDate.of(2026, 9, 10);
+        LocalDate today = LocalDate.of(
+                2026,
+                9,
+                10
+        );
 
         User owner = createUser();
 
-        Travel saved = createTravel("저장한 여행",
+        Travel saved = createTravel(
+                "저장한 여행",
                 owner,
                 today.plusDays(7),
-                today.plusDays(8));
+                today.plusDays(8)
+        );
 
-        // 생성 직후 이탈해 저장을 누르지 않은 여행이다.
-        createUnsavedTravel("저장하지 않은 여행",
+        // 생성 직후 이탈한 미저장 여행
+        createUnsavedTravel(
+                "저장하지 않은 여행",
                 owner,
                 today.plusDays(1),
-                today.plusDays(2));
+                today.plusDays(2)
+        );
 
         entityManager.flush();
         entityManager.clear();
@@ -332,24 +356,34 @@ class TravelQueryRepositoryTest
     void findAllByUserIdReturnsPastTravels() {
 
         // given
-        LocalDate today = LocalDate.of(2026, 9, 10);
+        LocalDate today = LocalDate.of(
+                2026,
+                9,
+                10
+        );
 
         User owner = createUser();
 
-        Travel older = createTravel("오래된 여행",
+        Travel older = createTravel(
+                "오래된 여행",
                 owner,
                 today.minusDays(20),
-                today.minusDays(19));
+                today.minusDays(19)
+        );
 
-        Travel recent = createTravel("최근 여행",
+        Travel recent = createTravel(
+                "최근 여행",
                 owner,
                 today.minusDays(3),
-                today.minusDays(2));
+                today.minusDays(2)
+        );
 
-        createTravel("예정 여행",
+        createTravel(
+                "예정 여행",
                 owner,
                 today.plusDays(1),
-                today.plusDays(2));
+                today.plusDays(2)
+        );
 
         entityManager.flush();
         entityManager.clear();
@@ -377,20 +411,28 @@ class TravelQueryRepositoryTest
     void findAllByUserIdExcludesOtherUsersTravels() {
 
         // given
-        LocalDate today = LocalDate.of(2026, 9, 10);
+        LocalDate today = LocalDate.of(
+                2026,
+                9,
+                10
+        );
 
         User owner = createUser();
         User stranger = createUser();
 
-        Travel ownerTravel = createTravel("내 여행",
+        Travel ownerTravel = createTravel(
+                "내 여행",
                 owner,
                 today.plusDays(1),
-                today.plusDays(2));
+                today.plusDays(2)
+        );
 
-        createTravel("남의 여행",
+        createTravel(
+                "남의 여행",
                 stranger,
                 today.plusDays(1),
-                today.plusDays(2));
+                today.plusDays(2)
+        );
 
         entityManager.flush();
         entityManager.clear();
@@ -417,19 +459,57 @@ class TravelQueryRepositoryTest
         // given
         User owner = createUser();
 
-        Travel travel = createTravel("부산 여행",
+        Travel travel = createTravel(
+                "부산 여행",
                 owner,
-                LocalDate.of(2026, 9, 1),
-                LocalDate.of(2026, 9, 2));
+                LocalDate.of(
+                        2026,
+                        9,
+                        1
+                ),
+                LocalDate.of(
+                        2026,
+                        9,
+                        2
+                )
+        );
 
         Plan plan = createPlan(travel);
 
-        PlanDay firstDay = createPlanDay(plan, 1, LocalDate.of(2026, 9, 1));
-        PlanDay secondDay = createPlanDay(plan, 2, LocalDate.of(2026, 9, 2));
+        PlanDay firstDay = createPlanDay(
+                plan,
+                1,
+                LocalDate.of(
+                        2026,
+                        9,
+                        1
+                )
+        );
+        PlanDay secondDay = createPlanDay(
+                plan,
+                2,
+                LocalDate.of(
+                        2026,
+                        9,
+                        2
+                )
+        );
 
-        createPlanSchedule(secondDay, LocalTime.of(9, 0), "second.jpg");
-        createPlanSchedule(firstDay, LocalTime.of(13, 0), "first-afternoon.jpg");
-        createPlanSchedule(firstDay, LocalTime.of(10, 0), "first-morning.jpg");
+        createPlanSchedule(
+                secondDay,
+                LocalTime.of(9, 0),
+                "second.jpg"
+        );
+        createPlanSchedule(
+                firstDay,
+                LocalTime.of(13, 0),
+                "first-afternoon.jpg"
+        );
+        createPlanSchedule(
+                firstDay,
+                LocalTime.of(10, 0),
+                "first-morning.jpg"
+        );
 
         entityManager.flush();
         entityManager.clear();
@@ -453,18 +533,36 @@ class TravelQueryRepositoryTest
         // given
         User owner = createUser();
 
-        Travel travel = createTravel("부산 여행",
+        Travel travel = createTravel(
+                "부산 여행",
                 owner,
-                LocalDate.of(2026, 9, 1),
-                LocalDate.of(2026, 9, 2));
+                LocalDate.of(
+                        2026,
+                        9,
+                        1
+                ),
+                LocalDate.of(
+                        2026,
+                        9,
+                        2
+                )
+        );
 
         PlanDay planDay = createPlanDay(
                 createPlan(travel),
                 1,
-                LocalDate.of(2026, 9, 1)
+                LocalDate.of(
+                        2026,
+                        9,
+                        1
+                )
         );
 
-        createPlanSchedule(planDay, LocalTime.of(10, 0), null);
+        createPlanSchedule(
+                planDay,
+                LocalTime.of(10, 0),
+                null
+        );
 
         entityManager.flush();
         entityManager.clear();
@@ -486,10 +584,20 @@ class TravelQueryRepositoryTest
     void findTravelIdByShareToken() {
 
         // given
-        Travel travel = createTravel("부산 여행",
+        Travel travel = createTravel(
+                "부산 여행",
                 createUser(),
-                LocalDate.of(2026, 9, 1),
-                LocalDate.of(2026, 9, 2));
+                LocalDate.of(
+                        2026,
+                        9,
+                        1
+                ),
+                LocalDate.of(
+                        2026,
+                        9,
+                        2
+                )
+        );
 
         travel.issueShareToken("share-token-1");
 
@@ -511,10 +619,20 @@ class TravelQueryRepositoryTest
     void issueShareTokenKeepsExistingToken() {
 
         // given
-        Travel travel = createTravel("부산 여행",
+        Travel travel = createTravel(
+                "부산 여행",
                 createUser(),
-                LocalDate.of(2026, 9, 1),
-                LocalDate.of(2026, 9, 2));
+                LocalDate.of(
+                        2026,
+                        9,
+                        1
+                ),
+                LocalDate.of(
+                        2026,
+                        9,
+                        2
+                )
+        );
 
         travel.issueShareToken("share-token-1");
 
@@ -534,7 +652,8 @@ class TravelQueryRepositoryTest
             LocalDate endDate
     ) {
 
-        Travel travel = Travel.builder()
+        Travel travel = Travel
+                .builder()
                 .user(user)
                 .travelName(travelName)
                 .locationDo("부산")
@@ -555,7 +674,7 @@ class TravelQueryRepositoryTest
         return travel;
     }
 
-    // 목록은 저장된 여행만 보여주므로 기본 픽스처도 저장된 여행이다.
+    // 저장된 여행만 포함하는 목록용 기본 픽스처
     private Travel createTravel(
             String travelName,
             User user,
@@ -563,7 +682,8 @@ class TravelQueryRepositoryTest
             LocalDate endDate
     ) {
 
-        Travel travel = Travel.builder()
+        Travel travel = Travel
+                .builder()
                 .user(user)
                 .saved(true)
                 .travelName(travelName)
@@ -587,7 +707,8 @@ class TravelQueryRepositoryTest
 
     private Plan createPlan(Travel travel) {
 
-        Plan plan = Plan.builder()
+        Plan plan = Plan
+                .builder()
                 .travel(travel)
                 .planName("부산 일정")
                 .build();
@@ -603,7 +724,8 @@ class TravelQueryRepositoryTest
             LocalDate planDate
     ) {
 
-        PlanDay planDay = PlanDay.builder()
+        PlanDay planDay = PlanDay
+                .builder()
                 .plan(plan)
                 .dayNumber(dayNumber)
                 .planDate(planDate)
@@ -620,7 +742,8 @@ class TravelQueryRepositoryTest
             String imageUrl
     ) {
 
-        PlanSchedule planSchedule = PlanSchedule.builder()
+        PlanSchedule planSchedule = PlanSchedule
+                .builder()
                 .planDay(planDay)
                 .scheduleType(ScheduleType.ACTIVITY)
                 .courseType(CourseType.ATTRACTION)
@@ -640,7 +763,8 @@ class TravelQueryRepositoryTest
 
     private User createUser() {
 
-        User user = User.builder()
+        User user = User
+                .builder()
                 .username("test" + System.nanoTime() + "@example.com")
                 .password("password")
                 .role("ROLE_USER")
@@ -686,7 +810,8 @@ class TravelQueryRepositoryTest
             User user
     ) {
 
-        Travel travel = Travel.builder()
+        Travel travel = Travel
+                .builder()
                 .user(user)
                 .travelName(travelName)
                 .locationDo("부산")

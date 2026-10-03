@@ -20,7 +20,8 @@ class LenientLocalTimeDeserializerTest {
         SimpleModule module = new SimpleModule();
         module.addDeserializer(LocalTime.class, new LenientLocalTimeDeserializer());
 
-        return JsonMapper.builder()
+        return JsonMapper
+                .builder()
                 .addModule(module)
                 .build();
     }
@@ -70,7 +71,11 @@ class LenientLocalTimeDeserializerTest {
 
         // then
         assertThat(result)
-                .isEqualTo(LocalTime.of(8, 30, 15));
+                .isEqualTo(LocalTime.of(
+                        8,
+                        30,
+                        15
+                ));
     }
 
     @Test

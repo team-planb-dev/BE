@@ -191,7 +191,9 @@ public class ApiExceptionHandler {
 
         logErrorException(e, e.getFailure());
 
-        return ApiResult.fail(e.getFailure().getApiError());
+        return ApiResult.fail(e
+                        .getFailure()
+                        .getApiError());
     }
 
     /**
@@ -224,7 +226,9 @@ public class ApiExceptionHandler {
     private void logWarnException(Exception e, Object errorCode) {
         log.warn(
                 LOG_FORMAT,
-                e.getClass().getSimpleName(),
+                e
+                        .getClass()
+                        .getSimpleName(),
                 errorCode,
                 e.getMessage()
         );
@@ -234,7 +238,9 @@ public class ApiExceptionHandler {
     private void logErrorException(Exception e, Object errorCode) {
         log.error(
                 LOG_FORMAT,
-                e.getClass().getSimpleName(),
+                e
+                        .getClass()
+                        .getSimpleName(),
                 errorCode,
                 e.getMessage()
         );

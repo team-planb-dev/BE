@@ -66,7 +66,9 @@ class TravelRecommendHandlerTest extends IntegrationTest {
         }
 
         LocalDate startDate =
-                LocalDate.now().plusDays(7);
+                LocalDate
+                        .now()
+                        .plusDays(7);
 
         baseCreateTravelRequest =
                 new CreateTravelRequest(
@@ -193,7 +195,9 @@ class TravelRecommendHandlerTest extends IntegrationTest {
 
         // given
         LocalDate startDate =
-                LocalDate.now().plusDays(7);
+                LocalDate
+                        .now()
+                        .plusDays(7);
 
         CreateTravelRequest createTravelRequest =
                 new CreateTravelRequest(
@@ -332,7 +336,7 @@ class TravelRecommendHandlerTest extends IntegrationTest {
                 .doesNotHaveDuplicates();
     }
 
-    // 이동/밀도 조정(감소) 요청: 걷는 양을 줄여달라는 요청이면 관광지 개수가 늘어나지 않아야 함
+    // 이동/밀도 감소 요청의 관광지 개수 비증가
     @Test
     @DisplayName("실제 OpenAI 밀도 감소 수정 요청 - 걷기 줄이기")
     void editPlanReducesWalkingDensityWithRealOpenAi() throws Exception {
@@ -393,7 +397,7 @@ class TravelRecommendHandlerTest extends IntegrationTest {
                 .containsExactlyInAnyOrder(1, 2);
     }
 
-    // 이동/밀도 조정(증가) 요청: 더 알차게 다니고 싶다는 요청이면 관광지 개수가 줄어들지 않아야 함
+    // 이동/밀도 증가 요청의 관광지 개수 비감소
     @Test
     @DisplayName("실제 OpenAI 밀도 증가 수정 요청 - 더 알차게")
     void editPlanIncreasesDensityWithRealOpenAi() throws Exception {
@@ -432,7 +436,7 @@ class TravelRecommendHandlerTest extends IntegrationTest {
                 .isGreaterThanOrEqualTo(baseAttractionCount);
     }
 
-    // 특정 장소 교체/삭제 요청: "1일차 OO는 빼주세요" 요청이면 해당 슬롯(같은 시작 시각)의 장소가 바뀌어야 함
+    // 특정 장소 교체·삭제 요청의 동일 시각 슬롯 변경
     @Test
     @DisplayName("실제 OpenAI 특정 장소 삭제 수정 요청 - 1일차 특정 장소 제외")
     void editPlanRemovesSpecificDaySlotWithRealOpenAi() throws Exception {
@@ -483,7 +487,7 @@ class TravelRecommendHandlerTest extends IntegrationTest {
                 .isNotEqualTo(Optional.of(targetLocationName));
     }
 
-    // 음식/식사 조정 요청: 매운 음식을 못 먹는다는 요청이면 처리 가능하다고 판단하고 변경 사항을 남겨야 함
+    // 음식/식사 조정 요청의 처리 가능 판정과 변경 사항 기록
     @Test
     @DisplayName("실제 OpenAI 음식 조정 수정 요청 - 매운 음식 제외")
     void editPlanAdjustsFoodPreferenceWithRealOpenAi() throws Exception {
@@ -516,7 +520,7 @@ class TravelRecommendHandlerTest extends IntegrationTest {
                 .isNotEmpty();
     }
 
-    // 건강 조건 재반영 요청: 새로 추가된 알레르기 정보를 반영해달라는 요청이면 처리 가능하다고 판단해야 함
+    // 건강 조건 재반영 요청의 처리 가능 판정
     @Test
     @DisplayName("실제 OpenAI 건강 조건 재반영 수정 요청 - 알레르기 추가")
     void editPlanReflectsUpdatedHealthConditionWithRealOpenAi() throws Exception {
@@ -572,7 +576,7 @@ class TravelRecommendHandlerTest extends IntegrationTest {
                 .isNotEmpty();
     }
 
-    // 처리 불가능 요청: 일정 수정/삭제와 무관한 요청이면 processable=false, changes=[]이며 일정이 그대로 유지되어야 함
+    // 일정 수정·삭제와 무관한 요청의 처리 불가와 원본 유지
     @Test
     @DisplayName("실제 OpenAI 처리 불가능 수정 요청 - 일정과 무관한 요청")
     void editPlanUnprocessableWhenUnrelatedRequestWithRealOpenAi() throws Exception {
@@ -611,7 +615,7 @@ class TravelRecommendHandlerTest extends IntegrationTest {
                 .isEqualTo(baseDay1LocationNames);
     }
 
-    // 지원되지 않는 하위 요청: 여행 기간 변경은 processable=true이지만 일수는 그대로 유지되고 changes에 안내만 남아야 함
+    // 미지원 기간 변경 요청의 일수 유지와 changes 안내
     @Test
     @DisplayName("실제 OpenAI 지원되지 않는 수정 요청 - 여행 기간 변경")
     void editPlanKeepsDayCountWhenDateChangeRequestedWithRealOpenAi() throws Exception {
@@ -768,7 +772,8 @@ class TravelRecommendHandlerTest extends IntegrationTest {
                         .schedules();
 
         Map<String, Long> day1LocationNameCounts =
-                day1Schedules.stream()
+                day1Schedules
+                        .stream()
                         .map(GetAiPlanResponse.PlanScheduleDetail::locationName)
                         .filter(locationName -> locationName != null && !locationName.isBlank())
                         .collect(Collectors.groupingBy(
@@ -776,10 +781,13 @@ class TravelRecommendHandlerTest extends IntegrationTest {
                                 Collectors.counting()
                         ));
 
-        return day1Schedules.stream()
+        return day1Schedules
+                .stream()
                 .filter(schedule ->
                         schedule.locationName() != null
-                                && !schedule.locationName().isBlank()
+                                && !schedule
+                                        .locationName()
+                                        .isBlank()
                                 && day1LocationNameCounts.get(schedule.locationName()) == 1L
                 )
                 .findFirst()
@@ -800,7 +808,9 @@ class TravelRecommendHandlerTest extends IntegrationTest {
                 .orElseThrow()
                 .schedules()
                 .stream()
-                .filter(schedule -> schedule.startTime().equals(startTime))
+                .filter(schedule -> schedule
+                        .startTime()
+                        .equals(startTime))
                 .map(CreatePlanAiResponse.PlanScheduleDetail::locationName)
                 .findFirst();
     }

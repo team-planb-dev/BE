@@ -34,21 +34,30 @@ class Kor2ServiceHandlerTest extends IntegrationTest {
         assertThat(response.response())
                 .isNotNull();
 
-        assertThat(response.response().header())
+        assertThat(response
+                        .response()
+                        .header())
                 .isNotNull();
 
-        assertThat(response.response().header().resultCode())
+        assertThat(response
+                        .response()
+                        .header()
+                        .resultCode())
                 .isEqualTo("0000");
 
-        assertThat(response.response().body())
+        assertThat(response
+                        .response()
+                        .body())
                 .isNotNull();
 
-        assertThat(response.response()
+        assertThat(response
+                        .response()
                 .body()
                 .items())
                 .isNotNull();
 
-        assertThat(response.response()
+        assertThat(response
+                        .response()
                 .body()
                 .items()
                 .item())
@@ -73,27 +82,37 @@ class Kor2ServiceHandlerTest extends IntegrationTest {
         assertThat(response.response())
                 .isNotNull();
 
-        assertThat(response.response().header())
+        assertThat(response
+                        .response()
+                        .header())
                 .isNotNull();
 
-        assertThat(response.response().header().resultCode())
+        assertThat(response
+                        .response()
+                        .header()
+                        .resultCode())
                 .isEqualTo("0000");
 
-        assertThat(response.response().body())
+        assertThat(response
+                        .response()
+                        .body())
                 .isNotNull();
 
-        assertThat(response.response()
+        assertThat(response
+                        .response()
                 .body()
                 .items())
                 .isNotNull();
 
-        assertThat(response.response()
+        assertThat(response
+                        .response()
                 .body()
                 .items()
                 .item())
                 .isNotEmpty();
 
-        assertThat(response.response()
+        assertThat(response
+                        .response()
                 .body()
                 .items()
                 .item())
@@ -145,21 +164,30 @@ class Kor2ServiceHandlerTest extends IntegrationTest {
         assertThat(response.response())
                 .isNotNull();
 
-        assertThat(response.response().header())
+        assertThat(response
+                        .response()
+                        .header())
                 .isNotNull();
 
-        assertThat(response.response().header().resultCode())
+        assertThat(response
+                        .response()
+                        .header()
+                        .resultCode())
                 .isEqualTo("0000");
 
-        assertThat(response.response().body())
+        assertThat(response
+                        .response()
+                        .body())
                 .isNotNull();
 
-        assertThat(response.response()
+        assertThat(response
+                        .response()
                 .body()
                 .items())
                 .isNotNull();
 
-        assertThat(response.response()
+        assertThat(response
+                        .response()
                 .body()
                 .items()
                 .item())

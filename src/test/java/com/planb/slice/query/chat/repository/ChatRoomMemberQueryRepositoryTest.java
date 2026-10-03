@@ -317,15 +317,19 @@ class ChatRoomMemberQueryRepositoryTest
         assertThat(result)
                 .isPresent();
 
-        assertThat(result.get().getId())
+        assertThat(result
+                        .get()
+                        .getId())
                 .isEqualTo(targetMemberId);
 
-        assertThat(result.get()
+        assertThat(result
+                        .get()
                 .getChatRoom()
                 .getId())
                 .isEqualTo(targetRoomId);
 
-        assertThat(result.get()
+        assertThat(result
+                        .get()
                 .getUser()
                 .getId())
                 .isEqualTo(targetUserId);

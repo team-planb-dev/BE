@@ -50,7 +50,8 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
     private static final int REPEATS = 3;
 
     private static final Path OUTPUT_DIR = Path.of("build", "llm-quality-baseline");
-    private static final String RUN_ID = Instant.now()
+    private static final String RUN_ID = Instant
+            .now()
             .toString()
             .replace(":", "-");
 
@@ -73,7 +74,7 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
         }
     }
 
-    // 모든 케이스는 1박 2일이다. TravelPlanAssertions.assertPlan이 2일 일정을 전제로 검사한다.
+    // TravelPlanAssertions.assertPlan의 2일 일정 검증에 맞춘 전 케이스 1박 2일
     private static final List<GoldenCase> CASES = List.of(
             new GoldenCase(
                     "C1-seoul-single-disease",
@@ -169,8 +170,8 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
             int repeat
     ) throws Exception {
 
-        // 키가 없어도 애플리케이션은 기동되고 모든 실행이 AI_TEMPORARILY_UNAVAILABLE로 기록된다.
-        // 모델 장애처럼 보이는 가짜 기준선이 남지 않도록 키가 없으면 실행하지 않는다.
+        // 키 누락 시 전 실행이 AI_TEMPORARILY_UNAVAILABLE로 기록되는 상태
+        // 모델 장애로 오인될 가짜 기준선 방지를 위한 키 필수 조건
         assumeTrue(
                 System.getenv("OPENAI_API_KEY") != null
                         && !System
@@ -185,7 +186,9 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
 
         List<Long> healthIds = new ArrayList<>();
 
-        for (int index = 0; index < goldenCase.companions().size(); index++) {
+        for (int index = 0; index < goldenCase
+                .companions()
+                .size(); index++) {
             healthIds.add(
                     addCompanion(
                             login.accessToken(),
@@ -279,7 +282,7 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
     ) {
     }
 
-    // 품질 결과로 테스트를 실패시키지 않고 결과만 기록한다.
+    // 테스트 실패 대신 품질 결과만 기록
     private RunResult evaluate(
             GoldenCase goldenCase,
             int repeat,
@@ -321,7 +324,7 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
                     true
             );
         } catch (AssertionError | RuntimeException error) {
-            // 필드 누락 시 assertPlan 안의 시간 파싱이 AssertionError 대신 예외를 던질 수 있다.
+            // 필드 누락 시 assertPlan의 시간 파싱 예외 가능성
             outcome = "INVARIANT_FAILURE";
             failure = summarize(error.toString());
         }
@@ -360,7 +363,7 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
         );
     }
 
-    // 실패 메시지는 원인 식별용 첫 줄만 남긴다. 계획 원문 전체를 결과 행에 넣지 않는다.
+    // 계획 원문을 제외한 실패 사유 첫 줄만 기록
     private String summarize(String message) {
 
         if (message == null) {
@@ -396,7 +399,7 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
         );
     }
 
-    // 질환만 케이스별로 바꾸고 식사·알레르기·복약 조건은 기존 동행인 등록과 같게 둔다.
+    // 케이스별 질환만 변경, 식사·알레르기·복약 조건 유지
     private Long addCompanion(
             String accessToken,
             String travelerName,
@@ -452,8 +455,10 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                 )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(true));
 
         return findHealthId(
                 accessToken,

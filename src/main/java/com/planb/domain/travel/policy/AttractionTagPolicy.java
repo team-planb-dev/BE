@@ -9,7 +9,7 @@ import java.util.Set;
  */
 public final class AttractionTagPolicy {
 
-    // TourAPI 분류 대분류. lclsSystm2 값의 앞 두 글자다.
+    // lclsSystm2의 앞 두 글자인 TourAPI 분류 대분류
     private static final String HISTORY = "HS";
 
     private static final String NATURE = "NA";
@@ -37,9 +37,7 @@ public final class AttractionTagPolicy {
     }
 
     /**
-     * 관광 분류 코드에 대응하는 추천 태그
-     * @param categoryCode TourAPI lclsSystm2 중분류 코드
-     * @return 분류에 해당하는 추천 태그, 지원하지 않는 분류는 빈 집합
+     * TourAPI 관광 분류 코드에 대응하는 추천 태그, 미지원 분류는 빈 집합
      */
     public static Set<RecommendationTag> tagsOf(String categoryCode) {
 

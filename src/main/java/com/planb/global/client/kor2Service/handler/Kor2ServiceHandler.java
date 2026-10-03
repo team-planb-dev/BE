@@ -406,7 +406,9 @@ public class Kor2ServiceHandler {
                 .item()
                 .stream()
                 .filter(item ->
-                        item.name().equals(location)
+                        item
+                                .name()
+                                .equals(location)
                 )
                 .findFirst()
                 .orElseThrow(() ->

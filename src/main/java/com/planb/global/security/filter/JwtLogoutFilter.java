@@ -41,16 +41,18 @@ public class JwtLogoutFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    )
             throws ServletException, IOException {
 
         String refresh = cookieUtil.findCookie(request);
 
-        // refresh 쿠키는 브라우저 설정·시크릿 모드·만료로 흔하게 사라진다.
-        // 그때 아무것도 안 하면 서버 세션이 남아 다음 로그인이 옛 세션을 이어받지 못한다.
-        if (refreshTokenValidator.isInvalid(refresh)){
+        // 브라우저 설정·시크릿 모드·만료에 따른 refresh 쿠키 소실
+        // 쿠키 소실 시 서버 세션 잔존과 다음 로그인 실패 방지
+        if (refreshTokenValidator.isInvalid(refresh)) {
             logoutByAccessToken(request, response);
             return;
         }
@@ -66,15 +68,19 @@ public class JwtLogoutFilter extends OncePerRequestFilter {
         response.addCookie(cookieUtil.zeroCookie(response));
 
         // 로그아웃 성공 Response반환
-        JsonResponseUtils.writeJsonResponse(HttpStatus
+        JsonResponseUtils.writeJsonResponse(
+                HttpStatus
                         .OK,
                 response,
-                new FilterSuccessResponse(true,
+                new FilterSuccessResponse(
+                        true,
                         "Method : /logout ",
                         "로그아웃에 성공하였습니다.",
                         LocalDate
                                 .now()
-                                .toString()));
+                                .toString()
+                )
+        );
 
         log.info("[ 회원 로그아웃 ] : {}", username);
     }
@@ -87,9 +93,11 @@ public class JwtLogoutFilter extends OncePerRequestFilter {
 
         if (username == null) {
 
-            JsonResponseUtils.writeJsonResponse(HttpStatus.UNAUTHORIZED,
+            JsonResponseUtils.writeJsonResponse(
+                    HttpStatus.UNAUTHORIZED,
                     response,
-                    ApiResult.fail(BaseExceptionEnum.LOGOUT_CREDENTIAL_NOT_FOUND));
+                    ApiResult.fail(BaseExceptionEnum.LOGOUT_CREDENTIAL_NOT_FOUND)
+            );
 
             return;
         }
@@ -100,14 +108,18 @@ public class JwtLogoutFilter extends OncePerRequestFilter {
 
         response.addCookie(cookieUtil.zeroCookie(response));
 
-        JsonResponseUtils.writeJsonResponse(HttpStatus.OK,
+        JsonResponseUtils.writeJsonResponse(
+                HttpStatus.OK,
                 response,
-                new FilterSuccessResponse(true,
+                new FilterSuccessResponse(
+                        true,
                         "Method : /logout ",
                         "로그아웃에 성공하였습니다.",
                         LocalDate
                                 .now()
-                                .toString()));
+                                .toString()
+                )
+        );
 
         log.info("[ 회원 로그아웃 - refresh 쿠키 없음 ] : {}", username);
     }

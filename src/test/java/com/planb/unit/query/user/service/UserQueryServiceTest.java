@@ -45,7 +45,8 @@ class UserQueryServiceTest {
         // then
         assertThat(result)
                 .isSameAs(user);
-        verify(userQueryRepository).findByUsername(username);
+        verify(userQueryRepository)
+                .findByUsername(username);
 
     }
 
@@ -69,7 +70,8 @@ class UserQueryServiceTest {
 
                 });
 
-        verify(userQueryRepository).findByUsername(username);
+        verify(userQueryRepository)
+                .findByUsername(username);
 
     }
 
@@ -89,7 +91,8 @@ class UserQueryServiceTest {
         // then
         assertThat(result)
                 .isTrue();
-        verify(userQueryRepository).existsByUsername(username);
+        verify(userQueryRepository)
+                .existsByUsername(username);
     }
 
     @Test
@@ -108,7 +111,8 @@ class UserQueryServiceTest {
         // then
         assertThat(result)
                 .isFalse();
-        verify(userQueryRepository).existsByUsername(username);
+        verify(userQueryRepository)
+                .existsByUsername(username);
     }
 
     @Test
@@ -127,7 +131,8 @@ class UserQueryServiceTest {
         // then
         assertThat(result)
                 .isTrue();
-        verify(userQueryRepository).existsByNickname(nickname);
+        verify(userQueryRepository)
+                .existsByNickname(nickname);
     }
 
     @Test
@@ -146,7 +151,8 @@ class UserQueryServiceTest {
         // then
         assertThat(result)
                 .isFalse();
-        verify(userQueryRepository).existsByNickname(nickname);
+        verify(userQueryRepository)
+                .existsByNickname(nickname);
     }
 
 

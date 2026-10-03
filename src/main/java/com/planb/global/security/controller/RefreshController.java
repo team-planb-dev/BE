@@ -40,13 +40,13 @@ public class RefreshController {
     public ResponseEntity<ApiResult<ReissueResponse>> reissue(
             HttpServletRequest request,
             HttpServletResponse response
-    ){
+    ) {
 
         ReissueResponse reissueResponse = refreshFacade
                 .reissue(request);
 
-        // 재발급은 서버에 저장된 옛 Refresh Token을 지운다.
-        // 쿠키를 갱신하지 않으면 브라우저가 지워진 토큰을 계속 보내 다음 재발급에서 로그아웃된다.
+        // 재발급 시 저장된 기존 Refresh Token 삭제
+        // 쿠키 미갱신 시 삭제된 토큰 재전송과 후속 로그아웃 위험
         response.addCookie(
                 cookieUtil.createCookie(
                         "refreshToken",

@@ -131,7 +131,11 @@ public class TravelService {
 
             materializePlanDays(plan, aiResponse.planDays());
 
-            return CreatePlanResponse.of(travel, tags, aiResponse);
+            return CreatePlanResponse.of(
+                    travel,
+                    tags,
+                    aiResponse
+            );
         });
     }
 
@@ -206,7 +210,8 @@ public class TravelService {
                 planEditCacheService.consumeEditResult(travelId);
 
         if (consumed.isEmpty()) {
-            EditPlanAiResponse confirmed = planEditCacheService.findConfirmedResult(travelId)
+            EditPlanAiResponse confirmed = planEditCacheService
+                    .findConfirmedResult(travelId)
                     .orElseThrow(() -> new BaseException(
                             PlanEditExceptionEnum.EDIT_RESULT_NOT_FOUND
                     ));
@@ -216,7 +221,9 @@ public class TravelService {
 
         EditPlanAiResponse editResponse = consumed.get();
         Plan plan = planService.findPlanById(
-                planQueryService.getPlanByTravelId(travelId).planId()
+                planQueryService
+                        .getPlanByTravelId(travelId)
+                        .planId()
         );
 
         List<PlanDay> existingDays = planDayService.findAllByPlan(plan);
@@ -321,7 +328,7 @@ public class TravelService {
 
 
     // Travel 객체 생성
-    public Travel createTravel(CreateTravelRequest createTravelRequest, Long userId){
+    public Travel createTravel(CreateTravelRequest createTravelRequest, Long userId) {
 
         User user = userRepository.getReferenceById(userId);
 
@@ -361,7 +368,7 @@ public class TravelService {
 
     //  OpenAI API 호출 후, 해당 지역 음식 추천
     public MakeRecommendFoodResponse makeRecommendFoodResponse
-    (MakeRecommendFoodsRequest makeRecommendFoodsRequest){
+    (MakeRecommendFoodsRequest makeRecommendFoodsRequest) {
         return travelRecommendHandler
                 .makeRecommendFood(new MakeFoodRecommendCallRequest(makeRecommendFoodsRequest));
     }
@@ -373,24 +380,22 @@ public class TravelService {
      */
 
     // Travel 객체 단건 조회하기 (존재 검증은 호출부에서 이미 끝난 상태를 전제)
-    public Travel findTravelById(Long travelId){
+    public Travel findTravelById(Long travelId) {
         return travelRepository.getReferenceById(travelId);
     }
 
     // Travel 객체 저장하기
-    public void saveTravel(Travel travel){
+    public void saveTravel(Travel travel) {
         travelRepository.save(travel);
     }
 
     // Travel 객체 삭제하기
-    public void deleteTravel(Long travelId){
+    public void deleteTravel(Long travelId) {
         travelRepository.deleteById(travelId);
     }
 
     /**
      * 중복 없이 저장하는 여행별 참여 구성원 연결
-     * @param travel 구성원을 연결할 여행
-     * @param healths 이번 여행에 참여할 구성원
      */
     public void saveTravelHealths(
             Travel travel,
@@ -410,8 +415,6 @@ public class TravelService {
 
     /**
      * 여행 생성 시 선택한 구성원 조회
-     * @param travelId 조회할 여행 id
-     * @return 여행 생성 당시 선택한 구성원
      */
     public List<Health> findHealthListByTravelId(Long travelId) {
 
@@ -446,7 +449,9 @@ public class TravelService {
             throw new BaseException(TravelExceptionEnum.TRAVEL_NOT_SAVED);
         }
 
-        travel.issueShareToken(UUID.randomUUID().toString());
+        travel.issueShareToken(UUID
+                        .randomUUID()
+                        .toString());
 
         return new ShareTravelResponse(travelId, travel.getShareToken());
     }

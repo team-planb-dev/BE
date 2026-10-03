@@ -101,7 +101,7 @@ public class Travel {
     private String decidedLocation;
 
     // 저장 확정 여부 (AI 생성 직후에는 false, 사용자가 저장하기를 누르면 true)
-    // 여행 진행 상태(TravelStatus)와는 별개 값이다.
+    // 여행 진행 상태(TravelStatus)와 별개의 저장 상태
     @Convert(converter = BooleanToYNConverter.class)
     @Column(
             name = "saved",
@@ -129,7 +129,6 @@ public class Travel {
 
     /**
      * 기존 공유 링크를 유지하는 공유 토큰 발급
-     * @param shareToken 새로 발급할 토큰
      */
     public void issueShareToken(String shareToken) {
 

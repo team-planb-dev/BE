@@ -11,9 +11,11 @@ public class JsonResponseUtils {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    public static void writeJsonResponse(HttpStatus httpStatus,
-                                         HttpServletResponse httpServletResponse,
-                                         Object object)
+    public static void writeJsonResponse(
+            HttpStatus httpStatus,
+            HttpServletResponse httpServletResponse,
+            Object object
+    )
     throws IOException {
 
         httpServletResponse
@@ -23,7 +25,8 @@ public class JsonResponseUtils {
         httpServletResponse
                 .setStatus(httpStatus.value());
         httpServletResponse
-                .getWriter().write(objectMapper.writeValueAsString(object));
+                .getWriter()
+                        .write(objectMapper.writeValueAsString(object));
     }
 
 }

@@ -26,20 +26,39 @@ public record TravelHealthContext(
 
         return new TravelHealthContext(
                 health.getTravelerName(),
-                health.getHealthInfo().diseaseTypeList(),
-                health.getHealthInfo().getWalkType(),
+                health
+                        .getHealthInfo()
+                        .diseaseTypeList(),
+                health
+                        .getHealthInfo()
+                        .getWalkType(),
 
                 new MealInfoContext(
-                        health.getMealInfo().isApplied(),
-                        health.getMealInfo().isBreakfastApplied(),
-                        health.getMealInfo().getBreakfastTime(),
-                        health.getMealInfo().isLunchApplied(),
-                        health.getMealInfo().getLunchTime(),
-                        health.getMealInfo().isDinnerApplied(),
-                        health.getMealInfo().getDinnerTime()
+                        health
+                                .getMealInfo()
+                                .isApplied(),
+                        health
+                                .getMealInfo()
+                                .isBreakfastApplied(),
+                        health
+                                .getMealInfo()
+                                .getBreakfastTime(),
+                        health
+                                .getMealInfo()
+                                .isLunchApplied(),
+                        health
+                                .getMealInfo()
+                                .getLunchTime(),
+                        health
+                                .getMealInfo()
+                                .isDinnerApplied(),
+                        health
+                                .getMealInfo()
+                                .getDinnerTime()
                 ),
 
-                foodInfos.stream()
+                foodInfos
+                        .stream()
                         .map(foodInfo ->
                                 new FoodInfoContext(
                                         foodInfo.getFoodName(),
@@ -48,7 +67,8 @@ public record TravelHealthContext(
                         )
                         .toList(),
 
-                medicationInfos.stream()
+                medicationInfos
+                        .stream()
                         .map(MedicationInfoContext::from)
                         .toList()
         );
@@ -103,7 +123,8 @@ public record TravelHealthContext(
         ) {
 
             Set<MealMedicationRuleContext> rules =
-                    medicationInfo.getMealMedicationRules()
+                    medicationInfo
+                            .getMealMedicationRules()
                             .stream()
                             .map(rule ->
                                     new MealMedicationRuleContext(

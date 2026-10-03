@@ -39,10 +39,20 @@ public class LenientLocalTimeDeserializer extends ValueDeserializer<LocalTime> {
             return null;
         }
 
-        int hour = node.get(0).asInt();
-        int minute = node.get(1).asInt();
-        int second = node.size() > 2 ? node.get(2).asInt() : 0;
+        int hour = node
+                .get(0)
+                .asInt();
+        int minute = node
+                .get(1)
+                .asInt();
+        int second = node.size() > 2 ? node
+                .get(2)
+                .asInt() : 0;
 
-        return LocalTime.of(hour, minute, second);
+        return LocalTime.of(
+                hour,
+                minute,
+                second
+        );
     }
 }

@@ -107,9 +107,18 @@ public class PlanTourismTool {
 
         if (response == null
                 || response.response() == null
-                || response.response().body() == null
-                || response.response().body().items() == null
-                || response.response().body().items().item() == null) {
+                || response
+                        .response()
+                        .body() == null
+                || response
+                        .response()
+                        .body()
+                        .items() == null
+                || response
+                        .response()
+                        .body()
+                        .items()
+                        .item() == null) {
             return List.of();
         }
 
@@ -121,7 +130,9 @@ public class PlanTourismTool {
                 .stream()
                 .filter(Objects::nonNull)
                 .filter(item -> item.contentid() != null
-                        && !item.contentid().isBlank())
+                        && !item
+                                .contentid()
+                                .isBlank())
                 .map(candidates::record)
                 .toList();
     }
@@ -159,8 +170,8 @@ public class PlanTourismTool {
             );
         }
 
-        // 직전 장소가 이번 호출에서 검색한 후보면 확정 좌표가 있다.
-        // 이름만 넘기면 카카오가 전국에서 동명 장소를 다시 찾아 엉뚱한 좌표를 쓴다.
+        // 이번 호출의 검색 후보에 있는 직전 장소의 확정 좌표
+        // 카카오의 전국 동명 장소 재검색 방지를 위한 확정 좌표 사용
         PlaceCandidateContext.Candidate previous = candidates.findByName(previousLocation);
 
         PlaceWithRouteResult result = tourismTool
@@ -202,21 +213,23 @@ public class PlanTourismTool {
                     originCandidateId,
                     destinationCandidateId,
                     null,
-                    null);
+                    null
+            );
         }
 
         return tourismTool
                 .getRoute(
-                        origin.name(),
-                        destination.name(),
-                        transportation,
-                        origin.longitude(),
-                        origin.latitude(),
-                        destination.longitude(),
-                        destination.latitude());
+                origin.name(),
+                destination.name(),
+                transportation,
+                origin.longitude(),
+                origin.latitude(),
+                destination.longitude(),
+                destination.latitude()
+        );
     }
 
-    // AI에게 노출되는 식별자는 candidateId뿐이므로 접두사 제거를 프롬프트에 맡기지 않고 여기서 처리한다.
+    // candidateId 접두사의 Tool 내부 제거
     @Tool(description = "TourAPI 음식점 상세 조회. 후보의 candidateId를 그대로 전달")
     public Kor2RestaurantIntroResponse getRestaurantDetail(String contentId) {
 

@@ -77,7 +77,8 @@ class HealthFacadeTest {
 
         AddCompanionResponse result = healthFacade.addCompanion(request, username);
 
-        assertThat(result).isSameAs(response);
+        assertThat(result)
+                .isSameAs(response);
 
         InOrder order = inOrder(
                 userQueryService,
@@ -86,11 +87,21 @@ class HealthFacadeTest {
                 medicationInfoService
         );
 
-        order.verify(userQueryService).findByUsername(username);
-        order.verify(healthService).addCompanion(request, user);
-        order.verify(foodInfoService).saveForCompanion(request, health);
-        order.verify(medicationInfoService).saveForCompanion(request, health);
-        order.verify(healthService).addCompanionResponse(health);
+        order
+                .verify(userQueryService)
+                .findByUsername(username);
+        order
+                .verify(healthService)
+                .addCompanion(request, user);
+        order
+                .verify(foodInfoService)
+                .saveForCompanion(request, health);
+        order
+                .verify(medicationInfoService)
+                .saveForCompanion(request, health);
+        order
+                .verify(healthService)
+                .addCompanionResponse(health);
     }
 
     @Test
@@ -111,12 +122,24 @@ class HealthFacadeTest {
                 healthService
         );
 
-        order.verify(userQueryService).findUserIdInCache("test@test.com");
-        order.verify(healthQueryService).validateOwned(10L, 1L);
-        order.verify(foodInfoQueryService).deleteAllByHealthId(10L);
-        order.verify(medicationInfoQueryService).deleteAllMedicationInfoByHealthId(10L);
-        order.verify(healthService).deleteHealthById(10L);
-        order.verify(healthService).deleteCompanionResponse();
+        order
+                .verify(userQueryService)
+                .findUserIdInCache("test@test.com");
+        order
+                .verify(healthQueryService)
+                .validateOwned(10L, 1L);
+        order
+                .verify(foodInfoQueryService)
+                .deleteAllByHealthId(10L);
+        order
+                .verify(medicationInfoQueryService)
+                .deleteAllMedicationInfoByHealthId(10L);
+        order
+                .verify(healthService)
+                .deleteHealthById(10L);
+        order
+                .verify(healthService)
+                .deleteCompanionResponse();
     }
 
     @Test

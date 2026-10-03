@@ -36,7 +36,9 @@ public class KakaoMobilityRouteHelper {
     ) {
 
         if (response.routes() == null
-                || response.routes().isEmpty()) {
+                || response
+                        .routes()
+                        .isEmpty()) {
 
             throw new IllegalStateException(
                     "카카오모빌리티 자동차 경로 조회 결과 없음"
@@ -44,7 +46,8 @@ public class KakaoMobilityRouteHelper {
         }
 
         KakaoCarRouteResponse.Route route =
-                response.routes()
+                response
+                        .routes()
                         .getFirst();
 
         if (route.result_code() == null

@@ -21,9 +21,11 @@ public class PlanScheduleService {
             List<CreatePlanAiResponse.PlanScheduleDetail> schedules
     ) {
 
-        return schedules.stream()
+        return schedules
+                .stream()
                 .map(schedule ->
-                        PlanSchedule.builder()
+                        PlanSchedule
+                                .builder()
                                 .planDay(planDay)
                                 .scheduleType(
                                         schedule.scheduleType()
@@ -66,13 +68,15 @@ public class PlanScheduleService {
                                 )
                                 .medicationIntervalMinutes(
                                         schedule.medication() != null
-                                                ? schedule.medication()
+                                                ? schedule
+                                                        .medication()
                                                 .intervalMinutes()
                                                 : null
                                 )
                                 .medicationDescription(
                                         schedule.medication() != null
-                                                ? schedule.medication()
+                                                ? schedule
+                                                        .medication()
                                                 .description()
                                                 : null
                                 )
@@ -94,13 +98,13 @@ public class PlanScheduleService {
     }
 
     // 특정 PlanDay 목록에 속한 PlanSchedule 리스트 조회하기
-    public List<PlanSchedule> findAllByPlanDayIn(List<PlanDay> planDays){
+    public List<PlanSchedule> findAllByPlanDayIn(List<PlanDay> planDays) {
 
         return planScheduleRepository.findAllByPlanDayIn(planDays);
     }
 
     // 특정 PlanDay 목록에 속한 PlanSchedule 리스트 일괄 삭제하기
-    public void deleteAllByPlanDayIn(List<PlanDay> planDays){
+    public void deleteAllByPlanDayIn(List<PlanDay> planDays) {
 
         planScheduleRepository.deleteAllByPlanDayIn(planDays);
     }

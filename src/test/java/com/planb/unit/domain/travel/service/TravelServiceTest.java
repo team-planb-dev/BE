@@ -136,7 +136,8 @@ class TravelServiceTest {
         when(healthQueryService.checkHealthWithUser(101L, 1L))
                 .thenReturn(true);
 
-        Health agreed = Health.builder()
+        Health agreed = Health
+                .builder()
                 .id(100L)
                 .travelerName("동의 동행인")
                 .sensitiveAgree(true)
@@ -151,7 +152,8 @@ class TravelServiceTest {
                         LocalTime.of(18, 0)
                 ))
                 .build();
-        Health notAgreed = Health.builder()
+        Health notAgreed = Health
+                .builder()
                 .id(101L)
                 .travelerName("미동의 동행인")
                 .sensitiveAgree(false)
@@ -169,7 +171,9 @@ class TravelServiceTest {
         List<TravelHealthContext> contexts = travelService.loadHealthContexts(request, 1L);
 
         assertEquals(1, contexts.size());
-        assertEquals("동의 동행인", contexts.getFirst().travelerName());
+        assertEquals("동의 동행인", contexts
+                        .getFirst()
+                        .travelerName());
     }
 
     @Test
@@ -178,7 +182,8 @@ class TravelServiceTest {
 
         CreateTravelRequest request = mock(CreateTravelRequest.class);
         CreatePlanAiResponse aiResponse = new CreatePlanAiResponse(List.of());
-        Health health = Health.builder()
+        Health health = Health
+                .builder()
                 .id(100L)
                 .sensitiveAgree(false)
                 .build();
@@ -202,14 +207,19 @@ class TravelServiceTest {
 
         BaseException exception = assertThrows(
                 BaseException.class,
-                () -> travelService.saveGeneratedPlan(request, 1L, aiResponse)
+                () -> travelService.saveGeneratedPlan(
+                        request,
+                        1L,
+                        aiResponse
+                )
         );
 
         assertEquals(
                 TravelExceptionEnum.COMPANION_NOT_OWNED.getCode(),
                 exception.getErrorCode()
         );
-        verify(travelRepository, never()).save(any());
+        verify(travelRepository, never())
+                .save(any());
     }
 
     @Test
@@ -253,7 +263,8 @@ class TravelServiceTest {
                 () -> travelService.confirmEditPlanInTransaction(1L)
         );
 
-        verify(travelTransactionService).write(any());
+        verify(travelTransactionService)
+                .write(any());
     }
 
     @Test
@@ -266,7 +277,8 @@ class TravelServiceTest {
                 List.of("점심 식당 변경"),
                 true
         );
-        Travel travel = Travel.builder()
+        Travel travel = Travel
+                .builder()
                 .id(1L)
                 .travelName("부산 여행")
                 .build();
@@ -298,25 +310,33 @@ class TravelServiceTest {
                 List.of("점심 식당 변경"),
                 true
         );
-        Plan plan = Plan.builder()
+        Plan plan = Plan
+                .builder()
                 .id(10L)
                 .build();
-        PlanDay oldDay = PlanDay.builder()
+        PlanDay oldDay = PlanDay
+                .builder()
                 .id(100L)
                 .plan(plan)
                 .build();
-        PlanSchedule oldSchedule = PlanSchedule.builder()
+        PlanSchedule oldSchedule = PlanSchedule
+                .builder()
                 .id(1000L)
                 .planDay(oldDay)
                 .build();
-        Travel travel = Travel.builder()
+        Travel travel = Travel
+                .builder()
                 .id(1L)
                 .build();
 
         when(planEditCacheService.consumeEditResult(1L))
                 .thenReturn(Optional.of(editResult));
         when(planQueryService.getPlanByTravelId(1L))
-                .thenReturn(new PlanQueryResponse(10L, "부산 여행", Set.of()));
+                .thenReturn(new PlanQueryResponse(
+                        10L,
+                        "부산 여행",
+                        Set.of()
+                ));
         when(planService.findPlanById(10L))
                 .thenReturn(plan);
         when(planDayService.findAllByPlan(plan))
@@ -339,15 +359,20 @@ class TravelServiceTest {
                 planService,
                 planEditCacheService
         );
-        order.verify(restaurantDetailService)
+        order
+                .verify(restaurantDetailService)
                 .deleteAllByPlanScheduleIn(List.of(oldSchedule));
-        order.verify(planScheduleService)
+        order
+                .verify(planScheduleService)
                 .deleteAllByPlanDayIn(List.of(oldDay));
-        order.verify(planDayService)
+        order
+                .verify(planDayService)
                 .deleteAllByPlan(plan);
-        order.verify(planService)
+        order
+                .verify(planService)
                 .savePlan(plan);
-        order.verify(planEditCacheService)
+        order
+                .verify(planEditCacheService)
                 .markConfirmedAfterCommit(1L, editResult);
     }
 
@@ -358,7 +383,8 @@ class TravelServiceTest {
         Long userId = 1L;
 
         User user =
-                User.builder()
+                User
+                        .builder()
                         .id(userId)
                         .accountRecovery(
                                 AccountRecovery.of(
@@ -530,7 +556,8 @@ class TravelServiceTest {
 
         assertEquals(
                 request,
-                captor.getValue()
+                captor
+                        .getValue()
                         .request()
         );
     }
@@ -540,7 +567,8 @@ class TravelServiceTest {
     void saveTravel() {
 
         Travel travel =
-                Travel.builder()
+                Travel
+                        .builder()
                         .travelName("부산 여행")
                         .build();
 

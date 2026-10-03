@@ -46,13 +46,17 @@ class FoodNtrCpntHandlerTest extends IntegrationTest {
         assertThat(response.header())
                 .isNotNull();
 
-        assertThat(response.header().resultCode())
+        assertThat(response
+                        .header()
+                        .resultCode())
                 .isEqualTo("00");
 
         assertThat(response.body())
                 .isNotNull();
 
-        assertThat(response.body().items())
+        assertThat(response
+                        .body()
+                        .items())
                 .isNotEmpty();
 
         FoodNtrCpntResponse.Item firstItem = response
@@ -115,11 +119,13 @@ class FoodNtrCpntHandlerTest extends IntegrationTest {
     @DisplayName("식품 영양성분 API가 부분일치를 하는지 확인")
     void partialMatchProbe() {
 
-        List.of(
+        List
+                .of(
                 "칼국수",
                 "장칼국수",
                 "검은콩 장칼국수"
-        ).forEach(keyword -> {
+        )
+                .forEach(keyword -> {
 
             List<FoodNtrCpntResponse.Item> items = foodNtrCpntHandler
                     .getFoodNutrition(FoodNtrCpntSearchRequest.of(keyword))

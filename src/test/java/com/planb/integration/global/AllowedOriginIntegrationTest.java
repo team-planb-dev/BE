@@ -48,7 +48,8 @@ class AllowedOriginIntegrationTest extends IntegrationTest {
                                 .header("Access-Control-Request-Method", "GET")
                 )
                 .andExpect(
-                        header().string(
+                        header()
+                                .string(
                                 "Access-Control-Allow-Origin",
                                 origin
                         )
@@ -66,7 +67,8 @@ class AllowedOriginIntegrationTest extends IntegrationTest {
                                 .header("Access-Control-Request-Method", "GET")
                 )
                 .andExpect(
-                        header().doesNotExist(
+                        header()
+                                .doesNotExist(
                                 "Access-Control-Allow-Origin"
                         )
                 );

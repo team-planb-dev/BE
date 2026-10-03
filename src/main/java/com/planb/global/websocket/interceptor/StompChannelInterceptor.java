@@ -46,7 +46,9 @@ public class StompChannelInterceptor implements ChannelInterceptor {
                 accessor.getSessionId(),
                 accessor.getDestination(),
                 accessor.getUser() != null
-                        ? accessor.getUser().getName()
+                        ? accessor
+                                .getUser()
+                                .getName()
                         : null
         );
 
@@ -82,10 +84,15 @@ public class StompChannelInterceptor implements ChannelInterceptor {
                 "STOMP CONNECT AUTH SUCCESS - sessionId={}, user={}, authenticationType={}",
                 accessor.getSessionId(),
                 accessor.getUser() != null
-                        ? accessor.getUser().getName()
+                        ? accessor
+                                .getUser()
+                                .getName()
                         : null,
                 accessor.getUser() != null
-                        ? accessor.getUser().getClass().getName()
+                        ? accessor
+                                .getUser()
+                                .getClass()
+                                .getName()
                         : null
         );
     }
@@ -96,7 +103,9 @@ public class StompChannelInterceptor implements ChannelInterceptor {
                 "VALIDATE SUBSCRIBE START - destination={}, user={}",
                 accessor.getDestination(),
                 accessor.getUser() != null
-                        ? accessor.getUser().getName()
+                        ? accessor
+                                .getUser()
+                                .getName()
                         : null
         );
 
@@ -125,7 +134,9 @@ public class StompChannelInterceptor implements ChannelInterceptor {
                 "VALIDATE SEND START - destination={}, user={}",
                 accessor.getDestination(),
                 accessor.getUser() != null
-                        ? accessor.getUser().getName()
+                        ? accessor
+                                .getUser()
+                                .getName()
                         : null
         );
 

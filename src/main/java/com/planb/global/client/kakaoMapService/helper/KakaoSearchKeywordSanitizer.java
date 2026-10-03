@@ -12,7 +12,9 @@ public class KakaoSearchKeywordSanitizer {
             return null;
         }
 
-        String sanitized = keyword.replaceAll("\\s*\\([^)]*\\)\\s*", " ").trim();
+        String sanitized = keyword
+                .replaceAll("\\s*\\([^)]*\\)\\s*", " ")
+                .trim();
 
         return sanitized.isEmpty() ? keyword : sanitized;
     }

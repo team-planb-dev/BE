@@ -10,7 +10,7 @@ public class McpToolConfig {
 
     // Tool 추가 필요
     @Bean
-    public ToolCallbackProvider toolCallbackProvider(){
+    public ToolCallbackProvider toolCallbackProvider() {
 
         return MethodToolCallbackProvider
                 .builder()

@@ -20,6 +20,16 @@ public record PlaceWithRouteResult(
             Integer travelMinutes
     ) {
 
-        this(found, placeName, address, longitude, latitude, travelMinutes, null, null, null);
+        this(
+                found,
+                placeName,
+                address,
+                longitude,
+                latitude,
+                travelMinutes,
+                null,
+                null,
+                null
+        );
     }
 }

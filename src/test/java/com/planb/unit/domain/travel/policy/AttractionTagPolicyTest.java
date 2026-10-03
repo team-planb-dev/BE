@@ -27,7 +27,7 @@ class AttractionTagPolicyTest {
     @DisplayName("걸어서 둘러보는 VE 중분류의 자연경관 태그")
     void mapsWalkableVenueCategory() {
 
-        // VE03 공원, VE04 거리·마을. 둘 다 걸어서 둘러보는 장소다.
+        // 걸어서 둘러보는 VE03 공원·VE04 거리와 마을
         assertThat(AttractionTagPolicy.tagsOf("VE03"))
                 .containsExactly(RecommendationTag.NATURAL_SCENERY);
 

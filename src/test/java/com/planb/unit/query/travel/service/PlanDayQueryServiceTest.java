@@ -85,7 +85,8 @@ class PlanDayQueryServiceTest {
 
         verify(
                 planDayQueryRepository
-        ).findPlanDaysByPlanId(
+        )
+                .findPlanDaysByPlanId(
                 planId
         );
     }

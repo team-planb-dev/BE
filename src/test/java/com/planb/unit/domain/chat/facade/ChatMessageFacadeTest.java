@@ -114,38 +114,48 @@ class ChatMessageFacadeTest {
                 planEditCacheService
         );
 
-        inOrder.verify(chatMessageService)
+        inOrder
+                .verify(chatMessageService)
                 .validateRequest(request);
 
-        inOrder.verify(chatMessageService)
+        inOrder
+                .verify(chatMessageService)
                 .publishUserMessage(
                         roomId,
                         request.message(),
                         username
                 );
 
-        inOrder.verify(chatRoomQueryService)
+        inOrder
+                .verify(chatRoomQueryService)
                 .findTravelIdByRoomId(roomId);
 
-        inOrder.verify(userQueryService)
+        inOrder
+                .verify(userQueryService)
                 .findUserIdInCache(username);
 
-        inOrder.verify(travelQueryService)
+        inOrder
+                .verify(travelQueryService)
                 .validateOwner(travelId, 50L);
 
-        inOrder.verify(travelService)
+        inOrder
+                .verify(travelService)
                 .prepareEditContext(travelId, request.message());
 
-        inOrder.verify(planService)
+        inOrder
+                .verify(planService)
                 .makeEditPlanByAi(editContext);
 
-        inOrder.verify(planEditCacheService)
+        inOrder
+                .verify(planEditCacheService)
                 .saveEditResult(travelId, editResponse);
 
-        inOrder.verify(planService)
+        inOrder
+                .verify(planService)
                 .createEditPreviewResponse(editContext, editResponse);
 
-        inOrder.verify(chatMessageService)
+        inOrder
+                .verify(chatMessageService)
                 .publishTalkReply(roomId, preview);
     }
 
@@ -234,22 +244,28 @@ class ChatMessageFacadeTest {
                 travelService
         );
 
-        inOrder.verify(chatMessageService)
+        inOrder
+                .verify(chatMessageService)
                 .validateRequest(request);
 
-        inOrder.verify(chatRoomQueryService)
+        inOrder
+                .verify(chatRoomQueryService)
                 .getTravelIdByRoomId(roomId);
 
-        inOrder.verify(userQueryService)
+        inOrder
+                .verify(userQueryService)
                 .findUserIdInCache(username);
 
-        inOrder.verify(travelQueryService)
+        inOrder
+                .verify(travelQueryService)
                 .validateOwner(travelId, 50L);
 
-        inOrder.verify(travelService)
+        inOrder
+                .verify(travelService)
                 .confirmEditPlanInTransaction(travelId);
 
-        inOrder.verify(chatMessageService)
+        inOrder
+                .verify(chatMessageService)
                 .publishConfirmReply(roomId);
     }
 
@@ -291,22 +307,28 @@ class ChatMessageFacadeTest {
                 planEditCacheService
         );
 
-        inOrder.verify(chatMessageService)
+        inOrder
+                .verify(chatMessageService)
                 .validateRequest(request);
 
-        inOrder.verify(chatRoomQueryService)
+        inOrder
+                .verify(chatRoomQueryService)
                 .getTravelIdByRoomId(roomId);
 
-        inOrder.verify(userQueryService)
+        inOrder
+                .verify(userQueryService)
                 .findUserIdInCache(username);
 
-        inOrder.verify(travelQueryService)
+        inOrder
+                .verify(travelQueryService)
                 .validateOwner(travelId, 50L);
 
-        inOrder.verify(planEditCacheService)
+        inOrder
+                .verify(planEditCacheService)
                 .deleteEditResult(travelId);
 
-        inOrder.verify(chatMessageService)
+        inOrder
+                .verify(chatMessageService)
                 .publishCancelReply(roomId);
     }
 

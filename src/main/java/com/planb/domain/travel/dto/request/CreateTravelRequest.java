@@ -52,20 +52,23 @@ public record CreateTravelRequest(
 ) {
 
     // healthIds가 필요 없는 AI 프롬프트 컨텍스트 재구성 등에서 사용하는 축약 생성자
-    public CreateTravelRequest(String travelName,
-                               String locationDo,
-                               String locationSigungu,
-                               LocalDate startDate,
-                               DateType dateType,
-                               Transportation transportation,
-                               String decidedLocation,
-                               List<PlannedPlaceDetail> plannedPlaces,
-                               TravelStyle travelStyle,
-                               TravelTheme travelTheme,
-                               List<String> localFoods,
-                               List<String> recommendFoods){
+    public CreateTravelRequest(
+            String travelName,
+            String locationDo,
+            String locationSigungu,
+            LocalDate startDate,
+            DateType dateType,
+            Transportation transportation,
+            String decidedLocation,
+            List<PlannedPlaceDetail> plannedPlaces,
+            TravelStyle travelStyle,
+            TravelTheme travelTheme,
+            List<String> localFoods,
+            List<String> recommendFoods
+    ) {
 
-        this(travelName,
+        this(
+                travelName,
                 locationDo,
                 locationSigungu,
                 startDate,
@@ -77,11 +80,12 @@ public record CreateTravelRequest(
                 travelTheme,
                 localFoods,
                 recommendFoods,
-                List.of());
+                List.of()
+        );
     }
 
     // Travel 엔티티와 PlannedPlace 목록으로 원본 CreateTravelRequest 복원 (AI 편집 컨텍스트 재구성용)
-    // healthIds는 travel_health에 저장된 값을 그대로 전달해 여행 당시 선택한 구성원을 유지한다.
+    // 여행 당시 선택한 travel_health의 healthIds 유지
     public static CreateTravelRequest from(
             Travel travel,
             List<PlannedPlaceDetail> plannedPlaceDetails,

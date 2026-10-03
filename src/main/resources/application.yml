@@ -1,17 +1,16 @@
 server:
-  # 배포 환경(Railway 등)이 주입하는 PORT로 바인딩한다.
-  # Spring Boot는 PORT를 직접 읽지 않으므로 명시적으로 연결한다.
+  # Railway 등 배포 환경의 PORT 바인딩
+  # Spring Boot의 PORT 미인식에 따른 명시적 연결
   port: ${PORT:8080}
 
-  # 프록시가 TLS를 종료하므로 앱에는 http로 들어온다.
-  # X-Forwarded-Proto를 읽지 않으면 Swagger 문서의 server URL이 http로 생성되어
-  # https로 열린 Swagger UI에서 Try it out이 혼합 콘텐츠로 차단된다.
-  # 로컬에는 해당 헤더가 없어 아무 영향이 없다.
+  # 프록시 TLS 종료 후 HTTP 수신 시 원래 HTTPS 스킴 복원
+  # X-Forwarded-Proto 미반영에 따른 Swagger UI 혼합 콘텐츠 차단 방지
+  # 프록시 헤더가 없는 로컬 환경에는 영향 없음
   forward-headers-strategy: framework
 
 spring:
   application:
-    name: default-setting # 추후 변경
+    name: default-setting # 애플리케이션 기본 이름
   http:
     clients:
       connect-timeout: ${EXTERNAL_HTTP_CONNECT_TIMEOUT:5s}
@@ -31,11 +30,11 @@ decorator:
 
 Logging:
   level:
-    # Tool 호출 1회마다 DEBUG 4줄을 남겨 요청 로그 줄의 대부분을 차지한다.
-    # 호출 인자는 TourismTool INFO가 이미 남기므로 INFO로 낮춘다. 근거는 docs/perf/log-observability-round1.md
+    # Spring AI Tool 호출당 DEBUG 로그 4줄 축소
+    # Tool 인자는 TourismTool INFO 로그에서 확인, 근거: docs/perf/log-observability-round1.md
     org.springframework.ai: INFO
     com.planb.global.client: DEBUG
-    org.springframework.core.LocalVariableTableParameterNameDiscoverer: error # 에러 까지만 로깅
+    org.springframework.core.LocalVariableTableParameterNameDiscoverer: error # 오류 로그만 기록
 
 management:
   server:

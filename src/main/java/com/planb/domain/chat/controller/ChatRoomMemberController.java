@@ -36,7 +36,7 @@ public class ChatRoomMemberController {
     @SecurityRequirement(name = "JWT")
     public ResponseEntity<ApiResult<AddChatUserResponse>> addMember
             (@AuthenticationPrincipal UserDetails userDetails,
-             @RequestBody AddChatRoomMemberRequest addChatUserRequest){
+             @RequestBody AddChatRoomMemberRequest addChatUserRequest) {
 
         return ResponseEntity
                 .status(HttpStatus
@@ -61,7 +61,7 @@ public class ChatRoomMemberController {
     @SecurityRequirement(name = "JWT")
     public ResponseEntity<ApiResult<DeleteChatUserResponse>> deleteMember
             (@AuthenticationPrincipal UserDetails userDetails,
-             @RequestBody DeleteChatRoomMemberRequest deleteChatRoomMemberRequest){
+             @RequestBody DeleteChatRoomMemberRequest deleteChatRoomMemberRequest) {
 
         return ResponseEntity
                 .status(HttpStatus

@@ -12,13 +12,15 @@ public class UserAuthCacheService {
 
     private final UserAuthCacheRepository userAuthCacheRepository;
 
-    // Redis에 UserAuthCache 저장.
-    // access 토큰과 수명을 맞춘다. 캐시가 먼저 죽으면 토큰은 유효한데 인증만 실패한다.
-    public void saveUserAuthCache(UserAuthCache userAuthCache){
+    // Redis에 UserAuthCache 저장
+    // 토큰 유효 기간 중 인증 실패 방지를 위한 access 토큰·캐시 수명 일치
+    public void saveUserAuthCache(UserAuthCache userAuthCache) {
         userAuthCacheRepository
-                .save(userAuthCache.username(),
-                        userAuthCache,
-                        TokenExpiration.ACCESS_TOKEN_EXPIRED_MS);
+                .save(
+                userAuthCache.username(),
+                userAuthCache,
+                TokenExpiration.ACCESS_TOKEN_EXPIRED_MS
+        );
     }
 
     public void deleteUserAuthCache(String username) {

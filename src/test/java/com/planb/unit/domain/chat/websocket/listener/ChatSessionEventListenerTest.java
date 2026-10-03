@@ -103,16 +103,19 @@ class ChatSessionEventListenerTest {
         chatSessionEventListener.handleSubscribe(subscribeEvent);
 
         // then
-        verify(destinationResolver).extractRoomId(destination);
+        verify(destinationResolver)
+                .extractRoomId(destination);
 
-        verify(subscriptionRegistry).subscribe(
+        verify(subscriptionRegistry)
+                .subscribe(
                 sessionId,
                 subscriptionId,
                 roomId,
                 username
         );
 
-        verify(chatFacade).publishSystemMessage(
+        verify(chatFacade)
+                .publishSystemMessage(
                 roomId,
                 username,
                 MessageType.ENTER
@@ -165,14 +168,16 @@ class ChatSessionEventListenerTest {
         chatSessionEventListener.handleSubscribe(subscribeEvent);
 
         // then
-        verify(subscriptionRegistry).subscribe(
+        verify(subscriptionRegistry)
+                .subscribe(
                 sessionId,
                 subscriptionId,
                 roomId,
                 username
         );
 
-        verify(chatFacade, never()).publishSystemMessage(
+        verify(chatFacade, never())
+                .publishSystemMessage(
                 anyLong(),
                 anyString(),
                 any(MessageType.class)
@@ -205,14 +210,16 @@ class ChatSessionEventListenerTest {
         chatSessionEventListener.handleSubscribe(subscribeEvent);
 
         // then
-        verify(subscriptionRegistry, never()).subscribe(
+        verify(subscriptionRegistry, never())
+                .subscribe(
                 anyString(),
                 anyString(),
                 anyLong(),
                 anyString()
         );
 
-        verify(chatFacade, never()).publishSystemMessage(
+        verify(chatFacade, never())
+                .publishSystemMessage(
                 anyLong(),
                 anyString(),
                 any(MessageType.class)
@@ -244,14 +251,16 @@ class ChatSessionEventListenerTest {
         chatSessionEventListener.handleSubscribe(subscribeEvent);
 
         // then
-        verify(subscriptionRegistry, never()).subscribe(
+        verify(subscriptionRegistry, never())
+                .subscribe(
                 anyString(),
                 anyString(),
                 anyLong(),
                 anyString()
         );
 
-        verify(chatFacade, never()).publishSystemMessage(
+        verify(chatFacade, never())
+                .publishSystemMessage(
                 anyLong(),
                 anyString(),
                 any(MessageType.class)
@@ -283,14 +292,16 @@ class ChatSessionEventListenerTest {
         chatSessionEventListener.handleSubscribe(subscribeEvent);
 
         // then
-        verify(subscriptionRegistry, never()).subscribe(
+        verify(subscriptionRegistry, never())
+                .subscribe(
                 anyString(),
                 anyString(),
                 anyLong(),
                 anyString()
         );
 
-        verify(chatFacade, never()).publishSystemMessage(
+        verify(chatFacade, never())
+                .publishSystemMessage(
                 anyLong(),
                 anyString(),
                 any(MessageType.class)
@@ -323,14 +334,16 @@ class ChatSessionEventListenerTest {
         chatSessionEventListener.handleSubscribe(subscribeEvent);
 
         // then
-        verify(subscriptionRegistry, never()).subscribe(
+        verify(subscriptionRegistry, never())
+                .subscribe(
                 anyString(),
                 anyString(),
                 anyLong(),
                 anyString()
         );
 
-        verify(chatFacade, never()).publishSystemMessage(
+        verify(chatFacade, never())
+                .publishSystemMessage(
                 anyLong(),
                 anyString(),
                 any(MessageType.class)
@@ -375,12 +388,14 @@ class ChatSessionEventListenerTest {
         chatSessionEventListener.handleUnsubscribe(unsubscribeEvent);
 
         // then
-        verify(subscriptionRegistry).unsubscribe(
+        verify(subscriptionRegistry)
+                .unsubscribe(
                 sessionId,
                 subscriptionId
         );
 
-        verify(chatFacade).publishSystemMessage(
+        verify(chatFacade)
+                .publishSystemMessage(
                 roomId,
                 username,
                 MessageType.LEAVE
@@ -415,12 +430,14 @@ class ChatSessionEventListenerTest {
         chatSessionEventListener.handleUnsubscribe(unsubscribeEvent);
 
         // then
-        verify(subscriptionRegistry).unsubscribe(
+        verify(subscriptionRegistry)
+                .unsubscribe(
                 sessionId,
                 subscriptionId
         );
 
-        verify(chatFacade, never()).publishSystemMessage(
+        verify(chatFacade, never())
+                .publishSystemMessage(
                 anyLong(),
                 anyString(),
                 any(MessageType.class)
@@ -445,12 +462,14 @@ class ChatSessionEventListenerTest {
         chatSessionEventListener.handleUnsubscribe(unsubscribeEvent);
 
         // then
-        verify(subscriptionRegistry, never()).unsubscribe(
+        verify(subscriptionRegistry, never())
+                .unsubscribe(
                 anyString(),
                 anyString()
         );
 
-        verify(chatFacade, never()).publishSystemMessage(
+        verify(chatFacade, never())
+                .publishSystemMessage(
                 anyLong(),
                 anyString(),
                 any(MessageType.class)
@@ -475,12 +494,14 @@ class ChatSessionEventListenerTest {
         chatSessionEventListener.handleUnsubscribe(unsubscribeEvent);
 
         // then
-        verify(subscriptionRegistry, never()).unsubscribe(
+        verify(subscriptionRegistry, never())
+                .unsubscribe(
                 anyString(),
                 anyString()
         );
 
-        verify(chatFacade, never()).publishSystemMessage(
+        verify(chatFacade, never())
+                .publishSystemMessage(
                 anyLong(),
                 anyString(),
                 any(MessageType.class)
@@ -523,13 +544,15 @@ class ChatSessionEventListenerTest {
         verify(subscriptionRegistry)
                 .disconnect(sessionId);
 
-        verify(chatFacade).publishSystemMessage(
+        verify(chatFacade)
+                .publishSystemMessage(
                 1L,
                 "testUser@example.com",
                 MessageType.LEAVE
         );
 
-        verify(chatFacade).publishSystemMessage(
+        verify(chatFacade)
+                .publishSystemMessage(
                 2L,
                 "testUser2@example.com",
                 MessageType.LEAVE
@@ -558,7 +581,8 @@ class ChatSessionEventListenerTest {
         verify(subscriptionRegistry)
                 .disconnect(sessionId);
 
-        verify(chatFacade, never()).publishSystemMessage(
+        verify(chatFacade, never())
+                .publishSystemMessage(
                 anyLong(),
                 anyString(),
                 any(MessageType.class)
@@ -570,11 +594,12 @@ class ChatSessionEventListenerTest {
      * 채팅 세션 테스트 지원 메서드
      */
 
-    private Message<byte[]> createSubscribeMessage
-            (String sessionId,
-             String subscriptionId,
-             String destination,
-             Principal principal) {
+    private Message<byte[]> createSubscribeMessage(
+            String sessionId,
+            String subscriptionId,
+            String destination,
+            Principal principal
+    ) {
 
         StompHeaderAccessor accessor = StompHeaderAccessor
                 .create(StompCommand

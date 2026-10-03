@@ -67,7 +67,11 @@ class RefreshServiceTest {
         when(cookieUtil.findCookie(request))
                 .thenReturn(refresh);
 
-        doThrow(new ExpiredJwtException(null, null, "expired"))
+        doThrow(new ExpiredJwtException(
+                        null,
+                        null,
+                        "expired"
+                ))
                 .when(jwtUtil)
                 .isExpired(refresh);
 
@@ -122,7 +126,11 @@ class RefreshServiceTest {
                 .findCookie(request))
                 .thenReturn(refresh);
 
-        doThrow(new ExpiredJwtException(null, null, "expired"))
+        doThrow(new ExpiredJwtException(
+                        null,
+                        null,
+                        "expired"
+                ))
                 .when(jwtUtil)
                 .isExpired(refresh);
 
@@ -190,21 +198,25 @@ class RefreshServiceTest {
                 .thenReturn("sess-1");
 
         when(jwtUtil
-                .createJwt("access",
+                .createJwt(
+                        "access",
                         7L,
                         username,
                         role,
                         "sess-1",
-                        TokenExpiration.ACCESS_TOKEN_EXPIRED_MS))
+                        TokenExpiration.ACCESS_TOKEN_EXPIRED_MS
+                ))
                 .thenReturn(newAccess);
 
         when(jwtUtil
-                .createJwt("refresh",
+                .createJwt(
+                        "refresh",
                         7L,
                         username,
                         role,
                         "sess-1",
-                        TokenExpiration.REFRESH_TOKEN_EXPIRED_MS))
+                        TokenExpiration.REFRESH_TOKEN_EXPIRED_MS
+                ))
                 .thenReturn(newRefresh);
 
         // when
@@ -233,13 +245,21 @@ class RefreshServiceTest {
                 .delete("refresh:user:" + username);
 
         verify(userTokenCacheRepository)
-                .save("refresh:user:" + username, newRefresh, TokenExpiration.REFRESH_TOKEN_EXPIRED_MS);
+                .save(
+                "refresh:user:" + username,
+                newRefresh,
+                TokenExpiration.REFRESH_TOKEN_EXPIRED_MS
+        );
 
         verify(userTokenCacheRepository)
-                .save("refresh:refreshToken:" + newRefresh, username, TokenExpiration.REFRESH_TOKEN_EXPIRED_MS);
+                .save(
+                "refresh:refreshToken:" + newRefresh,
+                username,
+                TokenExpiration.REFRESH_TOKEN_EXPIRED_MS
+        );
 
-        // 인증 캐시는 로그인에서만 저장되어 access 토큰보다 먼저 사라진다.
-        // 재발급이 같은 세션으로 다시 채워야 새 access 토큰이 실제로 쓸모가 있다.
+        // access 토큰보다 먼저 만료되는 로그인 인증 캐시
+        // 새 access 토큰 유효성을 위한 동일 세션 인증 캐시 복원
         ArgumentCaptor<UserAuthCache> cacheCaptor =
                 ArgumentCaptor.forClass(UserAuthCache.class);
 

@@ -6,5 +6,5 @@ import com.planb.domain.user.entity.User;
 
 public record DeleteChatUserRequest (ChatRoomMember chatRoomMember,
                                     ChatRoom chatRoom,
-                                    User user){
+                                    User user) {
 }

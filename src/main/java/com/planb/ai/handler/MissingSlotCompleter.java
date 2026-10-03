@@ -38,7 +38,7 @@ public class MissingSlotCompleter {
 
     private static final int FILLED_STAY_MINUTES = 60;
 
-    // 채워 넣은 관광지 앞뒤로 남기는 최소 간격. 실제 값은 이후 정규화가 다시 잡는다.
+    // 관광지 보충용 최소 간격, 실제 시간은 이후 정규화에서 확정
     private static final int FILLED_GAP_MINUTES = 20;
 
     private static final LocalTime DEFAULT_DAY_START = LocalTime.of(9, 0);
@@ -47,12 +47,6 @@ public class MissingSlotCompleter {
 
     /**
      * 이번 호출의 후보를 이용한 누락 슬롯 보충
-     * @param response 채울 일정
-     * @param healthContexts 관광지 개수와 식사시각의 기준
-     * @param candidates 이번 호출에서 검색한 후보
-     * @param usedNames 다른 날짜에서 이미 사용한 장소명, 불변 집합 허용
-     * @param usedMenus 다른 날짜에서 이미 사용한 메뉴명, 불변 집합 허용
-     * @return 채워 넣은 일정
      */
     public CreatePlanAiResponse complete(
             CreatePlanAiResponse response,
@@ -115,15 +109,15 @@ public class MissingSlotCompleter {
         Map<PlanScheduleDetail, PlanScheduleDetail> previousPlaces =
                 previousPlaces(response);
 
-        // 여행 전체에서 이미 쓴 장소는 다시 고르지 않는다.
-        // 호출부가 알려준 응답 밖의 장소와 응답 안의 장소를 합쳐서 본다.
+        // 여행 전체의 장소 중복 선택 방지
+        // 응답 안팎에서 사용한 장소명 통합
         Set<String> selectedNames = merged(
                 usedNames(response),
                 usedNames
         );
 
         // 메뉴도 같은 이유로 본다. 식당 이름이 달라도 대표메뉴가 겹치면
-        // 여행자는 같은 음식을 두 끼 먹게 된다.
+        // 중복 메뉴로 인한 동일 음식 재추천 방지
         Set<String> selectedMenus = merged(
                 usedMenus(response),
                 usedMenus
@@ -386,7 +380,7 @@ public class MissingSlotCompleter {
                             candidate,
                             startTime,
                             null,
-                            // AI가 만들지 않은 슬롯이라 태그도 Java가 정한다.
+                            // Java가 보충한 슬롯의 태그 결정
                             AttractionTagPolicy.tagsOf(candidate.categoryCode())
                     )
             );
@@ -456,8 +450,8 @@ public class MissingSlotCompleter {
 
             if (mealSlot == null) {
 
-                // 여기서 포기하면 바로 뒤 검증이 사용자에게 실패를 던진다.
-                // 이유를 남기지 않으면 왜 못 채웠는지 로그로 되짚을 수 없다.
+                // 후보 보충 포기 시 후속 검증 실패
+                // 후보 보충 실패 사유의 로그 보존
                 log.info(
                         "[SLOT FILL] 식사 슬롯 보정 실패 - scheduleType: {}, 검색 음식점 후보 수: {}",
                         mealType,
@@ -512,7 +506,7 @@ public class MissingSlotCompleter {
                 continue;
             }
 
-            // 식사 태그는 메뉴와 영양 정보로 결정되므로 이후 단계가 계산한다.
+            // 메뉴·영양 정보 확정 후 식사 태그 계산
             return placeSlot(
                     mealType,
                     CourseType.RESTAURANT,
@@ -524,10 +518,18 @@ public class MissingSlotCompleter {
                             null,
                             null,
                             null,
-                            selection.candidate().address(),
-                            selection.candidate().longitude(),
-                            selection.candidate().latitude(),
-                            selection.candidate().imageUrl()
+                            selection
+                                    .candidate()
+                                    .address(),
+                            selection
+                                    .candidate()
+                                    .longitude(),
+                            selection
+                                    .candidate()
+                                    .latitude(),
+                            selection
+                                    .candidate()
+                                    .imageUrl()
                     ),
                     Set.of()
             );
@@ -575,9 +577,18 @@ public class MissingSlotCompleter {
 
         if (intro == null
                 || intro.response() == null
-                || intro.response().body() == null
-                || intro.response().body().items() == null
-                || intro.response().body().items().item() == null) {
+                || intro
+                        .response()
+                        .body() == null
+                || intro
+                        .response()
+                        .body()
+                        .items() == null
+                || intro
+                        .response()
+                        .body()
+                        .items()
+                        .item() == null) {
             return null;
         }
 
@@ -623,11 +634,15 @@ public class MissingSlotCompleter {
 
         return unused
                 .stream()
-                .min(Comparator.comparingDouble(candidate -> squaredDistance(candidate, originX, originY)))
+                .min(Comparator.comparingDouble(candidate -> squaredDistance(
+                                candidate,
+                                originX,
+                                originY
+                        )))
                 .orElse(null);
     }
 
-    // 가까운 순서만 필요하므로 제곱거리로 비교한다. 실제 거리로 바꿔도 순서는 같다.
+    // 거리 순서 비교를 위한 제곱거리 사용
     private double squaredDistance(
             PlaceCandidateContext.Candidate candidate,
             double originX,
@@ -665,7 +680,7 @@ public class MissingSlotCompleter {
                 candidate.imageUrl(),
                 candidate.thumbnailUrl(),
                 FILLED_STAY_MINUTES,
-                // 이동시간은 확정 좌표로 뒤에서 조회한다.
+                // 확정 좌표 기반 이동시간 후속 조회
                 null,
                 tags,
                 null,
@@ -697,14 +712,19 @@ public class MissingSlotCompleter {
         for (int index = 0; index < ordered.size() - 1; index++) {
             LocalTime previousEnd = endOf(ordered.get(index));
 
-            LocalTime nextStart = ordered.get(index + 1).startTime();
+            LocalTime nextStart = ordered
+                    .get(index + 1)
+                    .startTime();
 
-            if (Duration.between(previousEnd, nextStart).toMinutes() >= neededMinutes) {
+            if (Duration
+                    .between(previousEnd, nextStart)
+                    .toMinutes() >= neededMinutes) {
                 return previousEnd.plusMinutes(FILLED_GAP_MINUTES);
             }
         }
 
-        return endOf(ordered.getLast()).plusMinutes(FILLED_GAP_MINUTES);
+        return endOf(ordered.getLast())
+                .plusMinutes(FILLED_GAP_MINUTES);
     }
 
     private LocalTime endOf(CreatePlanAiResponse.PlanScheduleDetail schedule) {
@@ -728,7 +748,7 @@ public class MissingSlotCompleter {
                 .orElse(null);
     }
 
-    // 장소명 비교 기준. 호출부(PlanPlaceResolver)가 strip한 이름을 넣으므로 여기서도 맞춘다.
+    // PlanPlaceResolver와 동일한 장소명 strip 비교 기준
     private static String normalized(String name) {
 
         if (name == null) {
@@ -749,7 +769,8 @@ public class MissingSlotCompleter {
                 continue;
             }
 
-            day.schedules()
+            day
+                    .schedules()
                     .stream()
                     .filter(Objects::nonNull)
                     .map(CreatePlanAiResponse.PlanScheduleDetail::restaurantDetail)
@@ -772,7 +793,8 @@ public class MissingSlotCompleter {
                 continue;
             }
 
-            day.schedules()
+            day
+                    .schedules()
                     .stream()
                     .filter(Objects::nonNull)
                     .map(CreatePlanAiResponse.PlanScheduleDetail::locationName)

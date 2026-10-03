@@ -29,7 +29,7 @@ public class ChatRoom extends BaseEntity {
     @Column(nullable = false, length = 1)
     private boolean deleted;
 
-    public void delete(){
+    public void delete() {
         this.deleted = true;
         markDeleted();
     }

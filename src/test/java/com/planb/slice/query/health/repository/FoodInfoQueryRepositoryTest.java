@@ -177,7 +177,8 @@ class FoodInfoQueryRepositoryTest
             String travelerName
     ) {
 
-        Health health = Health.builder()
+        Health health = Health
+                .builder()
                 .travelerName(travelerName)
                 .sensitiveAgree(true)
                 .hasMedication(false)
@@ -208,7 +209,8 @@ class FoodInfoQueryRepositoryTest
             FoodType foodType
     ) {
 
-        FoodInfo foodInfo = FoodInfo.builder()
+        FoodInfo foodInfo = FoodInfo
+                .builder()
                 .health(health)
                 .foodName(foodName)
                 .foodType(foodType)
