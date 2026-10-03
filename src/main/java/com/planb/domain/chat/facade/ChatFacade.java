@@ -51,7 +51,7 @@ public class ChatFacade {
      */
     @Transactional
     public CreateChatRoomResponse createChatRoom
-    (CreateChatRoomRequest request){
+    (CreateChatRoomRequest request) {
 
         return chatRoomService.createChatRoom(request);
     }
@@ -61,7 +61,7 @@ public class ChatFacade {
      */
     @Transactional
     public CreateChatRoomResponse findOrCreateTravelChatRoom
-    (Long travelId, String username){
+    (Long travelId, String username) {
 
         User user = userQueryService.findByUsername(username); // 사용자 조회
 
@@ -88,7 +88,7 @@ public class ChatFacade {
     /**
      * 채팅방에 연결된 여행 ID를 조회
      */
-    public Long getTravelIdByRoomId(Long roomId){
+    public Long getTravelIdByRoomId(Long roomId) {
 
         return chatRoomQueryService.getTravelIdByRoomId(roomId); // 연결된 여행 ID 조회
     }
@@ -96,7 +96,7 @@ public class ChatFacade {
     /**
      * 채팅방에 연결된 여행 ID를 조회
      */
-    public Optional<Long> findTravelIdByRoomId(Long roomId){
+    public Optional<Long> findTravelIdByRoomId(Long roomId) {
 
         return chatRoomQueryService.findTravelIdByRoomId(roomId); // 연결된 여행 ID 조회
     }
@@ -125,7 +125,7 @@ public class ChatFacade {
      */
     @Transactional
     public void publishTalkReply(Long roomId,
-                                 EditPlanPreviewResponse preview){
+                                 EditPlanPreviewResponse preview) {
 
         chatMessageService.publishTalkReply(roomId, preview); // 대화 응답 발행
     }
@@ -134,7 +134,7 @@ public class ChatFacade {
      * 여행 채팅방의 첫 AI 안내 메시지를 발행
      */
     @Transactional
-    public void publishAiGreetingIfNeeded(Long roomId, String username){
+    public void publishAiGreetingIfNeeded(Long roomId, String username) {
 
         chatMessageService.publishAiGreetingIfNeeded(roomId, username); // 첫 AI 안내 발행
     }
@@ -143,7 +143,7 @@ public class ChatFacade {
      * 일정 수정 확정 응답을 발행
      */
     @Transactional
-    public void publishConfirmReply(Long roomId){
+    public void publishConfirmReply(Long roomId) {
 
         chatMessageService.publishConfirmReply(roomId); // 확정 응답 발행
     }
@@ -164,7 +164,7 @@ public class ChatFacade {
      * 일정 수정 취소 응답을 발행
      */
     @Transactional
-    public void publishCancelReply(Long roomId){
+    public void publishCancelReply(Long roomId) {
 
         chatMessageService.publishCancelReply(roomId); // 취소 응답 발행
     }

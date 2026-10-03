@@ -38,8 +38,8 @@ public class ChatController {
 
         } catch (Exception e) {
 
-            // STOMP는 요청에 대응하는 응답 자리가 없어 예외가 클라이언트에 닿지 않는다.
-            // 알리지 않으면 사용자에게는 침묵으로만 보인다. 사유는 로그에만 남긴다.
+            // STOMP 요청의 직접 응답 부재에 따른 예외 전달 불가
+            // 사용자 침묵 방지를 위한 오류 안내, 상세 사유는 로그에만 기록
             log.error(
                     "채팅 메시지 처리 실패 - roomId: {}, username: {}",
                     roomId,

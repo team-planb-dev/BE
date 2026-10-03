@@ -350,10 +350,16 @@ public class ChatAiEditPlanIntegrationTest
             assertThat(response.editPreview())
                     .isNotNull();
 
-            assertThat(response.editPreview().after().processable())
+            assertThat(response
+                            .editPreview()
+                            .after()
+                            .processable())
                     .isTrue();
 
-            assertThat(response.editPreview().after().changes())
+            assertThat(response
+                            .editPreview()
+                            .after()
+                            .changes())
                     .contains("1일차 카페를 " + EDITED_CAFE_NAME + "으로 변경");
 
         } finally {
@@ -384,8 +390,8 @@ public class ChatAiEditPlanIntegrationTest
                         travelId
                 );
 
-        // 저장된 일정은 09:00 시작이라 아침 08:00이 하루 시간대 밖이다.
-        // 편집이 하루를 07:30으로 앞당기면 08:00이 안으로 들어와 아침이 요구된다.
+        // 09:00 시작 일정에서 아침 08:00은 시간대 밖
+        // 07:30 시작으로 변경 시 아침 08:00의 필수 슬롯 편입
         stubEditPlanStartingEarlier();
 
         WebSocketStompClient stompClient =
@@ -432,7 +438,7 @@ public class ChatAiEditPlanIntegrationTest
                             message -> AI_BOT_NICKNAME.equals(message.senderNickname())
                     );
 
-            // then - 편집 전에도 없던 아침이라 편집을 거부할 이유가 없다
+            // then - 편집 전부터 없던 아침에 대한 거부 면제
             assertThat(botReply)
                     .isNotNull();
 
@@ -442,7 +448,10 @@ public class ChatAiEditPlanIntegrationTest
             assertThat(botReply.editPreview())
                     .isNotNull();
 
-            assertThat(botReply.editPreview().after().processable())
+            assertThat(botReply
+                            .editPreview()
+                            .after()
+                            .processable())
                     .isTrue();
 
         } finally {
@@ -473,7 +482,7 @@ public class ChatAiEditPlanIntegrationTest
                         travelId
                 );
 
-        // 운영에서 유력한 실패다. 구조화 응답 검증이 2회 모두 실패하면 이 예외가 난다.
+        // 구조화 응답 검증 2회 실패 시 운영 예외
         when(travelRecommendHandler.editPlanByAi(
                 any(PlanEditContext.class),
                 any(PlaceCandidateContext.class)
@@ -521,7 +530,7 @@ public class ChatAiEditPlanIntegrationTest
                     )
             );
 
-            // then - 예외가 전송 계층에서 사라지면 사용자는 침묵만 본다
+            // then - 전송 계층의 예외 유실에 따른 사용자 침묵 방지
             SendChatMessageResponse botReply =
                     stompHelper.awaitMessage(
                             messages,
@@ -548,14 +557,14 @@ public class ChatAiEditPlanIntegrationTest
         TestUser testUser =
                 createAuthenticatedUser();
 
-        // 여행 기준 방이 아니라 일반 채팅방이다. travel이 붙지 않는다.
+        // travel 연결이 없는 일반 채팅방
         Long roomId =
                 createChatRoom(
                         testUser.accessToken(),
                         "여행 없는 방-" + createUniqueValue()
                 );
 
-        // 여행 기준 방과 달리 멤버가 자동 등록되지 않는다.
+        // 일반 채팅방의 멤버 자동 등록 제외
         addChatRoomMember(
                 testUser.accessToken(),
                 roomId,
@@ -600,7 +609,7 @@ public class ChatAiEditPlanIntegrationTest
                     )
             );
 
-            // then - 사용자 메시지는 그대로 돌아온다
+            // then - 사용자 메시지 원본 반환
             SendChatMessageResponse echo =
                     stompHelper.awaitMessage(
                             messages,
@@ -611,7 +620,7 @@ public class ChatAiEditPlanIntegrationTest
             assertThat(echo)
                     .isNotNull();
 
-            // AI는 아무 응답도, 아무 안내도 하지 않는다
+            // AI 응답·안내 모두 없음
             SendChatMessageResponse botReply =
                     stompHelper.awaitMessage(
                             messages,
@@ -814,7 +823,8 @@ public class ChatAiEditPlanIntegrationTest
             assertThat(response.message())
                     .isEqualTo("일정을 저장했어요!");
 
-            mockMvc.perform(
+            mockMvc
+                    .perform(
                             get(GET_AI_PLAN_URL)
                                     .param(
                                             "travelId",
@@ -825,7 +835,8 @@ public class ChatAiEditPlanIntegrationTest
                                             testUser.accessToken()
                                     )
                     )
-                    .andExpect(status().isOk())
+                    .andExpect(status()
+                            .isOk())
                     .andExpect(
                             jsonPath("$.data.planDays[0].schedules[?(@.courseType == 'CAFE_REST')].locationName")
                                     .value(hasItem(EDITED_CAFE_NAME))
@@ -937,7 +948,8 @@ public class ChatAiEditPlanIntegrationTest
             assertThat(response.message())
                     .isEqualTo("기존 일정을 유지했어요!");
 
-            mockMvc.perform(
+            mockMvc
+                    .perform(
                             get(GET_AI_PLAN_URL)
                                     .param(
                                             "travelId",
@@ -948,7 +960,8 @@ public class ChatAiEditPlanIntegrationTest
                                             testUser.accessToken()
                                     )
                     )
-                    .andExpect(status().isOk())
+                    .andExpect(status()
+                            .isOk())
                     .andExpect(
                             jsonPath("$.data.planDays[0].schedules[?(@.courseType == 'CAFE_REST')].locationName")
                                     .value(hasItem(ORIGINAL_CAFE_NAME))
@@ -967,14 +980,16 @@ public class ChatAiEditPlanIntegrationTest
     ) throws Exception {
 
         MvcResult result =
-                mockMvc.perform(
+                mockMvc
+                        .perform(
                                 get(FIND_OR_CREATE_TRAVEL_CHAT_ROOM_URL + travelId)
                                         .header(
                                                 "Authorization",
                                                 accessToken
                                         )
                         )
-                        .andExpect(status().isOk())
+                        .andExpect(status()
+                                .isOk())
                         .andExpect(
                                 jsonPath("$.success")
                                         .value(true)
@@ -983,7 +998,8 @@ public class ChatAiEditPlanIntegrationTest
 
         Number roomId =
                 JsonPath.read(
-                        result.getResponse()
+                        result
+                                .getResponse()
                                 .getContentAsString(),
                         "$.data.chatRoomId"
                 );
@@ -1023,7 +1039,8 @@ public class ChatAiEditPlanIntegrationTest
                         List.of()
                 );
 
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post("/api/v1/health/add-traveler")
                                 .header(
                                         "Authorization",
@@ -1038,22 +1055,26 @@ public class ChatAiEditPlanIntegrationTest
                                         )
                                 )
                 )
-                .andExpect(status().isOk());
+                .andExpect(status()
+                        .isOk());
 
         MvcResult result =
-                mockMvc.perform(
+                mockMvc
+                        .perform(
                                 get("/api/v1/health/get-companion-summary")
                                         .header(
                                                 "Authorization",
                                                 accessToken
                                         )
                         )
-                        .andExpect(status().isOk())
+                        .andExpect(status()
+                                .isOk())
                         .andReturn();
 
         List<Map<String, Object>> companions =
                 JsonPath.read(
-                        result.getResponse()
+                        result
+                                .getResponse()
                                 .getContentAsString(),
                         "$.data.companionList[?(@.travelerName == '" + travelerName + "')]"
                 );
@@ -1076,7 +1097,9 @@ public class ChatAiEditPlanIntegrationTest
                         travelName,
                         "부산",
                         "해운대구",
-                        LocalDate.now().plusDays(7),
+                        LocalDate
+                                .now()
+                                .plusDays(7),
                         DateType.DAY_TRIP,
                         Transportation.TRANSIT,
                         "해운대",
@@ -1099,7 +1122,8 @@ public class ChatAiEditPlanIntegrationTest
                         List.of(healthId)
                 );
 
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(ADD_WITH_RECOMMEND_URL)
                                 .header(
                                         "Authorization",
@@ -1114,7 +1138,8 @@ public class ChatAiEditPlanIntegrationTest
                                         )
                                 )
                 )
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(
                         jsonPath("$.success")
                                 .value(true)
@@ -1124,7 +1149,9 @@ public class ChatAiEditPlanIntegrationTest
                 travelRepository
                         .findAll()
                         .stream()
-                        .filter(t -> t.getTravelName().equals(travelName))
+                        .filter(t -> t
+                                .getTravelName()
+                                .equals(travelName))
                         .findFirst()
                         .orElseThrow();
 
@@ -1219,8 +1246,8 @@ public class ChatAiEditPlanIntegrationTest
                 "음식점 > 카페"
         ));
 
-        // 등록 식사시각이 하루 시간대 안에 있으면 식사 슬롯이 반드시 있어야 한다.
-        // 채워 넣을 후보가 없으면 일정 저장 자체가 거부되므로 음식점 후보도 함께 둔다.
+        // 하루 시간대 안의 등록 식사시각에 필요한 식사 슬롯
+        // 일정 저장 거부 방지를 위한 음식점 보충 후보
         candidates.record(new PlaceWithRouteResult(
                 true,
                 RESTAURANT_NAME,
@@ -1234,8 +1261,8 @@ public class ChatAiEditPlanIntegrationTest
         ));
     }
 
-    // 등록 점심시각(12:00)에 맞춘 식사 슬롯.
-    // 하루 시간대가 09:00~14:00이라 점심만 요구 대상이 된다.
+    // 등록 점심시각(12:00)에 맞춘 식사 슬롯
+    // 09:00~14:00 시간대의 점심만 필수 대상
     private CreatePlanAiResponse.PlanScheduleDetail lunchSlot() {
 
         return new CreatePlanAiResponse.PlanScheduleDetail(
@@ -1253,7 +1280,7 @@ public class ChatAiEditPlanIntegrationTest
                 10,
                 Set.of(RecommendationTag.MEAL_TIME_APPLIED),
                 null,
-                // 식사 슬롯은 메뉴명이 있어야 검증을 통과한다.
+                // 검증에 필요한 식사 슬롯 메뉴명
                 new CreatePlanAiResponse.RestaurantDetail(
                         "돼지국밥",
                         null,
@@ -1270,7 +1297,7 @@ public class ChatAiEditPlanIntegrationTest
     }
 
     // 초기 일정 AI 응답 고정값 (관광지 2곳·카페 1곳, 경로 조회 결과는 Kakao Handler Mock으로 고정)
-    // 관광지 수는 TravelRecommendHandler의 기대 개수(걷기 수준 MINIMAL이면 2곳)를 만족해야 한다.
+    // TravelRecommendHandler의 MINIMAL 관광지 기대 개수 2곳
     private CreatePlanAiResponse baseCreatePlanAiResponse() {
 
         CreatePlanAiResponse.PlanScheduleDetail attraction =
@@ -1336,8 +1363,15 @@ public class ChatAiEditPlanIntegrationTest
         CreatePlanAiResponse.PlanDayDetail day1 =
                 new CreatePlanAiResponse.PlanDayDetail(
                         1,
-                        LocalDate.now().plusDays(7),
-                        List.of(attraction, secondAttraction, lunchSlot(), cafe)
+                        LocalDate
+                                .now()
+                                .plusDays(7),
+                        List.of(
+                                attraction,
+                                secondAttraction,
+                                lunchSlot(),
+                                cafe
+                        )
                 );
 
         return new CreatePlanAiResponse(
@@ -1346,7 +1380,7 @@ public class ChatAiEditPlanIntegrationTest
     }
 
     // 수정 요청 AI 응답 고정값 생성 (processable=true면 카페 이름만 변경)
-    // 하루 시작을 07:30으로 앞당기고 아침 슬롯은 넣지 않는다.
+    // 하루 시작 07:30과 아침 슬롯 누락
     private void stubEditPlanStartingEarlier() {
 
         when(travelRecommendHandler.editPlanByAi(
@@ -1428,7 +1462,9 @@ public class ChatAiEditPlanIntegrationTest
                             List.of(
                                     new CreatePlanAiResponse.PlanDayDetail(
                                             1,
-                                            LocalDate.now().plusDays(7),
+                                            LocalDate
+                                                    .now()
+                                                    .plusDays(7),
                                             List.of(
                                                     earlyAttraction,
                                                     secondAttraction,
@@ -1521,8 +1557,15 @@ public class ChatAiEditPlanIntegrationTest
         CreatePlanAiResponse.PlanDayDetail editedDay1 =
                 new CreatePlanAiResponse.PlanDayDetail(
                         1,
-                        LocalDate.now().plusDays(7),
-                        List.of(attraction, secondAttraction, lunchSlot(), editedCafe)
+                        LocalDate
+                                .now()
+                                .plusDays(7),
+                        List.of(
+                                attraction,
+                                secondAttraction,
+                                lunchSlot(),
+                                editedCafe
+                        )
                 );
 
         return new EditPlanAiResponse(

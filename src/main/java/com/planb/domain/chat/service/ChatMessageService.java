@@ -38,7 +38,9 @@ public class ChatMessageService {
         }
 
         if (request.type() == MessageType.TALK
-                && (request.message() == null || request.message().isBlank())) {
+                && (request.message() == null || request
+                        .message()
+                        .isBlank())) {
             throw new IllegalArgumentException("TALK 메시지 내용은 필수입니다.");
         }
     }
@@ -118,7 +120,12 @@ public class ChatMessageService {
 
         String message = resolveConfirmMessage();
 
-        publishAiReply(roomId, message, null, MessageType.CONFIRM);
+        publishAiReply(
+                roomId,
+                message,
+                null,
+                MessageType.CONFIRM
+        );
     }
 
     @Transactional
@@ -126,7 +133,12 @@ public class ChatMessageService {
 
         String message = resolveCancelMessage();
 
-        publishAiReply(roomId, message, null, MessageType.CANCEL);
+        publishAiReply(
+                roomId,
+                message,
+                null,
+                MessageType.CANCEL
+        );
     }
 
     @Transactional
@@ -134,7 +146,12 @@ public class ChatMessageService {
 
         String message = resolveEditFailedMessage(exception);
 
-        publishAiReply(roomId, message, null, MessageType.TALK);
+        publishAiReply(
+                roomId,
+                message,
+                null,
+                MessageType.TALK
+        );
     }
 
     @Transactional
@@ -143,7 +160,9 @@ public class ChatMessageService {
             String username
     ) {
 
-        if (chatRoomQueryService.findTravelIdByRoomId(roomId).isEmpty()) {
+        if (chatRoomQueryService
+                .findTravelIdByRoomId(roomId)
+                .isEmpty()) {
             return;
         }
 
@@ -160,7 +179,12 @@ public class ChatMessageService {
         );
 
         for (String message : greetingMessages) {
-            publishAiReply(roomId, message, null, MessageType.TALK);
+            publishAiReply(
+                    roomId,
+                    message,
+                    null,
+                    MessageType.TALK
+            );
         }
     }
 
@@ -188,7 +212,7 @@ public class ChatMessageService {
 
 
     // 채팅방에 채팅 게시하기
-    public void publishMessage(Long id, SendChatMessageResponse response){
+    public void publishMessage(Long id, SendChatMessageResponse response) {
 
         messagingTemplate
                 .convertAndSend(
@@ -196,10 +220,11 @@ public class ChatMessageService {
                         response);
     }
 
-    public ChatMessage createChatMessage
-            (ChatRoom chatRoom,
-             User sender,
-             String message){
+    public ChatMessage createChatMessage(
+            ChatRoom chatRoom,
+            User sender,
+            String message
+    ) {
 
         return ChatMessage
                 .builder()
@@ -210,10 +235,11 @@ public class ChatMessageService {
                 .build();
     }
 
-    public SendChatMessageResponse makeChatResponse
-            (Long roomId,
-             User sender,
-             ChatMessage chatMessage){
+    public SendChatMessageResponse makeChatResponse(
+            Long roomId,
+            User sender,
+            ChatMessage chatMessage
+    ) {
 
         return new SendChatMessageResponse(
                 MessageType.TALK,
@@ -226,12 +252,13 @@ public class ChatMessageService {
         );
     }
 
-    public SendChatMessageResponse makeAiChatResponse
-            (Long roomId,
-             User sender,
-             ChatMessage chatMessage,
-             EditPlanPreviewResponse editPreview,
-             MessageType type){
+    public SendChatMessageResponse makeAiChatResponse(
+            Long roomId,
+            User sender,
+            ChatMessage chatMessage,
+            EditPlanPreviewResponse editPreview,
+            MessageType type
+    ) {
 
         return new SendChatMessageResponse(
                 type,
@@ -245,14 +272,14 @@ public class ChatMessageService {
     }
 
     // DB에 채팅 내역 저장
-    public void saveMessage(ChatMessage chatMessage){
+    public void saveMessage(ChatMessage chatMessage) {
 
         chatMessageRepository.save(chatMessage);
     }
 
-    public String createSystemMessage(MessageType messageType, String userNickname){
+    public String createSystemMessage(MessageType messageType, String userNickname) {
 
-        return switch (messageType){
+        return switch (messageType) {
             case ENTER -> userNickname + "님이 입장했습니다.";
             case LEAVE -> userNickname + "님이 퇴장했습니다.";
             default -> throw new IllegalArgumentException(
@@ -262,12 +289,14 @@ public class ChatMessageService {
     }
 
     // 편집 미리보기 결과 기준 AI 응답 컨텐츠 결정
-    public AiReplyContent resolveAiReplyContent(EditPlanPreviewResponse preview){
+    public AiReplyContent resolveAiReplyContent(EditPlanPreviewResponse preview) {
 
         String message =
                 chatAiReplyMessageHelper.makeReplyMessage(preview);
 
-        if (!preview.after().processable()) {
+        if (!preview
+                .after()
+                .processable()) {
             return new AiReplyContent(message, null);
         }
 
@@ -275,7 +304,7 @@ public class ChatMessageService {
     }
 
     // 채팅방 내 메시지 존재 여부 확인
-    public boolean existsAnyMessage(Long roomId){
+    public boolean existsAnyMessage(Long roomId) {
 
         return chatMessageRepository
                 .existsByChatRoom_IdAndDeletedFalse(roomId);
@@ -288,19 +317,19 @@ public class ChatMessageService {
     }
 
     // 수정 확정(CONFIRM) 완료 메시지 조회
-    public String resolveConfirmMessage(){
+    public String resolveConfirmMessage() {
 
         return chatAiReplyMessageHelper.makeConfirmMessage();
     }
 
     // 수정 취소(CANCEL) 완료 메시지 조회
-    public String resolveCancelMessage(){
+    public String resolveCancelMessage() {
 
         return chatAiReplyMessageHelper.makeCancelMessage();
     }
 
     // 채팅방 입장 AI 인사 메시지 목록 조회
-    public List<String> resolveGreetingMessages(String userNickname, String aiNickname){
+    public List<String> resolveGreetingMessages(String userNickname, String aiNickname) {
 
         return chatAiReplyMessageHelper
                 .makeGreetingMessages(userNickname, aiNickname);

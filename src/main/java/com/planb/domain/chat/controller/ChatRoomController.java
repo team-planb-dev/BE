@@ -40,7 +40,7 @@ public class ChatRoomController {
     @PostMapping("/create")
     public ResponseEntity<ApiResult<CreateChatRoomResponse>> createChatRoom
     (@AuthenticationPrincipal UserDetails userDetails,
-     @RequestBody CreateChatRoomRequest request){
+     @RequestBody CreateChatRoomRequest request) {
 
         return ResponseEntity
                 .status(HttpStatus
@@ -66,7 +66,7 @@ public class ChatRoomController {
     public ResponseEntity<ApiResult<CreateChatRoomResponse>> findOrCreateTravelChatRoom
     (@AuthenticationPrincipal UserDetails userDetails,
      @Parameter(description = "채팅방을 조회하거나 생성할 여행 ID", example = "1")
-     @PathVariable Long travelId){
+     @PathVariable Long travelId) {
 
         return ResponseEntity
                 .status(HttpStatus
@@ -88,7 +88,7 @@ public class ChatRoomController {
     @DeleteMapping("/delete")
     public ResponseEntity<ApiResult<DeleteChatRoomResponse>> deleteChatRoom
     (@AuthenticationPrincipal UserDetails userDetails,
-     @RequestBody DeleteChatRoomRequest request){
+     @RequestBody DeleteChatRoomRequest request) {
 
         return ResponseEntity
                 .status(HttpStatus

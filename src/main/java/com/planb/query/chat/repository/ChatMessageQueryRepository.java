@@ -18,7 +18,7 @@ public class ChatMessageQueryRepository {
 
 
     // 삭제된 chatRoom에 연결된 모든 메시지 삭제(soft)
-    public Long softDeleteAllMessageInChatRoom(Long RoomId){
+    public Long softDeleteAllMessageInChatRoom(Long RoomId) {
 
          Long updatedCount = jpaQueryFactory
                  .update(chatMessage)

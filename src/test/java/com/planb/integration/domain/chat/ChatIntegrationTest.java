@@ -115,7 +115,8 @@ public class ChatIntegrationTest extends IntegrationTest {
                 new CreateChatRoomRequest(chatRoomName);
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(CREATE_CHAT_ROOM_URL)
                                 .header(
                                         "Authorization",
@@ -128,19 +129,24 @@ public class ChatIntegrationTest extends IntegrationTest {
                                         )
                                 )
                 )
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.chatRoomId").isNumber())
+                .andExpect(status()
+                        .isCreated())
+                .andExpect(jsonPath("$.success")
+                        .value(true))
+                .andExpect(jsonPath("$.data.chatRoomId")
+                        .isNumber())
                 .andExpect(
                         jsonPath("$.data.chatRoomName")
                                 .value(chatRoomName)
                 )
-                .andExpect(jsonPath("$.data.createdAt").exists())
+                .andExpect(jsonPath("$.data.createdAt")
+                        .exists())
                 .andExpect(
                         jsonPath("$.data.message")
                                 .value("채팅방이 생성되었습니다.")
                 )
-                .andExpect(jsonPath("$.error").isEmpty());
+                .andExpect(jsonPath("$.error")
+                        .isEmpty());
     }
 
     @Test
@@ -154,7 +160,8 @@ public class ChatIntegrationTest extends IntegrationTest {
                 );
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(CREATE_CHAT_ROOM_URL)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(
@@ -163,7 +170,8 @@ public class ChatIntegrationTest extends IntegrationTest {
                                         )
                                 )
                 )
-                .andExpect(status().isForbidden());
+                .andExpect(status()
+                        .isForbidden());
     }
 
     @Test
@@ -185,7 +193,8 @@ public class ChatIntegrationTest extends IntegrationTest {
                 );
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(ADD_CHAT_MEMBER_URL)
                                 .header(
                                         "Authorization",
@@ -198,8 +207,10 @@ public class ChatIntegrationTest extends IntegrationTest {
                                         )
                                 )
                 )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(true))
                 .andExpect(
                         jsonPath("$.data.username")
                                 .value(testUser.username())
@@ -215,7 +226,8 @@ public class ChatIntegrationTest extends IntegrationTest {
                                                 + "님이 채팅방에 입장하셨습니다."
                                 )
                 )
-                .andExpect(jsonPath("$.error").isEmpty());
+                .andExpect(jsonPath("$.error")
+                        .isEmpty());
     }
 
     @Test
@@ -243,7 +255,8 @@ public class ChatIntegrationTest extends IntegrationTest {
                 );
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(ADD_CHAT_MEMBER_URL)
                                 .header(
                                         "Authorization",
@@ -260,9 +273,12 @@ public class ChatIntegrationTest extends IntegrationTest {
                  * 현재 ApiExceptionHandler의 BaseException 처리 메소드에
                  * @ResponseStatus가 없어서 HTTP 상태 200으로 반환
                  */
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.data").isEmpty())
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(false))
+                .andExpect(jsonPath("$.data")
+                        .isEmpty())
                 .andExpect(
                         jsonPath("$.error.errorCode")
                                 .value(
@@ -302,7 +318,8 @@ public class ChatIntegrationTest extends IntegrationTest {
                 );
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         delete(DELETE_CHAT_MEMBER_URL)
                                 .header(
                                         "Authorization",
@@ -315,8 +332,10 @@ public class ChatIntegrationTest extends IntegrationTest {
                                         )
                                 )
                 )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(true))
                 .andExpect(
                         jsonPath("$.data.chatRoomId")
                                 .value(roomId)
@@ -332,7 +351,8 @@ public class ChatIntegrationTest extends IntegrationTest {
                                                 + "님이 퇴장하셨습니다."
                                 )
                 )
-                .andExpect(jsonPath("$.error").isEmpty());
+                .andExpect(jsonPath("$.error")
+                        .isEmpty());
     }
 
     @Test
@@ -360,7 +380,8 @@ public class ChatIntegrationTest extends IntegrationTest {
                 new DeleteChatRoomRequest(roomId);
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         delete(DELETE_CHAT_ROOM_URL)
                                 .header(
                                         "Authorization",
@@ -373,8 +394,10 @@ public class ChatIntegrationTest extends IntegrationTest {
                                         )
                                 )
                 )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(true))
                 .andExpect(
                         jsonPath("$.data.chatRoomId")
                                 .value(roomId)
@@ -391,7 +414,8 @@ public class ChatIntegrationTest extends IntegrationTest {
                         jsonPath("$.data.message")
                                 .value("채팅방이 삭제되었습니다.")
                 )
-                .andExpect(jsonPath("$.error").isEmpty());
+                .andExpect(jsonPath("$.error")
+                        .isEmpty());
     }
 
     @Test
@@ -706,7 +730,8 @@ public class ChatIntegrationTest extends IntegrationTest {
                         true
                 );
 
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(CREATE_USER_URL)
                                 .contentType(
                                         MediaType.APPLICATION_JSON
@@ -717,8 +742,10 @@ public class ChatIntegrationTest extends IntegrationTest {
                                         )
                                 )
                 )
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(status()
+                        .isCreated())
+                .andExpect(jsonPath("$.success")
+                        .value(true))
                 .andExpect(
                         jsonPath("$.data.username")
                                 .value(username)
@@ -737,7 +764,8 @@ public class ChatIntegrationTest extends IntegrationTest {
                 );
 
         MvcResult result =
-                mockMvc.perform(
+                mockMvc
+                        .perform(
                                 post(LOGIN_URL)
                                         .contentType(
                                                 MediaType.APPLICATION_JSON
@@ -748,7 +776,8 @@ public class ChatIntegrationTest extends IntegrationTest {
                                                 )
                                         )
                         )
-                        .andExpect(status().isOk())
+                        .andExpect(status()
+                                .isOk())
                         .andExpect(
                                 jsonPath("$.success")
                                         .value(true)
@@ -758,24 +787,28 @@ public class ChatIntegrationTest extends IntegrationTest {
                                         .value(username)
                         )
                         .andExpect(
-                                header().string(
+                                header()
+                                        .string(
                                         "Authorization",
                                         startsWith("Bearer ")
                                 )
                         )
                         .andExpect(
-                                cookie().exists(
+                                cookie()
+                                        .exists(
                                         "refreshToken"
                                 )
                         )
                         .andReturn();
 
         String accessToken =
-                result.getResponse()
+                result
+                        .getResponse()
                         .getHeader("Authorization");
 
         Cookie refreshTokenCookie =
-                result.getResponse()
+                result
+                        .getResponse()
                         .getCookie("refreshToken");
 
         assertThat(accessToken)
@@ -796,14 +829,16 @@ public class ChatIntegrationTest extends IntegrationTest {
     ) throws Exception {
 
         MvcResult result =
-                mockMvc.perform(
+                mockMvc
+                        .perform(
                                 get(USER_ME_URL)
                                         .header(
                                                 "Authorization",
                                                 accessToken
                                         )
                         )
-                        .andExpect(status().isOk())
+                        .andExpect(status()
+                                .isOk())
                         .andExpect(
                                 jsonPath("$.success")
                                         .value(true)
@@ -816,7 +851,8 @@ public class ChatIntegrationTest extends IntegrationTest {
 
         Number userId =
                 JsonPath.read(
-                        result.getResponse()
+                        result
+                                .getResponse()
                                 .getContentAsString(),
                         "$.data.userId"
                 );
@@ -835,7 +871,8 @@ public class ChatIntegrationTest extends IntegrationTest {
                 );
 
         MvcResult result =
-                mockMvc.perform(
+                mockMvc
+                        .perform(
                                 post(CREATE_CHAT_ROOM_URL)
                                         .header(
                                                 "Authorization",
@@ -850,7 +887,8 @@ public class ChatIntegrationTest extends IntegrationTest {
                                                 )
                                         )
                         )
-                        .andExpect(status().isCreated())
+                        .andExpect(status()
+                                .isCreated())
                         .andExpect(
                                 jsonPath("$.success")
                                         .value(true)
@@ -863,7 +901,8 @@ public class ChatIntegrationTest extends IntegrationTest {
 
         Number roomId =
                 JsonPath.read(
-                        result.getResponse()
+                        result
+                                .getResponse()
                                 .getContentAsString(),
                         "$.data.chatRoomId"
                 );
@@ -883,7 +922,8 @@ public class ChatIntegrationTest extends IntegrationTest {
                         userId
                 );
 
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(ADD_CHAT_MEMBER_URL)
                                 .header(
                                         "Authorization",
@@ -898,8 +938,10 @@ public class ChatIntegrationTest extends IntegrationTest {
                                         )
                                 )
                 )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(true))
                 .andExpect(
                         jsonPath("$.data.chatRoomId")
                                 .value(roomId)
@@ -1041,7 +1083,8 @@ public class ChatIntegrationTest extends IntegrationTest {
 
     private String createUniqueValue() {
 
-        return UUID.randomUUID()
+        return UUID
+                .randomUUID()
                 .toString()
                 .substring(0, 8);
     }

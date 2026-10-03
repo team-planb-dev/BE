@@ -140,7 +140,8 @@ class ChatRoomQueryServiceTest {
     @DisplayName("여행과 연결되지 않은 채팅방의 여행 ID 조회 거부")
     void getTravelIdByRoomIdRejectsUnlinkedRoom() {
 
-        ChatRoom chatRoom = ChatRoom.builder()
+        ChatRoom chatRoom = ChatRoom
+                .builder()
                 .id(1L)
                 .build();
         when(chatRoomQueryRepository.findByRoomId(1L))
@@ -159,9 +160,13 @@ class ChatRoomQueryServiceTest {
     @DisplayName("여행 채팅방의 여행 ID 조회")
     void findTravelIdByRoomId() {
 
-        ChatRoom chatRoom = ChatRoom.builder()
+        ChatRoom chatRoom = ChatRoom
+                .builder()
                 .id(1L)
-                .travel(Travel.builder().id(10L).build())
+                .travel(Travel
+                        .builder()
+                        .id(10L)
+                        .build())
                 .build();
         when(chatRoomQueryRepository.findByRoomId(1L))
                 .thenReturn(Optional.of(chatRoom));

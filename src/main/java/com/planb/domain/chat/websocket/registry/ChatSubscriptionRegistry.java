@@ -13,10 +13,12 @@ public class ChatSubscriptionRegistry {
     private final ConcurrentHashMap<String, ConcurrentHashMap<String, ChatSubscriptionInfo>>
     subscriptionsBySession = new ConcurrentHashMap<>();
 
-    public boolean subscribe(String sessionId,
-                             String subscriptionId,
-                             Long roomId,
-                             String username){
+    public boolean subscribe(
+            String sessionId,
+            String subscriptionId,
+            Long roomId,
+            String username
+    ) {
 
         ConcurrentHashMap<String, ChatSubscriptionInfo> sessionSubscriptions =
                 subscriptionsBySession.computeIfAbsent(
@@ -33,19 +35,19 @@ public class ChatSubscriptionRegistry {
     }
 
     public ChatSubscriptionInfo unsubscribe(String sessionId,
-                                            String subscriptionId){
+                                            String subscriptionId) {
 
         ConcurrentHashMap<String, ChatSubscriptionInfo> sessionSubscriptions =
                 subscriptionsBySession.get(sessionId);
 
-        if (sessionSubscriptions == null){
+        if (sessionSubscriptions == null) {
             return null;
         }
 
         ChatSubscriptionInfo removed =
                 sessionSubscriptions.remove(subscriptionId);
 
-        if (sessionSubscriptions.isEmpty()){
+        if (sessionSubscriptions.isEmpty()) {
             subscriptionsBySession.remove(sessionId, sessionSubscriptions);
         }
 
@@ -53,12 +55,12 @@ public class ChatSubscriptionRegistry {
 
     }
 
-    public List<ChatSubscriptionInfo> disconnect(String sessionId){
+    public List<ChatSubscriptionInfo> disconnect(String sessionId) {
 
         Map<String, ChatSubscriptionInfo> removed =
                 subscriptionsBySession.remove(sessionId);
 
-        if (removed == null){
+        if (removed == null) {
             return List.of();
         }
 

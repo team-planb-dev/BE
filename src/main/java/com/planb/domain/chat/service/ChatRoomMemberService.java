@@ -26,7 +26,9 @@ public class ChatRoomMemberService {
             User authenticatedUser
     ) {
 
-        if (!authenticatedUser.getId().equals(requestedUserId)) {
+        if (!authenticatedUser
+                .getId()
+                .equals(requestedUserId)) {
             throw new ForbiddenException(
                     new Object[]{"다른 사용자의 채팅방 멤버십을 변경할 수 없습니다."}
             );
@@ -44,7 +46,10 @@ public class ChatRoomMemberService {
             return;
         }
 
-        if (!travel.getUser().getId().equals(authenticatedUser.getId())) {
+        if (!travel
+                .getUser()
+                .getId()
+                .equals(authenticatedUser.getId())) {
             throw new ForbiddenException(
                     new Object[]{"해당 여행 채팅방에 대한 접근 권한이 없습니다."}
             );
@@ -92,11 +97,15 @@ public class ChatRoomMemberService {
             User user
     ) {
 
-        return deleteChatUser(new DeleteChatUserRequest(chatRoomMember, chatRoom, user));
+        return deleteChatUser(new DeleteChatUserRequest(
+                        chatRoomMember,
+                        chatRoom,
+                        user
+                ));
     }
 
     // 채팅방 인원 추가
-    public AddChatUserResponse addChatUser(AddChatUserRequest request){
+    public AddChatUserResponse addChatUser(AddChatUserRequest request) {
 
         ChatRoomMember chatRoomMember = ChatRoomMember
                 .builder()
@@ -115,23 +124,32 @@ public class ChatRoomMemberService {
                 request
                         .chatRoom()
                         .getId(),
-                username+"님이 채팅방에 입장하셨습니다.");
+                username+"님이 채팅방에 입장하셨습니다."
+        );
 
     }
 
     // 채팅방 인원 삭제
     public DeleteChatUserResponse deleteChatUser
-    (DeleteChatUserRequest request){
+    (DeleteChatUserRequest request) {
 
         chatRoomMemberRepository
                 .delete(request.chatRoomMember());
 
-        return new DeleteChatUserResponse(request.chatRoom().getId(),
-                request.user().getUsername(),
-                request.user().getUsername() + "님이 퇴장하셨습니다.");
+        return new DeleteChatUserResponse(
+                request
+                        .chatRoom()
+                        .getId(),
+                request
+                        .user()
+                        .getUsername(),
+                request
+                        .user()
+                        .getUsername() + "님이 퇴장하셨습니다."
+        );
     }
 
-    private void saveChatRoomMember(ChatRoomMember chatRoomMember){
+    private void saveChatRoomMember(ChatRoomMember chatRoomMember) {
         chatRoomMemberRepository.save(chatRoomMember);
     }
 

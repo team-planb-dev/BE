@@ -37,7 +37,8 @@ public class ChatRestIntegrationTest
                 );
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(CREATE_CHAT_ROOM_URL)
                                 .header(
                                         "Authorization",
@@ -52,7 +53,8 @@ public class ChatRestIntegrationTest
                                         )
                                 )
                 )
-                .andExpect(status().isCreated())
+                .andExpect(status()
+                        .isCreated())
                 .andExpect(
                         jsonPath("$.success")
                                 .value(true)
@@ -92,7 +94,8 @@ public class ChatRestIntegrationTest
                 );
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(CREATE_CHAT_ROOM_URL)
                                 .contentType(
                                         MediaType.APPLICATION_JSON
@@ -103,7 +106,8 @@ public class ChatRestIntegrationTest
                                         )
                                 )
                 )
-                .andExpect(status().isForbidden());
+                .andExpect(status()
+                        .isForbidden());
     }
 
     @Test
@@ -128,7 +132,8 @@ public class ChatRestIntegrationTest
                 );
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(ADD_CHAT_MEMBER_URL)
                                 .header(
                                         "Authorization",
@@ -143,7 +148,8 @@ public class ChatRestIntegrationTest
                                         )
                                 )
                 )
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(
                         jsonPath("$.success")
                                 .value(true)
@@ -194,7 +200,8 @@ public class ChatRestIntegrationTest
                 );
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(ADD_CHAT_MEMBER_URL)
                                 .header(
                                         "Authorization",
@@ -209,7 +216,8 @@ public class ChatRestIntegrationTest
                                         )
                                 )
                 )
-                .andExpect(status().isForbidden())
+                .andExpect(status()
+                        .isForbidden())
                 .andExpect(
                         jsonPath("$.success")
                                 .value(false)
@@ -244,7 +252,8 @@ public class ChatRestIntegrationTest
                 );
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(ADD_CHAT_MEMBER_URL)
                                 .header(
                                         "Authorization",
@@ -263,7 +272,8 @@ public class ChatRestIntegrationTest
                  * 현재 ApiExceptionHandler의 BaseException 처리 메소드에
                  * @ResponseStatus가 없어서 HTTP 상태 200으로 반환
                  */
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(
                         jsonPath("$.success")
                                 .value(false)
@@ -314,7 +324,8 @@ public class ChatRestIntegrationTest
                 );
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         delete(DELETE_CHAT_MEMBER_URL)
                                 .header(
                                         "Authorization",
@@ -329,7 +340,8 @@ public class ChatRestIntegrationTest
                                         )
                                 )
                 )
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(
                         jsonPath("$.success")
                                 .value(true)
@@ -385,7 +397,8 @@ public class ChatRestIntegrationTest
                 );
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         delete(DELETE_CHAT_ROOM_URL)
                                 .header(
                                         "Authorization",
@@ -400,7 +413,8 @@ public class ChatRestIntegrationTest
                                         )
                                 )
                 )
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(
                         jsonPath("$.success")
                                 .value(true)
@@ -461,7 +475,8 @@ public class ChatRestIntegrationTest
                 new DeleteChatRoomRequest(roomId);
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         delete(DELETE_CHAT_ROOM_URL)
                                 .header(
                                         "Authorization",
@@ -476,7 +491,8 @@ public class ChatRestIntegrationTest
                                         )
                                 )
                 )
-                .andExpect(status().isForbidden())
+                .andExpect(status()
+                        .isForbidden())
                 .andExpect(
                         jsonPath("$.success")
                                 .value(false)

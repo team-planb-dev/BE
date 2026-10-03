@@ -73,7 +73,8 @@ class ChatRoomMemberControllerTest {
                 .thenReturn(response);
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post("/api/v1/chat/member/add")
                                 .contentType(MediaType
                                         .APPLICATION_JSON)
@@ -128,7 +129,8 @@ class ChatRoomMemberControllerTest {
 
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         delete("/api/v1/chat/member/delete")
                                 .contentType(MediaType
                                         .APPLICATION_JSON)
@@ -138,7 +140,8 @@ class ChatRoomMemberControllerTest {
                 .andExpect(status()
                         .isOk())
                 .andExpect(
-                        content().contentTypeCompatibleWith(
+                        content()
+                                .contentTypeCompatibleWith(
                                 MediaType.APPLICATION_JSON
                         )
                 );
