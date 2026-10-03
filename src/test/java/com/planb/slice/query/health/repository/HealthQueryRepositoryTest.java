@@ -174,14 +174,18 @@ class HealthQueryRepositoryTest
                 .hasSize(1);
 
         assertThat(
-                result.get(0).healthId()
+                result
+                        .get(0)
+                        .healthId()
         )
                 .isEqualTo(
                 user1Health.getId()
         );
 
         assertThat(
-                result.get(0).travelerName()
+                result
+                        .get(0)
+                        .travelerName()
         )
                 .isEqualTo(
                 "동행인1"
@@ -275,7 +279,8 @@ class HealthQueryRepositoryTest
             List<DiseaseType> diseaseTypes
     ) {
 
-        Health health = Health.builder()
+        Health health = Health
+                .builder()
                 .travelerName(travelerName)
                 .sensitiveAgree(true)
                 .hasMedication(hasMedication)
@@ -306,7 +311,8 @@ class HealthQueryRepositoryTest
             FoodType foodType
     ) {
 
-        FoodInfo foodInfo = FoodInfo.builder()
+        FoodInfo foodInfo = FoodInfo
+                .builder()
                 .health(health)
                 .foodName(foodName)
                 .foodType(foodType)

@@ -42,7 +42,7 @@ public class HealthController {
     @SecurityRequirement(name = "JWT")
     public ResponseEntity<ApiResult<AddCompanionResponse>> addTraveler
             (@AuthenticationPrincipal UserDetails userDetails,
-             @RequestBody AddCompanionRequest addCompanionRequest){
+             @RequestBody AddCompanionRequest addCompanionRequest) {
 
         return ResponseEntity
                 .status(HttpStatus
@@ -67,7 +67,7 @@ public class HealthController {
     @SecurityRequirement(name = "JWT")
     public ResponseEntity<ApiResult<UpdateCompanionResponse>> updateCompanion
             (@AuthenticationPrincipal UserDetails userDetails,
-             @RequestBody UpdateCompanionRequest updateCompanionRequest){
+             @RequestBody UpdateCompanionRequest updateCompanionRequest) {
 
         return ResponseEntity
                 .status(HttpStatus
@@ -89,7 +89,7 @@ public class HealthController {
     @SecurityRequirement(name = "JWT")
     public ResponseEntity<ApiResult<DeleteCompanionResponse>> deleteCompanion
     (@AuthenticationPrincipal UserDetails userDetails,
-     @RequestBody DeleteCompanionRequest deleteCompanionRequest){
+     @RequestBody DeleteCompanionRequest deleteCompanionRequest) {
 
         return ResponseEntity
                 .status(HttpStatus
@@ -111,7 +111,7 @@ public class HealthController {
     )
     @SecurityRequirement(name = "JWT")
     public ResponseEntity<ApiResult<CompanionSummaryResponse>> getCompanion
-    (@AuthenticationPrincipal UserDetails userDetails){
+    (@AuthenticationPrincipal UserDetails userDetails) {
 
         return ResponseEntity
                 .status(HttpStatus
@@ -133,7 +133,7 @@ public class HealthController {
     public ResponseEntity<ApiResult<CompanionDetailResponse>> getCompanionDetail
             (@AuthenticationPrincipal UserDetails userDetails,
              @Parameter(description = "조회할 동행인 ID", example = "1")
-             @RequestParam Long healthId){
+             @RequestParam Long healthId) {
 
         return ResponseEntity
                 .status(HttpStatus

@@ -33,6 +33,6 @@ public record CompanionSummaryResponse(List<CompanionSummaryDetail> companionLis
                                          String travelerName,
                                          boolean hasAllergy,
                                          boolean hasMedication,
-                                         List<DiseaseType> diseaseTypes){
+                                         List<DiseaseType> diseaseTypes) {
     }
 }

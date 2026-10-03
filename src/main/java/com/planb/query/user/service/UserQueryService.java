@@ -33,7 +33,7 @@ public class UserQueryService {
      */
 
     // username으로 객체 조회
-    public User findByUsername(String username){
+    public User findByUsername(String username) {
 
         return userQueryRepository
                 .findByUsername(username)
@@ -43,7 +43,7 @@ public class UserQueryService {
     }
 
     // id로 객체 조회
-    public User findById(Long id){
+    public User findById(Long id) {
 
         return userQueryRepository
                 .findById(id)
@@ -52,7 +52,7 @@ public class UserQueryService {
     }
 
     // username으로 중복 여부 조회하기
-    public boolean checkDuplicateUsername(String username){
+    public boolean checkDuplicateUsername(String username) {
 
         return userQueryRepository
                 .existsByUsername(username);
@@ -105,10 +105,6 @@ public class UserQueryService {
 
     /**
      * 복구 질문과 답변으로 확인한 사용자 단건 조회
-     * @param nickname 계정을 특정하는 닉네임
-     * @param recoveryQuestion 선택한 복구 질문
-     * @param recoveryAnswer 사용자가 입력한 복구 답변
-     * @return 조건에 일치하는 사용자
      */
     public User findByAccountRecovery(
             String nickname,
@@ -116,8 +112,8 @@ public class UserQueryService {
             String recoveryAnswer
     ) {
 
-        // 닉네임이 없을 때와 답변이 틀렸을 때를 같은 예외로 묶는다.
-        // 나누면 닉네임이 존재하는지를 알려주게 되어 계정 존재 여부가 새어 나간다.
+        // 닉네임 누락·답변 불일치의 동일 예외 처리
+        // 닉네임 존재 여부 노출 방지
         return userQueryRepository
                 .findByAccountRecovery(
                         nickname,
@@ -129,7 +125,7 @@ public class UserQueryService {
     }
 
     // nickname으로 중복 여부 조회하기
-    public boolean checkDuplicateNickname(String nickname){
+    public boolean checkDuplicateNickname(String nickname) {
 
         return userQueryRepository
                 .existsByNickname(nickname);
@@ -139,7 +135,7 @@ public class UserQueryService {
     /*
      Redis에서 조회
      */
-    public UserAuthCache findByUsernameInCache(String username){
+    public UserAuthCache findByUsernameInCache(String username) {
 
         return userAuthCacheRepository
                 .findByUsername(username)
@@ -150,6 +146,7 @@ public class UserQueryService {
 
     public Long findUserIdInCache(String username) {
 
-        return findByUsernameInCache(username).userId();
+        return findByUsernameInCache(username)
+                .userId();
     }
 }

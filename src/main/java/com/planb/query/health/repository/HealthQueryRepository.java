@@ -34,8 +34,6 @@ public class HealthQueryRepository {
 
     /**
      * 여행에 선택된 구성원의 건강 요약 조회
-     * @param healthIds 조회할 구성원 id
-     * @return 구성원 건강 요약 목록
      */
     public List<HealthSummaryQueryResponse> findHealthSummaryListByHealthIds(List<Long> healthIds) {
 
@@ -101,7 +99,10 @@ public class HealthQueryRepository {
                         diseaseTypesByHealthId.getOrDefault(
                                 row.get(health.id),
                                 List.of()),
-                        Boolean.TRUE.equals(row.get(foodInfo.id.count().gt(0)))))
+                        Boolean.TRUE.equals(row.get(foodInfo.id
+                                                .count()
+                                                .gt(0)))
+                ))
                 .toList();
     }
 

@@ -67,17 +67,23 @@ class FoodInfoServiceTest {
 
         assertSame(
                 health,
-                result.get(0).getHealth()
+                result
+                        .get(0)
+                        .getHealth()
         );
 
         assertEquals(
                 "땅콩",
-                result.get(0).getFoodName()
+                result
+                        .get(0)
+                        .getFoodName()
         );
 
         assertEquals(
                 foodType,
-                result.get(0).getFoodType()
+                result
+                        .get(0)
+                        .getFoodType()
         );
     }
 
@@ -88,7 +94,8 @@ class FoodInfoServiceTest {
         // given
         List<FoodInfo> foodInfos =
                 List.of(
-                        FoodInfo.builder()
+                        FoodInfo
+                                .builder()
                                 .health(health)
                                 .foodName("땅콩")
                                 .foodType(FoodType.values()[0])

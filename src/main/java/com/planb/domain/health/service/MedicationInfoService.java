@@ -86,7 +86,7 @@ public class MedicationInfoService {
     }
 
     // HealthId 기반으로 MedicationInfo 객체 리스트 조회하기
-    public List<MedicationInfo> findAllByHealthId(Long healthId){
+    public List<MedicationInfo> findAllByHealthId(Long healthId) {
         return medicationInfoRepository.findAllByHealthId(healthId);
     }
 }

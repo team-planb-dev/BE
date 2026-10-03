@@ -55,7 +55,7 @@ public class UserController {
     )
     @PostMapping("/create")
     public ResponseEntity<ApiResult<UserCreateResponse>> create
-            (@Valid @RequestBody UserCreateRequest userCreateRequest){
+            (@Valid @RequestBody UserCreateRequest userCreateRequest) {
 
         return ResponseEntity
                 .status(HttpStatus
@@ -72,7 +72,7 @@ public class UserController {
     @SecurityRequirement(name = "JWT")
     @GetMapping("/me")
     public ResponseEntity<ApiResult<UserReadResponse>> read
-            (@AuthenticationPrincipal UserDetails userDetails){
+            (@AuthenticationPrincipal UserDetails userDetails) {
 
         return ResponseEntity
                 .status(HttpStatus
@@ -91,7 +91,7 @@ public class UserController {
     @SecurityRequirement(name = "JWT")
     @DeleteMapping("/delete")
     public ResponseEntity<ApiResult<UserDeleteResponse>> delete
-            (@AuthenticationPrincipal UserDetails userDetails){
+            (@AuthenticationPrincipal UserDetails userDetails) {
 
         return ResponseEntity
                 .status(HttpStatus
@@ -109,7 +109,7 @@ public class UserController {
     )
     @GetMapping("/check/duplication/username")
     public ResponseEntity<ApiResult<CheckUsernameDuplicationResponse>> checkUsernameDuplication
-            (@RequestParam @NotBlank(message = "이메일은 필수 입니다.") String username){
+            (@RequestParam @NotBlank(message = "이메일은 필수 입니다.") String username) {
 
         return ResponseEntity
                 .status(HttpStatus
@@ -126,7 +126,7 @@ public class UserController {
     )
     @GetMapping("/check/duplication/nickname")
     public ResponseEntity<ApiResult<CheckNicknameDuplicationResponse>> checkNicknameDuplication
-            (@RequestParam @NotBlank(message = "닉네임은 필수 입니다.") String nickname){
+            (@RequestParam @NotBlank(message = "닉네임은 필수 입니다.") String nickname) {
 
         return ResponseEntity
                 .status(HttpStatus
@@ -140,7 +140,7 @@ public class UserController {
     @Operation(summary = "계정 복구 질문 목록 조회",
             description = "회원가입과 계정 복구 화면에서 사용할 질문 코드와 표시 문구를 반환합니다.")
     @GetMapping("/recovery/questions")
-    public ResponseEntity<ApiResult<List<RecoveryQuestionResponse>>> readRecoveryQuestions(){
+    public ResponseEntity<ApiResult<List<RecoveryQuestionResponse>>> readRecoveryQuestions() {
 
         return ResponseEntity
                 .status(HttpStatus
@@ -154,7 +154,7 @@ public class UserController {
             description = "가입할 때 등록한 계정 복구 질문과 답변을 전달해 주세요. 이메일은 마스킹된 값으로 반환됩니다.")
     @PostMapping("/recovery/username")
     public ResponseEntity<ApiResult<FindUsernameResponse>> findUsername
-            (@Valid @RequestBody FindUsernameRequest findUsernameRequest){
+            (@Valid @RequestBody FindUsernameRequest findUsernameRequest) {
 
         return ResponseEntity
                 .status(HttpStatus
@@ -168,7 +168,7 @@ public class UserController {
             description = "이메일과 계정 복구 질문 및 답변을 확인한 뒤 비밀번호를 재설정합니다. 재설정 후 기존 로그인 세션은 모두 만료됩니다.")
     @PatchMapping("/recovery/password")
     public ResponseEntity<ApiResult<ResetPasswordResponse>> resetPassword
-            (@Valid @RequestBody ResetPasswordRequest resetPasswordRequest){
+            (@Valid @RequestBody ResetPasswordRequest resetPasswordRequest) {
 
         return ResponseEntity
                 .status(HttpStatus

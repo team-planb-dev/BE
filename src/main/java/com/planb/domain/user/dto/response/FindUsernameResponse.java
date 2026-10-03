@@ -2,7 +2,6 @@ package com.planb.domain.user.dto.response;
 
 /**
  * 마스킹된 이메일 찾기 결과
- * @param maskedUsername 마스킹된 이메일 주소
  */
 public record FindUsernameResponse(String maskedUsername) {
 

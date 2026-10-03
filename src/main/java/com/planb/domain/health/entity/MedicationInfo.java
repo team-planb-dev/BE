@@ -84,7 +84,8 @@ public class MedicationInfo {
 
     private String generateDefaultDrugName() {
 
-        return "복약 " + UUID.randomUUID()
+        return "복약 " + UUID
+                .randomUUID()
                 .toString()
                 .substring(0, 8);
     }

@@ -54,10 +54,10 @@ public class AccountRecovery {
                 && recoveryAnswerHash.equals(hashAnswer(rawAnswer));
     }
 
-    // 답변은 사람이 입력하므로 앞뒤 공백, 대소문자, 유니코드 표기 차이를 흡수한 뒤 해시한다.
-    // ponytail: pepper 없는 SHA-256이라 답변이 짧으면 사전 공격에 약하다.
-    // 답변만으로는 로그인할 수 없고 비밀번호 재설정에는 이메일이 추가로 필요하다.
-    // 복구 수단을 늘릴 때 pepper나 별도 인증 단계를 함께 올린다.
+    // 앞뒤 공백·대소문자·유니코드 차이를 정규화한 복구 답변 해시
+    // ponytail: 짧은 답변의 사전 공격에 약한 pepper 없는 SHA-256
+    // 답변 단독 로그인 불가와 비밀번호 재설정 시 이메일 추가 요구
+    // 복구 수단 확대 시 pepper 또는 추가 인증 단계 도입
     public static String hashAnswer(String rawAnswer) {
 
         String normalized = Normalizer

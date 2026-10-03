@@ -31,7 +31,7 @@ public class UserQueryRepository {
 
     }
 
-    public Optional<User> findById(Long id){
+    public Optional<User> findById(Long id) {
 
         return Optional.ofNullable(
                 jpaQueryFactory
@@ -46,10 +46,6 @@ public class UserQueryRepository {
 
     /**
      * 닉네임과 복구 질문·답변 해시가 일치하는 사용자 조회
-     * @param nickname 계정을 특정하는 닉네임
-     * @param recoveryQuestion 선택한 복구 질문
-     * @param recoveryAnswerHash 정규화 후 해시한 복구 답변
-     * @return 조건에 일치하는 사용자 목록
      */
     public Optional<User> findByAccountRecovery(
             String nickname,
@@ -59,7 +55,8 @@ public class UserQueryRepository {
 
         return Optional.ofNullable(jpaQueryFactory
                 .selectFrom(user)
-                .where(user
+                .where(
+                        user
                                 .nickname
                                 .eq(nickname),
                         user
@@ -72,13 +69,14 @@ public class UserQueryRepository {
                                 .eq(recoveryAnswerHash),
                         user
                                 .deleted
-                                .isFalse())
+                                .isFalse()
+                )
                 .fetchOne());
     }
 
 
     // nickname 중복 체크하기
-    public boolean existsByNickname(String nickname){
+    public boolean existsByNickname(String nickname) {
 
         Integer result = jpaQueryFactory
                 .selectOne()
@@ -90,7 +88,7 @@ public class UserQueryRepository {
     }
 
     // username(email) 중복 체크하기
-    public boolean existsByUsername(String username){
+    public boolean existsByUsername(String username) {
 
         Integer result = jpaQueryFactory
                 .selectOne()

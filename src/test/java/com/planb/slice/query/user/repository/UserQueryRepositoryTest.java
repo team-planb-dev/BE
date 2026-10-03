@@ -35,10 +35,11 @@ class UserQueryRepositoryTest
 
     @Test
     @DisplayName("username으로 사용자 조회 성공")
-    void findByUsername_success(){
+    void findByUsername_success() {
 
         // given
-        User user = User.builder()
+        User user = User
+                .builder()
                 .username("testUser@example.com")
                 .password("1234")
                 .deleted(false)
@@ -78,7 +79,7 @@ class UserQueryRepositoryTest
 
     @Test
     @DisplayName("존재하지 않는 username 조회 시 Optional.empty 반환")
-    void findByUsername_failure(){
+    void findByUsername_failure() {
 
         // when
         Optional<User> result = userQueryRepository
@@ -94,7 +95,8 @@ class UserQueryRepositoryTest
     void existsByUsername_true() {
 
         // given
-        User user = User.builder()
+        User user = User
+                .builder()
                 .username("test@example.com")
                 .password("1234")
                 .deleted(false)
@@ -136,7 +138,8 @@ class UserQueryRepositoryTest
     void existsByNickname_true() {
 
         // given
-        User user = User.builder()
+        User user = User
+                .builder()
                 .username("nickname-test@example.com")
                 .password("test1234!")
                 .deleted(false)

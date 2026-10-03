@@ -359,7 +359,8 @@ class MedicationInfoQueryRepositoryTest
             String travelerName
     ) {
 
-        Health health = Health.builder()
+        Health health = Health
+                .builder()
                 .travelerName(travelerName)
                 .sensitiveAgree(true)
                 .hasMedication(true)
@@ -391,7 +392,8 @@ class MedicationInfoQueryRepositoryTest
     ) {
 
         MedicationInfo medicationInfo =
-                MedicationInfo.builder()
+                MedicationInfo
+                        .builder()
                         .health(health)
                         .drugName(drugName)
                         .medicationBasis(

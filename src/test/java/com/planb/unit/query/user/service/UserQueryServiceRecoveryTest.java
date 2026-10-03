@@ -50,12 +50,20 @@ class UserQueryServiceRecoveryTest {
                 .build();
 
         when(userQueryRepository
-                .findByAccountRecovery(anyString(), any(), anyString()))
+                .findByAccountRecovery(
+                        anyString(),
+                        any(),
+                        anyString()
+                ))
                 .thenReturn(Optional.of(user));
 
         // when
         User found = userQueryService
-                .findByAccountRecovery("우주", RecoveryQuestion.FIRST_PET, "콩이");
+                .findByAccountRecovery(
+                "우주",
+                RecoveryQuestion.FIRST_PET,
+                "콩이"
+        );
 
         // then
         assertThat(found
@@ -69,7 +77,11 @@ class UserQueryServiceRecoveryTest {
 
         // given
         when(userQueryRepository
-                .findByAccountRecovery(anyString(), any(), anyString()))
+                .findByAccountRecovery(
+                        anyString(),
+                        any(),
+                        anyString()
+                ))
                 .thenReturn(Optional.of(User
                         .builder()
                         .username("yeonwoo@gmail.com")
@@ -78,14 +90,19 @@ class UserQueryServiceRecoveryTest {
 
         // when
         userQueryService
-                .findByAccountRecovery("우주", RecoveryQuestion.FIRST_PET, "콩이");
+                .findByAccountRecovery(
+                "우주",
+                RecoveryQuestion.FIRST_PET,
+                "콩이"
+        );
 
         // then
         verify(userQueryRepository)
                 .findByAccountRecovery(
-                        eq("우주"),
-                        eq(RecoveryQuestion.FIRST_PET),
-                        eq(AccountRecovery.hashAnswer("콩이")));
+                eq("우주"),
+                eq(RecoveryQuestion.FIRST_PET),
+                eq(AccountRecovery.hashAnswer("콩이"))
+        );
     }
 
     @Test
@@ -94,12 +111,20 @@ class UserQueryServiceRecoveryTest {
 
         // given
         when(userQueryRepository
-                .findByAccountRecovery(anyString(), any(), anyString()))
+                .findByAccountRecovery(
+                        anyString(),
+                        any(),
+                        anyString()
+                ))
                 .thenReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> userQueryService
-                .findByAccountRecovery("우주", RecoveryQuestion.FIRST_PET, "콩이"))
+                .findByAccountRecovery(
+                        "우주",
+                        RecoveryQuestion.FIRST_PET,
+                        "콩이"
+                ))
                 .isInstanceOf(BaseException.class);
     }
 }

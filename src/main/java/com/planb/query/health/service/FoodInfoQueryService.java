@@ -15,7 +15,7 @@ public class FoodInfoQueryService {
     /*
     삭제 메소드
      */
-    public void deleteAllByHealthId(Long healthId){
+    public void deleteAllByHealthId(Long healthId) {
         foodInfoQueryRepository.deleteAllByHealthId(healthId);
     }
 

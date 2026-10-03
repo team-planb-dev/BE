@@ -66,7 +66,7 @@ public class HealthFacade {
      */
     @Transactional(readOnly = true)
     public CompanionSummaryResponse getCompanionSummary
-    (String username){
+    (String username) {
 
         Long userId = userQueryService.findUserIdInCache(username); // 사용자 ID 조회
 
