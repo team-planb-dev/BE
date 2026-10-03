@@ -10,17 +10,17 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class PlaceCandidateContext {
 
-    // TourAPI 후보의 candidateId 접두사. 외부 API는 접두사 없는 contentId만 받는다.
+    // TourAPI 후보의 candidateId 접두사와 외부 API용 contentId 구분
     private static final String TOUR_PREFIX = "tour:";
 
-    // TourAPI contentTypeId. 관광지와 음식점을 가른다.
+    // 관광지·음식점 구분용 TourAPI contentTypeId
     private static final String ATTRACTION_CONTENT_TYPE_ID = "12";
 
     private static final String RESTAURANT_CONTENT_TYPE_ID = "39";
 
     private final Map<String, Candidate> candidates = new ConcurrentHashMap<>();
 
-    // candidateId를 TourAPI가 받는 contentId로 되돌린다. 접두사가 없으면 그대로 둔다.
+    // TourAPI 요청용 contentId 복원, 접두사가 없으면 원본 유지
     public static String contentId(String candidateId) {
 
         return candidateId != null && candidateId.startsWith(TOUR_PREFIX)
@@ -36,7 +36,13 @@ public class PlaceCandidateContext {
                 item.lclsSystm2(),
                 null,
                 item.title(),
-                String.join(" ", text(item.addr1()), text(item.addr2())).trim(),
+                String
+                        .join(
+                        " ",
+                        text(item.addr1()),
+                        text(item.addr2())
+                )
+                        .trim(),
                 item.mapx(),
                 item.mapy(),
                 item.firstimage(),
@@ -112,7 +118,9 @@ public class PlaceCandidateContext {
                 .values()
                 .stream()
                 .filter(candidate -> candidate.name() != null
-                        && target.equals(candidate.name().strip()))
+                        && target.equals(candidate
+                                        .name()
+                                        .strip()))
                 .limit(2)
                 .toList();
 
@@ -132,7 +140,7 @@ public class PlaceCandidateContext {
     public record Candidate(
             String candidateId,
             String type,
-            // TourAPI 분류 코드(lclsSystm2). 카카오 후보에는 없다.
+            // TourAPI 분류 코드(lclsSystm2), 카카오 후보에는 없음
             String categoryCode,
             String categoryName,
             String name,

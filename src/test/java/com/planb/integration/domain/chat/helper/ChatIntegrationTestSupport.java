@@ -116,7 +116,8 @@ public abstract class ChatIntegrationTestSupport
                         true
                 );
 
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(CREATE_USER_URL)
                                 .contentType(
                                         MediaType.APPLICATION_JSON
@@ -127,7 +128,8 @@ public abstract class ChatIntegrationTestSupport
                                         )
                                 )
                 )
-                .andExpect(status().isCreated())
+                .andExpect(status()
+                        .isCreated())
                 .andExpect(
                         jsonPath("$.success")
                                 .value(true)
@@ -150,7 +152,8 @@ public abstract class ChatIntegrationTestSupport
                 );
 
         MvcResult result =
-                mockMvc.perform(
+                mockMvc
+                        .perform(
                                 post(LOGIN_URL)
                                         .contentType(
                                                 MediaType.APPLICATION_JSON
@@ -161,7 +164,8 @@ public abstract class ChatIntegrationTestSupport
                                                 )
                                         )
                         )
-                        .andExpect(status().isOk())
+                        .andExpect(status()
+                                .isOk())
                         .andExpect(
                                 jsonPath("$.success")
                                         .value(true)
@@ -171,24 +175,28 @@ public abstract class ChatIntegrationTestSupport
                                         .value(username)
                         )
                         .andExpect(
-                                header().string(
+                                header()
+                                        .string(
                                         "Authorization",
                                         startsWith("Bearer ")
                                 )
                         )
                         .andExpect(
-                                cookie().exists(
+                                cookie()
+                                        .exists(
                                         "refreshToken"
                                 )
                         )
                         .andReturn();
 
         String accessToken =
-                result.getResponse()
+                result
+                        .getResponse()
                         .getHeader("Authorization");
 
         Cookie refreshTokenCookie =
-                result.getResponse()
+                result
+                        .getResponse()
                         .getCookie("refreshToken");
 
         assertThat(accessToken)
@@ -209,14 +217,16 @@ public abstract class ChatIntegrationTestSupport
     ) throws Exception {
 
         MvcResult result =
-                mockMvc.perform(
+                mockMvc
+                        .perform(
                                 get(USER_ME_URL)
                                         .header(
                                                 "Authorization",
                                                 accessToken
                                         )
                         )
-                        .andExpect(status().isOk())
+                        .andExpect(status()
+                                .isOk())
                         .andExpect(
                                 jsonPath("$.success")
                                         .value(true)
@@ -229,7 +239,8 @@ public abstract class ChatIntegrationTestSupport
 
         Number userId =
                 JsonPath.read(
-                        result.getResponse()
+                        result
+                                .getResponse()
                                 .getContentAsString(),
                         "$.data.userId"
                 );
@@ -248,7 +259,8 @@ public abstract class ChatIntegrationTestSupport
                 );
 
         MvcResult result =
-                mockMvc.perform(
+                mockMvc
+                        .perform(
                                 post(CREATE_CHAT_ROOM_URL)
                                         .header(
                                                 "Authorization",
@@ -263,7 +275,8 @@ public abstract class ChatIntegrationTestSupport
                                                 )
                                         )
                         )
-                        .andExpect(status().isCreated())
+                        .andExpect(status()
+                                .isCreated())
                         .andExpect(
                                 jsonPath("$.success")
                                         .value(true)
@@ -276,7 +289,8 @@ public abstract class ChatIntegrationTestSupport
 
         Number roomId =
                 JsonPath.read(
-                        result.getResponse()
+                        result
+                                .getResponse()
                                 .getContentAsString(),
                         "$.data.chatRoomId"
                 );
@@ -296,7 +310,8 @@ public abstract class ChatIntegrationTestSupport
                         userId
                 );
 
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(ADD_CHAT_MEMBER_URL)
                                 .header(
                                         "Authorization",
@@ -311,7 +326,8 @@ public abstract class ChatIntegrationTestSupport
                                         )
                                 )
                 )
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(
                         jsonPath("$.success")
                                 .value(true)
@@ -324,7 +340,8 @@ public abstract class ChatIntegrationTestSupport
 
     protected String createUniqueValue() {
 
-        return UUID.randomUUID()
+        return UUID
+                .randomUUID()
                 .toString()
                 .substring(0, 8);
     }

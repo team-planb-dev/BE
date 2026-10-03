@@ -26,7 +26,11 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class TourismTool {
 
-    private static final List<String> ZONE_TITLE_KEYWORDS = List.of("관광특구", "지구", "권역");
+    private static final List<String> ZONE_TITLE_KEYWORDS = List.of(
+            "관광특구",
+            "지구",
+            "권역"
+    );
     private static final String OTHER_CULTURAL_FACILITY_CATEGORY = "VE120300";
     private static final double MIN_KOREA_LONGITUDE = 124.0;
     private static final double MAX_KOREA_LONGITUDE = 132.0;
@@ -34,19 +38,43 @@ public class TourismTool {
     private static final double MAX_KOREA_LATITUDE = 39.0;
 
     private static final Set<String> ALLOWED_ATTRACTION_CATEGORY_LEVEL_2 = Set.of(
-            "HS01", "HS02", "HS04",
-            "NA01", "NA03", "NA04",
-            "EX01", "EX02", "EX03", "EX04", "EX06",
-            "VE02", "VE04"
+            "HS01",
+            "HS02",
+            "HS04",
+            "NA01",
+            "NA03",
+            "NA04",
+            "EX01",
+            "EX02",
+            "EX03",
+            "EX04",
+            "EX06",
+            "VE02",
+            "VE04"
     );
 
     private static final Set<String> ALLOWED_ATTRACTION_CATEGORY_LEVEL_3 = Set.of(
-            "NA020100", "NA020200", "NA020300", "NA020400",
-            "NA020500", "NA020600", "NA020800", "NA020900",
-            "VE010200", "VE010300", "VE010400", "VE010500",
-            "VE010600", "VE010700", "VE010800",
+            "NA020100",
+            "NA020200",
+            "NA020300",
+            "NA020400",
+            "NA020500",
+            "NA020600",
+            "NA020800",
+            "NA020900",
+            "VE010200",
+            "VE010300",
+            "VE010400",
+            "VE010500",
+            "VE010600",
+            "VE010700",
+            "VE010800",
             "VE030500",
-            "VE070100", "VE070200", "VE070300", "VE070500", "VE070600"
+            "VE070100",
+            "VE070200",
+            "VE070300",
+            "VE070500",
+            "VE070600"
     );
 
     private static final int ATTRACTION_CANDIDATE_LIMIT = 40;
@@ -151,13 +179,22 @@ public class TourismTool {
                 .block();
     }
 
-    // 외부 응답 전체를 로그에 남기지 않고 후보 수만 기록한다.
+    // 외부 응답 원문 대신 후보 수만 기록
     private int itemCount(Kor2KeywordSearchResponse response) {
 
         if (response.response() == null
-                || response.response().body() == null
-                || response.response().body().items() == null
-                || response.response().body().items().item() == null) {
+                || response
+                        .response()
+                        .body() == null
+                || response
+                        .response()
+                        .body()
+                        .items() == null
+                || response
+                        .response()
+                        .body()
+                        .items()
+                        .item() == null) {
             return 0;
         }
 
@@ -199,12 +236,20 @@ public class TourismTool {
 
         return new Kor2KeywordSearchResponse(
                 new Kor2KeywordSearchResponse.Response(
-                        response.response().header(),
+                        response
+                                .response()
+                                .header(),
                         new Kor2KeywordSearchResponse.Body(
                                 new Kor2KeywordSearchResponse.Items(selected),
                                 selected.size(),
-                                response.response().body().pageNo(),
-                                response.response().body().totalCount()
+                                response
+                                        .response()
+                                        .body()
+                                        .pageNo(),
+                                response
+                                        .response()
+                                        .body()
+                                        .totalCount()
                         )
                 )
         );
@@ -212,7 +257,9 @@ public class TourismTool {
 
     private boolean isZoneTitle(String title) {
         return title != null
-                && ZONE_TITLE_KEYWORDS.stream().anyMatch(title::contains);
+                && ZONE_TITLE_KEYWORDS
+                        .stream()
+                        .anyMatch(title::contains);
     }
 
     private boolean isAttractionCandidate(
@@ -287,11 +334,13 @@ public class TourismTool {
                 transportation
         );
 
-        return kakaoMapServiceHandler.getRoute(
+        return kakaoMapServiceHandler
+                .getRoute(
                 origin,
                 destination,
                 transportation
-        ).block();
+        )
+                .block();
     }
 
     public KakaoRouteResult getRoute(
@@ -308,17 +357,19 @@ public class TourismTool {
                 "[AI TOOL] 후보 좌표 이동경로 조회 호출 - origin: {}, destination: {}, transportation: {}",
                 origin,
                 destination,
-                transportation);
+                transportation
+        );
 
         return kakaoMapServiceHandler
                 .getRoute(
-                        origin,
-                        destination,
-                        transportation,
-                        originLongitude,
-                        originLatitude,
-                        destinationLongitude,
-                        destinationLatitude)
+                origin,
+                destination,
+                transportation,
+                originLongitude,
+                originLatitude,
+                destinationLongitude,
+                destinationLatitude
+        )
                 .block();
     }
 
@@ -384,11 +435,13 @@ public class TourismTool {
         );
 
         NutritionEvaluationResult result =
-                nutritionService.evaluateFoodNutrition(
+                nutritionService
+                        .evaluateFoodNutrition(
                         foodName,
                         standardFoodName,
                         diseaseTypes
-                ).block();
+                )
+                        .block();
 
         // 결정 가능한 RecommendationTag 계산에 재사용하기 위해 요청 단위로 기록
         nutritionEvaluationCollector.record(foodName, result);

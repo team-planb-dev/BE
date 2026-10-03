@@ -91,25 +91,34 @@ public class UserIntegrationTest extends IntegrationTest {
         String username = createUniqueUsername();
 
         UserCreateRequest request =
-                new UserCreateRequest(username,
+                new UserCreateRequest(
+                        username,
                         createUniqueNickname(),
                         PASSWORD,
                         RecoveryQuestion.FIRST_PET,
                         "콩이",
                         true,
                         true,
-                        true);
+                        true
+                );
 
         // when & then
-        mockMvc.perform(post(CREATE_USER_URL)
+        mockMvc
+                .perform(post(CREATE_USER_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.username").value(username))
-                .andExpect(jsonPath("$.data.createdAt").exists())
-                .andExpect(jsonPath("$.data.updatedAt").exists())
-                .andExpect(jsonPath("$.error").isEmpty());
+                .andExpect(status()
+                        .isCreated())
+                .andExpect(jsonPath("$.success")
+                        .value(true))
+                .andExpect(jsonPath("$.data.username")
+                        .value(username))
+                .andExpect(jsonPath("$.data.createdAt")
+                        .exists())
+                .andExpect(jsonPath("$.data.updatedAt")
+                        .exists())
+                .andExpect(jsonPath("$.error")
+                        .isEmpty());
     }
 
     @Test
@@ -119,9 +128,11 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String username = createUniqueUsername();
 
-        createUser(username,
+        createUser(
+                username,
                 createUniqueNickname(),
-                PASSWORD);
+                PASSWORD
+        );
 
         LoginRequest request =
                 new LoginRequest(username, PASSWORD);
@@ -195,13 +206,15 @@ public class UserIntegrationTest extends IntegrationTest {
         );
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(REISSUE_URL)
                                 .cookie(
                                         loginResult.refreshTokenCookie()
                                 )
                 )
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(
                         jsonPath("$.success")
                                 .value(true)
@@ -238,14 +251,16 @@ public class UserIntegrationTest extends IntegrationTest {
                 PASSWORD
         );
 
-        // when - 첫 재발급은 서버에 저장된 옛 Refresh Token을 지운다
-        MvcResult firstResult = mockMvc.perform(
+        // when - 첫 재발급의 기존 Refresh Token 삭제
+        MvcResult firstResult = mockMvc
+                .perform(
                         post(REISSUE_URL)
                                 .cookie(
                                         loginResult.refreshTokenCookie()
                                 )
                 )
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(
                         jsonPath("$.data.status")
                                 .value("REFRESH_REISSUED")
@@ -256,18 +271,20 @@ public class UserIntegrationTest extends IntegrationTest {
                 .getResponse()
                 .getCookie("refreshToken");
 
-        // then - 쿠키를 갱신해 주지 않으면 브라우저는 지워진 토큰을 계속 보낸다
+        // then - 쿠키 미갱신 시 삭제된 토큰의 브라우저 재전송
         assertThat(rotatedCookie)
                 .isNotNull();
 
         // 토큰 값 자체는 비교하지 않는다. iat가 초 단위라 같은 초에 재발급하면
         // 문자열이 옛것과 같아질 수 있다. 확인할 것은 쿠키가 내려오는지와
-        // 그 쿠키로 다음 재발급이 되는지다.
-        mockMvc.perform(
+        // 해당 쿠키를 이용한 다음 재발급 검증
+        mockMvc
+                .perform(
                         post(REISSUE_URL)
                                 .cookie(rotatedCookie)
                 )
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(
                         jsonPath("$.success")
                                 .value(true)
@@ -297,23 +314,27 @@ public class UserIntegrationTest extends IntegrationTest {
         );
 
         // when
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(LOGOUT_URL)
                                 .cookie(
                                         loginResult.refreshTokenCookie()
                                 )
                 )
-                .andExpect(status().isOk());
+                .andExpect(status()
+                        .isOk());
 
         // then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get(USER_ME_URL)
                                 .header(
                                         "Authorization",
                                         loginResult.accessToken()
                                 )
                 )
-                .andExpect(status().isUnauthorized())
+                .andExpect(status()
+                        .isUnauthorized())
                 .andExpect(
                         jsonPath("$.success")
                                 .value(false)
@@ -330,7 +351,11 @@ public class UserIntegrationTest extends IntegrationTest {
         String username = createUniqueUsername();
         String nickname = createUniqueNickname();
 
-        createUser(username, nickname, PASSWORD);
+        createUser(
+                username,
+                nickname,
+                PASSWORD
+        );
 
         LoginResult loginResult = login(username, PASSWORD);
 
@@ -342,7 +367,8 @@ public class UserIntegrationTest extends IntegrationTest {
                                 loginResult
                                         .accessToken()
                         ))
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(jsonPath("$.success")
                         .value(true))
                 .andExpect(jsonPath("$.data.userId")
@@ -356,7 +382,7 @@ public class UserIntegrationTest extends IntegrationTest {
                 .andExpect(jsonPath("$.error")
                         .isEmpty());
 
-        // 세션 식별자는 인증 내부 값이라 응답에 나가지 않아야 한다.
+        // 응답에서 제외할 인증 내부 세션 식별자
         mockMvc
                 .perform(get(USER_ME_URL)
                         .header(
@@ -376,7 +402,11 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String username = createUniqueUsername();
 
-        createUser(username, createUniqueNickname(), PASSWORD);
+        createUser(
+                username,
+                createUniqueNickname(),
+                PASSWORD
+        );
 
         LoginResult loginResult = login(username, PASSWORD);
 
@@ -419,40 +449,46 @@ public class UserIntegrationTest extends IntegrationTest {
                 PASSWORD
         );
 
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         delete(DELETE_USER_URL)
                                 .header(
                                         "Authorization",
                                         loginResult.accessToken()
                                 )
                 )
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(
                         jsonPath("$.success")
                                 .value(true)
                 );
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get(USER_ME_URL)
                                 .header(
                                         "Authorization",
                                         loginResult.accessToken()
                                 )
                 )
-                .andExpect(status().isUnauthorized())
+                .andExpect(status()
+                        .isUnauthorized())
                 .andExpect(
                         jsonPath("$.success")
                                 .value(false)
                 );
 
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(REISSUE_URL)
                                 .cookie(
                                         loginResult.refreshTokenCookie()
                                 )
                 )
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(
                         jsonPath("$.success")
                                 .value(false)
@@ -467,7 +503,8 @@ public class UserIntegrationTest extends IntegrationTest {
 
 
     private String createUniqueUsername() {
-        return "test-" + UUID.randomUUID()
+        return "test-" + UUID
+                .randomUUID()
                 .toString()
                 .substring(0, 8)
                 + "@example.com";
@@ -479,10 +516,15 @@ public class UserIntegrationTest extends IntegrationTest {
             String password
     ) throws Exception {
 
-        createUser(username, nickname, password, "콩이");
+        createUser(
+                username,
+                nickname,
+                password,
+                "콩이"
+        );
     }
 
-    // 닉네임은 계정마다 유일해야 하므로 픽스처도 매번 다른 값을 쓴다.
+    // 유일한 닉네임을 위한 픽스처별 다른 값
     private String createUniqueNickname() {
 
         return NICKNAME + "-" + UUID
@@ -507,9 +549,11 @@ public class UserIntegrationTest extends IntegrationTest {
                         recoveryAnswer,
                         true,
                         true,
-                        true);
+                        true
+                );
 
-        mockMvc.perform(post(CREATE_USER_URL)
+        mockMvc
+                .perform(post(CREATE_USER_URL)
                         .contentType(MediaType
                                 .APPLICATION_JSON)
                         .content(objectMapper
@@ -529,7 +573,11 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String username = createUniqueUsername();
 
-        createUser(username, createUniqueNickname(), PASSWORD);
+        createUser(
+                username,
+                createUniqueNickname(),
+                PASSWORD
+        );
 
         LoginRequest request = new LoginRequest(
                 username,
@@ -542,7 +590,8 @@ public class UserIntegrationTest extends IntegrationTest {
                                 .APPLICATION_JSON)
                         .content(objectMapper
                                 .writeValueAsString(request)))
-                .andExpect(status().isUnauthorized())
+                .andExpect(status()
+                        .isUnauthorized())
                 .andExpect(jsonPath("$.success")
                         .value(false))
                 .andExpect(jsonPath("$.data")
@@ -672,17 +721,26 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String username = createUniqueUsername();
 
-        createUser(username, createUniqueNickname(), PASSWORD);
+        createUser(
+                username,
+                createUniqueNickname(),
+                PASSWORD
+        );
 
         // when & then
-        mockMvc.perform(get(CHECK_USERNAME_DUPLICATION_URL)
+        mockMvc
+                .perform(get(CHECK_USERNAME_DUPLICATION_URL)
                         .param("username", username))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.duplicate").value(true))
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(true))
+                .andExpect(jsonPath("$.data.duplicate")
+                        .value(true))
                 .andExpect(jsonPath("$.data.message")
                         .value("이미 존재하는 이메일 입니다."))
-                .andExpect(jsonPath("$.error").isEmpty());
+                .andExpect(jsonPath("$.error")
+                        .isEmpty());
     }
 
     @Test
@@ -693,14 +751,19 @@ public class UserIntegrationTest extends IntegrationTest {
         String username = createUniqueUsername();
 
         // when & then
-        mockMvc.perform(get(CHECK_USERNAME_DUPLICATION_URL)
+        mockMvc
+                .perform(get(CHECK_USERNAME_DUPLICATION_URL)
                         .param("username", username))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.duplicate").value(false))
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(true))
+                .andExpect(jsonPath("$.data.duplicate")
+                        .value(false))
                 .andExpect(jsonPath("$.data.message")
                         .value("사용 가능한 이메일 입니다."))
-                .andExpect(jsonPath("$.error").isEmpty());
+                .andExpect(jsonPath("$.error")
+                        .isEmpty());
     }
 
     @Test
@@ -712,17 +775,26 @@ public class UserIntegrationTest extends IntegrationTest {
 
         String nickname = createUniqueNickname();
 
-        createUser(username, nickname, PASSWORD);
+        createUser(
+                username,
+                nickname,
+                PASSWORD
+        );
 
         // when & then
-        mockMvc.perform(get(CHECK_NICKNAME_DUPLICATION_URL)
+        mockMvc
+                .perform(get(CHECK_NICKNAME_DUPLICATION_URL)
                         .param("nickname", nickname))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.duplicate").value(true))
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(true))
+                .andExpect(jsonPath("$.data.duplicate")
+                        .value(true))
                 .andExpect(jsonPath("$.data.message")
                         .value("이미 존재하는 닉네임 입니다."))
-                .andExpect(jsonPath("$.error").isEmpty());
+                .andExpect(jsonPath("$.error")
+                        .isEmpty());
     }
 
     @Test
@@ -730,19 +802,25 @@ public class UserIntegrationTest extends IntegrationTest {
     void checkNicknameDuplicationNotExists() throws Exception {
 
         // given
-        String nickname = "available-" + UUID.randomUUID()
+        String nickname = "available-" + UUID
+                .randomUUID()
                 .toString()
                 .substring(0, 8);
 
         // when & then
-        mockMvc.perform(get(CHECK_NICKNAME_DUPLICATION_URL)
+        mockMvc
+                .perform(get(CHECK_NICKNAME_DUPLICATION_URL)
                         .param("nickname", nickname))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.duplicate").value(false))
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(true))
+                .andExpect(jsonPath("$.data.duplicate")
+                        .value(false))
                 .andExpect(jsonPath("$.data.message")
                         .value("사용 가능한 닉네임 입니다."))
-                .andExpect(jsonPath("$.error").isEmpty());
+                .andExpect(jsonPath("$.error")
+                        .isEmpty());
     }
 
     @Test
@@ -752,7 +830,11 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String username = createUniqueUsername();
 
-        createUser(username, createUniqueNickname(), PASSWORD);
+        createUser(
+                username,
+                createUniqueNickname(),
+                PASSWORD
+        );
 
         LoginResult first = login(username, PASSWORD);
 
@@ -760,17 +842,23 @@ public class UserIntegrationTest extends IntegrationTest {
         LoginResult second = login(username, PASSWORD);
 
         // then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get(USER_ME_URL)
                                 .header("Authorization", first.accessToken()))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.success").value(false));
+                .andExpect(status()
+                        .isUnauthorized())
+                .andExpect(jsonPath("$.success")
+                        .value(false));
 
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get(USER_ME_URL)
                                 .header("Authorization", second.accessToken()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(true));
     }
 
     @Test
@@ -780,24 +868,33 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String username = createUniqueUsername();
 
-        createUser(username, createUniqueNickname(), PASSWORD);
+        createUser(
+                username,
+                createUniqueNickname(),
+                PASSWORD
+        );
 
         LoginResult first = login(username, PASSWORD);
 
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(LOGOUT_URL)
                                 .cookie(first.refreshTokenCookie()))
-                .andExpect(status().isOk());
+                .andExpect(status()
+                        .isOk());
 
         // when
         LoginResult second = login(username, PASSWORD);
 
         // then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get(USER_ME_URL)
                                 .header("Authorization", second.accessToken()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(true));
     }
 
     @Test
@@ -807,22 +904,31 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String username = createUniqueUsername();
 
-        createUser(username, createUniqueNickname(), PASSWORD);
+        createUser(
+                username,
+                createUniqueNickname(),
+                PASSWORD
+        );
 
         LoginResult loginResult = login(username, PASSWORD);
 
         // when
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(LOGOUT_URL)
                                 .header("Authorization", loginResult.accessToken()))
-                .andExpect(status().isOk());
+                .andExpect(status()
+                        .isOk());
 
         // then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get(USER_ME_URL)
                                 .header("Authorization", loginResult.accessToken()))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.success").value(false));
+                .andExpect(status()
+                        .isUnauthorized())
+                .andExpect(jsonPath("$.success")
+                        .value(false));
     }
 
     @Test
@@ -832,7 +938,11 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String username = createUniqueUsername();
 
-        createUser(username, createUniqueNickname(), PASSWORD);
+        createUser(
+                username,
+                createUniqueNickname(),
+                PASSWORD
+        );
 
         LoginResult loginResult = login(username, PASSWORD);
 
@@ -840,7 +950,8 @@ public class UserIntegrationTest extends IntegrationTest {
         MvcResult reissued = mockMvc
                 .perform(post(REISSUE_URL)
                         .cookie(loginResult.refreshTokenCookie()))
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andReturn();
 
         String reissuedAccessToken = objectMapper
@@ -852,11 +963,14 @@ public class UserIntegrationTest extends IntegrationTest {
                 .asString();
 
         // then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get(USER_ME_URL)
                                 .header("Authorization", "Bearer " + reissuedAccessToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(true));
     }
 
     @Test
@@ -867,8 +981,16 @@ public class UserIntegrationTest extends IntegrationTest {
         String username = createUniqueUsername();
         String otherUsername = createUniqueUsername();
 
-        createUser(username, createUniqueNickname(), PASSWORD);
-        createUser(otherUsername, createUniqueNickname(), PASSWORD);
+        createUser(
+                username,
+                createUniqueNickname(),
+                PASSWORD
+        );
+        createUser(
+                otherUsername,
+                createUniqueNickname(),
+                PASSWORD
+        );
 
         LoginResult loginResult = login(username, PASSWORD);
 
@@ -876,11 +998,14 @@ public class UserIntegrationTest extends IntegrationTest {
         login(otherUsername, PASSWORD);
 
         // then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get(USER_ME_URL)
                                 .header("Authorization", loginResult.accessToken()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(true));
     }
 
     @Test
@@ -890,24 +1015,31 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String username = createUniqueUsername();
 
-        createUser(username, createUniqueNickname(), PASSWORD);
+        createUser(
+                username,
+                createUniqueNickname(),
+                PASSWORD
+        );
 
         LoginResult loginResult = login(username, PASSWORD);
 
-        // 인증 캐시는 access 토큰과 같은 수명을 갖는다.
-        // 그 뒤 refresh로 재발급하는 상황을 만들려면 캐시만 먼저 지워야 한다.
+        // access 토큰과 동일한 인증 캐시 수명
+        // refresh 재발급 상황의 캐시 선삭제
         userAuthCacheRepository.delete(username);
 
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get(USER_ME_URL)
                                 .header("Authorization", loginResult.accessToken()))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status()
+                        .isUnauthorized());
 
         // when
         MvcResult reissued = mockMvc
                 .perform(post(REISSUE_URL)
                         .cookie(loginResult.refreshTokenCookie()))
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andReturn();
 
         String reissuedAccessToken = objectMapper
@@ -919,11 +1051,14 @@ public class UserIntegrationTest extends IntegrationTest {
                 .asString();
 
         // then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get(USER_ME_URL)
                                 .header("Authorization", "Bearer " + reissuedAccessToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(true));
     }
 
     @Test
@@ -934,11 +1069,17 @@ public class UserIntegrationTest extends IntegrationTest {
         String username = createUniqueUsername();
         String nickname = createUniqueNickname();
 
-        String koreanAnswer = "나비" + UUID.randomUUID()
+        String koreanAnswer = "나비" + UUID
+                .randomUUID()
                 .toString()
                 .substring(0, 8);
 
-        createUser(username, nickname, PASSWORD, koreanAnswer);
+        createUser(
+                username,
+                nickname,
+                PASSWORD,
+                koreanAnswer
+        );
 
         String requestBody = """
             {
@@ -949,11 +1090,14 @@ public class UserIntegrationTest extends IntegrationTest {
             """.formatted(nickname, koreanAnswer);
 
         // when & then
-        mockMvc.perform(post(FIND_USERNAME_URL)
+        mockMvc
+                .perform(post(FIND_USERNAME_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(true))
                 .andExpect(jsonPath("$.data.maskedUsername")
                         .value(startsWith(username.substring(0, 2) + "***")));
     }
@@ -963,15 +1107,26 @@ public class UserIntegrationTest extends IntegrationTest {
     void findUsernameWhenAnswerSharedByMultipleAccounts() throws Exception {
 
         // given
-        String sharedAnswer = "나비" + UUID.randomUUID()
+        String sharedAnswer = "나비" + UUID
+                .randomUUID()
                 .toString()
                 .substring(0, 8);
 
         String username = createUniqueUsername();
         String nickname = createUniqueNickname();
 
-        createUser(username, nickname, PASSWORD, sharedAnswer);
-        createUser(createUniqueUsername(), createUniqueNickname(), PASSWORD, sharedAnswer);
+        createUser(
+                username,
+                nickname,
+                PASSWORD,
+                sharedAnswer
+        );
+        createUser(
+                createUniqueUsername(),
+                createUniqueNickname(),
+                PASSWORD,
+                sharedAnswer
+        );
 
         String requestBody = """
             {
@@ -982,11 +1137,14 @@ public class UserIntegrationTest extends IntegrationTest {
             """.formatted(nickname, sharedAnswer);
 
         // when & then
-        mockMvc.perform(post(FIND_USERNAME_URL)
+        mockMvc
+                .perform(post(FIND_USERNAME_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(true))
                 .andExpect(jsonPath("$.data.maskedUsername")
                         .value(startsWith(username.substring(0, 2) + "***")));
     }
@@ -998,7 +1156,12 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String nickname = createUniqueNickname();
 
-        createUser(createUniqueUsername(), nickname, PASSWORD, "나비");
+        createUser(
+                createUniqueUsername(),
+                nickname,
+                PASSWORD,
+                "나비"
+        );
 
         String requestBody = """
             {
@@ -1009,10 +1172,12 @@ public class UserIntegrationTest extends IntegrationTest {
             """.formatted(nickname, "없는답변" + UUID.randomUUID());
 
         // when & then
-        mockMvc.perform(post(FIND_USERNAME_URL)
+        mockMvc
+                .perform(post(FIND_USERNAME_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
-                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.success")
+                        .value(false))
                 .andExpect(jsonPath("$.error.errorCode")
                         .value("BASE.EXCEPTION.RECOVERY_ANSWER_MISMATCH"));
     }
@@ -1031,10 +1196,12 @@ public class UserIntegrationTest extends IntegrationTest {
             """.formatted(createUniqueNickname());
 
         // when & then
-        mockMvc.perform(post(FIND_USERNAME_URL)
+        mockMvc
+                .perform(post(FIND_USERNAME_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
-                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.success")
+                        .value(false))
                 .andExpect(jsonPath("$.error.errorCode")
                         .value("BASE.EXCEPTION.RECOVERY_ANSWER_MISMATCH"));
     }
@@ -1046,23 +1213,31 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String nickname = createUniqueNickname();
 
-        createUser(createUniqueUsername(), nickname, PASSWORD);
+        createUser(
+                createUniqueUsername(),
+                nickname,
+                PASSWORD
+        );
 
         UserCreateRequest request =
-                new UserCreateRequest(createUniqueUsername(),
+                new UserCreateRequest(
+                        createUniqueUsername(),
                         nickname,
                         PASSWORD,
                         RecoveryQuestion.FIRST_PET,
                         "콩이",
                         true,
                         true,
-                        true);
+                        true
+                );
 
         // when & then
-        mockMvc.perform(post(CREATE_USER_URL)
+        mockMvc
+                .perform(post(CREATE_USER_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.success")
+                        .value(false))
                 .andExpect(jsonPath("$.error.errorCode")
                         .value("BASE.EXCEPTION.DUPLICATE_NICKNAME"));
     }
@@ -1074,23 +1249,31 @@ public class UserIntegrationTest extends IntegrationTest {
         // given
         String username = createUniqueUsername();
 
-        createUser(username, createUniqueNickname(), PASSWORD);
+        createUser(
+                username,
+                createUniqueNickname(),
+                PASSWORD
+        );
 
         UserCreateRequest request =
-                new UserCreateRequest(username,
+                new UserCreateRequest(
+                        username,
                         createUniqueNickname(),
                         PASSWORD,
                         RecoveryQuestion.FIRST_PET,
                         "콩이",
                         true,
                         true,
-                        true);
+                        true
+                );
 
         // when & then
-        mockMvc.perform(post(CREATE_USER_URL)
+        mockMvc
+                .perform(post(CREATE_USER_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.success")
+                        .value(false))
                 .andExpect(jsonPath("$.error.errorCode")
                         .value("BASE.EXCEPTION.DUPLICATE_USERNAME"));
     }

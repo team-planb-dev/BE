@@ -26,7 +26,7 @@ import java.util.Set;
 @Getter
 public class HealthInfo {
 
-    // 관리 질환. 당뇨·고혈압·이상지질혈증은 함께 나타나는 경우가 많아 여러 개를 받는다.
+    // 당뇨·고혈압·이상지질혈증의 동시 관리를 위한 질환 목록
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
             name = "health_disease",
@@ -52,8 +52,8 @@ public class HealthInfo {
         this.walkType = walkType;
     }
 
-    // 순서는 보장하지 않는다. DB에서 다시 읽으면 저장 순서와 달라질 수 있다.
-    // 어떤 질환이 담겼는지만 의미가 있고, 평가와 화면 모두 순서를 쓰지 않는다.
+    // DB 재조회 시 저장 순서를 보장하지 않는 질환 목록
+    // 평가·화면에서 순서와 무관한 질환 포함 여부
     public List<DiseaseType> diseaseTypeList() {
 
         return List.copyOf(diseaseTypes);

@@ -24,8 +24,12 @@ class ChatAiReplyMessageHelperTest {
     @DisplayName("처리 가능한 요청이면 고정 완료 메시지 반환")
     void makeReplyMessageWhenProcessable() {
         EditPlanAiResponse editPlanAiResponse =
-                new EditPlanAiResponse("부산 여행", List.of(),
-                        List.of("1일차 카페 변경", "2일차 관광지 추가"), true);
+                new EditPlanAiResponse(
+                        "부산 여행",
+                        List.of(),
+                        List.of("1일차 카페 변경", "2일차 관광지 추가"),
+                        true
+                );
         EditPlanPreviewResponse preview =
                 new EditPlanPreviewResponse(null, editPlanAiResponse);
 
@@ -39,7 +43,12 @@ class ChatAiReplyMessageHelperTest {
     @DisplayName("처리 불가능한 요청이면 고정 거절 메시지 반환")
     void makeReplyMessageWhenNotProcessable() {
         EditPlanAiResponse editPlanAiResponse =
-                new EditPlanAiResponse("부산 여행", List.of(), List.of(), false);
+                new EditPlanAiResponse(
+                        "부산 여행",
+                        List.of(),
+                        List.of(),
+                        false
+                );
         EditPlanPreviewResponse preview =
                 new EditPlanPreviewResponse(null, editPlanAiResponse);
 

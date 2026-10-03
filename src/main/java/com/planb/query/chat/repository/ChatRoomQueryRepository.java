@@ -15,7 +15,7 @@ public class ChatRoomQueryRepository {
     private final JPAQueryFactory jpaQueryFactory;
     private final QChatRoom chatRoom = QChatRoom.chatRoom;
 
-    public Optional<ChatRoom> findByRoomId(Long roomId){
+    public Optional<ChatRoom> findByRoomId(Long roomId) {
 
         return Optional.ofNullable(jpaQueryFactory
                 .selectFrom(chatRoom)
@@ -29,7 +29,7 @@ public class ChatRoomQueryRepository {
                 .fetchOne());
     }
 
-    public Optional<ChatRoom> findByTravelId(Long travelId){
+    public Optional<ChatRoom> findByTravelId(Long travelId) {
 
         return Optional.ofNullable(jpaQueryFactory
                 .selectFrom(chatRoom)

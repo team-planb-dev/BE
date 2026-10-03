@@ -23,7 +23,7 @@ public class KakaoMobilityServiceClient
         return properties.apiKey();
     }
 
-    public String baseUrl(){
+    public String baseUrl() {
         return properties.baseUrl();
     }
 }

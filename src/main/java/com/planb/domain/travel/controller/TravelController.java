@@ -53,7 +53,7 @@ public class TravelController {
             (@Parameter(description = "지역 규격에 맞는 시·도 이름", example = "경상북도")
              @RequestParam String locationDo,
              @Parameter(description = "여행할 시·군·구 이름", example = "경주시")
-             @RequestParam String locationSigungu){
+             @RequestParam String locationSigungu) {
 
         MakeRecommendFoodsRequest makeRecommendFoodsRequest =
                 new MakeRecommendFoodsRequest(
@@ -81,7 +81,7 @@ public class TravelController {
     @SecurityRequirement(name = "JWT")
     public Mono<ResponseEntity<ApiResult<SearchPlannedPlaceResponse>>> searchPlannedPlace
             (@Parameter(description = "검색할 장소 이름 또는 키워드", example = "불국사")
-             @RequestParam String searchText){
+             @RequestParam String searchText) {
 
         SearchPlannedPlaceRequest searchPlannedPlaceRequest =
                 new SearchPlannedPlaceRequest(
@@ -119,7 +119,7 @@ public class TravelController {
     @SecurityRequirement(name = "JWT")
     public ResponseEntity<ApiResult<CreatePlanResponse>> addTravelOptionsAndRecommend
             (@RequestBody CreateTravelRequest createTravelRequest,
-             @AuthenticationPrincipal UserDetails userDetails){
+             @AuthenticationPrincipal UserDetails userDetails) {
 
         return ResponseEntity
                 .status(HttpStatus.OK)
@@ -144,7 +144,7 @@ public class TravelController {
     public ResponseEntity<ApiResult<TravelListResponse>> getTravelList
             (@Parameter(description = "조회할 여행 목록 구분", example = "UPCOMING")
              @RequestParam(defaultValue = "UPCOMING") TravelListFilter status,
-             @AuthenticationPrincipal UserDetails userDetails){
+             @AuthenticationPrincipal UserDetails userDetails) {
 
         return ResponseEntity
                 .status(HttpStatus
@@ -170,7 +170,7 @@ public class TravelController {
     public ResponseEntity<ApiResult<GetAiPlanResponse>> getAiPlanDetailAll
             (@Parameter(description = "조회할 여행 ID", example = "1")
              @RequestParam Long travelId,
-             @AuthenticationPrincipal UserDetails userDetails){
+             @AuthenticationPrincipal UserDetails userDetails) {
 
         return ResponseEntity
                 .status(HttpStatus
@@ -199,7 +199,7 @@ public class TravelController {
     @SecurityRequirement(name = "JWT")
     public ResponseEntity<ApiResult<SaveTravelResponse>> saveTravel
             (@RequestBody GetAiPlanRequest getAiPlanRequest,
-             @AuthenticationPrincipal UserDetails userDetails){
+             @AuthenticationPrincipal UserDetails userDetails) {
 
         return ResponseEntity
                 .status(HttpStatus
@@ -225,7 +225,7 @@ public class TravelController {
     @SecurityRequirement(name = "JWT")
     public ResponseEntity<ApiResult<ShareTravelResponse>> issueShareLink
             (@RequestBody GetAiPlanRequest getAiPlanRequest,
-             @AuthenticationPrincipal UserDetails userDetails){
+             @AuthenticationPrincipal UserDetails userDetails) {
 
         return ResponseEntity
                 .status(HttpStatus
@@ -249,7 +249,7 @@ public class TravelController {
     )
     public ResponseEntity<ApiResult<GetAiPlanResponse>> getSharedPlan
             (@Parameter(description = "공유 링크에 포함된 토큰")
-             @PathVariable String shareToken){
+             @PathVariable String shareToken) {
 
         return ResponseEntity
                 .status(HttpStatus
@@ -279,7 +279,7 @@ public class TravelController {
     @SecurityRequirement(name = "JWT")
     public ResponseEntity<ApiResult<EditPlanPreviewResponse>> previewEditPlan
             (@RequestBody EditPlanRequest editPlanRequest,
-             @AuthenticationPrincipal UserDetails userDetails){
+             @AuthenticationPrincipal UserDetails userDetails) {
 
         return ResponseEntity
                 .status(HttpStatus
@@ -307,7 +307,7 @@ public class TravelController {
     @SecurityRequirement(name = "JWT")
     public ResponseEntity<ApiResult<CreatePlanResponse>> confirmEditPlan
             (@RequestBody GetAiPlanRequest getAiPlanRequest,
-             @AuthenticationPrincipal UserDetails userDetails){
+             @AuthenticationPrincipal UserDetails userDetails) {
 
         return ResponseEntity
                 .status(HttpStatus
@@ -328,7 +328,7 @@ public class TravelController {
     @SecurityRequirement(name = "JWT")
     public ResponseEntity<ApiResult<Void>> cancelEditPlan
             (@RequestBody GetAiPlanRequest getAiPlanRequest,
-             @AuthenticationPrincipal UserDetails userDetails){
+             @AuthenticationPrincipal UserDetails userDetails) {
 
         travelFacade.cancelEditPlan(
                 getAiPlanRequest,

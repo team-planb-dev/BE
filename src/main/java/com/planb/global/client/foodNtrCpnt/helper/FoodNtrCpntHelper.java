@@ -15,7 +15,9 @@ public class FoodNtrCpntHelper {
 
         if (response == null
                 || response.body() == null
-                || response.body().items() == null) {
+                || response
+                        .body()
+                        .items() == null) {
 
             return List.of();
         }

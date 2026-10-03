@@ -14,7 +14,7 @@ public class MedicationInfoQueryService {
 
     private final MedicationInfoQueryRepository medicationInfoQueryRepository;
 
-    public void deleteAllMedicationInfoByHealthId(Long healthId){
+    public void deleteAllMedicationInfoByHealthId(Long healthId) {
         medicationInfoQueryRepository.deleteAllByHealthId(healthId);
     }
 

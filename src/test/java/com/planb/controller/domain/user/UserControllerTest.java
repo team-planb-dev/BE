@@ -114,8 +114,10 @@ class UserControllerTest {
         when(userFacade.findByUsername("testUser@example.com"))
                 .thenReturn(response);
 
-        mockMvc.perform(get("/api/v1/user/me"))
-                .andExpect(status().isOk())
+        mockMvc
+                .perform(get("/api/v1/user/me"))
+                .andExpect(status()
+                        .isOk())
                 .andExpect(jsonPath("$.data.userId")
                         .value(1L))
                 .andExpect(jsonPath("$.data.username")
@@ -151,8 +153,10 @@ class UserControllerTest {
         when(userFacade.delete("testUser@example.com"))
                 .thenReturn(response);
 
-        mockMvc.perform(delete("/api/v1/user/delete"))
-                .andExpect(status().isOk())
+        mockMvc
+                .perform(delete("/api/v1/user/delete"))
+                .andExpect(status()
+                        .isOk())
                 .andExpect(jsonPath("$.data.username")
                         .value("testUser@example.com"))
                 .andExpect(jsonPath("$.data.deletedAt")
@@ -176,10 +180,14 @@ class UserControllerTest {
                         BaseExceptionEnum.USER_NOT_FOUND
                 ));
 
-        mockMvc.perform(get("/api/v1/user/me"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.data").doesNotExist())
+        mockMvc
+                .perform(get("/api/v1/user/me"))
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(false))
+                .andExpect(jsonPath("$.data")
+                        .doesNotExist())
                 .andExpect(jsonPath("$.error.errorCode")
                         .value("BASE.EXCEPTION.USER_NOT_FOUND"))
                 .andExpect(jsonPath("$.error.message")
@@ -202,8 +210,10 @@ class UserControllerTest {
                         BaseExceptionEnum.USER_NOT_FOUND
                 ));
 
-        mockMvc.perform(delete("/api/v1/user/delete"))
-                .andExpect(status().isOk())
+        mockMvc
+                .perform(delete("/api/v1/user/delete"))
+                .andExpect(status()
+                        .isOk())
                 .andExpect(jsonPath("$.success")
                         .value(false))
                 .andExpect(jsonPath("$.data")
@@ -236,10 +246,12 @@ class UserControllerTest {
                 .thenReturn(response);
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get("/api/v1/user/check/duplication/username")
                                 .param("username", request.username()))
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(jsonPath("$.success")
                         .value(true))
                 .andExpect(jsonPath("$.data.duplicate")
@@ -271,10 +283,12 @@ class UserControllerTest {
                 .thenReturn(response);
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get("/api/v1/user/check/duplication/nickname")
                                 .param("nickname", request.nickname()))
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(jsonPath("$.success")
                         .value(true))
                 .andExpect(jsonPath("$.data.duplicate")
@@ -292,7 +306,8 @@ class UserControllerTest {
     void checkUsernameDuplicationRejectsBlank() throws Exception {
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get("/api/v1/user/check/duplication/username")
                                 .param("username", " "))
                 .andExpect(jsonPath("$.success")
@@ -309,7 +324,8 @@ class UserControllerTest {
     void checkNicknameDuplicationRejectsBlank() throws Exception {
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get("/api/v1/user/check/duplication/nickname")
                                 .param("nickname", " "))
                 .andExpect(jsonPath("$.success")

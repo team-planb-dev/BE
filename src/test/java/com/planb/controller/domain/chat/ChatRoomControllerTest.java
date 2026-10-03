@@ -68,7 +68,8 @@ class ChatRoomControllerTest {
                 .thenReturn(response);
 
         // when & then
-        mockMvc.perform(post("/api/v1/chat/room/create")
+        mockMvc
+                .perform(post("/api/v1/chat/room/create")
                         .contentType(MediaType
                                 .APPLICATION_JSON)
                         .content(objectMapper
@@ -105,10 +106,12 @@ class ChatRoomControllerTest {
                 .thenReturn(response);
 
         // when & then
-        mockMvc.perform(delete("/api/v1/chat/room/delete")
+        mockMvc
+                .perform(delete("/api/v1/chat/room/delete")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(jsonPath("$.success")
                         .value(true));
 

@@ -90,7 +90,8 @@ public class PlanEditValidator {
                 .schedules()
                 .stream()
                 .filter(slot -> isPlace(slot.courseType()))
-                .filter(slot -> !normalize(slot.locationName()).isBlank())
+                .filter(slot -> !normalize(slot.locationName())
+                        .isBlank())
                 .anyMatch(slot -> before
                         .stream()
                         .noneMatch(old -> normalize(old.locationName())
@@ -193,11 +194,17 @@ public class PlanEditValidator {
             );
         }
 
-        if (!sameDay(context, dayNumber, new CreatePlanAiResponse(response.planDays()))) {
+        if (!sameDay(
+                context,
+                dayNumber,
+                new CreatePlanAiResponse(response.planDays())
+        )) {
             return Optional.of("기대 " + expected + "; 날짜 불일치 또는 빈 슬롯; 실제 [" + actual + "]");
         }
 
-        if (response.failureReason() == null || !response.failureReason().isBlank()) {
+        if (response.failureReason() == null || !response
+                .failureReason()
+                .isBlank()) {
             return Optional.of("기대 " + expected + "; 성공 응답의 failureReason은 빈 문자열 필요");
         }
 

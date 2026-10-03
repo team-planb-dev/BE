@@ -42,7 +42,9 @@ public class PlanPlaceResolver {
         }
 
         if (slot.startTime() == null || slot.endTime() == null || slot.stayMinutes() == null
-                || slot.stayMinutes() < 0 || requiresPlace(slot) && slot.stayMinutes() == 0 || !slot.endTime().isAfter(slot.startTime())) {
+                || slot.stayMinutes() < 0 || requiresPlace(slot) && slot.stayMinutes() == 0 || !slot
+                        .endTime()
+                        .isAfter(slot.startTime())) {
             return Validation.failure("유효하지 않은 일정 시간");
         }
 
@@ -86,14 +88,18 @@ public class PlanPlaceResolver {
             return Validation.failure("검색 원본의 좌표 누락 또는 유효하지 않은 좌표");
         }
 
-        if (usedPlaces.contains(candidate.candidateId()) || usedPlaces.contains(candidate.name().strip())) {
+        if (usedPlaces.contains(candidate.candidateId()) || usedPlaces.contains(candidate
+                        .name()
+                        .strip())) {
             return Validation.failure("이미 사용한 장소: " + candidate.name());
         }
 
         RestaurantDetail restaurant = slot.restaurantDetail();
 
         if (isMeal(slot.courseType()) && (restaurant == null || blank(restaurant.menuName())
-                || usedMenus.contains(restaurant.menuName().strip()))) {
+                || usedMenus.contains(restaurant
+                                .menuName()
+                                .strip()))) {
             return Validation.failure("음식점 메뉴 누락 또는 중복");
         }
 
@@ -148,10 +154,15 @@ public class PlanPlaceResolver {
             places.add(slot.candidateId());
         }
 
-        places.add(slot.locationName().strip());
+        places.add(slot
+                        .locationName()
+                        .strip());
 
         if (slot.restaurantDetail() != null) {
-            menus.add(slot.restaurantDetail().menuName().strip());
+            menus.add(slot
+                            .restaurantDetail()
+                            .menuName()
+                            .strip());
         }
     }
 
@@ -167,7 +178,12 @@ public class PlanPlaceResolver {
         PlanScheduleDetail slot = fromExisting(old);
 
         if (!requiresPlace(slot)) {
-            return validate(slot, new PlaceCandidateContext(), places, menus);
+            return validate(
+                    slot,
+                    new PlaceCandidateContext(),
+                    places,
+                    menus
+            );
         }
 
         if (!validCombination(slot)) {
@@ -179,7 +195,9 @@ public class PlanPlaceResolver {
         }
 
         if (slot.startTime() == null || slot.endTime() == null || slot.stayMinutes() == null
-                || slot.stayMinutes() <= 0 || !slot.endTime().isAfter(slot.startTime())) {
+                || slot.stayMinutes() <= 0 || !slot
+                        .endTime()
+                        .isAfter(slot.startTime())) {
             return Validation.failure("유효하지 않은 일정 시간");
         }
 
@@ -191,14 +209,18 @@ public class PlanPlaceResolver {
             return Validation.failure("일정 시간과 체류시간 불일치");
         }
 
-        if (places.contains(slot.locationName().strip())) {
+        if (places.contains(slot
+                        .locationName()
+                        .strip())) {
             return Validation.failure("이미 사용한 장소: " + slot.locationName());
         }
 
         RestaurantDetail restaurant = slot.restaurantDetail();
 
         if (isMeal(slot.courseType()) && (restaurant == null || blank(restaurant.menuName())
-                || menus.contains(restaurant.menuName().strip()))) {
+                || menus.contains(restaurant
+                                .menuName()
+                                .strip()))) {
             return Validation.failure("음식점 메뉴 누락 또는 중복");
         }
 
@@ -231,7 +253,7 @@ public class PlanPlaceResolver {
         );
     }
 
-    // 저장된 일정 슬롯을 AI 응답과 같은 형태로 옮긴다. 값은 그대로 두고 형태만 맞춘다.
+    // 값 변경 없는 저장 일정 슬롯의 AI 응답 형태 변환
     public PlanScheduleDetail fromExisting(GetAiPlanResponse.PlanScheduleDetail old) {
 
         GetAiPlanResponse.RestaurantDetail r = old.restaurantDetail();
@@ -249,7 +271,11 @@ public class PlanPlaceResolver {
         );
 
         MedicationSchedule medication = old.medication() == null ? null : new MedicationSchedule(
-                old.medication().intervalMinutes(), old.medication().description());
+                old
+                        .medication()
+                        .intervalMinutes(), old
+                        .medication()
+                        .description());
 
         return new PlanScheduleDetail(
                 old.scheduleType(),
@@ -290,7 +316,7 @@ public class PlanPlaceResolver {
         return aligned == null ? slot : withScheduleType(slot, aligned);
     }
 
-    // 시각으로 판단하는 식사 구분. 시각이 없으면 판단 근거가 없으므로 교정하지 않는다.
+    // 시각 기준 식사 구분, 시각이 없으면 교정 제외
     private ScheduleType mealTypeAt(LocalTime startTime) {
 
         if (startTime == null) {
@@ -327,10 +353,11 @@ public class PlanPlaceResolver {
                 slot.tags(),
                 slot.medication(),
                 slot.restaurantDetail(),
-                slot.candidateId());
+                slot.candidateId()
+        );
     }
 
-    // 실패 사유에 실제 조합을 남긴다. 값이 없으면 어느 조합이 어긋났는지 로그만으로 좁힐 수 없다.
+    // 로그에서 어긋난 조합을 식별하기 위한 실패 사유 기록
     private String invalidCombinationReason(PlanScheduleDetail slot) {
 
         return "허용되지 않은 scheduleType/courseType 조합: "
@@ -353,14 +380,18 @@ public class PlanPlaceResolver {
 
     private boolean allowed(CourseType type, Candidate candidate) {
 
-        boolean tour = candidate.candidateId().startsWith("tour:");
+        boolean tour = candidate
+                .candidateId()
+                .startsWith("tour:");
 
         return switch (type) {
             case ATTRACTION, MUST_HAVE -> Objects.equals(candidate.type(), tour ? "12" : "AT4")
                     || !tour && blank(candidate.type()) && verifiedAttractionCategory(candidate.categoryName());
 
             case PARK_WALK -> Objects.equals(candidate.type(), tour ? "12" : "AT4")
-                    && candidate.categoryName() != null && candidate.categoryName().contains("공원");
+                    && candidate.categoryName() != null && candidate
+                            .categoryName()
+                            .contains("공원");
 
             case CAFE_REST -> !tour && "CE7".equals(candidate.type());
 
@@ -370,7 +401,7 @@ public class PlanPlaceResolver {
         };
     }
 
-    // 그룹 코드가 없는 경우에도 검색 원본의 명시적인 관광·문화유적 분류만 인정한다.
+    // 그룹 코드 누락 시 검색 원본의 명시적 관광·문화유적 분류만 허용
     private boolean verifiedAttractionCategory(String categoryName) {
 
         if (blank(categoryName)) {
@@ -383,7 +414,8 @@ public class PlanPlaceResolver {
                 "문화유적",
                 "고궁,궁",
                 "성,성곽",
-                "절,사찰");
+                "절,사찰"
+        );
 
         return java.util.Arrays
                 .stream(categoryName.split(">"))

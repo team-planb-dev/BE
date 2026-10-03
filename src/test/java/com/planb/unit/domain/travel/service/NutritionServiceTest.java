@@ -92,7 +92,8 @@ class NutritionServiceTest {
         );
 
         // when & then
-        StepVerifier.create(
+        StepVerifier
+                .create(
                         nutritionService.evaluateFoodNutrition(
                                 foodName,
                                 diseaseTypes
@@ -100,7 +101,9 @@ class NutritionServiceTest {
                 )
                 .expectNextMatches(result ->
                         result.status() == NutritionEvaluationStatus.NOT_EVALUABLE
-                                && result.evaluations().isEmpty()
+                                && result
+                                        .evaluations()
+                                        .isEmpty()
                                 && result.carbohydrate() == 50.0
                                 && result.sodium() == 600.0
                                 && result.fat() == 3.0
@@ -164,7 +167,8 @@ class NutritionServiceTest {
         );
 
         // when & then
-        StepVerifier.create(
+        StepVerifier
+                .create(
                         nutritionService.evaluateFoodNutrition(
                                 foodName,
                                 diseaseTypes
@@ -172,7 +176,9 @@ class NutritionServiceTest {
                 )
                 .expectNextMatches(result ->
                         result.status() == NutritionEvaluationStatus.NOT_EVALUABLE
-                                && result.evaluations().isEmpty()
+                                && result
+                                        .evaluations()
+                                        .isEmpty()
                                 && result.carbohydrate() == 55.0
                                 && result.sodium() == 650.0
                                 && result.fat() == 3.0
@@ -198,7 +204,8 @@ class NutritionServiceTest {
         );
 
         // when & then
-        StepVerifier.create(
+        StepVerifier
+                .create(
                         nutritionService.evaluateFoodNutrition(
                                 foodName,
                                 diseaseTypes
@@ -208,7 +215,9 @@ class NutritionServiceTest {
                         result.diseaseTypes() == diseaseTypes
                                 && result.status()
                                 == NutritionEvaluationStatus.UNAVAILABLE
-                                && result.evaluations().isEmpty()
+                                && result
+                                        .evaluations()
+                                        .isEmpty()
                                 && result.carbohydrate() == null
                                 && result.sodium() == null
                                 && result.fat() == null
@@ -245,7 +254,8 @@ class NutritionServiceTest {
         );
 
         // when & then
-        StepVerifier.create(
+        StepVerifier
+                .create(
                         nutritionService.evaluateFoodNutrition(
                                 foodName,
                                 diseaseTypes
@@ -253,7 +263,9 @@ class NutritionServiceTest {
                 )
                 .expectNextMatches(result ->
                         result.status() == NutritionEvaluationStatus.NOT_EVALUABLE
-                                && result.evaluations().isEmpty()
+                                && result
+                                        .evaluations()
+                                        .isEmpty()
                                 && result.carbohydrate() == null
                                 && result.sodium() == 600.0
                                 && result.fat() == 3.0
@@ -290,7 +302,8 @@ class NutritionServiceTest {
         );
 
         // when & then
-        StepVerifier.create(
+        StepVerifier
+                .create(
                         nutritionService.evaluateFoodNutrition(
                                 foodName,
                                 diseaseTypes
@@ -299,7 +312,9 @@ class NutritionServiceTest {
                 .expectNextMatches(result ->
                         result.status()
                                 == NutritionEvaluationStatus.NOT_EVALUABLE
-                                && result.evaluations().isEmpty()
+                                && result
+                                        .evaluations()
+                                        .isEmpty()
                                 && result.carbohydrate() == 20.0
                                 && result.sodium() == 200.0
                                 && result.fat() == 3.0
@@ -326,7 +341,8 @@ class NutritionServiceTest {
         );
 
         // when & then
-        StepVerifier.create(
+        StepVerifier
+                .create(
                         nutritionService.evaluateFoodNutrition(
                                 foodName,
                                 diseaseTypes
@@ -335,7 +351,9 @@ class NutritionServiceTest {
                 .expectNextMatches(result ->
                         result.status()
                                 == NutritionEvaluationStatus.UNAVAILABLE
-                                && result.evaluations().isEmpty()
+                                && result
+                                        .evaluations()
+                                        .isEmpty()
                                 && result.carbohydrate() == null
                                 && result.sodium() == null
                                 && result.fat() == null
@@ -371,7 +389,8 @@ class NutritionServiceTest {
         );
 
         // when & then
-        StepVerifier.create(
+        StepVerifier
+                .create(
                         nutritionService.evaluateFoodNutrition(
                                 foodName,
                                 standardFoodName,
@@ -380,7 +399,9 @@ class NutritionServiceTest {
                 )
                 .expectNextMatches(result ->
                         result.status() == NutritionEvaluationStatus.NOT_EVALUABLE
-                                && result.evaluations().isEmpty()
+                                && result
+                                        .evaluations()
+                                        .isEmpty()
                                 && result.carbohydrate() == 10.0
                                 && result.sodium() == 100.0
                 )
@@ -414,7 +435,8 @@ class NutritionServiceTest {
         );
 
         // when & then
-        StepVerifier.create(
+        StepVerifier
+                .create(
                         nutritionService.evaluateFoodNutrition(
                                 foodName,
                                 null,
@@ -447,7 +469,8 @@ class NutritionServiceTest {
         );
 
         // when & then
-        StepVerifier.create(
+        StepVerifier
+                .create(
                         nutritionService.evaluateFoodNutrition(
                                 foodName,
                                 foodName,
@@ -484,8 +507,8 @@ class NutritionServiceTest {
                 "0.0"
         );
 
-        // 두 조회가 예산을 나눠 쓰면 합이 상한을 넘어 타임아웃이 난다.
-        // Mono는 구독 시점에 만들어야 가상시간 스케줄러를 잡는다.
+        // 두 조회의 독립 예산에 따른 합계 시간 초과 가능성
+        // 가상시간 스케줄러 적용을 위한 구독 시점 Mono 생성
         AtomicInteger calls = new AtomicInteger();
 
         when(foodNtrCpntHandler.getFoodNutrition(
@@ -498,7 +521,8 @@ class NutritionServiceTest {
                 .delayElement(Duration.ofSeconds(10)));
 
         // when & then
-        StepVerifier.withVirtualTime(() ->
+        StepVerifier
+                .withVirtualTime(() ->
                         nutritionService.evaluateFoodNutrition(
                                 foodName,
                                 standardFoodName,

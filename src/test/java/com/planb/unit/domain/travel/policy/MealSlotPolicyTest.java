@@ -232,7 +232,13 @@ class MealSlotPolicyTest {
 
         return new CreatePlanAiResponse.PlanDayDetail(
                 dayNumber,
-                LocalDate.of(2026, 9, 12).plusDays(dayNumber - 1L),
+                LocalDate
+                        .of(
+                        2026,
+                        9,
+                        12
+                )
+                        .plusDays(dayNumber - 1L),
                 List.of(schedules)
         );
     }

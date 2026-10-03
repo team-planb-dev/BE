@@ -118,8 +118,10 @@ public final class OpenAiChatCompletionStub implements AutoCloseable {
         String plan = fixture(
                 "travel-empty-plan.json",
                 Map.of(
-                        "startDate", startDate.toString(),
-                        "endDate", endDate.toString()
+                        "startDate",
+                        startDate.toString(),
+                        "endDate",
+                        endDate.toString()
                 )
         );
 
@@ -134,7 +136,9 @@ public final class OpenAiChatCompletionStub implements AutoCloseable {
 
     public String baseUrl() {
 
-        return "http://127.0.0.1:" + server.getAddress().getPort() + "/v1";
+        return "http://127.0.0.1:" + server
+                .getAddress()
+                .getPort() + "/v1";
     }
 
     public void enqueueFixtures(String... fixtureNames) {
@@ -207,7 +211,9 @@ public final class OpenAiChatCompletionStub implements AutoCloseable {
             try {
                 Thread.sleep(responseDelay);
             } catch (InterruptedException exception) {
-                Thread.currentThread().interrupt();
+                Thread
+                        .currentThread()
+                        .interrupt();
                 exchange.close();
 
                 return;

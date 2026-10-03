@@ -68,7 +68,7 @@ public class TravelFacade {
      * 여행 지역의 향토 음식 추천을 조회
      */
     public MakeRecommendFoodResponse showRecommendFoods
-    (MakeRecommendFoodsRequest request){
+    (MakeRecommendFoodsRequest request) {
         return travelService.makeRecommendFoodResponse(request); // 향토 음식 추천 조회
     }
 
@@ -76,7 +76,7 @@ public class TravelFacade {
      * 일정에 추가할 장소 후보를 검색
      */
     public Mono<SearchPlannedPlaceResponse> searchPlannedPlaceByText
-    (SearchPlannedPlaceRequest searchPlannedPlaceRequest){
+    (SearchPlannedPlaceRequest searchPlannedPlaceRequest) {
 
         return plannedPlaceService.searchPlannedPlace(searchPlannedPlaceRequest); // 장소 후보 검색
     }

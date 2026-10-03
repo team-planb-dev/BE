@@ -5,14 +5,19 @@ public record UserAuthCache(Long userId,
                             String role,
                             String sessionId) {
 
-    // 세션 식별자가 필요 없는 경로용.
-    // UserDetailsService는 DB에서 회원을 읽을 뿐이라 발급된 세션을 알지 못한다.
+    // 세션 식별자가 필요 없는 경로용
+    // DB 회원 조회만 수행하는 UserDetailsService의 세션 정보 부재
     public UserAuthCache(
             Long userId,
             String username,
             String role
     ) {
 
-        this(userId, username, role, null);
+        this(
+                userId,
+                username,
+                role,
+                null
+        );
     }
 }

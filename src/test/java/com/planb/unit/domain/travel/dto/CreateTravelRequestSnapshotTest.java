@@ -18,7 +18,8 @@ class CreateTravelRequestSnapshotTest {
 
         List<String> localFoods = new ArrayList<>(List.of("황남빵"));
         List<String> recommendFoods = new ArrayList<>(List.of("쌈밥"));
-        Travel travel = Travel.builder()
+        Travel travel = Travel
+                .builder()
                 .localFoods(localFoods)
                 .recommendFoods(recommendFoods)
                 .build();

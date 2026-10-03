@@ -40,7 +40,9 @@ class TravelTransactionServiceTest {
                 .getTransaction(definition.capture());
         verify(transactionManager)
                 .commit(any());
-        assertTrue(definition.getValue().isReadOnly());
+        assertTrue(definition
+                        .getValue()
+                        .isReadOnly());
         assertEquals("snapshot", result);
     }
 
@@ -65,7 +67,9 @@ class TravelTransactionServiceTest {
                 .getTransaction(definition.capture());
         verify(transactionManager)
                 .rollback(any());
-        assertFalse(definition.getValue().isReadOnly());
+        assertFalse(definition
+                        .getValue()
+                        .isReadOnly());
         assertEquals("write failed", failure.getMessage());
     }
 }

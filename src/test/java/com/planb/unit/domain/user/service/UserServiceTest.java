@@ -104,7 +104,8 @@ class UserServiceTest {
         userService.save(user);
 
         // then
-        verify(userRepository).save(user);
+        verify(userRepository)
+                .save(user);
     }
 
     @Test
@@ -139,7 +140,8 @@ class UserServiceTest {
     @DisplayName("복구 답변 불일치 시 비밀번호 변경 거부")
     void resetPasswordWithWrongRecoveryAnswer() {
 
-        User user = User.builder()
+        User user = User
+                .builder()
                 .username("test@example.com")
                 .accountRecovery(AccountRecovery.of(RecoveryQuestion.FIRST_PET, "콩이"))
                 .build();
@@ -161,7 +163,8 @@ class UserServiceTest {
     @DisplayName("복구 답변 일치 시 비밀번호 변경")
     void resetPasswordWithMatchingRecoveryAnswer() {
 
-        User user = User.builder()
+        User user = User
+                .builder()
                 .username("test@example.com")
                 .accountRecovery(AccountRecovery.of(RecoveryQuestion.FIRST_PET, "콩이"))
                 .build();

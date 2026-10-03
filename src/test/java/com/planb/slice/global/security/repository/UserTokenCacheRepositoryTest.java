@@ -74,9 +74,11 @@ class UserTokenCacheRepositoryTest {
     // 테스트 후 플러싱
     @AfterEach
     void tearDown() {
-        Objects.requireNonNull(
+        Objects
+                .requireNonNull(
                         refreshTokenRedisTemplate.getConnectionFactory()
-        ).getConnection()
+        )
+                .getConnection()
                 .serverCommands()
                 .flushAll();
     }
@@ -98,7 +100,9 @@ class UserTokenCacheRepositoryTest {
                 expiredMs
         );
 
-        String result = userTokenCacheRepository.findByKey(key).toString();
+        String result = userTokenCacheRepository
+                .findByKey(key)
+                .toString();
 
         // then
         assertThat(result)

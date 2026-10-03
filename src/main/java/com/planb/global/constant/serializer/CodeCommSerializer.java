@@ -15,7 +15,7 @@ public class CodeCommSerializer extends StdSerializer<CodeCommInterface> {
 
     protected CodeCommSerializer(Class<CodeCommInterface> t) {
         super(t); // Jackson이 직렬화 할때 ,
-        // 타입 정보 없이도 Serializer를 생성할 수 있도록함
+        // 타입 정보 없는 Serializer 생성 지원
     }
 
     // 자동으로 enum 클래스의 필드를 직렬화

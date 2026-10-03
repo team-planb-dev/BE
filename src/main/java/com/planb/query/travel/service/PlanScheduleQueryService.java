@@ -14,7 +14,7 @@ public class PlanScheduleQueryService {
     private final PlanScheduleQueryRepository planScheduleQueryRepository;
 
     // PlanDayId 리스트로 PlanSchedule 객체 리스트 조회하기
-    public List<PlanSchedule> getPlanSchedulesByPlanDayIds(List<Long> planDayIds){
+    public List<PlanSchedule> getPlanSchedulesByPlanDayIds(List<Long> planDayIds) {
         return planScheduleQueryRepository.findPlanSchedulesByPlanDayIds(planDayIds);
     }
 }

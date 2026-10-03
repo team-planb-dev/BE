@@ -39,7 +39,8 @@ class PlanScheduleServiceTest {
     void makePlanScheduleListWithMedication() {
 
         PlanDay planDay =
-                PlanDay.builder()
+                PlanDay
+                        .builder()
                         .dayNumber(1)
                         .build();
 
@@ -175,7 +176,8 @@ class PlanScheduleServiceTest {
     void makePlanScheduleListWithoutMedication() {
 
         PlanDay planDay =
-                PlanDay.builder()
+                PlanDay
+                        .builder()
                         .dayNumber(1)
                         .build();
 
@@ -237,7 +239,8 @@ class PlanScheduleServiceTest {
 
         List<PlanSchedule> planScheduleList =
                 List.of(
-                        PlanSchedule.builder()
+                        PlanSchedule
+                                .builder()
                                 .scheduleType(
                                         ScheduleType.LUNCH
                                 )
@@ -245,7 +248,8 @@ class PlanScheduleServiceTest {
                                         CourseType.RESTAURANT
                                 )
                                 .build(),
-                        PlanSchedule.builder()
+                        PlanSchedule
+                                .builder()
                                 .scheduleType(
                                         ScheduleType.ACTIVITY
                                 )
@@ -268,13 +272,15 @@ class PlanScheduleServiceTest {
     void findAllByPlanDayIn() {
 
         PlanDay planDay =
-                PlanDay.builder()
+                PlanDay
+                        .builder()
                         .dayNumber(1)
                         .build();
 
         List<PlanSchedule> planSchedules =
                 List.of(
-                        PlanSchedule.builder()
+                        PlanSchedule
+                                .builder()
                                 .planDay(planDay)
                                 .scheduleType(ScheduleType.LUNCH)
                                 .courseType(CourseType.RESTAURANT)
@@ -307,7 +313,8 @@ class PlanScheduleServiceTest {
     void deleteAllByPlanDayIn() {
 
         PlanDay planDay =
-                PlanDay.builder()
+                PlanDay
+                        .builder()
                         .dayNumber(1)
                         .build();
 

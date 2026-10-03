@@ -22,10 +22,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @RequiredArgsConstructor
 public class NutritionService {
 
-    // 식약처 API가 죽으면 상대 게이트웨이가 60초를 끌고 504를 준다.
-    // 그동안 AI 호출 전체가 매달리고, 메뉴 수만큼 곱해져 사용자가 몇 분을 기다린다.
-    // 영양정보는 없어도 일정을 만들 수 있다. 빨리 포기하고 조회 불가로 넘긴다.
-    // 정상 응답도 4~6초 걸린다. 그보다 넉넉히 잡아 살아 있는 응답을 자르지 않는다.
+    // 식약처 API 장애 시 게이트웨이의 60초 지연과 504 응답
+    // 메뉴 수만큼 누적되는 AI 호출·사용자 대기시간
+    // 일정 생성에 필수가 아닌 영양정보의 조기 조회 포기
+    // 정상 응답 4~6초를 고려한 조회 시간 상한
     private static final Duration LOOKUP_TIMEOUT =
             Duration.ofSeconds(15);
 
@@ -39,13 +39,15 @@ public class NutritionService {
             List<DiseaseType> diseaseTypes
     ) {
 
-        return evaluateFoodNutrition(foodName, null, diseaseTypes);
+        return evaluateFoodNutrition(
+                foodName,
+                null,
+                diseaseTypes
+        );
     }
 
     /**
-     * 메뉴명 조회와 표준 품목명 재조회에 따른 영양 평가
-     * @param foodName 식당이 내건 메뉴명
-     * @param standardFoodName 같은 음식의 표준 품목명, 없으면 null 허용
+     * 메뉴명 조회와 표준 품목명 재조회에 따른 영양 평가, 표준 품목명은 선택값
      */
     public Mono<NutritionEvaluationResult> evaluateFoodNutrition(
             String foodName,
@@ -70,7 +72,11 @@ public class NutritionService {
                         }
 
                         return Mono.just(
-                                evaluated(items, foodName, diseaseTypes)
+                                evaluated(
+                                        items,
+                                        foodName,
+                                        diseaseTypes
+                                )
                         );
                     })
                     .onErrorResume(failure -> {
@@ -97,15 +103,18 @@ public class NutritionService {
             boolean retried
     ) {
 
-        Counter.builder("planb.travel.nutrition.evaluation")
-                .tag("status", status.name().toLowerCase())
+        Counter
+                .builder("planb.travel.nutrition.evaluation")
+                .tag("status", status
+                        .name()
+                        .toLowerCase())
                 .tag("retried", Boolean.toString(retried))
                 .register(meterRegistry)
                 .increment();
     }
 
-    // 조회 한 건에 상한을 건다. 재조회는 첫 조회와 예산을 나눠 쓰지 않는다.
-    // 합쳐서 재면 첫 조회가 느린 날 재조회가 시작도 못 하고 잘린다.
+    // 조회 건별 시간 상한과 재조회 독립 예산
+    // 느린 첫 조회에 따른 재조회 예산 소진 방지
     private Mono<List<FoodNtrCpntResponse.Item>> lookup(String name) {
 
         return foodNtrCpntHandler
@@ -115,7 +124,7 @@ public class NutritionService {
                 .timeout(LOOKUP_TIMEOUT);
     }
 
-    // 표준 품목명이 비어 있거나 메뉴명과 같으면 같은 조회를 두 번 하는 셈이다
+    // 표준 품목명 누락·중복 시 재조회 제외
     private boolean retryable(
             String foodName,
             String standardFoodName
@@ -143,7 +152,7 @@ public class NutritionService {
                 );
 
         // 현재 응답에는 신뢰 가능한 1회분량이 없다. 기준량 수치는 보존하되
-        // 한 끼 임계값으로 평가하거나 건강 태그를 만들지 않는다.
+        // 조회 불가 영양정보의 식사 임계값 평가·건강 태그 생성 제외
         return new NutritionEvaluationResult(
                 List.copyOf(diseaseTypes),
                 NutritionEvaluationStatus.NOT_EVALUABLE,
@@ -154,7 +163,7 @@ public class NutritionService {
         );
     }
 
-    // 조회하지 못한 음식의 결과, 수치와 평가가 모두 비어 있다
+    // 조회 실패 음식의 빈 영양 수치·평가
     private NutritionEvaluationResult unavailable(
             List<DiseaseType> diseaseTypes
     ) {
@@ -175,10 +184,12 @@ public class NutritionService {
             String foodName
     ) {
 
-        return items.stream()
+        return items
+                .stream()
                 .filter(item ->
                         item.foodName() != null
-                                && item.foodName()
+                                && item
+                                        .foodName()
                                 .trim()
                                 .equalsIgnoreCase(
                                         foodName.trim()

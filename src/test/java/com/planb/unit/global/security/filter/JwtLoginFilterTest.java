@@ -92,7 +92,8 @@ class JwtLoginFilterTest {
 
         request
                 .setContent(
-                objectMapper.writeValueAsString(loginRequest)
+                objectMapper
+                        .writeValueAsString(loginRequest)
                         .getBytes(StandardCharsets.UTF_8));
 
         MockHttpServletResponse response =
@@ -180,7 +181,8 @@ class JwtLoginFilterTest {
                         eq(username),
                         eq(role),
                         eq("sess-new"),
-                        any(Long.class)))
+                        any(Long.class)
+                ))
                 .thenReturn("accessToken");
 
         when(jwtUtil
@@ -190,7 +192,8 @@ class JwtLoginFilterTest {
                         eq(username),
                         eq(role),
                         eq("sess-new"),
-                        any(Long.class)))
+                        any(Long.class)
+                ))
                 .thenReturn("refreshToken");
 
         Cookie refreshCookie =
@@ -206,10 +209,11 @@ class JwtLoginFilterTest {
         // when
         testJwtLoginFilter
                 .callSuccessfulAuthentication(
-                        request,
-                        response,
-                        filterChain,
-                        authentication);
+                request,
+                response,
+                filterChain,
+                authentication
+        );
 
         // then
         Cookie responseRefreshCookie = response
@@ -255,14 +259,16 @@ class JwtLoginFilterTest {
         assertThat(savedCache.sessionId())
                 .isEqualTo("sess-new");
 
-        // 옛 세션 정리가 새 refresh 저장보다 먼저 일어나야 한다.
-        // 순서가 뒤집히면 방금 발급한 refresh를 지운다.
+        // 새 refresh 저장보다 앞서는 기존 세션 정리
+        // 순서 역전 시 신규 refresh 삭제 방지
         InOrder inOrder = inOrder(refreshService);
 
-        inOrder.verify(refreshService)
+        inOrder
+                .verify(refreshService)
                 .deleteRefreshByUsername(username);
 
-        inOrder.verify(refreshService)
+        inOrder
+                .verify(refreshService)
                 .addRefresh(username, "refreshToken");
 
         verify(jwtUtil, times(1))
@@ -329,22 +335,25 @@ class JwtLoginFilterTest {
     // 테스트 접근 클래스
     private static class TestJwtLoginFilter
             extends JwtLoginFilter {
-        public TestJwtLoginFilter
-                (ObjectMapper objectMapper,
-                 AuthenticationManager authenticationManager,
-                 JwtUtil jwtUtil,
-                 RefreshService refreshService,
-                 UserAuthCacheService userAuthCacheService,
-                 CookieUtil cookieUtil,
-                 SessionIdGenerator sessionIdGenerator) {
+        public TestJwtLoginFilter(
+                ObjectMapper objectMapper,
+                AuthenticationManager authenticationManager,
+                JwtUtil jwtUtil,
+                RefreshService refreshService,
+                UserAuthCacheService userAuthCacheService,
+                CookieUtil cookieUtil,
+                SessionIdGenerator sessionIdGenerator
+        ) {
 
-            super(objectMapper,
+            super(
+                    objectMapper,
                     authenticationManager,
                     jwtUtil,
                     refreshService,
                     userAuthCacheService,
                     cookieUtil,
-                    sessionIdGenerator);
+                    sessionIdGenerator
+            );
         }
 
 

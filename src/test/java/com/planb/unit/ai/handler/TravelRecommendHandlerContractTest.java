@@ -117,28 +117,51 @@ class TravelRecommendHandlerContractTest {
                 .apply(planWithAttractions(1, 0));
 
         assertNotNull(failures);
-        assertTrue(failures.stream().anyMatch(failure ->
+        assertTrue(failures
+                        .stream()
+                        .anyMatch(failure ->
                 failure.contains("day1].schedules: 관광지 3개 필요 / 실제 1개 / 추가 2개")));
-        assertTrue(failures.stream().anyMatch(failure ->
+        assertTrue(failures
+                        .stream()
+                        .anyMatch(failure ->
                 failure.contains("유지 candidateId [tour:0-0]")));
-        assertTrue(failures.stream().anyMatch(failure ->
+        assertTrue(failures
+                        .stream()
+                        .anyMatch(failure ->
                 failure.contains("day2].schedules: 관광지 3개 필요 / 실제 0개 / 추가 3개")));
-        assertTrue(failures.stream().anyMatch(failure ->
+        assertTrue(failures
+                        .stream()
+                        .anyMatch(failure ->
                 failure.contains("유지 candidateId []")));
-        assertTrue(failures.stream().allMatch(failure ->
+        assertTrue(failures
+                        .stream()
+                        .allMatch(failure ->
                 failure.contains("최초 관광지 candidate 목록 안에서 교정")));
 
         List<String> combinedFailures = validation
                 .getValue()
-                .apply(planWithAttractions(1, 0, 3));
+                .apply(planWithAttractions(
+                        1,
+                        0,
+                        3
+                ));
 
-        assertTrue(combinedFailures.stream().anyMatch(failure ->
+        assertTrue(combinedFailures
+                        .stream()
+                        .anyMatch(failure ->
                 failure.contains("여행 일수 2일 필요 / 실제 3일")));
-        assertTrue(combinedFailures.stream().anyMatch(failure ->
+        assertTrue(combinedFailures
+                        .stream()
+                        .anyMatch(failure ->
                 failure.contains("day1].schedules: 관광지 3개 필요 / 실제 1개")));
-        assertTrue(combinedFailures.stream().anyMatch(failure ->
+        assertTrue(combinedFailures
+                        .stream()
+                        .anyMatch(failure ->
                 failure.contains("day2].schedules: 관광지 3개 필요 / 실제 0개")));
-        assertTrue(validation.getValue().apply(planWithAttractions(3, 3)).isEmpty());
+        assertTrue(validation
+                        .getValue()
+                        .apply(planWithAttractions(3, 3))
+                        .isEmpty());
     }
 
     @Test
@@ -189,7 +212,8 @@ class TravelRecommendHandlerContractTest {
                 )
         ));
 
-        handler().collectRestaurantCandidates(
+        handler()
+                .collectRestaurantCandidates(
                 mealAppliedContext(),
                 candidates
         );
@@ -360,14 +384,16 @@ class TravelRecommendHandlerContractTest {
                                 15,
                                 "kakao:8137362",
                                 "AT4",
-                                "여행 > 관광,명소"));
+                                "여행 > 관광,명소"
+                        ));
 
         doReturn(new PlaceReselectResponse("kakao:8137362", null))
                 .when(openAiClient)
                 .call(
-                        any(AiPrompt.class),
-                        any(BeanOutputConverter.class),
-                        any(Object[].class));
+                any(AiPrompt.class),
+                any(BeanOutputConverter.class),
+                any(Object[].class)
+        );
 
         PlanScheduleDetail result = handler()
                 .reselectPlace(
@@ -398,9 +424,10 @@ class TravelRecommendHandlerContractTest {
         doReturn(new PlaceReselectResponse("kakao:missing", null))
                 .when(openAiClient)
                 .call(
-                        any(AiPrompt.class),
-                        any(BeanOutputConverter.class),
-                        any(Object[].class));
+                any(AiPrompt.class),
+                any(BeanOutputConverter.class),
+                any(Object[].class)
+        );
 
         PlanScheduleDetail result = handler()
                 .reselectPlace(
@@ -427,14 +454,16 @@ class TravelRecommendHandlerContractTest {
                                 null,
                                 "kakao:1",
                                 "AT4",
-                                "여행 > 관광,명소"));
+                                "여행 > 관광,명소"
+                        ));
 
         doReturn(new PlaceReselectResponse("kakao:1", null))
                 .when(openAiClient)
                 .call(
-                        any(AiPrompt.class),
-                        any(BeanOutputConverter.class),
-                        any(Object[].class));
+                any(AiPrompt.class),
+                any(BeanOutputConverter.class),
+                any(Object[].class)
+        );
 
         PlanScheduleDetail result = handler()
                 .reselectPlace(
@@ -453,7 +482,8 @@ class TravelRecommendHandlerContractTest {
                 createPlanAiResponseConverter,
                 editPlanAiResponseConverter,
                 rebuildPlanDayResponseConverter,
-                tourismTool);
+                tourismTool
+        );
     }
 
     private Kor2RestaurantIntroResponse intro(String firstMenu) {
@@ -494,7 +524,8 @@ class TravelRecommendHandlerContractTest {
                 null,
                 candidateId,
                 "AT4",
-                "여행 > 관광,명소");
+                "여행 > 관광,명소"
+        );
     }
 
     private PlanScheduleDetail slot() {
@@ -515,7 +546,8 @@ class TravelRecommendHandlerContractTest {
                 Set.of(),
                 null,
                 null,
-                null);
+                null
+        );
     }
 
     private TravelPlanContext travelPlanContext(WalkType walkType) {
@@ -524,7 +556,11 @@ class TravelRecommendHandlerContractTest {
                 "서울 여행",
                 "서울",
                 "종로구",
-                LocalDate.of(2026, 9, 10),
+                LocalDate.of(
+                        2026,
+                        9,
+                        10
+                ),
                 DateType.ONE_NIGHT_TWO_DAYS,
                 Transportation.TRANSIT,
                 "서울역",
@@ -566,7 +602,12 @@ class TravelRecommendHandlerContractTest {
                         .mapToObj(dayIndex ->
                                 new CreatePlanAiResponse.PlanDayDetail(
                                         dayIndex + 1,
-                                        LocalDate.of(2026, 9, 10)
+                                        LocalDate
+                                                .of(
+                                                2026,
+                                                9,
+                                                10
+                                        )
                                                 .plusDays(dayIndex),
                                         attractions(counts[dayIndex], dayIndex)
                                 )

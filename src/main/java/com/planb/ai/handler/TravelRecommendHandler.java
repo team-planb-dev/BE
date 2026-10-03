@@ -65,7 +65,7 @@ public class TravelRecommendHandler {
 
     // 지역에 따른 음식 추천 받기
     public MakeRecommendFoodResponse makeRecommendFood
-    (MakeFoodRecommendCallRequest request){
+    (MakeFoodRecommendCallRequest request) {
 
         return openAiClient
                 .call(
@@ -78,7 +78,7 @@ public class TravelRecommendHandler {
 
     // AI로 사용자의 동행자 및 건강정보를 반영하여 일정생성
     // 날짜 또는 walkType 기준 관광지 개수가 맞지 않으면 조립 실패로 간주하고 재시도 대상에 포함
-    public CreatePlanAiResponse createPlanByAi(TravelPlanContext travelPlanContext){
+    public CreatePlanAiResponse createPlanByAi(TravelPlanContext travelPlanContext) {
 
         return createPlanByAi(travelPlanContext, new PlaceCandidateContext());
     }
@@ -103,14 +103,14 @@ public class TravelRecommendHandler {
                         new PlanTourismTool(tourismTool, candidates)
                 );
 
-        // 관광지 개수 보정과 빈 슬롯 채우기는 검증 직전에 PlanService가 한 번만 한다.
-        // 생성·편집·재구성 응답이 모두 같은 검증을 지나므로 보정도 그 지점에 두어야 갈라지지 않는다.
+        // PlanService 검증 직전의 관광지 개수·빈 슬롯 단일 보정
+        // 생성·편집·재구성의 공통 보정 지점
         return response;
     }
 
     // AI로 기존 일정을 자연어 수정 요청에 맞춰 부분 수정
     // planDays가 비어있거나 dateType 기준 예상 일수와 다르면 무효 응답으로 간주하고 재시도 대상에 포함
-    public EditPlanAiResponse editPlanByAi(PlanEditContext planEditContext){
+    public EditPlanAiResponse editPlanByAi(PlanEditContext planEditContext) {
 
         return editPlanByAi(planEditContext, new PlaceCandidateContext());
     }
@@ -178,17 +178,19 @@ public class TravelRecommendHandler {
 
         return openAiClient
                 .call(
-                        new VerifiedPlacePrompt(
+                new VerifiedPlacePrompt(
                                 new RebuildPlanDayPrompt(
                                         context,
                                         current,
                                         dayNumber,
                                         reason,
-                                        objectMapper)),
-                        rebuildPlanDayResponseConverter,
-                        new PlanTourismTool(
+                                        objectMapper
+                                )),
+                rebuildPlanDayResponseConverter,
+                new PlanTourismTool(
                                 tourismTool,
-                                candidates));
+                                candidates)
+        );
     }
 
     // 실패 슬롯 하나의 제한 재선택
@@ -199,11 +201,12 @@ public class TravelRecommendHandler {
 
         PlaceReselectResponse response = openAiClient
                 .call(
-                        new VerifiedPlacePrompt(prompt),
-                        new BeanOutputConverter<>(PlaceReselectResponse.class),
-                        new PlanTourismTool(
+                new VerifiedPlacePrompt(prompt),
+                new BeanOutputConverter<>(PlaceReselectResponse.class),
+                new PlanTourismTool(
                                 tourismTool,
-                                candidates));
+                                candidates)
+        );
 
         if (response == null) {
             return null;
@@ -232,10 +235,11 @@ public class TravelRecommendHandler {
                 slot.tags(),
                 slot.medication(),
                 response.restaurantDetail(),
-                candidateId);
+                candidateId
+        );
     }
 
-    // 날짜 수와 walkType 기준 관광지 개수를 검사하고, 검색 후보로 보정할 수 없는 부족분만 교정한다.
+    // 날짜·관광지 개수 검증과 후보로 보충할 수 없는 부족분의 AI 교정
     private Function<CreatePlanAiResponse, List<String>> validatePlan(
             TravelPlanContext context,
             PlaceCandidateContext candidates
@@ -266,8 +270,8 @@ public class TravelRecommendHandler {
                 );
             }
 
-            // 부족분을 이번 호출의 검색 후보로 채울 수 있으면 재시도 대상이 아니다.
-            // Java가 확정 후보로 채우는 편이 재시도보다 확실하고, 재시도 예산을 아낀다.
+            // 검색 후보로 보충 가능한 부족분의 AI 재시도 제외
+            // 확정 후보의 Java 보충으로 AI 재시도 예산 보존
             failures.addAll(
                     unfillable(
                             touristPlaceCountFailures(
@@ -296,7 +300,7 @@ public class TravelRecommendHandler {
                 : failures.subList(fillableCount, failures.size());
     }
 
-    // 응답에 아직 쓰이지 않은 관광지 후보 수. 이만큼은 Java가 채울 수 있다.
+    // Java가 보충할 수 있는 미사용 관광지 후보 수
     private static int unusedAttractionCandidateCount(
             CreatePlanAiResponse response,
             PlaceCandidateContext candidates
@@ -417,13 +421,17 @@ public class TravelRecommendHandler {
             }
 
             if (response.processable()
-                    && (response.changes() == null || response.changes().isEmpty())) {
+                    && (response.changes() == null || response
+                            .changes()
+                            .isEmpty())) {
                 failures.add("changes: processable=true인 응답에는 수정 또는 미반영 내역이 필요합니다.");
             }
 
             if (!response.processable()
                     && response.changes() != null
-                    && !response.changes().isEmpty()) {
+                    && !response
+                            .changes()
+                            .isEmpty()) {
                 failures.add("changes: processable=false인 응답은 빈 목록이어야 합니다.");
             }
 

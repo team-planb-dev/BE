@@ -39,7 +39,9 @@ class PlanEditRebuildTest extends IntegrationTest {
     @DisplayName("실제 OpenAI 편집 - 1일차 재구성 및 2일차 장소 보존과 첫 이동시간 재계산")
     void rebuildsFirstDayAndPreservesSecondDay() {
 
-        LocalDate date = LocalDate.now().plusDays(7);
+        LocalDate date = LocalDate
+                .now()
+                .plusDays(7);
 
         GetAiPlanResponse.PlanScheduleDetail first = existingPlace("부산 해운대해수욕장");
 
@@ -53,8 +55,16 @@ class PlanEditRebuildTest extends IntegrationTest {
                 List.of(),
                 Set.of(),
                 List.of(
-                new GetAiPlanResponse.PlanDayDetail(1, date, List.of(first)),
-                new GetAiPlanResponse.PlanDayDetail(2, date.plusDays(1), List.of(second)))
+                new GetAiPlanResponse.PlanDayDetail(
+                        1,
+                        date,
+                        List.of(first)
+                ),
+                new GetAiPlanResponse.PlanDayDetail(
+                        2,
+                        date.plusDays(1),
+                        List.of(second)
+                ))
         );
 
         CreateTravelRequest request = new CreateTravelRequest(
@@ -100,10 +110,15 @@ class PlanEditRebuildTest extends IntegrationTest {
                 });
 
         // 2일차 첫 장소의 travelMinutes는 1일차 마지막 장소 기준 inbound 값이므로
-        // 1일차 재구성과 함께 다시 계산된다. 나머지 필드는 그대로 보존되어야 한다.
-        assertThat(result.planDays().get(1)).usingRecursiveComparison()
+        // 1일차 재구성과 함께 재계산, 나머지 필드 보존
+        assertThat(result
+                        .planDays()
+                        .get(1))
+                .usingRecursiveComparison()
                 .ignoringFields("schedules.candidateId", "schedules.travelMinutes")
-                .isEqualTo(original.planDays().get(1));
+                .isEqualTo(original
+                        .planDays()
+                        .get(1));
 
         assertThat(result
                 .planDays()
@@ -120,7 +135,9 @@ class PlanEditRebuildTest extends IntegrationTest {
     // AI 최초 생성 없이 실제 검색 좌표를 사용하는 고정 장소 일정
     private GetAiPlanResponse.PlanScheduleDetail existingPlace(String keyword) {
 
-        KakaoPlaceSearchResponse response = kakaoMapServiceHandler.searchPlace(keyword).block();
+        KakaoPlaceSearchResponse response = kakaoMapServiceHandler
+                .searchPlace(keyword)
+                .block();
 
         assertThat(response)
                 .isNotNull();
@@ -135,7 +152,9 @@ class PlanEditRebuildTest extends IntegrationTest {
         assertThat(place.category_group_code())
                 .isEqualTo("AT4");
 
-        String address = place.road_address_name() == null || place.road_address_name().isBlank()
+        String address = place.road_address_name() == null || place
+                .road_address_name()
+                .isBlank()
                 ? place.address_name() : place.road_address_name();
 
         return new GetAiPlanResponse.PlanScheduleDetail(

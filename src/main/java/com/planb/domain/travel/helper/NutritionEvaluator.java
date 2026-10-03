@@ -19,17 +19,23 @@ import java.util.Map;
 public class NutritionEvaluator {
 
     private static final Map<NutritionEvaluationStatus, Integer> STATUS_SEVERITY = Map.of(
-            NutritionEvaluationStatus.AVAILABLE, 0,
-            NutritionEvaluationStatus.NOT_EVALUABLE, 1,
-            NutritionEvaluationStatus.UNAVAILABLE, 2
+            NutritionEvaluationStatus.AVAILABLE,
+            0,
+            NutritionEvaluationStatus.NOT_EVALUABLE,
+            1,
+            NutritionEvaluationStatus.UNAVAILABLE,
+            2
     );
 
-    // 같은 성분을 두 질환이 서로 다른 기준으로 볼 때 어느 쪽이 더 나쁜지 정한다.
-    // 현재 임계값 표에서는 겹치는 성분(식이섬유)의 기준이 같아 실제로 갈리지 않는다.
+    // 질환별 동일 성분 평가의 최악 기준 선택
+    // 현재 임계값에서 겹치는 식이섬유 기준은 동일
     private static final Map<NutritionLevel, Integer> LEVEL_SEVERITY = Map.of(
-            NutritionLevel.LOW, 0,
-            NutritionLevel.CHECK, 1,
-            NutritionLevel.HIGH, 2
+            NutritionLevel.LOW,
+            0,
+            NutritionLevel.CHECK,
+            1,
+            NutritionLevel.HIGH,
+            2
     );
 
     /**
@@ -73,7 +79,7 @@ public class NutritionEvaluator {
         };
     }
 
-    // 상태는 나쁜 쪽이 이긴다. 열거 순서가 곧 나쁨의 순서다.
+    // 상태 열거 순서에 따른 최악 상태 선택
     private NutritionEvaluationStatus worstStatus(
             List<NutritionEvaluationResult> results
     ) {
@@ -85,7 +91,7 @@ public class NutritionEvaluator {
                 .orElse(NutritionEvaluationStatus.NOT_EVALUABLE);
     }
 
-    // 같은 영양성분이 겹치면 나쁜 평가만 남긴다. 먼저 평가된 질환의 순서를 지킨다.
+    // 중복 영양성분의 최악 평가 선택과 질환 순서 유지
     private List<NutritionEvaluationDetail> mergeEvaluations(
             List<NutritionEvaluationResult> results
     ) {
@@ -101,7 +107,8 @@ public class NutritionEvaluator {
                 .forEach(detail -> merged.merge(
                         detail.nutritionType(),
                         detail,
-                        this::worseDetail));
+                        this::worseDetail
+                ));
 
         return List.copyOf(merged.values());
     }

@@ -43,7 +43,7 @@ public class UserFacade {
      * 사용자 계정을 생성
      */
     @Transactional
-    public UserCreateResponse create(UserCreateRequest userCreateRequest){
+    public UserCreateResponse create(UserCreateRequest userCreateRequest) {
 
         userQueryService.validateNotDuplicated(userCreateRequest); // 계정 중복 검증
 
@@ -59,7 +59,7 @@ public class UserFacade {
      * 사용자 계정 탈퇴 처리
      */
     @Transactional
-    public UserDeleteResponse delete(String username){
+    public UserDeleteResponse delete(String username) {
 
         User user = userQueryService.findByUsername(username); // 사용자 조회
 
@@ -76,7 +76,7 @@ public class UserFacade {
      * 사용자 정보를 조회
      */
     @Transactional(readOnly = true)
-    public UserReadResponse findByUsername(String username){
+    public UserReadResponse findByUsername(String username) {
 
         return userQueryService.findReadResponseByUsername(username); // 사용자 정보 조회
     }
@@ -84,7 +84,7 @@ public class UserFacade {
     /**
      * 계정 복구 질문 목록을 조회
      */
-    public List<RecoveryQuestionResponse> findRecoveryQuestions(){
+    public List<RecoveryQuestionResponse> findRecoveryQuestions() {
 
         return userService.findRecoveryQuestions(); // 복구 질문 조회
     }
@@ -94,7 +94,7 @@ public class UserFacade {
      * 계정 복구 정보로 사용자 이메일을 조회
      */
     @Transactional(readOnly = true)
-    public FindUsernameResponse findUsername(FindUsernameRequest findUsernameRequest){
+    public FindUsernameResponse findUsername(FindUsernameRequest findUsernameRequest) {
 
         return userQueryService.findUsernameResponse(findUsernameRequest); // 사용자 이메일 조회
     }
@@ -104,7 +104,7 @@ public class UserFacade {
      * 계정 복구 정보로 비밀번호를 재설정
      */
     @Transactional
-    public ResetPasswordResponse resetPassword(ResetPasswordRequest resetPasswordRequest){
+    public ResetPasswordResponse resetPassword(ResetPasswordRequest resetPasswordRequest) {
 
         User user = userQueryService.findByUsername(resetPasswordRequest.username()); // 사용자 조회
 
@@ -123,7 +123,7 @@ public class UserFacade {
      */
     @Transactional(readOnly = true)
     public CheckUsernameDuplicationResponse checkUsernameDuplication
-            (CheckUsernameDuplicationRequest checkUsernameDuplicationRequest){
+            (CheckUsernameDuplicationRequest checkUsernameDuplicationRequest) {
 
         return userQueryService.checkUsernameDuplicationResponse(
                 checkUsernameDuplicationRequest
@@ -135,7 +135,7 @@ public class UserFacade {
      */
     @Transactional(readOnly = true)
     public CheckNicknameDuplicationResponse checkNicknameDuplication
-            (CheckNicknameDuplicationRequest checkNicknameDuplicationRequest){
+            (CheckNicknameDuplicationRequest checkNicknameDuplicationRequest) {
 
         return userQueryService.checkNicknameDuplicationResponse(
                 checkNicknameDuplicationRequest

@@ -40,7 +40,7 @@ class JwtFilterTest {
 
     // 테스트 후 , 컨텍스트 초기화
     @AfterEach
-    void tearDown(){
+    void tearDown() {
         SecurityContextHolder.clearContext();
     }
 
@@ -57,7 +57,11 @@ class JwtFilterTest {
                 new MockHttpServletResponse();
 
         // when
-        jwtFilter.doFilter(request, response, filterChain);
+        jwtFilter.doFilter(
+                request,
+                response,
+                filterChain
+        );
 
         // then
         verify(filterChain,
@@ -84,7 +88,11 @@ class JwtFilterTest {
                 new MockHttpServletResponse();
 
         // when
-        jwtFilter.doFilter(request, response, filterChain);
+        jwtFilter.doFilter(
+                request,
+                response,
+                filterChain
+        );
 
         // then
         verify(filterChain,
@@ -118,7 +126,11 @@ class JwtFilterTest {
 
         // when
         jwtFilter
-                .doFilter(request, response, filterChain);
+                .doFilter(
+                request,
+                response,
+                filterChain
+        );
 
         // then
         assertThat(response
@@ -156,7 +168,11 @@ class JwtFilterTest {
 
         // when
         jwtFilter
-                .doFilter(request, response, filterChain);
+                .doFilter(
+                request,
+                response,
+                filterChain
+        );
 
         // then
         assertThat(response
@@ -206,7 +222,11 @@ class JwtFilterTest {
 
         // when
         jwtFilter
-                .doFilter(request, response, filterChain);
+                .doFilter(
+                request,
+                response,
+                filterChain
+        );
 
         // then
         assertThat(response.getStatus())
@@ -270,7 +290,11 @@ class JwtFilterTest {
 
         // when
         jwtFilter
-                .doFilter(request, response, filterChain);
+                .doFilter(
+                request,
+                response,
+                filterChain
+        );
 
         // then
         Authentication authentication = SecurityContextHolder
@@ -336,7 +360,11 @@ class JwtFilterTest {
 
         // when
         jwtFilter
-                .doFilter(request, response, filterChain);
+                .doFilter(
+                request,
+                response,
+                filterChain
+        );
 
         // then
         assertThat(response.getStatus())

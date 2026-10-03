@@ -16,14 +16,14 @@ public class ChatRoomService {
     private final ChatRoomRepository chatRoomRepository;
 
     // Chat Room 삭제하기 (soft)
-    public void deleteChatRoom(ChatRoom chatRoom){
+    public void deleteChatRoom(ChatRoom chatRoom) {
         chatRoom.delete();
     }
 
 
     // room name으로 채팅방 만들기
     public CreateChatRoomResponse createChatRoom
-    (CreateChatRoomRequest request){
+    (CreateChatRoomRequest request) {
 
         ChatRoom chatRoom = ChatRoom
                 .builder()
@@ -40,11 +40,12 @@ public class ChatRoomService {
                         .getChatRoomName(),
                 chatRoom
                         .getCreatedAt(),
-                "채팅방이 생성되었습니다.");
+                "채팅방이 생성되었습니다."
+        );
     }
 
     // travel 기준으로 채팅방 만들기
-    public ChatRoom createChatRoomForTravel(Travel travel){
+    public ChatRoom createChatRoomForTravel(Travel travel) {
 
         ChatRoom chatRoom = ChatRoom
                 .builder()

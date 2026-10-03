@@ -29,22 +29,29 @@ class ObservabilityConfigTest {
 
         Map<String, Object> config = yaml(ROOT.resolve("prometheus/prometheus.yml"));
 
-        assertThat(map(config, "global").get("scrape_interval")).isEqualTo("2s");
-        assertThat(map(config, "global").get("scrape_timeout")).isEqualTo("2s");
+        assertThat(map(config, "global")
+                        .get("scrape_interval"))
+                .isEqualTo("2s");
+        assertThat(map(config, "global")
+                        .get("scrape_timeout"))
+                .isEqualTo("2s");
 
         Map<String, Object> job = scrapeJob(config, "travel-app");
 
-        assertThat(job.get("metrics_path")).isEqualTo("/actuator/prometheus");
+        assertThat(job.get("metrics_path"))
+                .isEqualTo("/actuator/prometheus");
 
-        assertThat(targets(job)).containsExactly("host.docker.internal:8081");
+        assertThat(targets(job))
+                .containsExactly("host.docker.internal:8081");
 
         Map<String, Object> authorization = map(job, "authorization");
 
         assertThat(authorization.get("credentials_file"))
                 .isEqualTo("/etc/prometheus/scrape-token/token");
 
-        // type을 생략하면 기본값 Bearer가 쓰여 JwtFilter가 요구하는 `Bearer ` 접두사가 만들어진다.
-        assertThat(authorization.getOrDefault("type", "Bearer")).isEqualTo("Bearer");
+        // 기본 type Bearer와 JwtFilter가 요구하는 `Bearer ` 접두사
+        assertThat(authorization.getOrDefault("type", "Bearer"))
+                .isEqualTo("Bearer");
     }
 
     @Test
@@ -52,7 +59,11 @@ class ObservabilityConfigTest {
     void prometheusConfigPassesPromtoolSyntaxCheck() throws Exception {
 
         assumeTrue(
-                new ProcessBuilder("sh", "-c", "command -v promtool")
+                new ProcessBuilder(
+                        "sh",
+                        "-c",
+                        "command -v promtool"
+                )
                         .start()
                         .waitFor() == 0,
                 "promtool이 없어 문법 검사를 건너뜀"
@@ -63,12 +74,16 @@ class ObservabilityConfigTest {
                 "check",
                 "config",
                 "--syntax-only",
-                ROOT.resolve("prometheus/prometheus.yml").toString()
+                ROOT
+                        .resolve("prometheus/prometheus.yml")
+                        .toString()
         )
                 .redirectErrorStream(true)
                 .start();
 
-        String output = new String(process.getInputStream().readAllBytes());
+        String output = new String(process
+                        .getInputStream()
+                        .readAllBytes());
 
         assertThat(process.waitFor())
                 .as(output)
@@ -87,8 +102,10 @@ class ObservabilityConfigTest {
         Map<String, Object> prometheus = map(services, "prometheus");
         Map<String, Object> grafana = map(services, "grafana");
 
-        assertThat((String) prometheus.get("image")).contains("@sha256:");
-        assertThat((String) grafana.get("image")).contains("@sha256:");
+        assertThat((String) prometheus.get("image"))
+                .contains("@sha256:");
+        assertThat((String) grafana.get("image"))
+                .contains("@sha256:");
 
         assertThat(strings(prometheus.get("command")))
                 .contains(
@@ -99,7 +116,7 @@ class ObservabilityConfigTest {
         assertThat(strings(prometheus.get("extra_hosts")))
                 .contains("host.docker.internal:host-gateway");
 
-        // Grafana와 Prometheus는 공개 인터넷에 노출하지 않는다.
+        // Grafana·Prometheus의 공개 인터넷 노출 금지
         assertThat(strings(prometheus.get("ports")))
                 .isNotEmpty()
                 .allMatch(port -> port.startsWith("127.0.0.1:"));
@@ -108,7 +125,7 @@ class ObservabilityConfigTest {
                 .isNotEmpty()
                 .allMatch(port -> port.startsWith("127.0.0.1:"));
 
-        // 토큰 디렉터리는 읽기 전용으로만 붙인다.
+        // 토큰 디렉터리의 읽기 전용 마운트
         assertThat(strings(prometheus.get("volumes")))
                 .anyMatch(volume -> volume.contains("/etc/prometheus/scrape-token") && volume.endsWith(":ro"));
     }
@@ -131,11 +148,12 @@ class ObservabilityConfigTest {
                 .contains("trap cleanup EXIT")
                 .contains("trap '' INT TERM HUP")
                 .contains("scrape-token.sh\" remove")
-                // compose 파일이 SCRAPE_TOKEN_DIR를 필수로 요구하므로 종료 안내에도 변수를 넣어야 그대로 실행된다.
+                // 종료 안내 실행에 필요한 필수 SCRAPE_TOKEN_DIR 변수
                 .contains("SCRAPE_TOKEN_DIR=/tmp docker compose")
                 .doesNotContain("k6:latest");
 
-        assertThat(script).containsPattern("grafana/k6@sha256:[0-9a-f]{64}");
+        assertThat(script)
+                .containsPattern("grafana/k6@sha256:[0-9a-f]{64}");
 
         assertThat(Files.readString(Path.of("src/test/k6/travel-plan.js")))
                 .contains("gracefulStop: __ENV.GRACEFUL_STOP || '30s'");
@@ -148,20 +166,26 @@ class ObservabilityConfigTest {
         Map<String, Object> datasources = yaml(ROOT.resolve("grafana/provisioning/datasources/prometheus.yml"));
 
         Map<String, Object> datasource = map(
-                list(datasources, "datasources").getFirst(),
+                list(datasources, "datasources")
+                        .getFirst(),
                 null
         );
 
-        assertThat(datasource.get("uid")).isEqualTo("prometheus");
-        assertThat(datasource.get("type")).isEqualTo("prometheus");
-        assertThat(datasource.get("url")).isEqualTo("http://prometheus:9090");
+        assertThat(datasource.get("uid"))
+                .isEqualTo("prometheus");
+        assertThat(datasource.get("type"))
+                .isEqualTo("prometheus");
+        assertThat(datasource.get("url"))
+                .isEqualTo("http://prometheus:9090");
 
         Map<String, Object> providers = yaml(ROOT.resolve("grafana/provisioning/dashboards/dashboards.yml"));
 
         assertThat(map(
-                list(providers, "providers").getFirst(),
+                list(providers, "providers")
+                        .getFirst(),
                 "options"
-        ).get("path"))
+        )
+                .get("path"))
                 .isEqualTo("/var/lib/grafana/dashboards");
     }
 
@@ -215,17 +239,29 @@ class ObservabilityConfigTest {
 
         for (JsonNode panel : dashboard.path("panels")) {
             for (JsonNode target : panel.path("targets")) {
-                assertThat(target.path("datasource").path("uid").asString())
-                        .as("패널 '%s'의 datasource", panel.path("title").asString())
+                assertThat(target
+                                .path("datasource")
+                                .path("uid")
+                                .asString())
+                        .as("패널 '%s'의 datasource", panel
+                                .path("title")
+                                .asString())
                         .isEqualTo("prometheus");
 
-                assertThat(target.path("expr").asString())
-                        .as("패널 '%s'의 쿼리", panel.path("title").asString())
+                assertThat(target
+                                .path("expr")
+                                .asString())
+                        .as("패널 '%s'의 쿼리", panel
+                                .path("title")
+                                .asString())
                         .isNotBlank();
             }
         }
 
-        assertThat(dashboard.path("templating").toString()).contains("testid");
+        assertThat(dashboard
+                        .path("templating")
+                        .toString())
+                .contains("testid");
 
         assertThat(dashboard.toString())
                 .contains("tomcat_threads_busy_threads")
@@ -285,19 +321,26 @@ class ObservabilityConfigTest {
         Process process = processBuilder.start();
 
         assertThat(process.waitFor())
-                .as(new String(process.getInputStream().readAllBytes()))
+                .as(new String(process
+                                .getInputStream()
+                                .readAllBytes()))
                 .isZero();
 
-        assertThat(token).doesNotExist();
-        assertThat(tokenDirectory).doesNotExist();
+        assertThat(token)
+                .doesNotExist();
+        assertThat(tokenDirectory)
+                .doesNotExist();
     }
 
     private List<String> panelTitles() throws IOException {
 
         List<String> titles = new ArrayList<>();
 
-        for (JsonNode panel : dashboard().path("panels")) {
-            titles.add(panel.path("title").asString());
+        for (JsonNode panel : dashboard()
+                .path("panels")) {
+            titles.add(panel
+                            .path("title")
+                            .asString());
         }
 
         return titles;
@@ -360,7 +403,9 @@ class ObservabilityConfigTest {
 
         return list(job, "static_configs")
                 .stream()
-                .flatMap(entry -> strings(map(entry, null).get("targets")).stream())
+                .flatMap(entry -> strings(map(entry, null)
+                                .get("targets"))
+                        .stream())
                 .toList();
     }
 }

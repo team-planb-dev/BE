@@ -22,8 +22,12 @@ public class CodeCommDeserializer<T extends CodeCommInterface>
     public T deserialize
     (JsonParser jsonParser, DeserializationContext ctxt)
             throws IOException {
-        JsonNode jsonNode = (JsonNode)jsonParser.getCodec().readTree(jsonParser);
-        if (jsonNode.asText().length() == 1) {
+        JsonNode jsonNode = (JsonNode)jsonParser
+                .getCodec()
+                .readTree(jsonParser);
+        if (jsonNode
+                .asText()
+                .length() == 1) {
             // 길이가 1이면 단순 코드값으로 판단하고 바로 findByCode 호출
             return (T) EnumUtil.findByCode(this.targetClass, jsonNode.asText());
         } else {
@@ -33,7 +37,9 @@ public class CodeCommDeserializer<T extends CodeCommInterface>
                 reqCode = jsonNode.asText();
             } else {
                 // 있으면 해당 노드를 반환
-                reqCode = jsonNode.get("code").asText();
+                reqCode = jsonNode
+                        .get("code")
+                        .asText();
             }
 
             // reqCode ( code ) 를 사용해 CodeName을 가져오기
@@ -45,7 +51,9 @@ public class CodeCommDeserializer<T extends CodeCommInterface>
     public JsonDeserializer<T> createContextual
             (DeserializationContext ctxt, BeanProperty property)
             throws JsonMappingException {
-        String targetClassName = ctxt.getContextualType().toCanonical();
+        String targetClassName = ctxt
+                .getContextualType()
+                .toCanonical();
 
         try {
             this.targetClass = (Class<T>) Class.forName(targetClassName);

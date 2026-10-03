@@ -28,7 +28,8 @@ public class AuthPrincipalServiceImpl implements UserDetailsService {
                 user
                         .getUsername(),
                 user
-                        .getRole());
+                        .getRole()
+        );
 
         return new AuthPrincipal(userAuthCache);
     }

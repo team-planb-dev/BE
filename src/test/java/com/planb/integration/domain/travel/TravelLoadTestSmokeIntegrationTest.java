@@ -268,7 +268,8 @@ class TravelLoadTestSmokeIntegrationTest extends TravelApiTestSupport {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                 )
-                .andExpect(status().isOk());
+                .andExpect(status()
+                        .isOk());
 
         return findHealthId(
                 accessToken,
@@ -282,7 +283,8 @@ class TravelLoadTestSmokeIntegrationTest extends TravelApiTestSupport {
 
         String body = mockMvc
                 .perform(request)
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andReturn()
                 .getResponse()
                 .getContentAsString();

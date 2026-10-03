@@ -113,14 +113,16 @@ class PlannedPlaceServiceTest {
 
         assertEquals(
                 "경복궁",
-                result.plannedPlaces()
+                result
+                        .plannedPlaces()
                         .get(0)
                         .locationName()
         );
 
         assertEquals(
                 "서울특별시 종로구 사직로 161",
-                result.plannedPlaces()
+                result
+                        .plannedPlaces()
                         .get(0)
                         .location()
         );
@@ -134,7 +136,8 @@ class PlannedPlaceServiceTest {
     void makePlannedPlace() {
 
         Travel travel =
-                Travel.builder()
+                Travel
+                        .builder()
                         .travelName("서울 여행")
                         .build();
 
@@ -168,37 +171,43 @@ class PlannedPlaceServiceTest {
 
         assertSame(
                 travel,
-                result.get(0)
+                result
+                        .get(0)
                         .getTravel()
         );
 
         assertEquals(
                 "경복궁",
-                result.get(0)
+                result
+                        .get(0)
                         .getLocationName()
         );
 
         assertEquals(
                 "서울특별시 종로구",
-                result.get(0)
+                result
+                        .get(0)
                         .getLocation()
         );
 
         assertSame(
                 travel,
-                result.get(1)
+                result
+                        .get(1)
                         .getTravel()
         );
 
         assertEquals(
                 "남산서울타워",
-                result.get(1)
+                result
+                        .get(1)
                         .getLocationName()
         );
 
         assertEquals(
                 "서울특별시 용산구",
-                result.get(1)
+                result
+                        .get(1)
                         .getLocation()
         );
     }
@@ -209,10 +218,12 @@ class PlannedPlaceServiceTest {
 
         List<PlannedPlace> plannedPlaceList =
                 List.of(
-                        PlannedPlace.builder()
+                        PlannedPlace
+                                .builder()
                                 .locationName("경복궁")
                                 .build(),
-                        PlannedPlace.builder()
+                        PlannedPlace
+                                .builder()
                                 .locationName("남산서울타워")
                                 .build()
                 );
@@ -231,10 +242,12 @@ class PlannedPlaceServiceTest {
 
         List<PlannedPlace> plannedPlaceList =
                 List.of(
-                        PlannedPlace.builder()
+                        PlannedPlace
+                                .builder()
                                 .locationName("경복궁")
                                 .build(),
-                        PlannedPlace.builder()
+                        PlannedPlace
+                                .builder()
                                 .locationName("남산서울타워")
                                 .build()
                 );

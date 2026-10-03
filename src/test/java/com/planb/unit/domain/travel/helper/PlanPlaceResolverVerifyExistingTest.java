@@ -26,7 +26,7 @@ class PlanPlaceResolverVerifyExistingTest {
     void keepsPersistedSlotWithoutExternalLookup() {
 
         // TourAPI에서 확정해 저장한 음식점. 같은 이름으로 Kakao를 검색하면
-        // 지점명 표기와 좌표가 달라 예전에는 재검증이 실패했다.
+        // 지점명 표기·좌표 차이로 인한 기존 재검증 실패
         GetAiPlanResponse.PlanScheduleDetail stored = mealSlot(
                 "까치장칼국수",
                 LocalTime.of(8, 0),
@@ -42,12 +42,18 @@ class PlanPlaceResolverVerifyExistingTest {
 
         assertTrue(validation.valid());
 
-        assertEquals("까치장칼국수", validation.schedule().locationName());
+        assertEquals("까치장칼국수", validation
+                        .schedule()
+                        .locationName());
 
-        assertEquals("128.9052237686", validation.schedule().longitude());
+        assertEquals("128.9052237686", validation
+                        .schedule()
+                        .longitude());
 
-        // 이번 호출의 검색 후보가 아니므로 candidateId는 없다
-        assertNull(validation.schedule().candidateId());
+        // 이번 호출의 검색 후보가 아닌 슬롯의 candidateId 부재
+        assertNull(validation
+                        .schedule()
+                        .candidateId());
     }
 
     @Test
@@ -86,11 +92,23 @@ class PlanPlaceResolverVerifyExistingTest {
 
         Set<String> menus = new HashSet<>();
 
-        PlanPlaceResolver.Validation first = planPlaceResolver.verifyExisting(stored, places, menus);
+        PlanPlaceResolver.Validation first = planPlaceResolver.verifyExisting(
+                stored,
+                places,
+                menus
+        );
 
-        planPlaceResolver.track(first.schedule(), places, menus);
+        planPlaceResolver.track(
+                first.schedule(),
+                places,
+                menus
+        );
 
-        PlanPlaceResolver.Validation second = planPlaceResolver.verifyExisting(stored, places, menus);
+        PlanPlaceResolver.Validation second = planPlaceResolver.verifyExisting(
+                stored,
+                places,
+                menus
+        );
 
         assertFalse(second.valid());
     }

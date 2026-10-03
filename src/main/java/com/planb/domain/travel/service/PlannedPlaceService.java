@@ -37,7 +37,8 @@ public class PlannedPlaceService {
                 .map(response -> {
 
                     List<SearchPlannedPlaceResponse.PlannedPlaceDetail> plannedPlaces =
-                            response.response()
+                            response
+                                    .response()
                                     .body()
                                     .items()
                                     .item()
@@ -57,13 +58,14 @@ public class PlannedPlaceService {
 
     // PlannedPlace 객체 리스트 생성하기
     public List<PlannedPlace> makePlannedPlace
-    (CreatePlannedPlaceRequest createPlannedPlaceRequest){
+    (CreatePlannedPlaceRequest createPlannedPlaceRequest) {
 
         return createPlannedPlaceRequest
                 .plannedPlaceList()
                 .stream()
                 .map(detail ->
-                        PlannedPlace.builder()
+                        PlannedPlace
+                                .builder()
                                 .travel(createPlannedPlaceRequest
                                         .travel())
                                 .locationName(detail
@@ -82,19 +84,19 @@ public class PlannedPlaceService {
      */
 
     // 특정 Travel에 속한 PlannedPlace 리스트 조회하기
-    public List<PlannedPlace> findAllByTravel(Travel travel){
+    public List<PlannedPlace> findAllByTravel(Travel travel) {
 
         return plannedPlaceRepository.findAllByTravel(travel);
     }
 
     // PlanedPlace 리스트 저장하기
-    public void savePlannedPlaceList(List<PlannedPlace> plannedPlaceList){
+    public void savePlannedPlaceList(List<PlannedPlace> plannedPlaceList) {
 
         plannedPlaceRepository.saveAll(plannedPlaceList);
     }
 
     // PlannedPlace 리스트 삭제하기
-    public void deletePlannedPlaceList(List<PlannedPlace> plannedPlaceList){
+    public void deletePlannedPlaceList(List<PlannedPlace> plannedPlaceList) {
 
         plannedPlaceRepository.deleteAll(plannedPlaceList);
     }

@@ -105,7 +105,8 @@ public class HealthIntegrationTest extends IntegrationTest {
                 createCompanionRequest();
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(ADD_COMPANION_URL)
                                 .header(
                                         "Authorization",
@@ -121,7 +122,8 @@ public class HealthIntegrationTest extends IntegrationTest {
                                 )
                 )
                 .andExpect(
-                        status().isOk()
+                        status()
+                                .isOk()
                 )
                 .andExpect(
                         jsonPath("$.success")
@@ -163,7 +165,8 @@ public class HealthIntegrationTest extends IntegrationTest {
         );
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get(COMPANION_SUMMARY_URL)
                                 .header(
                                         "Authorization",
@@ -171,7 +174,8 @@ public class HealthIntegrationTest extends IntegrationTest {
                                 )
                 )
                 .andExpect(
-                        status().isOk()
+                        status()
+                                .isOk()
                 )
                 .andExpect(
                         jsonPath("$.success")
@@ -239,7 +243,8 @@ public class HealthIntegrationTest extends IntegrationTest {
                 );
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         delete(DELETE_COMPANION_URL)
                                 .header(
                                         "Authorization",
@@ -255,7 +260,8 @@ public class HealthIntegrationTest extends IntegrationTest {
                                 )
                 )
                 .andExpect(
-                        status().isOk()
+                        status()
+                                .isOk()
                 )
                 .andExpect(
                         jsonPath("$.success")
@@ -276,7 +282,8 @@ public class HealthIntegrationTest extends IntegrationTest {
         삭제 후 다시 조회하여
         동행인 목록에서 제거되었는지 확인
          */
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get(COMPANION_SUMMARY_URL)
                                 .header(
                                         "Authorization",
@@ -284,7 +291,8 @@ public class HealthIntegrationTest extends IntegrationTest {
                                 )
                 )
                 .andExpect(
-                        status().isOk()
+                        status()
+                                .isOk()
                 )
                 .andExpect(
                         jsonPath("$.success")
@@ -364,7 +372,8 @@ public class HealthIntegrationTest extends IntegrationTest {
                 );
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         put(UPDATE_COMPANION_URL)
                                 .header(
                                         "Authorization",
@@ -380,7 +389,8 @@ public class HealthIntegrationTest extends IntegrationTest {
                                 )
                 )
                 .andExpect(
-                        status().isOk()
+                        status()
+                                .isOk()
                 )
                 .andExpect(
                         jsonPath("$.data.travelerName")
@@ -391,7 +401,8 @@ public class HealthIntegrationTest extends IntegrationTest {
         수정 후 상세 조회로
         기존 음식 정보가 교체되었는지 확인
          */
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get(COMPANION_DETAIL_URL)
                                 .param(
                                         "healthId",
@@ -403,7 +414,8 @@ public class HealthIntegrationTest extends IntegrationTest {
                                 )
                 )
                 .andExpect(
-                        status().isOk()
+                        status()
+                                .isOk()
                 )
                 .andExpect(
                         jsonPath("$.data.travelerName")
@@ -470,7 +482,8 @@ public class HealthIntegrationTest extends IntegrationTest {
                 );
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         put(UPDATE_COMPANION_URL)
                                 .header(
                                         "Authorization",
@@ -504,7 +517,8 @@ public class HealthIntegrationTest extends IntegrationTest {
                 createCompanionRequest();
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(ADD_COMPANION_URL)
                                 .contentType(
                                         MediaType.APPLICATION_JSON
@@ -516,7 +530,8 @@ public class HealthIntegrationTest extends IntegrationTest {
                                 )
                 )
                 .andExpect(
-                        status().isForbidden()
+                        status()
+                                .isForbidden()
                 );
     }
 
@@ -526,11 +541,13 @@ public class HealthIntegrationTest extends IntegrationTest {
     void getCompanionSummaryUnauthorized() throws Exception {
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get(COMPANION_SUMMARY_URL)
                 )
                 .andExpect(
-                        status().isForbidden()
+                        status()
+                                .isForbidden()
                 );
     }
 
@@ -546,7 +563,8 @@ public class HealthIntegrationTest extends IntegrationTest {
                 );
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         delete(DELETE_COMPANION_URL)
                                 .contentType(
                                         MediaType.APPLICATION_JSON
@@ -558,7 +576,8 @@ public class HealthIntegrationTest extends IntegrationTest {
                                 )
                 )
                 .andExpect(
-                        status().isForbidden()
+                        status()
+                                .isForbidden()
                 );
     }
 
@@ -665,7 +684,8 @@ public class HealthIntegrationTest extends IntegrationTest {
                         true
                 );
 
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(CREATE_USER_URL)
                                 .contentType(
                                         MediaType.APPLICATION_JSON
@@ -677,7 +697,8 @@ public class HealthIntegrationTest extends IntegrationTest {
                                 )
                 )
                 .andExpect(
-                        status().isCreated()
+                        status()
+                                .isCreated()
                 )
                 .andExpect(
                         jsonPath("$.success")
@@ -704,7 +725,8 @@ public class HealthIntegrationTest extends IntegrationTest {
                 );
 
         MvcResult result =
-                mockMvc.perform(
+                mockMvc
+                        .perform(
                                 post(LOGIN_URL)
                                         .contentType(
                                                 MediaType.APPLICATION_JSON
@@ -716,7 +738,8 @@ public class HealthIntegrationTest extends IntegrationTest {
                                         )
                         )
                         .andExpect(
-                                status().isOk()
+                                status()
+                                        .isOk()
                         )
                         .andExpect(
                                 jsonPath("$.success")
@@ -727,13 +750,15 @@ public class HealthIntegrationTest extends IntegrationTest {
                                         .value(username)
                         )
                         .andExpect(
-                                header().string(
+                                header()
+                                        .string(
                                         "Authorization",
                                         startsWith("Bearer ")
                                 )
                         )
                         .andExpect(
-                                cookie().exists(
+                                cookie()
+                                        .exists(
                                         "refreshToken"
                                 )
                         )
@@ -785,7 +810,8 @@ public class HealthIntegrationTest extends IntegrationTest {
         AddCompanionRequest request =
                 createCompanionRequest();
 
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(ADD_COMPANION_URL)
                                 .header(
                                         "Authorization",
@@ -801,7 +827,8 @@ public class HealthIntegrationTest extends IntegrationTest {
                                 )
                 )
                 .andExpect(
-                        status().isOk()
+                        status()
+                                .isOk()
                 )
                 .andExpect(
                         jsonPath("$.success")
@@ -822,7 +849,8 @@ public class HealthIntegrationTest extends IntegrationTest {
     ) throws Exception {
 
         MvcResult result =
-                mockMvc.perform(
+                mockMvc
+                        .perform(
                                 get(COMPANION_SUMMARY_URL)
                                         .header(
                                                 "Authorization",
@@ -830,7 +858,8 @@ public class HealthIntegrationTest extends IntegrationTest {
                                         )
                         )
                         .andExpect(
-                                status().isOk()
+                                status()
+                                        .isOk()
                         )
                         .andExpect(
                                 jsonPath("$.success")
@@ -858,7 +887,8 @@ public class HealthIntegrationTest extends IntegrationTest {
     private String createUniqueUsername() {
 
         return "health-test-"
-                + UUID.randomUUID()
+                + UUID
+                        .randomUUID()
                 .toString()
                 .substring(
                         0,
@@ -917,19 +947,24 @@ public class HealthIntegrationTest extends IntegrationTest {
                 );
 
         // when
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(ADD_COMPANION_URL)
                                 .header("Authorization", loginResult.accessToken())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(true));
 
         // then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get(COMPANION_SUMMARY_URL)
                                 .header("Authorization", loginResult.accessToken()))
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(jsonPath("$.data.companionList[0].diseaseTypes")
                         .value(hasItems("DIABETES", "HIGH_BLOOD_PRESSURE")));
     }
@@ -946,7 +981,7 @@ public class HealthIntegrationTest extends IntegrationTest {
 
         LoginResult loginResult = login(username);
 
-        // 동의하지 않으면 건강 정보와 식사 정보를 보내지 않는다.
+        // 민감정보 미동의 시 건강·식사 정보 제외
         AddCompanionRequest request =
                 new AddCompanionRequest(
                         "미동의 동행인",
@@ -959,20 +994,26 @@ public class HealthIntegrationTest extends IntegrationTest {
                 );
 
         // when
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(ADD_COMPANION_URL)
                                 .header("Authorization", loginResult.accessToken())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.travelerName").value("미동의 동행인"));
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(true))
+                .andExpect(jsonPath("$.data.travelerName")
+                        .value("미동의 동행인"));
 
         // then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get(COMPANION_SUMMARY_URL)
                                 .header("Authorization", loginResult.accessToken()))
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(jsonPath("$.data.companionList[0].travelerName")
                         .value("미동의 동행인"))
                 .andExpect(jsonPath("$.data.companionList[0].diseaseTypes")
@@ -995,7 +1036,7 @@ public class HealthIntegrationTest extends IntegrationTest {
 
         Long healthId = getHealthId(loginResult.accessToken());
 
-        // 동의를 철회하면 건강 정보와 식사 정보를 더 보내지 않는다.
+        // 민감정보 동의 철회 후 건강·식사 정보 제외
         UpdateCompanionRequest request =
                 new UpdateCompanionRequest(
                         healthId,
@@ -1009,19 +1050,24 @@ public class HealthIntegrationTest extends IntegrationTest {
                 );
 
         // when
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         put(UPDATE_COMPANION_URL)
                                 .header("Authorization", loginResult.accessToken())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(true));
 
         // then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get(COMPANION_SUMMARY_URL)
                                 .header("Authorization", loginResult.accessToken()))
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(jsonPath("$.data.companionList[0].travelerName")
                         .value("동의 철회 동행인"))
                 .andExpect(jsonPath("$.data.companionList[0].diseaseTypes")
@@ -1040,7 +1086,7 @@ public class HealthIntegrationTest extends IntegrationTest {
 
         LoginResult loginResult = login(username);
 
-        // 동의했다면 건강 정보와 식사 정보가 있어야 한다. 잘못 보낸 요청이다.
+        // 민감정보 동의 시 건강·식사 정보 필수, 누락 요청은 오류
         AddCompanionRequest request =
                 new AddCompanionRequest(
                         "잘못된 요청",
@@ -1053,13 +1099,16 @@ public class HealthIntegrationTest extends IntegrationTest {
                 );
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(ADD_COMPANION_URL)
                                 .header("Authorization", loginResult.accessToken())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.success")
+                        .value(false))
                 .andExpect(jsonPath("$.error.errorCode")
                         .value("HEALTH.EXCEPTION.SENSITIVE_INFO_REQUIRED"));
     }

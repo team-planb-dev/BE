@@ -7,8 +7,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class CorsMvcConfig implements WebMvcConfigurer {
 
-    // HTTP CORS와 WebSocket 핸드셰이크가 함께 쓰는 허용 origin 목록.
-    // 두 곳에 따로 두었다가 한쪽만 고쳐 STOMP 연결이 403 난 적이 있어 한 곳에서 관리한다.
+    // HTTP CORS와 WebSocket 핸드셰이크가 함께 쓰는 허용 origin 목록
+    // CORS 설정 분리로 인한 STOMP 403 재발 방지를 위한 단일 관리
     public static final String[] ALLOWED_ORIGINS = {
             "http://localhost:3000",
             "http://localhost:5173",
@@ -19,7 +19,8 @@ public class CorsMvcConfig implements WebMvcConfigurer {
 
     public void addCorsMappings(CorsRegistry registry) {
 
-        registry.addMapping("/**")
+        registry
+                .addMapping("/**")
                 .allowedOrigins(ALLOWED_ORIGINS)
                 .allowedMethods("*")
                 .allowedHeaders("*")

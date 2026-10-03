@@ -134,7 +134,8 @@ class PlanQueryRepositoryTest
 
     private User createUser() {
 
-        User user = User.builder()
+        User user = User
+                .builder()
                 .username("test" + System.nanoTime() + "@example.com")
                 .password("password")
                 .role("ROLE_USER")
@@ -161,7 +162,8 @@ class PlanQueryRepositoryTest
 
     private Travel createTravel(String travelName) {
 
-        Travel travel = Travel.builder()
+        Travel travel = Travel
+                .builder()
                 .user(createUser())
                 .travelName(travelName)
                 .build();
@@ -176,7 +178,8 @@ class PlanQueryRepositoryTest
             String planName
     ) {
 
-        Plan plan = Plan.builder()
+        Plan plan = Plan
+                .builder()
                 .travel(travel)
                 .planName(planName)
                 .build();

@@ -8,19 +8,19 @@ import org.springframework.stereotype.Component;
 @Component
 public class KakaoMapRouteHelper {
 
-    // 카카오 대중교통 API가 도보권 구간에 돌려주는 상태값. 장애가 아니라 "경로가 없음"을 뜻한다.
+    // 카카오 대중교통 API의 도보권 경로 없음 상태값, 장애와 구분
     private static final String NO_TRANSIT_ROUTE_STATUS = "NO_RESULTS";
 
     private static final double EARTH_RADIUS_METERS = 6_371_000;
 
     // ponytail: 직선거리는 실제 보행로(강, 철로, 지하도)를 모른다. 우회 계수가 그 완충이며,
-    //           보행로 거리 데이터를 얻게 되면 이 계수 대신 실제 경로 길이를 쓴다.
+    //           보행로 거리 데이터 확보 시 실제 경로 길이로 대체
     private static final double WALKING_DETOUR_FACTOR = 1.3;
 
-    // 동행인에 고령자·질환자가 포함되는 서비스라 성인 평균(약 5km/h)보다 느리게 잡는다.
+    // 고령자·질환자를 고려한 성인 평균보다 낮은 보행 속도
     private static final double WALKING_METERS_PER_MINUTE = 75;
 
-    // 이 거리를 넘으면 도보로 제시하는 것 자체가 비현실적이므로 추정하지 않는다.
+    // 도보 제시가 비현실적인 구간의 거리 추정 제외
     private static final double WALKABLE_LIMIT_METERS = 1_500;
 
     /**
@@ -42,7 +42,9 @@ public class KakaoMapRouteHelper {
     ) {
 
         if (response.documents() == null
-                || response.documents().isEmpty()) {
+                || response
+                        .documents()
+                        .isEmpty()) {
 
             throw new IllegalStateException(
                     "카카오맵 장소 검색 결과 없음: "
@@ -50,7 +52,8 @@ public class KakaoMapRouteHelper {
             );
         }
 
-        return response.documents()
+        return response
+                .documents()
                 .getFirst();
     }
 
@@ -81,10 +84,12 @@ public class KakaoMapRouteHelper {
         return new KakaoRouteResult(
                 origin,
                 destination,
-                route.properties()
+                route
+                        .properties()
                         .totalDistance(),
                 toMinutes(
-                        route.properties()
+                        route
+                                .properties()
                                 .totalTime()
                 )
         );
@@ -94,7 +99,9 @@ public class KakaoMapRouteHelper {
     private KakaoPublicTrafficRouteResponse.Route getFirstPublicTrafficRoute(KakaoPublicTrafficRouteResponse response) {
         if (!"OK".equals(response.status()) ||
                 response.routes() == null ||
-                response.routes().isEmpty()) {
+                response
+                        .routes()
+                        .isEmpty()) {
             throw new IllegalStateException("카카오맵 대중교통 경로 조회 결과 없음: " + response);
         }
         return response
@@ -102,7 +109,7 @@ public class KakaoMapRouteHelper {
                 .getFirst();
     }
 
-    // 좌표가 없거나 도보권을 넘으면 추정하지 않고 기존과 같이 실패로 남긴다.
+    // 좌표 누락·도보권 초과 시 기존 실패 처리 유지
     private KakaoRouteResult makeWalkingRouteResult(
             String origin,
             String destination,
@@ -126,7 +133,7 @@ public class KakaoMapRouteHelper {
         );
     }
 
-    // 두 좌표 사이의 대권 거리. 좌표가 없거나 숫자가 아니면 추정 불가로 보고 null을 돌려준다.
+    // 두 좌표 간 대권 거리, 좌표 누락·비숫자 시 null 반환
     private Double straightLineMeters(RoutePoints points) {
 
         if (points == null) {

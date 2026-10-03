@@ -43,8 +43,8 @@ public class PlanEditCacheRepository {
         return Optional.ofNullable(response);
     }
 
-    // GETDEL로 조회와 삭제를 한 번에 끝내 동시 확정 요청 중 하나만 수정안을 가져가게 한다.
-    // Redis 6.2 이상 필요.
+    // GETDEL의 원자적 소비를 통한 중복 확정 방지
+    // Redis 6.2 이상 필요
     public Optional<EditPlanAiResponse> consumeByTravelId(Long travelId) {
 
         EditPlanAiResponse response = planEditRedisTemplate
@@ -59,7 +59,7 @@ public class PlanEditCacheRepository {
         planEditRedisTemplate.delete(KEY_PREFIX + travelId);
     }
 
-    // 확정 완료 표식. 값까지 함께 남겨 재확정 요청에 같은 응답을 돌려줄 수 있게 한다.
+    // 동일 응답 재전송을 위한 확정 완료 표식과 결과 값
     public void saveConfirmed(
             Long travelId,
             EditPlanAiResponse response,

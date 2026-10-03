@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-# 로컬 부하 측정 1회: Prometheus·Grafana를 띄우고 k6를 remote write로 실행한다.
-#
-# 전제: 애플리케이션(loadtest 프로파일), 스텁, MySQL, Redis가 이미 떠 있다.
-#       재현 절차는 docs/perf/baseline-2026-09-28.md 5절, 관측 스택은 docs/perf/phase4a-observability.md 참고.
-#
+# 로컬 부하 측정 1회: Prometheus·Grafana 실행과 k6 remote write 전송
+
+# 전제: 애플리케이션(loadtest 프로파일)·스텁·MySQL·Redis 실행 상태
+#       재현 절차는 docs/perf/baseline-2026-09-28.md 5절, 관측 스택은 docs/perf/phase4a-observability.md 참고
+
 # 환경변수 (모두 선택):
 #   BASE_URL            애플리케이션 주소 (호스트에서 본 값, 기본 http://localhost:8080)
 #   MANAGEMENT_URL      관리 포트 주소 (기본 http://localhost:8081)
-#   TESTID              이번 실행의 식별자. k6 지표의 testid 라벨이 된다 (기본 UTC 시각)
-#   SCENARIO, PLAN_RATE, PLAN_DURATION, PRE_ALLOCATED_VUS, MAX_VUS, GRACEFUL_STOP, STUB_PLAN_START_DATE  k6 스크립트로 전달한다
+#   TESTID              k6 지표의 testid 라벨 (기본 UTC 시각)
+#   SCENARIO, PLAN_RATE, PLAN_DURATION, PRE_ALLOCATED_VUS, MAX_VUS, GRACEFUL_STOP, STUB_PLAN_START_DATE  k6 시나리오 설정
 #   SCRAPE_DRAIN_SECONDS  k6 종료·중단 후 남은 요청을 수집할 시간 (기본 30초)
 #   DOCKER              docker 실행 파일 (기본 docker)
-#
-# 임시 JWT 파일은 성공·실패·중단과 관계없이 종료 때 지운다. 토큰이 없어지면 travel-app target은 DOWN이 되며 정상이다.
+
+# 성공·실패·중단 시 임시 JWT 삭제, 이후 travel-app target DOWN은 정상
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -23,7 +23,7 @@ management_url="${MANAGEMENT_URL:-http://localhost:8081}"
 testid="${TESTID:-$(date -u +%Y%m%dT%H%M%SZ)}"
 drain_seconds="${SCRAPE_DRAIN_SECONDS:-30}"
 
-# 다이제스트로 고정한다. remote write 출력은 실험 기능이라 k6 버전이 바뀌면 동작이 달라질 수 있다.
+# 실험적 remote write 동작 보존을 위한 k6 이미지 다이제스트 고정
 k6_image='grafana/k6@sha256:e66db15b860113878fa74670e31f5e274830b7b6e42c8bff28b2f2d86a257603'
 
 token_dir=""
@@ -95,7 +95,7 @@ needs_drain=1
 k6_status=$?
 set -e
 
-# k6가 종료되어도 서버에 남은 요청과 마지막 scrape를 보존한다.
+# k6 종료 후 남은 요청과 마지막 scrape를 위한 대기
 needs_drain=0
 drain
 ended_ms=$(( $(date +%s) * 1000 ))

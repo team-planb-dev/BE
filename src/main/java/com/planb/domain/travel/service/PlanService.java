@@ -81,9 +81,12 @@ public class PlanService {
 
     // 실제 근거가 있는 NutritionType만 RecommendationTag로 매핑 (평가는 되지만 대응 태그가 없는 타입 제외)
     private static final Map<NutritionType, RecommendationTag> NUTRITION_REFERENCE_TAGS = Map.of(
-            NutritionType.CARBOHYDRATE, RecommendationTag.CARBOHYDRATE_REFERENCE,
-            NutritionType.SODIUM, RecommendationTag.SODIUM_REFERENCE,
-            NutritionType.SATURATED_FAT, RecommendationTag.SATURATED_FAT_REFERENCE
+            NutritionType.CARBOHYDRATE,
+            RecommendationTag.CARBOHYDRATE_REFERENCE,
+            NutritionType.SODIUM,
+            RecommendationTag.SODIUM_REFERENCE,
+            NutritionType.SATURATED_FAT,
+            RecommendationTag.SATURATED_FAT_REFERENCE
     );
 
     /*
@@ -120,7 +123,7 @@ public class PlanService {
 
     private final MeterRegistry meterRegistry;
 
-    public Plan createPlan(CreatePlanRequest createPlanRequest){
+    public Plan createPlan(CreatePlanRequest createPlanRequest) {
 
         return Plan
                 .builder()
@@ -153,7 +156,7 @@ public class PlanService {
 
             List<NutritionEvaluationCollector.FoodNutritionEvaluation> evaluations;
 
-            // finishPlan의 식사 재보정도 같은 후보를 쓰므로 호출 단위 전체에서 살아 있어야 한다.
+            // finishPlan 식사 재보정을 위한 호출 단위 후보 유지
             PlaceCandidateContext candidates = new PlaceCandidateContext();
 
             CreatePlanAiResponse response;
@@ -161,7 +164,12 @@ public class PlanService {
             try {
                 response = travelRecommendHandler.createPlanByAi(context, candidates);
 
-                validated = validatePlaces(response, candidates, context, null);
+                validated = validatePlaces(
+                        response,
+                        candidates,
+                        context,
+                        null
+                );
             } finally {
                 evaluations = nutritionEvaluationCollector.finish();
             }
@@ -170,7 +178,9 @@ public class PlanService {
                     validated,
                     context,
                     evaluations,
-                    RouteAnchor.from(context.createTravelRequest().decidedLocation()),
+                    RouteAnchor.from(context
+                                    .createTravelRequest()
+                                    .decidedLocation()),
                     candidates,
                     Set.of(),
                     null
@@ -182,7 +192,8 @@ public class PlanService {
             return result;
         } finally {
             sample.stop(
-                    Timer.builder("planb.travel.ai.orchestration")
+                    Timer
+                            .builder("planb.travel.ai.orchestration")
                             .tag(
                                     "days",
                                     Integer.toString(
@@ -218,7 +229,7 @@ public class PlanService {
 
         List<NutritionEvaluationCollector.FoodNutritionEvaluation> evaluations;
 
-        // finishPlan의 식사 재보정도 같은 후보를 쓰므로 호출 단위 전체에서 살아 있어야 한다.
+        // finishPlan 식사 재보정을 위한 호출 단위 후보 유지
         PlaceCandidateContext candidates = new PlaceCandidateContext();
 
         try {
@@ -263,11 +274,11 @@ public class PlanService {
             evaluations = nutritionEvaluationCollector.finish();
         }
 
-        // 편집 중에는 이전 조회로 이미 확정된 수치를 잃지 않는다.
+        // 편집 전 조회로 확정된 영양 수치 보존
         // 재구성 날짜 직후 날짜는 첫 이동시간을 다시 계산해야 해서 finishPlan을 함께 거치는데,
-        // 그 날짜의 메뉴는 이번 호출에서 다시 평가되지 않아 조회 결과가 비어 있다.
-        // 그대로 두면 이전에 찾아 저장해 둔 수치가 지워진다.
-        // 뒤에 이어 붙여 이번 조회를 우선하고, 이번에 못 찾은 메뉴만 저장된 수치로 되살린다.
+        // 재평가하지 않은 날짜의 빈 영양 조회 결과
+        // 이전에 저장된 영양 수치 소실 방지
+        // 이번 조회 우선 적용과 누락 메뉴의 저장 수치 복원
         evaluations = Stream
                 .concat(
                         evaluations.stream(),
@@ -285,10 +296,13 @@ public class PlanService {
                 evaluations,
                 preserveOtherDays
                         ? rebuildAnchor(context, rebuildDays)
-                        : RouteAnchor.from(context.createTravelRequest().decidedLocation()),
+                        : RouteAnchor.from(context
+                                        .createTravelRequest()
+                                        .decidedLocation()),
                 candidates,
                 densityReductionDays,
-                context.currentPlan());
+                context.currentPlan()
+        );
 
         CreatePlanAiResponse result = !preserveOtherDays
                 ? finished
@@ -310,7 +324,8 @@ public class PlanService {
 
         List<String> changes = rebuildDays.isEmpty()
                 ? response.changes()
-                : Stream.concat(
+                : Stream
+                        .concat(
                         preserveOtherDays
                                 ? Stream.<String>empty()
                                 : response
@@ -359,17 +374,19 @@ public class PlanService {
 
                 RebuildPlanDayResponse rebuildResponse = travelRecommendHandler
                         .rebuildDay(
-                                context,
-                                current,
-                                dayNumber,
-                                reason,
-                                candidates);
+                        context,
+                        current,
+                        dayNumber,
+                        reason,
+                        candidates
+                );
 
                 Optional<String> responseFailure = planEditValidator
                         .rebuildFailure(
-                                context,
-                                dayNumber,
-                                rebuildResponse);
+                        context,
+                        dayNumber,
+                        rebuildResponse
+                );
 
                 if (responseFailure.isPresent()) {
                     reason = responseFailure.get();
@@ -378,7 +395,8 @@ public class PlanService {
                             "[AI DAY REBUILD] attempt={}, targetDay={}, reason={}",
                             attempt + 1,
                             dayNumber,
-                            reason);
+                            reason
+                    );
 
                     continue;
                 }
@@ -396,7 +414,11 @@ public class PlanService {
                         .flatMap(day -> day
                                 .schedules()
                                 .stream())
-                        .forEach(slot -> planPlaceResolver.track(slot, places, menus));
+                        .forEach(slot -> planPlaceResolver.track(
+                                slot,
+                                places,
+                                menus
+                        ));
 
                 CreatePlanAiResponse checked;
 
@@ -418,7 +440,9 @@ public class PlanService {
                             )
                     );
                 } catch (BaseException exception) {
-                    if (!PlanEditExceptionEnum.INVALID_AI_PLACE.getCode().equals(exception.getErrorCode())) {
+                    if (!PlanEditExceptionEnum.INVALID_AI_PLACE
+                            .getCode()
+                            .equals(exception.getErrorCode())) {
                         throw exception;
                     }
 
@@ -428,7 +452,8 @@ public class PlanService {
                             "[AI DAY REBUILD] attempt={}, targetDay={}, reason={}",
                             attempt + 1,
                             dayNumber,
-                            reason);
+                            reason
+                    );
 
                     continue;
                 }
@@ -444,7 +469,8 @@ public class PlanService {
                             "[AI DAY REBUILD] attempt={}, targetDay={}, reason={}",
                             attempt + 1,
                             dayNumber,
-                            reason);
+                            reason
+                    );
                 }
 
                 CreatePlanAiResponse.PlanDayDetail rebuilt = target;
@@ -493,16 +519,21 @@ public class PlanService {
             List<CreatePlanAiResponse.PlanScheduleDetail> schedules = new ArrayList<>();
 
             for (GetAiPlanResponse.PlanScheduleDetail slot : day.schedules()) {
-                Validation validation = planPlaceResolver.verifyExisting(slot, places, menus);
+                Validation validation = planPlaceResolver.verifyExisting(
+                        slot,
+                        places,
+                        menus
+                );
 
-                // 보존 날짜는 사용자가 이미 받아본 확정 일정이므로 검증 실패로 편집을 막지 않는다.
-                // 남은 실패 사유는 저장된 데이터의 구조 결함이라 로그로만 드러낸다.
+                // 기존 확정 일정인 보존 날짜의 검증 실패로 편집 차단 방지
+                // 저장 데이터 구조 결함의 로그 기록
                 if (!validation.valid()) {
                     log.warn(
                             "[PRESERVED SLOT] dayNumber={}, locationName={}, reason={}",
                             day.dayNumber(),
                             slot.locationName(),
-                            validation.reason());
+                            validation.reason()
+                    );
                 }
 
                 CreatePlanAiResponse.PlanScheduleDetail preservedSlot = validation.valid()
@@ -511,10 +542,18 @@ public class PlanService {
 
                 schedules.add(preservedSlot);
 
-                planPlaceResolver.track(preservedSlot, places, menus);
+                planPlaceResolver.track(
+                        preservedSlot,
+                        places,
+                        menus
+                );
             }
 
-            preserved.add(new CreatePlanAiResponse.PlanDayDetail(day.dayNumber(), day.date(), schedules));
+            preserved.add(new CreatePlanAiResponse.PlanDayDetail(
+                            day.dayNumber(),
+                            day.date(),
+                            schedules
+                    ));
         }
 
         List<CreatePlanAiResponse.PlanDayDetail> targets = rebuildDays
@@ -530,7 +569,11 @@ public class PlanService {
 
                     CreatePlanAiResponse single = new CreatePlanAiResponse(matches);
 
-                    if (!planEditValidator.sameDay(context, number, single)) {
+                    if (!planEditValidator.sameDay(
+                            context,
+                            number,
+                            single
+                    )) {
                         throw planEditValidator.failure("재구성 대상 일차/날짜 불일치");
                     }
 
@@ -568,8 +611,8 @@ public class PlanService {
         );
     }
 
-    // 재구성 구간과 그 직후 보존 날짜를 함께 계산 대상으로 삼는다
-    // 직후 날짜의 첫 이동시간은 재구성 전 장소를 기준으로 계산된 값이라 그대로 두면 어긋난다
+    // 재구성 구간과 직후 보존 날짜의 동시 재계산
+    // 재구성 전 장소 기준 이동시간의 정합성 보정
     private List<CreatePlanAiResponse.PlanDayDetail> finishTargets(
             CreatePlanAiResponse validated,
             Set<Integer> rebuildDays
@@ -591,7 +634,7 @@ public class PlanService {
                 .toList();
     }
 
-    // 직후 보존 날짜의 첫 장소만 이동시간을 비워 재계산 대상으로 만든다
+    // 직후 보존 날짜 첫 장소의 이동시간만 재계산
     private CreatePlanAiResponse.PlanDayDetail clearFirstTravelMinutes(
             CreatePlanAiResponse.PlanDayDetail day
     ) {
@@ -645,18 +688,21 @@ public class PlanService {
     }
 
 
-    // 재구성 구간에서 가장 빠른 날짜의 직전 날짜를 이동시간 기준점으로 삼는다
+    // 재구성 첫 날짜의 직전 날짜를 이동시간 기준점으로 선택
     private RouteAnchor rebuildAnchor(
             PlanEditContext context,
             Set<Integer> rebuildDays
     ) {
 
-        String decidedLocation = context.createTravelRequest().decidedLocation();
+        String decidedLocation = context
+                .createTravelRequest()
+                .decidedLocation();
 
         return rebuildDays
                 .stream()
                 .min(Integer::compareTo)
-                .map(first -> context.currentPlan()
+                .map(first -> context
+                        .currentPlan()
                         .planDays()
                         .stream()
                         .filter(day -> Objects.equals(day.dayNumber(), first - 1))
@@ -678,8 +724,8 @@ public class PlanService {
             GetAiPlanResponse currentPlan
     ) {
 
-        // 복약 일정은 이동시간과 시간표가 확정된 뒤 한 번만 생성한다.
-        // ScheduleNormalizer가 멱등이므로 이 시점의 선행 호출은 결과에 기여하지 않는다.
+        // 이동시간·시간표 확정 후 단일 복약 일정 생성
+        // 멱등인 ScheduleNormalizer 선행 호출 제외
         CreatePlanAiResponse travelFixed = fillMissingTravelMinutes(
                 response,
                 context.createTravelRequest(),
@@ -693,8 +739,8 @@ public class PlanService {
                 context.healthContexts()
         );
 
-        // 생성·편집의 공통 finish 경계에서 등록 식사 누락을 한 번 더 보정한다.
-        // 이미 채워진 일정에는 변화가 없고, 그래도 필수 식사가 빠지면 아래 검증에서 거부한다.
+        // 생성·편집 공통 finish 경계의 등록 식사 재보정
+        // 이미 완성된 일정 유지와 필수 식사 누락 시 후속 검증 거부
         CreatePlanAiResponse mealFixed = refillMissingMeals(
                 normalized,
                 context,
@@ -709,7 +755,10 @@ public class PlanService {
                 mealFixed,
                 context.healthContexts(),
                 currentPlan,
-                context.createTravelRequest().dateType().getPlusDays() + 1
+                context
+                        .createTravelRequest()
+                        .dateType()
+                        .getPlusDays() + 1
         );
 
         List<NutritionEvaluationCollector.FoodNutritionEvaluation> finalEvaluations =
@@ -719,7 +768,7 @@ public class PlanService {
                         evaluations
                 );
 
-        // 식후·식전 복약은 식사 슬롯을 기준으로 배치하므로 식사가 확정된 뒤에 만든다.
+        // 식사 슬롯 확정 후 식전·식후 복약 배치
         CreatePlanAiResponse medicationFixed = scheduleNormalizer.ensureMedicationSchedules(
                 mealFixed,
                 context.healthContexts()
@@ -734,7 +783,7 @@ public class PlanService {
         return tagged;
     }
 
-    // 최종 일정의 식사 중 기존 영양평가가 없는 메뉴만 결과에 추가한다.
+    // 최종 일정에서 기존 영양평가가 없는 메뉴만 추가
     private List<NutritionEvaluationCollector.FoodNutritionEvaluation> enrichMissingNutritionEvaluations(
             CreatePlanAiResponse response,
             List<TravelHealthContext> healthContexts,
@@ -801,7 +850,8 @@ public class PlanService {
             Set<Integer> densityReductionDays
     ) {
 
-        if (missingMealDays(response, context.healthContexts()).isEmpty()) {
+        if (missingMealDays(response, context.healthContexts())
+                .isEmpty()) {
             return response;
         }
 
@@ -812,7 +862,10 @@ public class PlanService {
                 new HashSet<>(),
                 new HashSet<>(),
                 densityReductionDays,
-                context.createTravelRequest().dateType().getPlusDays() + 1
+                context
+                        .createTravelRequest()
+                        .dateType()
+                        .getPlusDays() + 1
         );
 
         return scheduleNormalizer.normalizeScheduleTimes(
@@ -826,8 +879,7 @@ public class PlanService {
     }
 
     /**
-     * 필수 식사 누락에 대한 최종 검증
-     * @param currentPlan 편집 전 일정, null이면 기존 누락 면제 없음
+     * 필수 식사 누락에 대한 최종 검증, 편집 전 일정 부재 시 면제 제외
      */
     private void validateMealSlots(
             CreatePlanAiResponse response,
@@ -876,7 +928,11 @@ public class PlanService {
                 .planDays()
                 .stream()
                 .flatMap(day -> MealSlotPolicy
-                        .requiredMissingMeals(day, healthContexts, totalDays)
+                        .requiredMissingMeals(
+                        day,
+                        healthContexts,
+                        totalDays
+                )
                         .stream()
                         .filter(mealType -> !alreadyMissing
                                 .getOrDefault(day.dayNumber(), Set.of())
@@ -886,10 +942,8 @@ public class PlanService {
     }
 
     /**
-     * 편집 전 일정의 기존 식사 누락 조회
+     * 편집 전 일정의 날짜별 기존 식사 누락 조회
      * 새로 생긴 날짜는 면제하지 않는 검증
-     * @param currentPlan 편집 전 일정, null이면 기존 누락 면제 없음
-     * @return dayNumber별로 편집 전에 없던 식사
      */
     private Map<Integer, Set<ScheduleType>> baselineMissingMeals(
             GetAiPlanResponse currentPlan
@@ -926,7 +980,7 @@ public class PlanService {
         return absentByDay;
     }
 
-    // 식사가 빠진 날짜, 재보정이 필요한지 판단한다
+    // 식사 누락 날짜의 재보정 필요 여부 판정
     private List<Integer> missingMealDays(
             CreatePlanAiResponse response,
             List<TravelHealthContext> healthContexts
@@ -1018,7 +1072,9 @@ public class PlanService {
             RouteAnchor anchor
     ) {
 
-        if (response == null || response.planDays() == null || response.planDays().isEmpty()) {
+        if (response == null || response.planDays() == null || response
+                .planDays()
+                .isEmpty()) {
             throw invalidPlace("일정 누락");
         }
 
@@ -1027,10 +1083,10 @@ public class PlanService {
                 context.createTravelRequest()
         );
 
-        // 빈 슬롯 채우기와 초과분 제거는 개수 검증 직전에 한 번만 한다.
-        // 생성·편집·재구성 응답이 모두 이 지점을 지나므로 여기 두어야 경로마다 갈라지지 않는다.
+        // 개수 검증 직전의 단일 빈 슬롯 보충·초과분 제거
+        // 생성·편집·재구성 공통 보정 지점
         // usedPlaces·usedMenus에는 이 응답 밖 날짜의 장소와 메뉴가 들어있어,
-        // 날짜 일부만 검증할 때도 중복을 피한다.
+        // 일부 날짜 검증 시에도 장소 중복 방지
         response = missingSlotCompleter.complete(
                 response,
                 context.healthContexts(),
@@ -1038,7 +1094,10 @@ public class PlanService {
                 usedPlaces,
                 usedMenus,
                 densityReductionDays,
-                context.createTravelRequest().dateType().getPlusDays() + 1
+                context
+                        .createTravelRequest()
+                        .dateType()
+                        .getPlusDays() + 1
         );
 
         int totalDays = context
@@ -1051,7 +1110,8 @@ public class PlanService {
                 context.healthContexts(),
                 existing,
                 totalDays
-        ).isEmpty()) {
+        )
+                .isEmpty()) {
             travelRecommendHandler.collectRestaurantCandidates(
                     context,
                     candidates
@@ -1092,17 +1152,28 @@ public class PlanService {
         List<Validation> validations = new ArrayList<>();
 
         for (CreatePlanAiResponse.PlanDayDetail day : response.planDays()) {
-            if (day == null || day.schedules() == null || day.schedules().isEmpty()) {
+            if (day == null || day.schedules() == null || day
+                    .schedules()
+                    .isEmpty()) {
                 throw invalidPlace("일정 슬롯 누락");
             }
 
             for (CreatePlanAiResponse.PlanScheduleDetail slot : day.schedules()) {
-                Validation validation = planPlaceResolver.validate(slot, candidates, usedPlaces, usedMenus);
+                Validation validation = planPlaceResolver.validate(
+                        slot,
+                        candidates,
+                        usedPlaces,
+                        usedMenus
+                );
 
                 validations.add(validation);
 
                 if (validation.valid()) {
-                    planPlaceResolver.track(validation.schedule(), usedPlaces, usedMenus);
+                    planPlaceResolver.track(
+                            validation.schedule(),
+                            usedPlaces,
+                            usedMenus
+                    );
                 }
             }
         }
@@ -1124,22 +1195,43 @@ public class PlanService {
                 Validation validation = validations.get(validationIndex++);
 
                 CreatePlanAiResponse.PlanScheduleDetail resolved = recoverPlace(
-                        slot, validation, day, existing, context, usedPlaces, usedMenus);
+                        slot,
+                        validation,
+                        day,
+                        existing,
+                        context,
+                        usedPlaces,
+                        usedMenus
+                );
 
                 boolean changed = !Objects.equals(slot.locationName(), resolved.locationName())
                         || !Objects.equals(slot.longitude(), resolved.longitude())
                         || !Objects.equals(slot.latitude(), resolved.latitude())
-                        || changedFromExisting(existing, day, resolved);
+                        || changedFromExisting(
+                                existing,
+                                day,
+                                resolved
+                        );
 
                 changedRoute = changedRoute || changed;
 
                 if (changedRoute && planPlaceResolver.requiresPlace(resolved)) {
-                    resolved = recalculateSlot(resolved, previousLocation, previousPlace, previousEnd, context.createTravelRequest());
+                    resolved = recalculateSlot(
+                            resolved,
+                            previousLocation,
+                            previousPlace,
+                            previousEnd,
+                            context.createTravelRequest()
+                    );
                 }
 
                 schedules.add(resolved);
 
-                planPlaceResolver.track(resolved, usedPlaces, usedMenus);
+                planPlaceResolver.track(
+                        resolved,
+                        usedPlaces,
+                        usedMenus
+                );
 
                 if (planPlaceResolver.requiresPlace(resolved)) {
                     previousLocation = resolved.locationName();
@@ -1150,7 +1242,11 @@ public class PlanService {
                 }
             }
 
-            days.add(new CreatePlanAiResponse.PlanDayDetail(day.dayNumber(), day.date(), schedules));
+            days.add(new CreatePlanAiResponse.PlanDayDetail(
+                            day.dayNumber(),
+                            day.date(),
+                            schedules
+                    ));
         }
 
         return new CreatePlanAiResponse(days);
@@ -1162,7 +1258,9 @@ public class PlanService {
     ) {
 
         Set<Integer> dayNumbers = new HashSet<>();
-        int lastDayNumber = request.dateType().getPlusDays() + 1;
+        int lastDayNumber = request
+                .dateType()
+                .getPlusDays() + 1;
 
         for (CreatePlanAiResponse.PlanDayDetail day : response.planDays()) {
             if (day == null || day.dayNumber() == null || day.date() == null) {
@@ -1174,7 +1272,11 @@ public class PlanService {
                 throw invalidPlace("유효하지 않거나 중복된 일차");
             }
 
-            if (!day.date().equals(request.startDate().plusDays(day.dayNumber() - 1L))) {
+            if (!day
+                    .date()
+                    .equals(request
+                            .startDate()
+                            .plusDays(day.dayNumber() - 1L))) {
                 throw invalidPlace("일차와 날짜 불일치");
             }
         }
@@ -1292,10 +1394,21 @@ public class PlanService {
             PlaceCandidateContext retryCandidates = new PlaceCandidateContext();
 
             CreatePlanAiResponse.PlanScheduleDetail choice = travelRecommendHandler.reselectPlace(
-                    new PlaceReselectPrompt(context, slot, result.reason(), Set.copyOf(usedPlaces), Set.copyOf(usedMenus)),
+                    new PlaceReselectPrompt(
+                            context,
+                            slot,
+                            result.reason(),
+                            Set.copyOf(usedPlaces),
+                            Set.copyOf(usedMenus)
+                    ),
                     retryCandidates);
 
-            result = planPlaceResolver.validate(planPlaceResolver.select(slot, choice), retryCandidates, usedPlaces, usedMenus);
+            result = planPlaceResolver.validate(
+                    planPlaceResolver.select(slot, choice),
+                    retryCandidates,
+                    usedPlaces,
+                    usedMenus
+            );
 
             if (result.valid()) {
                 return result.schedule();
@@ -1304,7 +1417,13 @@ public class PlanService {
 
         String finalReason = result.reason();
 
-        return verifiedFallback(existing, day, slot, usedPlaces, usedMenus)
+        return verifiedFallback(
+                existing,
+                day,
+                slot,
+                usedPlaces,
+                usedMenus
+        )
                 .orElseThrow(() -> invalidPlace("day=" + day.dayNumber() + ", time=" + slot.startTime()
                         + ", " + finalReason));
     }
@@ -1332,7 +1451,11 @@ public class PlanService {
                         .stream())
                 .filter(old -> old.scheduleType() == slot.scheduleType() && old.courseType() == slot.courseType()
                         && Objects.equals(old.startTime(), slot.startTime()))
-                .map(old -> planPlaceResolver.verifyExisting(old, usedPlaces, usedMenus))
+                .map(old -> planPlaceResolver.verifyExisting(
+                        old,
+                        usedPlaces,
+                        usedMenus
+                ))
                 .filter(Validation::valid)
                 .map(Validation::schedule)
                 .findFirst();
@@ -1347,7 +1470,12 @@ public class PlanService {
             CreateTravelRequest request
     ) {
 
-        KakaoRouteResult route = lookupRoute(previousLocation, previousPlace, slot, request.transportation());
+        KakaoRouteResult route = lookupRoute(
+                previousLocation,
+                previousPlace,
+                slot,
+                request.transportation()
+        );
 
         if (route == null || route.travelMinutes() == null || route.travelMinutes() < 0) {
             throw invalidPlace("장소 변경 후 이동시간 확인 실패: origin=" + previousLocation
@@ -1407,13 +1535,15 @@ public class PlanService {
                 hasAllergyOrAvoidFood(travelPlanContext.healthContexts());
 
         List<CreatePlanAiResponse.PlanDayDetail> taggedPlanDays =
-                response.planDays()
+                response
+                        .planDays()
                         .stream()
                         .map(planDay ->
                                 new CreatePlanAiResponse.PlanDayDetail(
                                         planDay.dayNumber(),
                                         planDay.date(),
-                                        planDay.schedules()
+                                        planDay
+                                                .schedules()
                                                 .stream()
                                                 .map(schedule ->
                                                         addDeterministicTags(
@@ -1453,7 +1583,7 @@ public class PlanService {
 
         mergedTags.addAll(deterministicTags);
 
-        // 식사시간 반영 여부는 확정된 시간표가 결정한다. AI가 붙인 태그는 근거로 삼지 않는다.
+        // AI 태그가 아닌 확정 시간표 기준의 식사시간 반영 판정
         if (scheduleNormalizer.mealSlot(schedule)) {
             if (scheduleNormalizer.mealTimeSatisfied(schedule, healthContexts)) {
                 mergedTags.add(RecommendationTag.MEAL_TIME_APPLIED);
@@ -1462,8 +1592,8 @@ public class PlanService {
             }
         }
 
-        // 장소 유형에 허용되지 않은 태그는 남기지 않는다.
-        // 프롬프트가 CourseType별 후보를 알려주지만 AI 응답이 그걸 항상 지킨다는 보장은 없다.
+        // 장소 유형에 맞지 않는 태그 제거
+        // AI 응답의 CourseType별 태그 정책 불이행 대비
         mergedTags.retainAll(RecommendationTag.candidates(schedule.courseType()));
 
         CreatePlanAiResponse.RestaurantDetail restaurantDetail =
@@ -1519,9 +1649,9 @@ public class PlanService {
 
         if (lookup == null) {
 
-            // 빈칸이 되는 메뉴의 비율을 운영에서 재기 위한 기록이다.
+            // 운영 중 빈 메뉴 비율 측정용 기록
             // 식당 고유 메뉴명은 식약처에 없어 조회되지 않는다. 그 비율이 높으면
-            // AI에게 표준 품목명을 따로 받는 방식을 검토해야 한다.
+            // AI 응답의 표준 품목명 분리 수집 검토
             log.info(
                     "영양성분 조회 실패 - menuName: {}",
                     restaurantDetail.menuName()
@@ -1625,7 +1755,8 @@ public class PlanService {
             CreateTravelRequest createTravelRequest
     ) {
 
-        return Stream.concat(
+        return Stream
+                .concat(
                         createTravelRequest
                                 .localFoods()
                                 .stream(),
@@ -1712,7 +1843,8 @@ public class PlanService {
             List<NutritionEvaluationCollector.FoodNutritionEvaluation> nutritionEvaluations
     ) {
 
-        return nutritionEvaluations.stream()
+        return nutritionEvaluations
+                .stream()
                 .collect(
                         Collectors.groupingBy(
                                 NutritionEvaluationCollector.FoodNutritionEvaluation::foodName,
@@ -1806,7 +1938,12 @@ public class PlanService {
             return schedule;
         }
 
-        KakaoRouteResult route = lookupRoute(previousLocation, previousPlace, schedule, transportation);
+        KakaoRouteResult route = lookupRoute(
+                previousLocation,
+                previousPlace,
+                schedule,
+                transportation
+        );
 
         Integer travelMinutes =
                 route == null ? null : route.travelMinutes();
@@ -1844,20 +1981,21 @@ public class PlanService {
 
         return kakaoMapServiceHandler
                 .getRoute(
-                        previousLocation,
-                        destination.locationName(),
-                        transportation,
-                        previousPlace == null ? null : previousPlace.longitude(),
-                        previousPlace == null ? null : previousPlace.latitude(),
-                        destination.longitude(),
-                        destination.latitude())
+                previousLocation,
+                destination.locationName(),
+                transportation,
+                previousPlace == null ? null : previousPlace.longitude(),
+                previousPlace == null ? null : previousPlace.latitude(),
+                destination.longitude(),
+                destination.latitude()
+        )
                 .block();
     }
 
     /*
     기본 CRUD 모음
      */
-    public void savePlan(Plan plan){
+    public void savePlan(Plan plan) {
 
         planRepository.save(plan);
     }

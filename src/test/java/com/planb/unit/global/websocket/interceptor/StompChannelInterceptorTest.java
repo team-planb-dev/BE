@@ -88,7 +88,8 @@ class StompChannelInterceptorTest {
         assertThat(result)
                 .isSameAs(message);
 
-        verify(jwtAuthenticationProvider).authenticate(authorizationHeader);
+        verify(jwtAuthenticationProvider)
+                .authenticate(authorizationHeader);
 
         verify(chatRoomMemberQueryService, never())
                 .checkSubscriberWithRoomId(
@@ -130,7 +131,8 @@ class StompChannelInterceptorTest {
         )
                 .isInstanceOf(BaseException.class);
 
-        verify(jwtAuthenticationProvider).authenticate(authorizationHeader);
+        verify(jwtAuthenticationProvider)
+                .authenticate(authorizationHeader);
 
         verify(chatRoomMemberQueryService, never())
                 .checkSubscriberWithRoomId(
@@ -174,7 +176,8 @@ class StompChannelInterceptorTest {
         assertThat(result)
                 .isSameAs(message);
 
-        verify(chatRoomMemberQueryService).checkSubscriberWithRoomId(roomId, userId);
+        verify(chatRoomMemberQueryService)
+                .checkSubscriberWithRoomId(roomId, userId);
 
         verify(jwtAuthenticationProvider, never())
                 .authenticate(anyString());
@@ -215,7 +218,8 @@ class StompChannelInterceptorTest {
         assertThat(result)
                 .isSameAs(message);
 
-        verify(chatRoomMemberQueryService).checkSubscriberWithRoomId(roomId, userId);
+        verify(chatRoomMemberQueryService)
+                .checkSubscriberWithRoomId(roomId, userId);
 
         verify(jwtAuthenticationProvider, never())
                 .authenticate(anyString());
@@ -255,7 +259,8 @@ class StompChannelInterceptorTest {
         )
                 .isInstanceOf(BaseException.class);
 
-        verify(chatRoomMemberQueryService).checkSubscriberWithRoomId(roomId, userId);
+        verify(chatRoomMemberQueryService)
+                .checkSubscriberWithRoomId(roomId, userId);
     }
 
     @Test
@@ -291,7 +296,8 @@ class StompChannelInterceptorTest {
         )
                 .isInstanceOf(BaseException.class);
 
-        verify(chatRoomMemberQueryService).checkSubscriberWithRoomId(roomId, userId);
+        verify(chatRoomMemberQueryService)
+                .checkSubscriberWithRoomId(roomId, userId);
     }
 
     @Test
@@ -404,7 +410,8 @@ class StompChannelInterceptorTest {
         assertThat(result)
                 .isSameAs(message);
 
-        verify(jwtAuthenticationProvider, never()).authenticate(anyString());
+        verify(jwtAuthenticationProvider, never())
+                .authenticate(anyString());
 
         verify(chatRoomMemberQueryService, never())
                 .checkSubscriberWithRoomId(

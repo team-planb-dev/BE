@@ -18,7 +18,7 @@ public class RefreshFacade {
     /**
      * Refresh Token 검증 및 토큰 재발급
      */
-    public ReissueResponse reissue(HttpServletRequest request){
+    public ReissueResponse reissue(HttpServletRequest request) {
 
         return refreshService.reissue(request); // 토큰 재발급
 

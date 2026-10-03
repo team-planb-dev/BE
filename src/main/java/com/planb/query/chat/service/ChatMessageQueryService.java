@@ -10,7 +10,7 @@ public class ChatMessageQueryService {
 
     private final ChatMessageQueryRepository chatMessageQueryRepository;
 
-    public Long softDeleteAllMessageInChatRoom(Long roomId){
+    public Long softDeleteAllMessageInChatRoom(Long roomId) {
 
         return chatMessageQueryRepository.softDeleteAllMessageInChatRoom(roomId);
     }

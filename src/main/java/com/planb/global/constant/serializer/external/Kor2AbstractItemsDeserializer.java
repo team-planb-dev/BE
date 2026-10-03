@@ -18,7 +18,8 @@ public abstract class Kor2AbstractItemsDeserializer<ITEMS, ITEM>
     protected Kor2AbstractItemsDeserializer(
             Class<ITEMS> itemsClass,
             Class<ITEM> itemClass,
-            Function<List<ITEM>, ITEMS> itemsFactory) {
+            Function<List<ITEM>, ITEMS> itemsFactory
+    ) {
 
         super(itemsClass);
         this.itemClass = itemClass;

@@ -74,11 +74,15 @@ public class PlanQueryService {
 
     public GetAiPlanResponse getSharedPlanDetailResponse(Long travelId) {
 
-        return getPlanDetailResponse(travelId, List.of(), List.of());
+        return getPlanDetailResponse(
+                travelId,
+                List.of(),
+                List.of()
+        );
     }
 
     // travelId로 Plan객체 조회하기 (RecommendationTag 포함)
-    public PlanQueryResponse getPlanByTravelId(Long travelId){
+    public PlanQueryResponse getPlanByTravelId(Long travelId) {
 
         PlanBasicQueryResponse basic =
                 planQueryRepository.findPlanBasicByTravelId(travelId);
@@ -89,7 +93,8 @@ public class PlanQueryService {
         // 응답 직렬화 시점에 지연 컬렉션 접근 시 LazyInitializationException 발생
         // (open-in-view: false 환경이라 세션이 컨트롤러 응답 시점까지 열려있지 않음)
         Set<RecommendationTag> tags =
-                planRepository.findById(basic.planId())
+                planRepository
+                        .findById(basic.planId())
                         .map(Plan::getTags)
                         .map(HashSet::new)
                         .orElse(new HashSet<>());

@@ -89,52 +89,106 @@ class ChatMessageServiceTest {
     @DisplayName("사용자 메시지 저장 및 구독 채널 발행")
     void publishUserMessage() {
 
-        ChatRoom room = ChatRoom.builder().id(1L).build();
-        User sender = User.builder().id(2L).username("user@example.com").nickname("우주").build();
-        when(chatRoomQueryService.findChatRoomByRoomId(1L)).thenReturn(room);
-        when(userQueryService.findByUsername("user@example.com")).thenReturn(sender);
+        ChatRoom room = ChatRoom
+                .builder()
+                .id(1L)
+                .build();
+        User sender = User
+                .builder()
+                .id(2L)
+                .username("user@example.com")
+                .nickname("우주")
+                .build();
+        when(chatRoomQueryService.findChatRoomByRoomId(1L))
+                .thenReturn(room);
+        when(userQueryService.findByUsername("user@example.com"))
+                .thenReturn(sender);
 
-        chatMessageService.publishUserMessage(1L, "안녕하세요", "user@example.com");
+        chatMessageService.publishUserMessage(
+                1L,
+                "안녕하세요",
+                "user@example.com"
+        );
 
         org.mockito.ArgumentCaptor<ChatMessage> saved =
                 org.mockito.ArgumentCaptor.forClass(ChatMessage.class);
         org.mockito.ArgumentCaptor<SendChatMessageResponse> published =
                 org.mockito.ArgumentCaptor.forClass(SendChatMessageResponse.class);
 
-        verify(chatMessageRepository).save(saved.capture());
-        verify(messagingTemplate).convertAndSend(
+        verify(chatMessageRepository)
+                .save(saved.capture());
+        verify(messagingTemplate)
+                .convertAndSend(
                 org.mockito.ArgumentMatchers.eq("/sub/api/v1/chat/1"),
                 published.capture()
         );
 
-        assertThat(saved.getValue().getChatRoom()).isSameAs(room);
-        assertThat(saved.getValue().getSender()).isSameAs(sender);
-        assertThat(saved.getValue().getMessage()).isEqualTo("안녕하세요");
-        assertThat(published.getValue().message()).isEqualTo("안녕하세요");
-        assertThat(published.getValue().type()).isEqualTo(MessageType.TALK);
+        assertThat(saved
+                        .getValue()
+                        .getChatRoom())
+                .isSameAs(room);
+        assertThat(saved
+                        .getValue()
+                        .getSender())
+                .isSameAs(sender);
+        assertThat(saved
+                        .getValue()
+                        .getMessage())
+                .isEqualTo("안녕하세요");
+        assertThat(published
+                        .getValue()
+                        .message())
+                .isEqualTo("안녕하세요");
+        assertThat(published
+                        .getValue()
+                        .type())
+                .isEqualTo(MessageType.TALK);
     }
 
     @Test
     @DisplayName("AI 응답 저장 및 구독 채널 발행")
     void publishAiReply() {
 
-        ChatRoom room = ChatRoom.builder().id(1L).build();
-        User ai = User.builder().id(3L).username(SystemAccountConstants.AI_BOT_USERNAME).nickname("AI").build();
-        when(chatRoomQueryService.findChatRoomByRoomId(1L)).thenReturn(room);
-        when(userQueryService.findByUsername(SystemAccountConstants.AI_BOT_USERNAME)).thenReturn(ai);
+        ChatRoom room = ChatRoom
+                .builder()
+                .id(1L)
+                .build();
+        User ai = User
+                .builder()
+                .id(3L)
+                .username(SystemAccountConstants.AI_BOT_USERNAME)
+                .nickname("AI")
+                .build();
+        when(chatRoomQueryService.findChatRoomByRoomId(1L))
+                .thenReturn(room);
+        when(userQueryService.findByUsername(SystemAccountConstants.AI_BOT_USERNAME))
+                .thenReturn(ai);
 
-        chatMessageService.publishAiReply(1L, "수정안", null, MessageType.TALK);
+        chatMessageService.publishAiReply(
+                1L,
+                "수정안",
+                null,
+                MessageType.TALK
+        );
 
         org.mockito.ArgumentCaptor<SendChatMessageResponse> published =
                 org.mockito.ArgumentCaptor.forClass(SendChatMessageResponse.class);
 
-        verify(chatMessageRepository).save(any(ChatMessage.class));
-        verify(messagingTemplate).convertAndSend(
+        verify(chatMessageRepository)
+                .save(any(ChatMessage.class));
+        verify(messagingTemplate)
+                .convertAndSend(
                 org.mockito.ArgumentMatchers.eq("/sub/api/v1/chat/1"),
                 published.capture()
         );
-        assertThat(published.getValue().senderId()).isEqualTo(3L);
-        assertThat(published.getValue().message()).isEqualTo("수정안");
+        assertThat(published
+                        .getValue()
+                        .senderId())
+                .isEqualTo(3L);
+        assertThat(published
+                        .getValue()
+                        .message())
+                .isEqualTo("수정안");
     }
 
     @Test
@@ -167,9 +221,22 @@ class ChatMessageServiceTest {
     @DisplayName("첫 여행 채팅방 입장 시 AI 인사 두 건 발행")
     void publishGreetingForNewTravelRoom() {
 
-        ChatRoom room = ChatRoom.builder().id(1L).build();
-        User participant = User.builder().id(2L).username("user@example.com").nickname("우주").build();
-        User ai = User.builder().id(3L).username(SystemAccountConstants.AI_BOT_USERNAME).nickname("AI").build();
+        ChatRoom room = ChatRoom
+                .builder()
+                .id(1L)
+                .build();
+        User participant = User
+                .builder()
+                .id(2L)
+                .username("user@example.com")
+                .nickname("우주")
+                .build();
+        User ai = User
+                .builder()
+                .id(3L)
+                .username(SystemAccountConstants.AI_BOT_USERNAME)
+                .nickname("AI")
+                .build();
 
         when(chatRoomQueryService.findTravelIdByRoomId(1L))
                 .thenReturn(Optional.of(10L));
@@ -197,21 +264,41 @@ class ChatMessageServiceTest {
     @DisplayName("시스템 메시지 DB 저장 없이 구독 채널 발행")
     void publishSystemMessageWithoutSave() {
 
-        User participant = User.builder().id(2L).username("user@example.com").nickname("우주").build();
+        User participant = User
+                .builder()
+                .id(2L)
+                .username("user@example.com")
+                .nickname("우주")
+                .build();
         when(userQueryService.findByUsername("user@example.com"))
                 .thenReturn(participant);
-        chatMessageService.publishSystemMessage(1L, "user@example.com", MessageType.ENTER);
+        chatMessageService.publishSystemMessage(
+                1L,
+                "user@example.com",
+                MessageType.ENTER
+        );
 
         org.mockito.ArgumentCaptor<SendChatMessageResponse> published =
                 org.mockito.ArgumentCaptor.forClass(SendChatMessageResponse.class);
-        verify(messagingTemplate).convertAndSend(
+        verify(messagingTemplate)
+                .convertAndSend(
                 org.mockito.ArgumentMatchers.eq("/sub/api/v1/chat/1"),
                 published.capture()
         );
-        verify(chatMessageRepository, never()).save(any(ChatMessage.class));
-        assertThat(published.getValue().type()).isEqualTo(MessageType.ENTER);
-        assertThat(published.getValue().senderId()).isEqualTo(2L);
-        assertThat(published.getValue().message()).isEqualTo("우주님이 입장했습니다.");
+        verify(chatMessageRepository, never())
+                .save(any(ChatMessage.class));
+        assertThat(published
+                        .getValue()
+                        .type())
+                .isEqualTo(MessageType.ENTER);
+        assertThat(published
+                        .getValue()
+                        .senderId())
+                .isEqualTo(2L);
+        assertThat(published
+                        .getValue()
+                        .message())
+                .isEqualTo("우주님이 입장했습니다.");
     }
 
     @Test

@@ -9,5 +9,5 @@ datasources:
     isDefault: true
     editable: false
     jsonData:
-      # scrape 간격과 같게 두어 rate() 구간 계산이 어긋나지 않게 한다.
+      # rate() 구간 계산을 위한 scrape 간격 일치
       timeInterval: 2s

@@ -73,7 +73,8 @@ class PlanScheduleQueryServiceTest {
 
         verify(
                 planScheduleQueryRepository
-        ).findPlanSchedulesByPlanDayIds(
+        )
+                .findPlanSchedulesByPlanDayIds(
                 planDayIds
         );
     }

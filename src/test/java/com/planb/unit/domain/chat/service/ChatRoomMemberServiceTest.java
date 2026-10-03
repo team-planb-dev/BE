@@ -143,8 +143,14 @@ class ChatRoomMemberServiceTest {
     @DisplayName("여행 채팅방 기존 구성원의 중복 등록 생략")
     void ensureExistingMember() {
 
-        ChatRoom room = ChatRoom.builder().id(1L).build();
-        User user = User.builder().id(2L).build();
+        ChatRoom room = ChatRoom
+                .builder()
+                .id(1L)
+                .build();
+        User user = User
+                .builder()
+                .id(2L)
+                .build();
         when(chatRoomMemberQueryService.checkSubscriberWithRoomId(1L, 2L))
                 .thenReturn(true);
 
@@ -158,8 +164,15 @@ class ChatRoomMemberServiceTest {
     @DisplayName("여행 채팅방 신규 구성원 등록")
     void ensureNewMember() {
 
-        ChatRoom room = ChatRoom.builder().id(1L).build();
-        User user = User.builder().id(2L).username("user@example.com").build();
+        ChatRoom room = ChatRoom
+                .builder()
+                .id(1L)
+                .build();
+        User user = User
+                .builder()
+                .id(2L)
+                .username("user@example.com")
+                .build();
         when(chatRoomMemberQueryService.checkSubscriberWithRoomId(1L, 2L))
                 .thenReturn(false);
 
@@ -173,7 +186,10 @@ class ChatRoomMemberServiceTest {
     @DisplayName("인증 사용자와 다른 멤버십 변경 거부")
     void rejectOtherUserMembershipChange() {
 
-        User user = User.builder().id(2L).build();
+        User user = User
+                .builder()
+                .id(2L)
+                .build();
 
         assertThatThrownBy(() -> chatRoomMemberService.validateRequestedUser(3L, user))
                 .isInstanceOf(ForbiddenException.class);
@@ -183,10 +199,22 @@ class ChatRoomMemberServiceTest {
     @DisplayName("여행 채팅방의 비소유자 변경 거부")
     void rejectOtherTravelOwner() {
 
-        User owner = User.builder().id(1L).build();
-        User participant = User.builder().id(2L).build();
-        Travel travel = Travel.builder().user(owner).build();
-        ChatRoom room = ChatRoom.builder().travel(travel).build();
+        User owner = User
+                .builder()
+                .id(1L)
+                .build();
+        User participant = User
+                .builder()
+                .id(2L)
+                .build();
+        Travel travel = Travel
+                .builder()
+                .user(owner)
+                .build();
+        ChatRoom room = ChatRoom
+                .builder()
+                .travel(travel)
+                .build();
 
         assertThatThrownBy(() -> chatRoomMemberService.validateTravelRoomOwner(room, participant))
                 .isInstanceOf(ForbiddenException.class);

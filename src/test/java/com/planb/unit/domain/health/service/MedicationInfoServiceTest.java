@@ -144,7 +144,8 @@ class MedicationInfoServiceTest {
         // given
         List<MedicationInfo> medicationInfos =
                 List.of(
-                        MedicationInfo.builder()
+                        MedicationInfo
+                                .builder()
                                 .health(health)
                                 .drugName("테스트 약")
                                 .medicationBasis(

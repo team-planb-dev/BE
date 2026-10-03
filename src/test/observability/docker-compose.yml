@@ -1,12 +1,12 @@
-# 로컬 부하 측정용 Prometheus + Grafana. 사용법은 docs/perf/phase4a-observability.md 참고.
+# 로컬 부하 측정용 Prometheus + Grafana. 사용법은 docs/perf/phase4a-observability.md 참고
 # 실행: SCRAPE_TOKEN_DIR=<scrape-token.sh가 만든 디렉터리> docker compose -f docker-compose.yml up -d
-# 두 서비스는 127.0.0.1에만 노출한다. 공개 인터넷에 노출하지 않는다.
+# 두 서비스의 127.0.0.1 전용 노출
 services:
   prometheus:
     image: prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e
     command:
       - --config.file=/etc/prometheus/prometheus.yml
-      # k6가 experimental-prometheus-rw로 결과를 보내려면 필요하다.
+      # k6 experimental-prometheus-rw 결과 수신에 필요한 설정
       - --web.enable-remote-write-receiver
       - --storage.tsdb.retention.time=2d
     ports:

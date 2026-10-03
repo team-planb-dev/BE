@@ -222,7 +222,11 @@ class JwtLogoutFilterTest {
 
         // when
         jwtLogoutFilter
-                .callDoFilterInternal(request, response, filterChain);
+                .callDoFilterInternal(
+                request,
+                response,
+                filterChain
+        );
 
         // then
         verify(refreshService, times(1))
@@ -252,17 +256,21 @@ class JwtLogoutFilterTest {
 
             extends JwtLogoutFilter {
 
-        public TestJwtLogoutFilter(JwtUtil jwtUtil,
-                                   RefreshService refreshService,
-                                   UserAuthCacheService userAuthCacheService,
-                                   CookieUtil cookieUtil,
-                                   RefreshTokenValidator refreshTokenValidator) {
+        public TestJwtLogoutFilter(
+                JwtUtil jwtUtil,
+                RefreshService refreshService,
+                UserAuthCacheService userAuthCacheService,
+                CookieUtil cookieUtil,
+                RefreshTokenValidator refreshTokenValidator
+        ) {
 
-            super(jwtUtil,
+            super(
+                    jwtUtil,
                     refreshService,
                     userAuthCacheService,
                     cookieUtil,
-                    refreshTokenValidator);
+                    refreshTokenValidator
+            );
 
         }
 
@@ -275,13 +283,18 @@ class JwtLogoutFilterTest {
         }
 
         // callDoFilterInternal 메소드 호출기
-        public void callDoFilterInternal
-                (MockHttpServletRequest request,
-                 MockHttpServletResponse response,
-                 FilterChain filterChain)
+        public void callDoFilterInternal(
+                MockHttpServletRequest request,
+                MockHttpServletResponse response,
+                FilterChain filterChain
+        )
                 throws Exception {
 
-            doFilterInternal(request, response, filterChain);
+            doFilterInternal(
+                    request,
+                    response,
+                    filterChain
+            );
         }
 
     }

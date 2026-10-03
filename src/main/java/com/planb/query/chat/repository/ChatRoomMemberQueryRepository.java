@@ -16,7 +16,7 @@ public class ChatRoomMemberQueryRepository {
     private final JPAQueryFactory jpaQueryFactory;
     private final QChatRoomMember chatRoomMember = QChatRoomMember.chatRoomMember;
 
-    public void deleteAllChatMemberByRoomId(Long roomId){
+    public void deleteAllChatMemberByRoomId(Long roomId) {
 
          jpaQueryFactory
                  .delete(chatRoomMember)
@@ -27,7 +27,7 @@ public class ChatRoomMemberQueryRepository {
                  .execute();
     }
 
-    public List<ChatRoomMember> findByRoomId(Long roomId){
+    public List<ChatRoomMember> findByRoomId(Long roomId) {
 
         return jpaQueryFactory
                 .selectFrom(chatRoomMember)
@@ -39,7 +39,7 @@ public class ChatRoomMemberQueryRepository {
     }
 
     public Optional<ChatRoomMember> findByUserIdWithRoomId(Long roomId,
-                                                           Long memberId){
+                                                           Long memberId) {
 
         return Optional.ofNullable(
                 jpaQueryFactory
@@ -56,7 +56,7 @@ public class ChatRoomMemberQueryRepository {
         );
     }
 
-    public boolean checkSubscriberWithRoomId(Long roomId, Long userId){
+    public boolean checkSubscriberWithRoomId(Long roomId, Long userId) {
 
         Integer result = jpaQueryFactory
                 .selectOne()

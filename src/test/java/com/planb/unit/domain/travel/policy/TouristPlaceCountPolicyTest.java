@@ -88,14 +88,19 @@ class TouristPlaceCountPolicyTest {
 
         CreatePlanAiResponse trimmed = TouristPlaceCountPolicy.trimExcess(
                 response(day(
-                        attraction("가"),
-                        attraction("나"),
-                        attraction("다"),
-                        attraction("라"))),
+                                attraction("가"),
+                                attraction("나"),
+                                attraction("다"),
+                                attraction("라")
+                        )),
                 List.of(healthContext(WalkType.MODERATE)));
 
         assertThat(locationNames(trimmed))
-                .containsExactly("가", "나", "다");
+                .containsExactly(
+                "가",
+                "나",
+                "다"
+        );
     }
 
     @Test
@@ -104,14 +109,19 @@ class TouristPlaceCountPolicyTest {
 
         CreatePlanAiResponse trimmed = TouristPlaceCountPolicy.trimExcess(
                 response(day(
-                        attraction("가"),
-                        attraction("나"),
-                        attraction("다"),
-                        mustHave("라"))),
+                                attraction("가"),
+                                attraction("나"),
+                                attraction("다"),
+                                mustHave("라")
+                        )),
                 List.of(healthContext(WalkType.MODERATE)));
 
         assertThat(locationNames(trimmed))
-                .containsExactly("가", "나", "라");
+                .containsExactly(
+                "가",
+                "나",
+                "라"
+        );
     }
 
     @Test
@@ -133,15 +143,21 @@ class TouristPlaceCountPolicyTest {
     void keepsScheduleWithoutCompanion() {
 
         CreatePlanAiResponse response = response(day(
-                attraction("가"),
-                attraction("나"),
-                attraction("다"),
-                attraction("라")));
+                        attraction("가"),
+                        attraction("나"),
+                        attraction("다"),
+                        attraction("라")
+                ));
 
         assertThat(locationNames(TouristPlaceCountPolicy.trimExcess(
                 response,
                 List.of())))
-                .containsExactly("가", "나", "다", "라");
+                .containsExactly(
+                "가",
+                "나",
+                "다",
+                "라"
+        );
     }
 
     @Test
@@ -149,15 +165,21 @@ class TouristPlaceCountPolicyTest {
     void keepsScheduleWhenOnlyMustHaveExceeds() {
 
         CreatePlanAiResponse response = response(day(
-                mustHave("가"),
-                mustHave("나"),
-                mustHave("다"),
-                mustHave("라")));
+                        mustHave("가"),
+                        mustHave("나"),
+                        mustHave("다"),
+                        mustHave("라")
+                ));
 
         assertThat(locationNames(TouristPlaceCountPolicy.trimExcess(
                 response,
                 List.of(healthContext(WalkType.MODERATE)))))
-                .containsExactly("가", "나", "다", "라");
+                .containsExactly(
+                "가",
+                "나",
+                "다",
+                "라"
+        );
     }
 
     private List<String> locationNames(CreatePlanAiResponse response) {
@@ -183,7 +205,11 @@ class TouristPlaceCountPolicyTest {
 
         return new CreatePlanAiResponse.PlanDayDetail(
                 1,
-                LocalDate.of(2026, 9, 20),
+                LocalDate.of(
+                        2026,
+                        9,
+                        20
+                ),
                 List.of(schedules)
         );
     }

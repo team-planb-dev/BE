@@ -191,25 +191,31 @@ class ChatFacadeTest {
                 chatRoomMemberService
         );
 
-        inOrder.verify(userQueryService)
+        inOrder
+                .verify(userQueryService)
                 .findByUsername(username);
 
-        inOrder.verify(chatRoomMemberService)
+        inOrder
+                .verify(chatRoomMemberService)
                 .validateRequestedUser(userId, user);
 
-        inOrder.verify(chatRoomMemberQueryService)
+        inOrder
+                .verify(chatRoomMemberQueryService)
                 .validateDuplicateMemberWithRoom(
                         roomId,
                         userId
                 );
 
-        inOrder.verify(chatRoomQueryService)
+        inOrder
+                .verify(chatRoomQueryService)
                 .findChatRoomByRoomId(roomId);
 
-        inOrder.verify(chatRoomMemberService)
+        inOrder
+                .verify(chatRoomMemberService)
                 .validateTravelRoomOwner(chatRoom, user);
 
-        inOrder.verify(chatRoomMemberService)
+        inOrder
+                .verify(chatRoomMemberService)
                 .addChatUser(chatRoom, user);
 
         verifyNoInteractions(
@@ -325,7 +331,11 @@ class ChatFacadeTest {
                 .thenReturn(chatRoom);
 
         when(chatRoomMemberService
-                .deleteChatUser(chatRoomMember, chatRoom, user))
+                .deleteChatUser(
+                        chatRoomMember,
+                        chatRoom,
+                        user
+                ))
                 .thenReturn(expectedResponse);
 
         // when
@@ -346,20 +356,29 @@ class ChatFacadeTest {
                 chatRoomMemberService
         );
 
-        inOrder.verify(userQueryService)
+        inOrder
+                .verify(userQueryService)
                 .findByUsername(username);
 
-        inOrder.verify(chatRoomMemberService)
+        inOrder
+                .verify(chatRoomMemberService)
                 .validateRequestedUser(userId, user);
 
-        inOrder.verify(chatRoomMemberQueryService)
+        inOrder
+                .verify(chatRoomMemberQueryService)
                 .findByUserId(roomId, userId);
 
-        inOrder.verify(chatRoomQueryService)
+        inOrder
+                .verify(chatRoomQueryService)
                 .findChatRoomByRoomId(roomId);
 
-        inOrder.verify(chatRoomMemberService)
-                .deleteChatUser(chatRoomMember, chatRoom, user);
+        inOrder
+                .verify(chatRoomMemberService)
+                .deleteChatUser(
+                chatRoomMember,
+                chatRoom,
+                user
+        );
 
         verifyNoInteractions(
                 chatMessageQueryService,
@@ -446,28 +465,36 @@ class ChatFacadeTest {
                 chatMessageQueryService
         );
 
-        inOrder.verify(userQueryService)
+        inOrder
+                .verify(userQueryService)
                 .findByUsername(username);
 
-        inOrder.verify(chatRoomMemberService)
+        inOrder
+                .verify(chatRoomMemberService)
                 .validateRoomMember(roomId, user);
 
-        inOrder.verify(chatRoomQueryService)
+        inOrder
+                .verify(chatRoomQueryService)
                 .findChatRoomByRoomId(roomId);
 
-        inOrder.verify(chatRoomMemberService)
+        inOrder
+                .verify(chatRoomMemberService)
                 .validateTravelRoomOwner(chatRoom, user);
 
-        inOrder.verify(chatRoomMemberQueryService)
+        inOrder
+                .verify(chatRoomMemberQueryService)
                 .deleteAllChatRoomMemberByRoomId(roomId);
 
-        inOrder.verify(chatRoomService)
+        inOrder
+                .verify(chatRoomService)
                 .deleteChatRoom(chatRoom);
 
-        inOrder.verify(chatMessageQueryService)
+        inOrder
+                .verify(chatMessageQueryService)
                 .softDeleteAllMessageInChatRoom(roomId);
 
-        inOrder.verify(chatRoomService)
+        inOrder
+                .verify(chatRoomService)
                 .deletedChatRoomResponse(chatRoom, deletedMessageCount);
 
         verifyNoInteractions(
@@ -482,10 +509,18 @@ class ChatFacadeTest {
         SendChatMessageRequest request =
                 new SendChatMessageRequest(MessageType.TALK, "안녕하세요");
 
-        chatFacade.publishMessage(1L, request, "user@example.com");
+        chatFacade.publishMessage(
+                1L,
+                request,
+                "user@example.com"
+        );
 
         verify(chatMessageService)
-                .publishUserMessage(1L, "안녕하세요", "user@example.com");
+                .publishUserMessage(
+                1L,
+                "안녕하세요",
+                "user@example.com"
+        );
     }
 
     @Test
@@ -499,7 +534,11 @@ class ChatFacadeTest {
         );
 
         verify(chatMessageService)
-                .publishSystemMessage(1L, "user@example.com", MessageType.ENTER);
+                .publishSystemMessage(
+                1L,
+                "user@example.com",
+                MessageType.ENTER
+        );
     }
 
     @Test
@@ -513,7 +552,11 @@ class ChatFacadeTest {
         );
 
         verify(chatMessageService)
-                .publishSystemMessage(1L, "user@example.com", MessageType.LEAVE);
+                .publishSystemMessage(
+                1L,
+                "user@example.com",
+                MessageType.LEAVE
+        );
     }
 
     @Test
@@ -527,7 +570,11 @@ class ChatFacadeTest {
         );
 
         verify(chatMessageService)
-                .publishSystemMessage(1L, "user@example.com", MessageType.ENTER);
+                .publishSystemMessage(
+                1L,
+                "user@example.com",
+                MessageType.ENTER
+        );
         verifyNoInteractions(chatMessageQueryService);
     }
 
@@ -555,7 +602,8 @@ class ChatFacadeTest {
                 username
         );
 
-        assertThat(result).isSameAs(expected);
+        assertThat(result)
+                .isSameAs(expected);
         verify(travelQueryService)
                 .validateOwner(travelId, 10L);
         verify(chatRoomMemberService)
@@ -593,7 +641,8 @@ class ChatFacadeTest {
                 username
         );
 
-        assertThat(result).isSameAs(expected);
+        assertThat(result)
+                .isSameAs(expected);
         verify(travelQueryService)
                 .validateOwner(travelId, 10L);
         verify(chatRoomMemberService)
@@ -636,7 +685,8 @@ class ChatFacadeTest {
                 .thenReturn(user);
         when(user.getId())
                 .thenReturn(10L);
-        org.mockito.Mockito.doThrow(new ForbiddenException(new Object[]{"권한 없음"}))
+        org.mockito.Mockito
+                .doThrow(new ForbiddenException(new Object[]{"권한 없음"}))
                 .when(travelQueryService)
                 .validateOwner(travelId, 10L);
 
@@ -646,7 +696,11 @@ class ChatFacadeTest {
         ))
                 .isInstanceOf(ForbiddenException.class);
 
-        verifyNoInteractions(chatRoomQueryService, chatRoomService, chatRoomMemberService);
+        verifyNoInteractions(
+                chatRoomQueryService,
+                chatRoomService,
+                chatRoomMemberService
+        );
     }
 
     @Test
@@ -724,10 +778,20 @@ class ChatFacadeTest {
 
         EditPlanPreviewResponse preview = mock(EditPlanPreviewResponse.class);
 
-        chatFacade.publishAiReply(1L, "수정안", preview, MessageType.TALK);
+        chatFacade.publishAiReply(
+                1L,
+                "수정안",
+                preview,
+                MessageType.TALK
+        );
 
         verify(chatMessageService)
-                .publishAiReply(1L, "수정안", preview, MessageType.TALK);
+                .publishAiReply(
+                1L,
+                "수정안",
+                preview,
+                MessageType.TALK
+        );
     }
 
     @Test

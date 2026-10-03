@@ -24,7 +24,7 @@ public class TravelQueryService {
     private final TravelQueryRepository travelQueryRepository;
 
     // travelId로 여행조건 데이터 조회
-    public TravelConditionQueryResponse getTravelConditionQueryResponse(Long travelId){
+    public TravelConditionQueryResponse getTravelConditionQueryResponse(Long travelId) {
 
         return travelQueryRepository.findTravelConditionById(travelId);
     }
@@ -36,17 +36,21 @@ public class TravelQueryService {
             LocalDate today
     ) {
 
-        return travelQueryRepository.findAllByUserId(userId, filter, today);
+        return travelQueryRepository.findAllByUserId(
+                userId,
+                filter,
+                today
+        );
     }
 
     // 여행 id 목록으로 목록 썸네일 조회
-    public Map<Long, String> getThumbnailUrls(List<Long> travelIds){
+    public Map<Long, String> getThumbnailUrls(List<Long> travelIds) {
 
         return travelQueryRepository.findThumbnailUrlsByTravelIds(travelIds);
     }
 
     // 공유 토큰으로 여행 id 조회
-    public Long getTravelIdByShareToken(String shareToken){
+    public Long getTravelIdByShareToken(String shareToken) {
 
         return travelQueryRepository
                 .findTravelIdByShareToken(shareToken)
@@ -55,7 +59,7 @@ public class TravelQueryService {
     }
 
     // travelId가 해당 userId 소유인지 확인
-    public boolean existsByIdAndUserId(Long travelId, Long userId){
+    public boolean existsByIdAndUserId(Long travelId, Long userId) {
 
         return travelQueryRepository.existsByIdAndUserId(travelId, userId);
     }
@@ -78,7 +82,11 @@ public class TravelQueryService {
     ) {
 
         LocalDate today = LocalDate.now();
-        List<TravelListItemQueryResponse> travels = getTravelList(userId, filter, today);
+        List<TravelListItemQueryResponse> travels = getTravelList(
+                userId,
+                filter,
+                today
+        );
         Map<Long, String> thumbnailUrls = getThumbnailUrls(travels
                 .stream()
                 .map(TravelListItemQueryResponse::travelId)
