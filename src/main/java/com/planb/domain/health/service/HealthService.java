@@ -2,7 +2,15 @@ package com.planb.domain.health.service;
 
 import com.planb.domain.health.dto.request.CreateHealthRequest;
 import com.planb.domain.health.dto.request.CreateHealthWithoutSensitiveAgreeRequest;
+import com.planb.domain.health.dto.request.AddCompanionRequest;
+import com.planb.domain.health.dto.request.UpdateCompanionRequest;
+import com.planb.domain.health.dto.response.AddCompanionResponse;
+import com.planb.domain.health.dto.response.CompanionDetailResponse;
+import com.planb.domain.health.dto.response.DeleteCompanionResponse;
+import com.planb.domain.health.dto.response.UpdateCompanionResponse;
+import com.planb.domain.health.entity.FoodInfo;
 import com.planb.domain.health.entity.Health;
+import com.planb.domain.health.entity.MedicationInfo;
 import com.planb.domain.health.entity.vo.HealthInfo;
 import com.planb.domain.health.entity.vo.MealInfo;
 import com.planb.domain.health.repository.HealthRepository;
@@ -19,6 +27,62 @@ import java.util.List;
 public class HealthService {
 
     private final HealthRepository healthRepository;
+
+    public Health addCompanion(
+            AddCompanionRequest request,
+            User user
+    ) {
+
+        Health health = validSensitiveAgree(request.toHealthRequest(), user);
+        saveHealth(health);
+
+        return health;
+    }
+
+    public void updateCompanion(
+            Health health,
+            UpdateCompanionRequest request
+    ) {
+
+        updateHealth(
+                health,
+                request.toAddCompanionRequest().toHealthRequest()
+        );
+    }
+
+    public AddCompanionResponse addCompanionResponse(Health health) {
+
+        return new AddCompanionResponse(
+                health.getTravelerName(),
+                "동행인이 등록되었습니다."
+        );
+    }
+
+    public UpdateCompanionResponse updateCompanionResponse(Health health) {
+
+        return new UpdateCompanionResponse(
+                health.getTravelerName(),
+                "동행인 정보가 수정되었습니다."
+        );
+    }
+
+    public CompanionDetailResponse companionDetailResponse(
+            Health health,
+            List<FoodInfo> foodInfos,
+            List<MedicationInfo> medicationInfos
+    ) {
+
+        return CompanionDetailResponse.of(
+                health,
+                foodInfos,
+                medicationInfos
+        );
+    }
+
+    public DeleteCompanionResponse deleteCompanionResponse() {
+
+        return new DeleteCompanionResponse("해당 동행인 정보가 삭제되었습니다.");
+    }
 
 
     // 개인정보 동의 여부에 따른 Health 객체 생성

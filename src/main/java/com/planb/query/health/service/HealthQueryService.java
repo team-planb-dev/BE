@@ -2,6 +2,9 @@ package com.planb.query.health.service;
 
 
 import com.planb.domain.health.dto.response.HealthSummaryQueryResponse;
+import com.planb.domain.health.dto.response.CompanionSummaryResponse;
+import com.planb.global.config.exception.HealthExceptionEnum;
+import com.planb.global.config.exception.domain.BaseException;
 import com.planb.query.health.repository.HealthQueryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +23,21 @@ public class HealthQueryService {
     public List<HealthSummaryQueryResponse> getHealthSummaryList(Long userId){
 
         return healthQueryRepository.findHealthSummaryList(userId);
+    }
+
+    public CompanionSummaryResponse getCompanionSummaryResponse(Long userId) {
+
+        return CompanionSummaryResponse.from(getHealthSummaryList(userId));
+    }
+
+    public void validateOwned(
+            Long healthId,
+            Long userId
+    ) {
+
+        if (!checkHealthWithUser(healthId, userId)) {
+            throw new BaseException(HealthExceptionEnum.HEALTH_NOT_FOUND);
+        }
     }
 
     // 여행에 선택된 구성원만 건강 요약정보 가져오기

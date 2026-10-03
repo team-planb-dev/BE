@@ -1,7 +1,10 @@
 package com.planb.domain.health.service;
 
 import com.planb.domain.health.dto.request.CreateMedicationInfoRequest;
+import com.planb.domain.health.dto.request.AddCompanionRequest;
+import com.planb.domain.health.dto.request.UpdateCompanionRequest;
 import com.planb.domain.health.entity.MedicationInfo;
+import com.planb.domain.health.entity.Health;
 import com.planb.domain.health.entity.vo.MealMedicationRule;
 import com.planb.domain.health.repository.MedicationInfoRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +19,28 @@ import java.util.stream.Collectors;
 public class MedicationInfoService {
 
     private final MedicationInfoRepository medicationInfoRepository;
+
+    public void saveForCompanion(
+            AddCompanionRequest request,
+            Health health
+    ) {
+
+        if (!request.sensitiveAgree()) {
+            return;
+        }
+
+        saveMedicationInfoAll(
+                makeMedicationInfoList(request.toMedicationInfoRequest(health))
+        );
+    }
+
+    public void saveForCompanion(
+            UpdateCompanionRequest request,
+            Health health
+    ) {
+
+        saveForCompanion(request.toAddCompanionRequest(), health);
+    }
 
     public List<MedicationInfo> makeMedicationInfoList(
             CreateMedicationInfoRequest request
