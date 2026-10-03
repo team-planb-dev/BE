@@ -40,10 +40,7 @@ public class JwtUtil {
     }
 
     /**
-     * 만료된 토큰에서도 username을 읽는다.
-     *
-     * 로그아웃 전용이다. 서명은 그대로 검증하므로 아무 문자열이나 통하지 않는다.
-     * 토큰이 만료됐다는 이유로 서버에 남은 세션을 못 지우면 사용자가 갇힌다.
+     * 서명 검증 후 만료된 토큰의 username 조회
      */
     public String getUsernameAllowingExpired(String token){
 

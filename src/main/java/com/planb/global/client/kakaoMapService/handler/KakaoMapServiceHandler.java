@@ -231,12 +231,7 @@ public class KakaoMapServiceHandler {
     }
 
     /**
-     * previousLocation이 있을 때만 실제 경로를 조회해 이동시간을 얻고,
-     * 없거나 조회에 실패하면 빈 Mono를 반환한다.
-     *
-     * 출발지는 이번 호출에서 확정한 좌표를, 도착지는 방금 검색한 결과의 좌표를 그대로 쓴다.
-     * 이름으로 다시 검색하면 카카오가 전국에서 동명 장소를 잡아 엉뚱한 좌표가 되고,
-     * 검색 과정에서 장소명 자체가 바뀌어 있어 재검색 결과가 원래 장소와 달라진다.
+     * 확정 좌표에 따른 경로 이동시간 조회
      */
     private Mono<Integer> travelMinutesFrom(
             String previousLocation,

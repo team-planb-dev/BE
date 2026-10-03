@@ -55,13 +55,11 @@ public class TravelQueryRepository {
     }
 
     /**
-     * 사용자의 여행 목록을 탭 기준으로 조회한다.
-     *
-     * 다가오는 여행은 시작일이 가까운 순, 지난 여행은 최근에 끝난 순으로 정렬한다.
-     *
+     * 목록 탭과 여행 기간에 따른 사용자 여행 조회
+     * 다가오는 여행은 시작일순, 지난 여행은 종료일 역순
      * @param userId 조회할 사용자 id
      * @param filter 목록 탭 구분
-     * @param today  진행 상태 판정 기준일
+     * @param today 진행 상태 판정 기준일
      * @return 여행 목록
      */
     public List<TravelListItemQueryResponse> findAllByUserId(
@@ -115,10 +113,7 @@ public class TravelQueryRepository {
 
 
     /**
-     * 여행별 목록 썸네일로 사용할 첫 번째 일정 이미지를 조회한다.
-     *
-     * 여행마다 한 번씩 조회하면 N+1이 되므로 한 번에 가져와 Java에서 여행별 첫 값만 남긴다.
-     *
+     * N+1 조회를 피하는 여행별 첫 일정 이미지의 일괄 조회
      * @param travelIds 썸네일이 필요한 여행 id 목록
      * @return 여행 id별 이미지 URL
      */
@@ -169,8 +164,7 @@ public class TravelQueryRepository {
 
 
     /**
-     * 공유 토큰으로 여행 id를 조회한다.
-     *
+     * 공유 토큰에 해당하는 여행 ID 조회
      * @param shareToken 공유 링크 토큰
      * @return 토큰에 해당하는 여행 id
      */

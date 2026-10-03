@@ -301,11 +301,7 @@ final class TravelPlanAssertions {
     }
 
     /**
-     * 보존 날짜 비교. 첫 장소의 travelMinutes만 비교 대상에서 뺀다.
-     *
-     * travelMinutes는 직전 확정 장소에서 이 장소까지 걸리는 시간(inbound)이라 날짜 경계를 넘어 이어진다.
-     * 앞 날짜를 다시 구성하면 출발지가 바뀌므로 이 값은 반드시 다시 계산된다.
-     * 따라서 이 값의 변화는 보존 위반이 아니며, 나머지 필드는 그대로여야 한다.
+     * 날짜별 첫 장소의 이동시간을 제외한 보존 날짜 비교
      */
     static void assertSameDaysIgnoringInboundTravel(
             JsonNode expected,

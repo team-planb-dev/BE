@@ -11,11 +11,7 @@ import java.util.Set;
 import java.util.stream.IntStream;
 
 /**
- * 하루에 배치할 관광 장소 개수 규칙.
- *
- * AI에게 요구하는 개수와 최종 검증이 쓰는 개수가 갈라지지 않도록 한 곳에서 계산한다.
- * 초과분을 잘라내는 규칙도 여기 둔다. 개수를 정하는 곳과 강제하는 곳이 갈라지면
- * 한쪽만 고쳐진 채로 남는다. 부족분을 어떻게 메울지는 호출부가 판단한다.
+ * 하루 관광 장소 개수와 초과분 정리 규칙
  */
 public final class TouristPlaceCountPolicy {
 
@@ -27,10 +23,9 @@ public final class TouristPlaceCountPolicy {
     }
 
     /**
-     * 동행인의 걷기 수준으로 하루 관광 장소 개수를 계산한다.
-     *
-     * @param healthContexts 이번 여행에 선택된 동행인, 없으면 규칙을 적용하지 않는다
-     * @return 하루 관광 장소 개수, 동행인이 없으면 0
+     * 동행인의 걷기 수준에 따른 하루 관광 장소 개수
+     * @param healthContexts 이번 여행에 선택된 동행인, 없으면 규칙 미적용
+     * @return 하루 관광 장소 개수, 동행인이 없으면 0개
      */
     public static int expectedCount(List<TravelHealthContext> healthContexts) {
 
@@ -48,9 +43,8 @@ public final class TouristPlaceCountPolicy {
     }
 
     /**
-     * 편집 의도까지 반영한 하루 관광 장소 최소 개수를 계산한다.
-     *
-     * @param healthContexts          이번 여행에 선택된 동행인
+     * 밀도 감소 허용 여부를 반영한 하루 관광 장소 최소 개수
+     * @param healthContexts 이번 여행에 선택된 동행인, 없으면 규칙 미적용
      * @param densityReductionAllowed 밀도 감소가 허용된 날짜인지 여부
      * @return 허용되는 최소 관광 장소 개수
      */
@@ -72,13 +66,9 @@ public final class TouristPlaceCountPolicy {
     }
 
     /**
-     * 하루 관광 장소가 기준 개수를 넘으면 초과분을 제거한다.
-     *
-     * AI 재시도를 쓰지 않는 이유는 초과가 정답을 모르는 문제가 아니기 때문이다.
-     * 어느 슬롯을 빼도 기준을 만족하므로 Java가 정하는 편이 확실하고 재시도 예산을 아낀다.
-     *
-     * @param response       검사할 일정, planDays가 없으면 그대로 돌려준다
-     * @param healthContexts 이번 여행에 선택된 동행인, 없으면 규칙을 적용하지 않는다
+     * 기준 개수를 넘는 관광 장소의 초과분 제거
+     * @param response 검사할 일정, planDays가 없으면 원본 유지
+     * @param healthContexts 이번 여행에 선택된 동행인, 없으면 규칙 미적용
      * @return 초과분을 제거한 일정
      */
     public static CreatePlanAiResponse trimExcess(

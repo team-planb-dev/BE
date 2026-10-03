@@ -17,10 +17,7 @@ import java.text.Normalizer;
 import java.util.HexFormat;
 
 /**
- * 이메일 찾기와 비밀번호 재설정에 사용하는 계정 복구 질문과 답변.
- *
- * 답변은 이메일 찾기에서 질문과 함께 조회 조건이 되므로 단방향 해시로 보관한다.
- * BCrypt는 저장할 때마다 salt가 달라 1:N 조회를 할 수 없어 사용하지 않는다.
+ * 계정 복구 질문과 단방향 해시로 보관하는 답변
  */
 @Embeddable
 @Getter

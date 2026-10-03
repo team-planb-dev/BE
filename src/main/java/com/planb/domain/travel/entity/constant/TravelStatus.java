@@ -6,10 +6,7 @@ import lombok.RequiredArgsConstructor;
 import java.time.LocalDate;
 
 /**
- * 여행 목록에서 보여주는 진행 상태 배지.
- *
- * 별도 컬럼으로 저장하지 않고 조회 시점의 날짜와 여행 기간을 비교해 계산한다.
- * 저장해두면 날짜가 지날 때마다 갱신하는 배치가 필요해진다.
+ * 조회 시점에 계산하는 여행 진행 상태
  */
 @Getter
 @RequiredArgsConstructor

@@ -15,9 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Chat REST API 통합 테스트.
- * 채팅방 생성, 채팅방 멤버 등록 및 삭제,
- * 채팅방 삭제 기능 검증
+ * 채팅방과 멤버 관리 REST 흐름 검증
  */
 public class ChatRestIntegrationTest
         extends ChatIntegrationTestSupport {

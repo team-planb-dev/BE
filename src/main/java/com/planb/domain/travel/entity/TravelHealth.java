@@ -5,10 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 /**
- * 이번 여행에 참여하는 구성원(Health)과 Travel의 연결.
- *
- * Health는 사용자 계정에 계속 남아 있고 여행마다 선택만 달라지므로
- * Travel과 Health 사이를 별도 관계로 저장한다.
+ * 여행별 참여 구성원과 여행의 연결
  */
 @Entity
 @Table(

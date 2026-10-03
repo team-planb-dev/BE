@@ -24,11 +24,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 확정된 장소 위에서 시간, 식사, 복약을 결정적으로 계산하는 단계.
- *
- * AI 응답 여부와 무관하게 같은 입력이면 같은 결과를 돌려주며,
- * 같은 일정에 여러 번 적용해도 결과가 달라지지 않아야 한다.
- * 이동시간이 확정된 뒤 시간표를 다시 맞추기 위해 호출이 반복되기 때문이다.
+ * 확정된 장소를 기준으로 한 시간·식사·복약 정규화
  */
 @Component
 @RequiredArgsConstructor
@@ -311,10 +307,7 @@ public class ScheduleNormalizer {
     }
 
     /**
-     * 이 슬롯이 여행자들이 설정한 식사시간을 실제로 만족하는지 판단한다.
-     *
-     * 식사시간을 설정한 여행자가 한 명도 없으면 "반영했다"고 말할 근거가 없으므로 false다.
-     * MEAL_TIME_APPLIED 태그는 이 결과로만 결정한다.
+     * 여행자의 등록 식사시각 충족 여부
      */
     public boolean mealTimeSatisfied(
             CreatePlanAiResponse.PlanScheduleDetail schedule,
@@ -438,10 +431,7 @@ public class ScheduleNormalizer {
     }
 
     /**
-     * 겹침 판정 대상이 되는 장소 슬롯.
-     *
-     * 식사 슬롯은 제외한다. 식중 복약은 식사 시간대 안에 있는 것이 정의이므로
-     * 밀어내면 뜻이 뒤집힌다.
+     * 복약 시간과의 겹침을 검사할 장소 슬롯
      */
     private List<CreatePlanAiResponse.PlanScheduleDetail> nonMealPlaceSlots(
             List<CreatePlanAiResponse.PlanScheduleDetail> nonMedicationSchedules
@@ -458,11 +448,7 @@ public class ScheduleNormalizer {
     }
 
     /**
-     * 장소 시간대 안으로 들어간 복약을 그 장소가 끝난 뒤로 옮긴다.
-     *
-     * 앞으로 당기지 않는 이유는 식후 복약이 식사 도중이 되어버리기 때문이다.
-     * 시작 시각이 이른 장소부터 훑으므로, 밀린 결과가 다음 장소와 다시 겹쳐도
-     * 같은 순회에서 이어서 밀린다.
+     * 장소 시간대와 겹치는 복약의 종료 후 배치
      */
     private CreatePlanAiResponse.PlanScheduleDetail moveOutOfPlaceSlots(
             CreatePlanAiResponse.PlanScheduleDetail medication,
@@ -518,10 +504,7 @@ public class ScheduleNormalizer {
     }
 
     /**
-     * 복약 기준이 되는 식사 시간대.
-     *
-     * 식전은 시작시각, 식후는 종료시각을 기준으로 삼아야 뜻이 맞는다.
-     * 두 값을 함께 들고 다녀야 mealTiming마다 올바른 쪽을 고를 수 있다.
+     * 식전·식후 복약의 기준 식사 시간대
      */
     private record MealWindow(
 

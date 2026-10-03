@@ -33,12 +33,7 @@ public class NutritionEvaluator {
     );
 
     /**
-     * 관리 질환별 기준으로 한 음식의 영양성분을 평가한다.
-     *
-     * 질환마다 보는 영양성분이 달라 각각 평가한 뒤 항목을 합친다. 같은 영양성분을
-     * 두 질환이 함께 보면 한 번만 남기며, 기준이 갈릴 경우에 대비해 나쁜 쪽을 취한다.
-     * 상태도 가장 나쁜 것을 취한다. 한 질환이라도 판단할 수 없으면
-     * 그 음식이 적합하다고 말할 수 없기 때문이다.
+     * 질환별 최악 상태를 반영한 음식 영양 평가
      */
     public NutritionEvaluationResult evaluate(
             List<DiseaseType> diseaseTypes,

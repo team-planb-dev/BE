@@ -5,7 +5,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.mysql.MySQLContainer;
 
 /**
- * QueryRepository 슬라이스 테스트에 독립 MySQL 환경을 제공한다.
+ * QueryRepository 슬라이스 테스트용 MySQL 환경
  */
 public abstract class MySqlRepositoryTest {
 

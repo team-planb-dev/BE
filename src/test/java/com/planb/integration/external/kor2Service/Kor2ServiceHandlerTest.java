@@ -12,12 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 한국관광공사 Kor2Service API Handler 통합 테스트
- *
- * 실제 외부 API 기반 키워드 관광정보 검색 및 응답 파싱 검증.
- * 지역 기반 관광정보 검색 및 응답 파싱 검증.
- * 음식점 상세정보 조회 및 응답 파싱 검증.
- * Kor2Service 관련 Response DTO 매핑 검증.
+ * Kor2Service 관광정보 조회와 응답 매핑 검증
  */
 @Tag("external")
 class Kor2ServiceHandlerTest extends IntegrationTest {
