@@ -6,9 +6,7 @@ import java.security.SecureRandom;
 import java.util.Base64;
 
 /**
- * 로그인 한 번을 가리키는 식별자를 만든다.
- *
- * 전역 유일까지는 필요 없다. 같은 계정의 직전 세션과만 달라지면 되므로 8바이트로 충분하다.
+ * 로그인 세션 식별자 생성
  */
 @Component
 public class SessionIdGenerator {

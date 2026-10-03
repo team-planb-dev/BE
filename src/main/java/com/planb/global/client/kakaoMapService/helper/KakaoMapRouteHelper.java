@@ -24,10 +24,7 @@ public class KakaoMapRouteHelper {
     private static final double WALKABLE_LIMIT_METERS = 1_500;
 
     /**
-     * 경로 조회의 출발·도착 좌표.
-     *
-     * 대중교통 경로가 없을 때 도보 시간을 추정하려면 좌표가 필요하다.
-     * 네 개가 모두 같은 타입이라 순서를 바꿔도 컴파일이 통과하므로 이름으로 자리를 보증한다.
+     * 경로 조회의 출발·도착 좌표
      */
     public record RoutePoints(
 
@@ -58,10 +55,7 @@ public class KakaoMapRouteHelper {
     }
 
     /**
-     * 대중교통 경로 API 응답을 Tool 응답으로 변환한다.
-     *
-     * 도보권 구간은 대중교통 경로가 존재하지 않아 NO_RESULTS가 돌아온다.
-     * 이때만 좌표로 도보 시간을 추정하고, 다른 실패는 그대로 예외로 남긴다.
+     * 대중교통 경로 변환과 NO_RESULTS 도보권 추정
      */
     public KakaoRouteResult makePublicTrafficRouteResult(
             String origin,

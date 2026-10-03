@@ -67,9 +67,7 @@ public class PlaceCandidateContext {
     }
 
     /**
-     * 이번 호출에서 검색한 관광지 후보.
-     *
-     * AI가 채우지 못한 관광 슬롯을 Java가 대신 채울 때 쓴다.
+     * 이번 호출에서 검색한 관광지 후보
      */
     public List<Candidate> attractionCandidates() {
 
@@ -77,9 +75,7 @@ public class PlaceCandidateContext {
     }
 
     /**
-     * 이번 호출에서 검색한 음식점 후보.
-     *
-     * 비어 있으면 지역에 음식점이 없다는 뜻이므로 식사 슬롯을 만들지 않는다.
+     * 이번 호출에서 검색한 음식점 후보
      */
     public List<Candidate> restaurantCandidates() {
 
@@ -102,10 +98,7 @@ public class PlaceCandidateContext {
     }
 
     /**
-     * 이번 호출에서 검색한 후보 중 이 이름을 가진 하나를 찾는다.
-     *
-     * 같은 이름이 둘 이상이면 고를 근거가 없으므로 좌표를 확정하지 않는다.
-     * 임의로 하나를 고르면 이름 재검색이 엉뚱한 장소를 잡던 문제와 같은 실수가 된다.
+     * 이름이 유일한 후보의 조회
      */
     public Candidate findByName(String name) {
 

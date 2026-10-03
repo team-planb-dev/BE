@@ -42,8 +42,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 
 /**
- * Health API 통합 테스트
- * 동행인 등록, 간단 조회, 삭제 기능과 인증 실패 상황 검증
+ * 동행인 관리와 인증 실패의 통합 검증
  */
 public class HealthIntegrationTest extends IntegrationTest {
 

@@ -124,7 +124,7 @@ public class TourismTool {
     }
 
     /**
-     * 키워드 검색 후보가 부족할 때 여행 지역 전체의 음식점 후보를 조회한다.
+     * 키워드 후보 부족 시 여행 지역 음식점 조회
      */
     public Kor2KeywordSearchResponse searchRestaurantCandidatesByRegion(
             String locationDo,

@@ -58,7 +58,9 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/** 외부 AI·지도 응답만 고정하고 HTTP, 검증, DB, Redis 처리는 실제로 실행한다. */
+/**
+ * 고정된 AI·지도 응답을 이용한 HTTP·DB·Redis 검증
+ */
 class TravelValidationIntegrationTest extends TravelApiTestSupport {
 
     @MockitoBean

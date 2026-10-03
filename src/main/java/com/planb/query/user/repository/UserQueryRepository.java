@@ -45,12 +45,9 @@ public class UserQueryRepository {
 
 
     /**
-     * 닉네임과 계정 복구 질문/답변 해시가 모두 일치하는 사용자를 조회한다.
-     *
-     * 닉네임은 uk_users_nickname으로 유일하므로 결과는 최대 한 건이다.
-     *
+     * 닉네임과 복구 질문·답변 해시가 일치하는 사용자 조회
      * @param nickname 계정을 특정하는 닉네임
-     * @param recoveryQuestion   선택한 복구 질문
+     * @param recoveryQuestion 선택한 복구 질문
      * @param recoveryAnswerHash 정규화 후 해시한 복구 답변
      * @return 조건에 일치하는 사용자 목록
      */

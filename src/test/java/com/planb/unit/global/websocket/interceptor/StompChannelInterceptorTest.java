@@ -415,8 +415,7 @@ class StompChannelInterceptorTest {
 
 
     /**
-     *
-     * 헬퍼 메서드 모음
+     * STOMP 인터셉터 테스트 지원 메서드
      */
 
     private Authentication createAuthentication() {

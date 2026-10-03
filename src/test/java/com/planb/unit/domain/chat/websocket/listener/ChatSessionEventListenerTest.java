@@ -567,8 +567,7 @@ class ChatSessionEventListenerTest {
 
 
     /**
-     *
-     * 헬퍼 메서드 모음
+     * 채팅 세션 테스트 지원 메서드
      */
 
     private Message<byte[]> createSubscribeMessage

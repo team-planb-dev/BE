@@ -10,15 +10,8 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * 하루에 있어야 하는 식사 슬롯 규칙.
- *
- * 판정이 둘로 갈린다. 채울 대상은 등록된 식사 전부이고, 없으면 거부할 대상은
- * 그중 첫날 아침과 마지막 날 저녁을 뺀 것이다. 첫날은 이동 후 늦게 시작하고
- * 마지막 날은 귀가로 일찍 끝나므로 그 두 끼는 채워지면 좋지만 없어도 내보낸다.
- *
- * 하루의 시작·종료 시각은 보지 않는다. 하루 길이는 슬롯 시각에서 파생될 뿐이고,
- * TouristPlaceCountPolicy.trimExcess가 뒤쪽 관광지를 제거하면서 바뀐다.
- * 그 값을 기준으로 삼으면 관광지가 잘릴 때 사용자가 등록한 식사가 조용히 사라진다.
+ * 등록 식사 슬롯의 보충과 필수 검증 기준
+ * 첫날 아침·마지막 날 저녁은 필수 검증에서 제외
  */
 public final class MealSlotPolicy {
 
@@ -33,11 +26,11 @@ public final class MealSlotPolicy {
     }
 
     /**
-     * 하루에서 빠진 식사 슬롯을 찾는다.
-     *
-     * @param day           검사할 하루
-     * @param healthContexts 이번 여행에 선택된 동행인, 없으면 규칙을 적용하지 않는다
-     * @return 빠진 식사의 ScheduleType 목록, 이른 식사부터
+     * 하루에 누락된 등록 식사 전체 조회
+     * 선택한 동행인이 없으면 적용하지 않는 규칙
+     * @param day 검사할 하루
+     * @param healthContexts 이번 여행에 선택된 동행인, 없으면 규칙 미적용
+     * @return 빠진 식사의 ScheduleType 목록, 이른 식사순
      */
     public static List<ScheduleType> missingMeals(
             CreatePlanAiResponse.PlanDayDetail day,
@@ -82,16 +75,11 @@ public final class MealSlotPolicy {
     }
 
     /**
-     * 하루에서 없으면 일정을 거부해야 하는 식사를 찾는다.
-     *
-     * 채울 대상에서 첫날 아침과 마지막 날 저녁을 뺀 것이다. 첫날은 이동 후에 시작하고
-     * 마지막 날은 귀가로 일찍 끝나므로, 그 두 끼는 만들 수 없는 경우가 정상이다.
-     * 면제는 거부에만 적용되고 채우는 쪽은 그대로 시도한다.
-     *
-     * @param day            검사할 하루
-     * @param healthContexts 이번 여행에 선택된 동행인, 없으면 규칙을 적용하지 않는다
-     * @param totalDays      이번 여행의 전체 일수
-     * @return 없으면 거부해야 하는 식사의 ScheduleType 목록, 이른 식사부터
+     * 첫날 아침·마지막 날 저녁을 제외한 필수 식사 누락
+     * @param day 검사할 하루
+     * @param healthContexts 이번 여행에 선택된 동행인, 없으면 규칙 미적용
+     * @param totalDays 이번 여행의 전체 일수
+     * @return 없으면 거부해야 하는 식사의 ScheduleType 목록, 이른 식사순
      */
     public static List<ScheduleType> requiredMissingMeals(
             CreatePlanAiResponse.PlanDayDetail day,
@@ -121,10 +109,7 @@ public final class MealSlotPolicy {
     }
 
     /**
-     * 동행인이 등록한 식사시각.
-     *
-     * 여러 명이 서로 다른 시각을 등록했으면 가장 이른 시각을 쓴다.
-     * 늦은 쪽에 맞추면 이른 사람의 식사가 등록 시각을 지나버린다.
+     * 동행인의 등록 시각 중 가장 이른 식사시각
      */
     public static LocalTime configuredMealTime(
             ScheduleType mealType,

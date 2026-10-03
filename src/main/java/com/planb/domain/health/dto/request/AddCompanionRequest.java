@@ -102,11 +102,7 @@ public record AddCompanionRequest(
         내부 파싱 메소드 정리
          */
         /**
-         * 민감정보 동의 여부에 따라 건강 정보와 식사 정보의 유무가 갈린다.
-         *
-         * 동의하지 않으면 두 정보를 받지 않으므로 없는 채로 넘긴다. 여기서 값을 꺼내려 하면
-         * 이름만 저장하는 경로에 닿기도 전에 터진다.
-         *
+         * 민감정보 동의 시 필수 건강·식사 정보 검증
          * @throws BaseException 동의했는데 건강 정보나 식사 정보가 없는 경우
          */
         public CreateHealthRequest toHealthRequest() {

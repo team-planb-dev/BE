@@ -18,11 +18,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 식품의약품안전처 식품 영양성분 API Handler 통합 테스트
- *
- * 실제 외부 API 호출 및 요청 정상 수행 확인.
- * FoodNtrCpntResponse DTO 응답 파싱 검증.
- * Handler 내부 응답 정제 로직 검증.
+ * 식품 영양성분 API 조회와 응답 변환 검증
  */
 @Tag("external")
 class FoodNtrCpntHandlerTest extends IntegrationTest {

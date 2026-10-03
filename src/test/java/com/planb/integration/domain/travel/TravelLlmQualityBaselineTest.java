@@ -40,14 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Phase 0B 실제 LLM 품질 기준선 수동 실행기.
- *
- * <p>실제 OpenAI와 외부 API를 호출하는 유료 실행이므로 {@code externalTest}로만 돈다.
- * 품질 결과로는 실패하지 않는다. 한 번의 실패는 regression이 아니며, 반복 실행의
- * 통과율과 편차를 기록하는 것이 목적이다.
- *
- * <p>결과와 원본 응답은 {@code build/llm-quality-baseline/}에만 남기고 커밋하지 않는다.
- * 케이스 정의와 판정 기준은 {@code docs/perf/llm-quality-baseline/README.md}에 있다.
+ * 유료 외부 API를 이용하는 externalTest 전용 LLM 품질 기준선 측정
  */
 @Tag("external")
 class TravelLlmQualityBaselineTest extends TravelApiTestSupport {

@@ -55,9 +55,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Chat API 통합 테스트
- * 채팅방 생성, 멤버 등록 및 삭제, 채팅방 삭제,
- * WebSocket 연결과 STOMP 메시지 송수신 검증
+ * 채팅방·멤버·메시지의 통합 흐름 검증
  */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT

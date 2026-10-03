@@ -5,11 +5,7 @@ import com.planb.domain.travel.entity.constant.RecommendationTag;
 import java.util.Set;
 
 /**
- * TourAPI 분류 코드로 관광 슬롯의 추천 태그를 정하는 규칙.
- *
- * Java가 채워 넣은 관광 슬롯은 AI가 태그를 달아주지 않으므로 여기서 결정한다.
- * 최종 허용 범위는 {@link RecommendationTag#candidates}가 결정한다.
- * Prompt의 태그 안내는 이 Java 정책을 따르며 최종 승인 근거로 사용하지 않는다.
+ * TourAPI 관광 분류에 따른 추천 태그 규칙
  */
 public final class AttractionTagPolicy {
 
@@ -21,9 +17,7 @@ public final class AttractionTagPolicy {
     private static final String EXPERIENCE = "EX";
 
     /**
-     * TourismTool의 관광 분류 허용 목록을 통과한 VE 중분류.
-     *
-     * 이 정책은 후보를 다시 검증하지 않고, 이미 검증된 후보의 추천 태그만 결정한다.
+     * 관광 후보의 태그 판정에 사용하는 VE 중분류
      */
     private static final Set<String> NATURAL_SCENERY_VENUES = Set.of(
             "VE03",
@@ -43,10 +37,9 @@ public final class AttractionTagPolicy {
     }
 
     /**
-     * 분류 코드에 대응하는 관광 태그.
-     *
-     * @param categoryCode TourAPI lclsSystm2 (예: HS01, NA02, VE03)
-     * @return 대응하는 태그, 옮길 수 없는 분류면 빈 집합
+     * 관광 분류 코드에 대응하는 추천 태그
+     * @param categoryCode TourAPI lclsSystm2 중분류 코드
+     * @return 분류에 해당하는 추천 태그, 지원하지 않는 분류는 빈 집합
      */
     public static Set<RecommendationTag> tagsOf(String categoryCode) {
 

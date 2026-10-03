@@ -7,11 +7,10 @@ import com.planb.query.travel.dto.response.TravelListItemQueryResponse;
 import java.time.LocalDate;
 
 /**
- * 여행 목록의 카드 한 장.
- *
- * @param status       조회 시점 기준으로 계산한 진행 상태
- * @param travelTheme  여행 생성 시 선택한 테마, 선택하지 않은 여행은 null
- * @param thumbnailUrl 일정 중 첫 번째 이미지, 이미지가 하나도 없으면 null
+ * 여행 목록 카드의 조회 시점 상태와 첫 이미지
+ * @param status 조회 시점 기준으로 계산한 진행 상태
+ * @param travelTheme 여행 생성 시 선택한 테마, 미선택 시 null 허용
+ * @param thumbnailUrl 일정 중 첫 번째 이미지, 이미지가 없으면 null 허용
  */
 public record TravelListItemResponse(
 

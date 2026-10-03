@@ -791,12 +791,7 @@ public class PlanService {
     }
 
     /**
-     * 최종 일정에서 빠진 등록 식사 슬롯을 한 번 더 채운다.
-     *
-     * 채울 것이 없으면 그대로 돌려준다. 채운 뒤에는 이동시간과 시각을 다시 확정한다.
-     *
-     * 보정은 한 번만 수행하며, 남은 필수 누락은 바로 뒤의 validateMealSlots가 거부한다.
-     * 반복하지 않는 이유는 후보가 부족한 상황에서 같은 작업을 되풀이하지 않기 위해서다.
+     * 최종 일정의 등록 식사 누락 보충
      */
     private CreatePlanAiResponse refillMissingMeals(
             CreatePlanAiResponse response,
@@ -831,12 +826,8 @@ public class PlanService {
     }
 
     /**
-     * 없으면 안 되는 식사가 빠진 일정을 거부한다.
-     *
-     * 첫날 아침과 마지막 날 저녁은 {@link MealSlotPolicy}가 거부 대상에서 제외한다.
-     * 편집 경로는 편집 전부터 없었던 식사를 새 누락으로 판단하지 않는다.
-     *
-     * @param currentPlan 편집 전 일정, 생성 경로는 null이라 기존 누락 면제가 없다
+     * 필수 식사 누락에 대한 최종 검증
+     * @param currentPlan 편집 전 일정, null이면 기존 누락 면제 없음
      */
     private void validateMealSlots(
             CreatePlanAiResponse response,
@@ -895,14 +886,9 @@ public class PlanService {
     }
 
     /**
-     * 편집 전 일정에 없던 식사를 날짜별로 모은다.
-     *
-     * 요구 여부가 아니라 존재 여부로 본다. 편집 전에 이미 없던 식사는 이번 편집이 만든
-     * 누락이 아니므로 최종 검증에서 새 실패로 취급하지 않는다.
-     *
-     * 편집으로 새로 생긴 날은 비교 대상이 없으므로 면제하지 않는다.
-     *
-     * @param currentPlan 편집 전 일정, null이면 완화 대상이 없다
+     * 편집 전 일정의 기존 식사 누락 조회
+     * 새로 생긴 날짜는 면제하지 않는 검증
+     * @param currentPlan 편집 전 일정, null이면 기존 누락 면제 없음
      * @return dayNumber별로 편집 전에 없던 식사
      */
     private Map<Integer, Set<ScheduleType>> baselineMissingMeals(
@@ -1513,13 +1499,7 @@ public class PlanService {
     }
 
     /**
-     * 메뉴의 영양성분을 조회 결과로 맞춘다.
-     *
-     * 수치는 AI가 옮겨 적는 값이라 믿을 수 없다. 프롬프트가 값이 없으면 null을 두라고
-     * 일러도 0을 적어 내려온다. 0은 실제 측정값과 구분되지 않아 사용자가 그대로 믿는다.
-     *
-     * 그래서 Tool이 실제로 찾아온 수치만 남기고, 찾지 못한 메뉴는 비운다.
-     * 식약처에 없는 식당 고유 메뉴명은 조회되지 않으므로 이 경우가 적지 않다.
+     * Tool 조회로 확인된 메뉴 영양 수치만 보존
      */
     private CreatePlanAiResponse.RestaurantDetail nutritionAlignedRestaurant(
             CreatePlanAiResponse.RestaurantDetail restaurantDetail,
@@ -1692,13 +1672,7 @@ public class PlanService {
     }
 
     /**
-     * 저장된 일정에 남아 있는 메뉴별 수치를 조회 결과 형태로 되살린다.
-     *
-     * 이 수치는 AI가 적어 낸 값이 아니라 이전 호출의 Tool 조회로 확정된 값이다.
-     * 그래서 다시 조회하지 않고 그대로 쓸 수 있다.
-     *
-     * 등급(HIGH/CHECK/LOW)은 저장하지 않으므로 비운다. 되살리는 대상은 수치뿐이고,
-     * 보존 슬롯의 영양 참고 태그는 슬롯에 이미 붙어 있어 태그 병합으로 남는다.
+     * 저장된 메뉴 영양 수치의 조회 결과 복원
      */
     private List<NutritionEvaluationCollector.FoodNutritionEvaluation> storedNutritionEvaluations(
             GetAiPlanResponse currentPlan
@@ -1813,13 +1787,8 @@ public class PlanService {
     }
 
     /**
-     * 직전 확정 장소로부터의 이동시간을 확인한다.
-     *
-     * 값이 비어 있을 때뿐 아니라 0일 때도 확인한다.
-     * AI가 이동이 없다는 뜻으로 0을 채워 넣으면 날짜 경계를 넘는 이동까지 사라진 것처럼 보이고,
-     * 시간표 계산이 물리적 제약 없이 앞당겨지기 때문이다.
-     * 조회에 실패하면 원래 값을 그대로 둔다. 지금까지 통과하던 일정을 실패로 바꾸지 않기 위해서다.
-     * (MEDICATION처럼 장소가 없는 슬롯은 자동으로 제외됨)
+     * 0분을 포함한 이동시간 재확인
+     * 조회 실패 시 기존 값 유지
      */
     private CreatePlanAiResponse.PlanScheduleDetail fillScheduleTravelMinutes(
             CreatePlanAiResponse.PlanScheduleDetail schedule,

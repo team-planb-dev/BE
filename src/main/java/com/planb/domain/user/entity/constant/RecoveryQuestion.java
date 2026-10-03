@@ -4,10 +4,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 이메일 찾기와 비밀번호 재설정에 사용하는 계정 복구 질문.
- *
- * 질문 문구는 화면에 그대로 노출되므로 상수로 고정하고,
- * 저장은 enum 이름으로 하여 문구가 바뀌어도 기존 사용자의 답변이 유지되도록 한다.
+ * 계정 복구에 사용하는 고정 질문 목록
  */
 @Getter
 @RequiredArgsConstructor

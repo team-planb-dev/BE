@@ -15,9 +15,8 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * 동행인 수정 화면을 채우기 위한 상세 조회 결과.
- *
- * 민감정보에 동의하지 않은 동행인은 healthInfo, mealInfo가 null이고 목록은 비어 있다.
+ * 동행인 수정 화면의 상세 조회 결과
+ * 민감정보 미동의 시 건강·식사 정보는 null, 목록은 빈 값
  */
 public record CompanionDetailResponse(
 

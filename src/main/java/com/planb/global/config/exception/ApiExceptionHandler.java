@@ -38,7 +38,7 @@ public class ApiExceptionHandler {
      * ================================================== */
 
     /**
-     * 애플리케이션에서 정의한 기본 비즈니스 예외
+     * 애플리케이션 비즈니스 예외 응답
      */
     @ExceptionHandler(BaseException.class)
     public ApiResult<Void> baseExceptionHandler(BaseException e) {
@@ -52,7 +52,7 @@ public class ApiExceptionHandler {
     }
 
     /**
-     * 데이터 포함 비즈니스 예외
+     * 데이터 포함 비즈니스 예외 응답
      */
     @ExceptionHandler(BaseDataException.class)
     public ApiResult<Object> baseDataExceptionHandler(BaseDataException e) {
@@ -67,7 +67,7 @@ public class ApiExceptionHandler {
     }
 
     /**
-     * Validation 실패 (@Valid)
+     * 요청 본문 검증 실패 응답
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ApiResult<Void> handleMethodArgumentNotValidException(
@@ -84,10 +84,7 @@ public class ApiExceptionHandler {
     }
 
     /**
-     * Validation 실패 (@RequestParam, @PathVariable 등 메서드 파라미터)
-     *
-     * @Valid가 붙은 본문과 달리 메서드 파라미터 검증은 ConstraintViolationException으로 올라온다.
-     * 잡지 않으면 RuntimeException 핸들러가 시스템 에러로 응답해 원인을 가린다.
+     * 요청 매개변수 검증 실패 응답
      */
     @ExceptionHandler(ConstraintViolationException.class)
     public ApiResult<Void> handleConstraintViolationException(
@@ -108,7 +105,7 @@ public class ApiExceptionHandler {
     }
 
     /**
-     * 권한 없음 - 커스텀 예외
+     * 사용자 권한 예외 응답
      */
     @ResponseStatus(HttpStatus.FORBIDDEN)
     @ExceptionHandler(ForbiddenException.class)
@@ -123,7 +120,7 @@ public class ApiExceptionHandler {
     }
 
     /**
-     * 권한 없음 - Spring Security
+     * Spring Security 권한 예외 응답
      */
     @ResponseStatus(HttpStatus.FORBIDDEN)
     @ExceptionHandler(AccessDeniedException.class)
@@ -138,7 +135,7 @@ public class ApiExceptionHandler {
     }
 
     /**
-     * 잘못된 요청 (400)
+     * 잘못된 요청 응답
      */
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(BadRequestException.class)
@@ -159,7 +156,7 @@ public class ApiExceptionHandler {
      * ================================================== */
 
     /**
-     * JPA / Query 사용 오류
+     * JPA·Query 사용 오류 응답
      */
     @ExceptionHandler(InvalidDataAccessApiUsageException.class)
     public ApiResult<Void> handleInvalidDataAccessApiUsageException(
@@ -175,7 +172,7 @@ public class ApiExceptionHandler {
     }
 
     /**
-     * 타입 불일치 (PathVariable, RequestParam)
+     * 요청 매개변수 타입 불일치 응답
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ApiResult<Void> methodArgumentTypeMismatchException(
@@ -187,8 +184,7 @@ public class ApiExceptionHandler {
     }
 
     /**
-     * AI 오케스트레이션 실패
-     * 도메인 사유는 로그에 남기고 클라이언트에는 대응 방법이 다른 3종만 노출
+     * AI 오케스트레이션 실패 응답
      */
     @ExceptionHandler(AiOrchestrationException.class)
     public ApiResult<Void> aiOrchestrationExceptionHandler(AiOrchestrationException e) {
@@ -199,7 +195,7 @@ public class ApiExceptionHandler {
     }
 
     /**
-     * 런타임 예외 (예상 못 한 오류)
+     * 예상하지 못한 런타임 예외 응답
      */
     @ExceptionHandler(RuntimeException.class)
     public ApiResult<Void> runtimeExceptionHandler(RuntimeException e) {
@@ -210,7 +206,7 @@ public class ApiExceptionHandler {
     }
 
     /**
-     * 최상위 예외 (완전 예상 밖)
+     * 최상위 예외 응답
      */
     @ExceptionHandler(Exception.class)
     public ApiResult<Void> exceptionHandler(Exception e) {

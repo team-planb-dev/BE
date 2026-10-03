@@ -43,17 +43,9 @@ public class NutritionService {
     }
 
     /**
-     * 음식 영양정보 조회 및 평가 가능 여부 판정.
-     *
-     * 식당 고유 메뉴명은 식약처 품목명이 아니라서 조회되지 않는 경우가 많다.
-     * 그래서 메뉴명으로 못 찾으면 표준 품목명으로 한 번 더 조회한다.
-     *
-     * 표준 품목명은 여기서만 쓴다. 결과를 되찾는 쪽은 메뉴명을 키로 쓰므로
-     * (PlanService가 restaurantDetail.menuName()으로 찾는다) 바깥으로 새면
-     * 조회는 성공하는데 화면은 그대로 빈칸이 된다.
-     *
-     * @param foodName         식당이 내건 메뉴명
-     * @param standardFoodName 같은 음식의 표준 품목명, 없으면 null
+     * 메뉴명 조회와 표준 품목명 재조회에 따른 영양 평가
+     * @param foodName 식당이 내건 메뉴명
+     * @param standardFoodName 같은 음식의 표준 품목명, 없으면 null 허용
      */
     public Mono<NutritionEvaluationResult> evaluateFoodNutrition(
             String foodName,

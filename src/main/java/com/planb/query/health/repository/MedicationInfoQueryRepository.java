@@ -25,8 +25,7 @@ public class MedicationInfoQueryRepository {
     }
 
     /**
-     * 여행에 선택된 구성원의 복약 시간만 조회한다.
-     *
+     * 여행에 선택된 구성원의 복약 시간 조회
      * @param healthIds 조회할 구성원 id
      * @return 복약 시간 목록
      */

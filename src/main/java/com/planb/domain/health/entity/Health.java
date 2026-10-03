@@ -53,9 +53,7 @@ public class Health {
     private User user;
 
     /**
-     * 동행인 정보를 수정한다.
-     *
-     * 민감정보 동의를 철회하면 건강/식사 정보를 남기지 않는다.
+     * 동의 철회 시 민감정보를 제거하는 동행인 수정
      */
     public void update(
             String travelerName,

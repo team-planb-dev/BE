@@ -17,8 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
- * 로컬 관측 스택 파일(Prometheus, Grafana, compose)이 계획서 4A-1의 계약을 지키는지 검증한다.
- * 컨테이너를 띄우지 않고 파일 내용만 본다. 실제 기동은 smoke 실행으로 확인한다.
+ * 로컬 Prometheus·Grafana 설정 파일 검증
  */
 class ObservabilityConfigTest {
 

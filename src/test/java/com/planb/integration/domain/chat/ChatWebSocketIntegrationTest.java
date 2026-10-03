@@ -18,9 +18,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Chat WebSocket 및 STOMP 통합 테스트.
- * WebSocket 연결, 채팅방 구독,
- * 채팅 메시지 송수신과 입퇴장 시스템 메시지 검증
+ * WebSocket 연결과 STOMP 메시지 흐름 검증
  */
 public class ChatWebSocketIntegrationTest
         extends ChatIntegrationTestSupport {
