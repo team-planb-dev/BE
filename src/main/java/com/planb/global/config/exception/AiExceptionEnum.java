@@ -4,10 +4,7 @@ import com.planb.global.enums.MessageCommInterface;
 import lombok.RequiredArgsConstructor;
 
 /**
- * AI 오케스트레이션 실패가 클라이언트에 노출되는 형태.
- *
- * 도메인 실패 사유는 {@link AiFailure}에 있으며, 클라이언트는 대응 방법이
- * 다른 세 가지만 구분하면 된다.
+ * 클라이언트에 노출하는 AI 오케스트레이션 실패 유형
  */
 @RequiredArgsConstructor
 public enum AiExceptionEnum implements MessageCommInterface {

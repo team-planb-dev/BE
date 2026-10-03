@@ -21,8 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
- * Prometheus scrape용 임시 JWT 파일을 만드는 스크립트를 실제 프로세스로 실행해 검증한다.
- * 앱 대신 가입·로그인 API만 흉내 내는 로컬 서버를 쓰므로 외부 호출과 DB가 필요 없다.
+ * Prometheus 임시 JWT 발급 스크립트 검증
  */
 class ScrapeTokenScriptTest {
 

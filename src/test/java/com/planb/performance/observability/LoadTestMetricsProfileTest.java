@@ -20,8 +20,7 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * loadtest 프로파일의 SLO 버킷 설정을 Spring Boot가 실제로 쓰는 {@link PropertiesMeterFilter}에 그대로 넣어 검증한다.
- * 설정 키 철자나 meter 이름이 틀리면 버킷이 조용히 생기지 않으므로 문자열 비교가 아니라 실제 Timer의 버킷으로 확인한다.
+ * loadtest 프로필의 SLO 버킷 설정 검증
  */
 class LoadTestMetricsProfileTest {
 

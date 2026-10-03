@@ -4,10 +4,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
- * AI 오케스트레이션의 실패 사유.
- *
- * retryable은 같은 요청을 그대로 다시 보냈을 때 결과가 달라질 수 있는지를 뜻한다.
- * 재시도 판단은 이 플래그만 보고 하며, 예외 타입이나 메시지 문자열로 하지 않는다.
+ * 동일 요청 재시도 가능 여부를 포함한 AI 오케스트레이션 실패 사유
  */
 @Getter
 @RequiredArgsConstructor

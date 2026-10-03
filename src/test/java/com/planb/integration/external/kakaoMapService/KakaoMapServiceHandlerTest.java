@@ -13,12 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 카카오맵 및 카카오모빌리티 API Handler 통합 테스트
- *
- * 실제 외부 API 기반 장소 검색 및 응답 파싱 검증.
- * 대중교통 경로 조회 및 응답 파싱 검증.
- * 자동차 경로 조회 및 응답 파싱 검증.
- * 이동수단별 KakaoRouteResult 변환 로직 검증.
+ * 카카오 장소 검색과 이동 경로 응답 변환 검증
  */
 @Tag("external")
 class KakaoMapServiceHandlerTest extends IntegrationTest {

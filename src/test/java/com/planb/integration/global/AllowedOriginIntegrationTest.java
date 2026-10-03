@@ -22,8 +22,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 /**
- * 허용 origin은 HTTP CORS와 WebSocket 핸드셰이크가 따로 검사한다.
- * 두 목록이 어긋나 로컬 프론트의 STOMP 연결만 403이 난 적이 있어 양쪽을 함께 본다.
+ * HTTP CORS와 WebSocket origin 허용 범위 검증
  */
 class AllowedOriginIntegrationTest extends IntegrationTest {
 
