@@ -110,7 +110,11 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
 
     private static final String THREE_DAY_DECIDED_LOCATION = "여행 출발지";
 
-    private final LocalDate date = LocalDate.of(2026, 10, 10);
+    private final LocalDate date = LocalDate.of(
+            2026,
+            10,
+            10
+    );
     private LoginResult session;
     private CreateTravelRequest request;
     private Long selectedHealthId;
@@ -132,11 +136,20 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
 
         org.mockito.Mockito
                 .lenient()
-                .when(kakao.getRoute(any(), any(), any(), any(), any(), any(), any()))
+                .when(kakao.getRoute(
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any()
+                ))
                 .thenAnswer(invocation -> kakao.getRoute(
                         invocation.<String>getArgument(0),
                         invocation.<String>getArgument(1),
-                        invocation.<com.planb.domain.travel.entity.constant.Transportation>getArgument(2)));
+                        invocation.<com.planb.domain.travel.entity.constant.Transportation>getArgument(2)
+                ));
 
 
         String username = createUniqueUsername();
@@ -158,10 +171,20 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                 TravelTheme.TASTE,
                 List.of(),
                 List.of(),
-                List.of(selectedHealthId));
+                List.of(selectedHealthId)
+        );
 
-        when(kakao.getRoute(anyString(), anyString(), any()))
-                .thenReturn(Mono.just(new KakaoRouteResult(null, null, null, 10)));
+        when(kakao.getRoute(
+                        anyString(),
+                        anyString(),
+                        any()
+                ))
+                .thenReturn(Mono.just(new KakaoRouteResult(
+                                null,
+                                null,
+                                null,
+                                10
+                        )));
         when(kakao.searchPlace(anyString()))
                 .thenAnswer(invocation -> {
                     String name = invocation.getArgument(0);
@@ -172,18 +195,19 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                     return Mono.just(new KakaoPlaceSearchResponse(
                             null,
                             List.of(new KakaoPlaceSearchResponse.Document(
-                                    id,
-                                    name,
-                                    "관광",
-                                    category,
-                                    null,
-                                    null,
-                                    "부산 " + id,
-                                    "부산 " + id,
-                                    "129." + id,
-                                    "35.1",
-                                    null,
-                                    null))));
+                                            id,
+                                            name,
+                                            "관광",
+                                            category,
+                                            null,
+                                            null,
+                                            "부산 " + id,
+                                            "부산 " + id,
+                                            "129." + id,
+                                            "35.1",
+                                            null,
+                                            null
+                                    ))));
                 });
         when(handler.classifyEditScope(any()))
                 .thenReturn(new PlanEditScope(List.of()));
@@ -200,8 +224,16 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         Long id = travelId();
         JsonNode stored = stored(id);
 
-        TravelPlanAssertions.assertPlan(created, date, true);
-        TravelPlanAssertions.assertPlan(stored, date, false);
+        TravelPlanAssertions.assertPlan(
+                created,
+                date,
+                true
+        );
+        TravelPlanAssertions.assertPlan(
+                stored,
+                date,
+                false
+        );
         TravelPlanAssertions.assertMealMedication(
                 stored,
                 LocalTime.of(12, 0)
@@ -209,7 +241,8 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         TravelPlanAssertions.assertSameDays(created.path("planDays"), stored.path("planDays"));
         assertThat(TravelPlanAssertions.codes(stored.path("tags")))
                 .isEqualTo(TravelPlanAssertions.codes(created.path("tags")));
-        assertThat(stored.path("planDays")
+        assertThat(stored
+                        .path("planDays")
                 .get(0)
                 .path("schedules")
                 .get(0)
@@ -226,7 +259,12 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
 
         List<Long> before = counts();
         when(handler.createPlanByAi(any(), any()))
-                .thenReturn(new CreatePlanAiResponse(List.of(day(1, 1, null, false))));
+                .thenReturn(new CreatePlanAiResponse(List.of(day(
+                                        1,
+                                        1,
+                                        null,
+                                        false
+                                ))));
 
         assertError(postApi("/add-with-recommend", request), "PLAN.EXCEPTION.INVALID_AI_PLACE");
         assertThat(counts())
@@ -247,7 +285,11 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
             assertThat(counts())
                     .isEqualTo(before);
 
-            return fixture(1, invocation.getArgument(1), false);
+            return fixture(
+                    1,
+                    invocation.getArgument(1),
+                    false
+            );
         })
                 .when(handler)
                 .createPlanByAi(any(), any());
@@ -292,9 +334,11 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                     .isGreaterThan(before.get(5));
             assertThat(travelHealths.count())
                     .isGreaterThan(before.get(6));
-            assertThat(foodCounts().get(0))
+            assertThat(foodCounts()
+                            .get(0))
                     .isGreaterThan(foodBefore.get(0));
-            assertThat(foodCounts().get(1))
+            assertThat(foodCounts()
+                            .get(1))
                     .isGreaterThan(foodBefore.get(1));
             failedAfterRestaurantInsert.set(true);
             throw new IllegalStateException("write fails");
@@ -304,7 +348,8 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
 
         JsonNode result = postApi("/add-with-recommend", request);
 
-        assertThat(result.path("success")
+        assertThat(result
+                        .path("success")
                 .asBoolean())
                 .isFalse();
         assertThat(failedAfterRestaurantInsert)
@@ -323,17 +368,22 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         when(handler.createPlanByAi(any(), any()))
                 .thenAnswer(invocation -> {
                     PlaceCandidateContext candidates = invocation.getArgument(1);
-                    CreatePlanAiResponse result = fixture(1, candidates, false);
+                    CreatePlanAiResponse result = fixture(
+                            1,
+                            candidates,
+                            false
+                    );
                     candidates.record(new PlaceWithRouteResult(
-                            true,
-                            "장소-12",
-                            "부산 12",
-                            null,
-                            null,
-                            10,
-                            "kakao:12",
-                            "FD6",
-                            "음식점"));
+                                    true,
+                                    "장소-12",
+                                    "부산 12",
+                                    null,
+                                    null,
+                                    10,
+                                    "kakao:12",
+                                    "FD6",
+                                    "음식점"
+                            ));
                     return result;
                 });
 
@@ -355,15 +405,21 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
 
         JsonNode preview = success(postApi("/edit-plan/preview", new EditPlanRequest(id, "장소를 변경해주세요.")));
         JsonNode after = preview.path("after");
-        assertThat(after.path("processable")
+        assertThat(after
+                        .path("processable")
                 .asBoolean())
                 .isTrue();
-        TravelPlanAssertions.assertPlan(after, date, true);
+        TravelPlanAssertions.assertPlan(
+                after,
+                date,
+                true
+        );
         TravelPlanAssertions.assertMealMedication(
                 after,
                 LocalTime.of(12, 0)
         );
-        TravelPlanAssertions.assertSameDays(original.path("planDays"), preview.path("before")
+        TravelPlanAssertions.assertSameDays(original.path("planDays"), preview
+                        .path("before")
                 .path("planDays"));
         TravelPlanAssertions.assertSameDays(original.path("planDays"), stored(id)
                 .path("planDays"));
@@ -374,7 +430,11 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
 
         JsonNode confirmed = success(postApi("/edit-plan/confirm", new GetAiPlanRequest(id)));
         JsonNode saved = stored(id);
-        TravelPlanAssertions.assertPlan(saved, date, false);
+        TravelPlanAssertions.assertPlan(
+                saved,
+                date,
+                false
+        );
         TravelPlanAssertions.assertMealMedication(
                 saved,
                 LocalTime.of(12, 0)
@@ -386,7 +446,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         assertThat(cache.findEditResult(id))
                 .isEmpty();
 
-        // 같은 확정 요청이 다시 와도 일정을 다시 쓰지 않고 같은 응답을 돌려준다
+        // 동일 확정 요청의 재저장 없는 동일 응답
         JsonNode reconfirmed = success(postApi("/edit-plan/confirm", new GetAiPlanRequest(id)));
         TravelPlanAssertions.assertSameDays(confirmed.path("planDays"), reconfirmed.path("planDays"));
         assertThat(counts())
@@ -429,15 +489,31 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         stubEdit(1);
         when(handler.classifyEditScope(any()))
                 .thenReturn(new PlanEditScope(List.of(1)));
-        when(handler.rebuildDay(any(), any(), eq(1), anyString(), any()))
-                .thenReturn(new RebuildPlanDayResponse(false, "새로운 장소 검색 실패", List.of()));
+        when(handler.rebuildDay(
+                        any(),
+                        any(),
+                        eq(1),
+                        anyString(),
+                        any()
+                ))
+                .thenReturn(new RebuildPlanDayResponse(
+                        false,
+                        "새로운 장소 검색 실패",
+                        List.of()
+                ));
 
         assertError(
                 postApi("/edit-plan/preview", new EditPlanRequest(id, "1일차 전체 재구성, 2일차 유지")),
                 "PLAN.EXCEPTION.EDIT_NOT_APPLIED");
 
         verify(handler, times(2))
-                .rebuildDay(any(), any(), eq(1), anyString(), any());
+                .rebuildDay(
+                any(),
+                any(),
+                eq(1),
+                anyString(),
+                any()
+        );
         assertThat(counts())
                 .isEqualTo(before);
         assertThat(cache.findEditResult(id))
@@ -457,28 +533,47 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         stubEdit(1);
         when(handler.classifyEditScope(any()))
                 .thenReturn(new PlanEditScope(List.of(1)));
-        when(handler.rebuildDay(any(), any(), eq(1), anyString(), any()))
+        when(handler.rebuildDay(
+                        any(),
+                        any(),
+                        eq(1),
+                        anyString(),
+                        any()
+                ))
                 .thenAnswer(invocation -> new RebuildPlanDayResponse(
                         true,
                         "",
-                        List.of(day(1, 3, invocation.getArgument(4), false))));
+                        List.of(day(
+                                        1,
+                                        3,
+                                        invocation.getArgument(4),
+                                        false
+                                ))
+                ));
 
         JsonNode after = success(postApi(
                 "/edit-plan/preview",
                 new EditPlanRequest(id, "1일차 전체 재구성, 2일차 유지")))
                 .path("after");
 
-        TravelPlanAssertions.assertPlan(after, date, true);
+        TravelPlanAssertions.assertPlan(
+                after,
+                date,
+                true
+        );
         TravelPlanAssertions.assertMealMedication(
                 after,
                 LocalTime.of(12, 0)
         );
         TravelPlanAssertions.assertSameDays(
-                objectMapper.valueToTree(List.of(original.path("planDays")
+                objectMapper.valueToTree(List.of(original
+                                        .path("planDays")
                         .get(1))),
-                objectMapper.valueToTree(List.of(after.path("planDays")
+                objectMapper.valueToTree(List.of(after
+                                        .path("planDays")
                         .get(1))));
-        assertThat(after.path("planDays")
+        assertThat(after
+                        .path("planDays")
                 .get(0)
                 .path("schedules")
                 .get(0)
@@ -486,7 +581,13 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                 .asText())
                 .isEqualTo("장소-31");
         verify(handler)
-                .rebuildDay(any(), any(), eq(1), anyString(), any());
+                .rebuildDay(
+                any(),
+                any(),
+                eq(1),
+                anyString(),
+                any()
+        );
 
         success(postApi("/edit-plan/confirm", new GetAiPlanRequest(id)));
         TravelPlanAssertions.assertSameDays(after.path("planDays"), stored(id)
@@ -502,25 +603,40 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         when(handler.createPlanByAi(any(), any()))
                 .thenAnswer(invocation -> {
                     PlaceCandidateContext candidates = invocation.getArgument(1);
-                    CreatePlanAiResponse result = fixture(1, candidates, false);
+                    CreatePlanAiResponse result = fixture(
+                            1,
+                            candidates,
+                            false
+                    );
                     candidates.record(new PlaceWithRouteResult(
-                            true,
-                            "음식점-11",
-                            "부산 11",
-                            "129.11",
-                            "35.1",
-                            10,
-                            "kakao:11",
-                            "FD6",
-                            "음식점"));
+                                    true,
+                                    "음식점-11",
+                                    "부산 11",
+                                    "129.11",
+                                    "35.1",
+                                    10,
+                                    "kakao:11",
+                                    "FD6",
+                                    "음식점"
+                            ));
                     return result;
                 });
         when(handler.reselectPlace(any(), any()))
-                .thenAnswer(invocation -> slot(41, CourseType.ATTRACTION, 9, invocation.getArgument(1), false));
+                .thenAnswer(invocation -> slot(
+                        41,
+                        CourseType.ATTRACTION,
+                        9,
+                        invocation.getArgument(1),
+                        false
+                ));
 
         JsonNode created = success(postApi("/add-with-recommend", request));
         JsonNode saved = stored(travelId());
-        TravelPlanAssertions.assertPlan(created, date, true);
+        TravelPlanAssertions.assertPlan(
+                created,
+                date,
+                true
+        );
         TravelPlanAssertions.assertSameDays(created.path("planDays"), saved.path("planDays"));
         assertThat(created
                 .path("planDays")
@@ -550,15 +666,20 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         when(handler.editPlanByAi(any(), any()))
                 .thenReturn(new EditPlanAiResponse(
                         request.travelName(),
-                        fixture(3, null, false)
+                        fixture(
+                                3,
+                                null,
+                                false
+                        )
                                 .planDays(),
                         List.of("장소 변경"),
-                        true));
+                        true
+                ));
         when(kakao.searchPlace(anyString()))
                 .thenReturn(Mono.empty());
 
-        // 확정 저장된 일정은 외부 검색 없이 그대로 보존되므로 미리보기 자체는 실패하지 않는다.
-        // AI가 제시한 장소를 검증하지 못하면 슬롯마다 재선택을 시도하고, 그래도 안 되면 검증된 원본으로 되돌린다.
+        // 외부 검색 없이 보존하는 확정 일정과 미리보기 유지
+        // AI 장소 검증 실패 시 슬롯별 재선택과 검증된 원본 복원
         JsonNode after = success(postApi("/edit-plan/preview", new EditPlanRequest(id, "장소를 변경해주세요.")))
                 .path("after");
 
@@ -567,10 +688,11 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
 
         TravelPlanAssertions.assertSameDays(original.path("planDays"), after.path("planDays"));
 
-        // 미리보기는 확정이 아니므로 저장된 일정은 그대로여야 한다
+        // 미확정 미리보기 후 저장 일정 원본 유지
         assertThat(counts())
                 .isEqualTo(before);
-        TravelPlanAssertions.assertSameDays(original.path("planDays"), stored(id).path("planDays"));
+        TravelPlanAssertions.assertSameDays(original.path("planDays"), stored(id)
+                        .path("planDays"));
     }
 
     @Test
@@ -585,7 +707,8 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         verify(handler)
                 .createPlanByAi(captor.capture(), any());
 
-        assertThat(captor.getValue()
+        assertThat(captor
+                        .getValue()
                 .healthContexts())
                 .extracting(context -> context.travelerName())
                 .containsExactly("동행인1");
@@ -602,9 +725,10 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
 
         stubCreate(true);
         request = withHealthIds(List.of(
-                selectedHealthId,
-                unselectedHealthId,
-                selectedHealthId));
+                        selectedHealthId,
+                        unselectedHealthId,
+                        selectedHealthId
+                ));
 
         success(postApi("/add-with-recommend", request));
 
@@ -613,7 +737,8 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         verify(handler)
                 .createPlanByAi(captor.capture(), any());
 
-        assertThat(captor.getValue()
+        assertThat(captor
+                        .getValue()
                 .healthContexts())
                 .extracting(context -> context.travelerName())
                 .containsExactlyInAnyOrder("동행인1", "동행인2");
@@ -679,11 +804,13 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         verify(handler)
                 .editPlanByAi(captor.capture(), any());
 
-        assertThat(captor.getValue()
+        assertThat(captor
+                        .getValue()
                 .healthContexts())
                 .extracting(context -> context.travelerName())
                 .containsExactly("동행인1");
-        assertThat(captor.getValue()
+        assertThat(captor
+                        .getValue()
                 .createTravelRequest()
                 .healthIds())
                 .containsExactly(selectedHealthId);
@@ -696,10 +823,12 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         stubCreate(true);
         JsonNode created = success(postApi("/add-with-recommend", request));
 
-        assertThat(created.path("saved")
+        assertThat(created
+                        .path("saved")
                 .asBoolean())
                 .isFalse();
-        assertThat(created.path("travelId")
+        assertThat(created
+                        .path("travelId")
                 .asLong())
                 .isEqualTo(travelId());
     }
@@ -714,20 +843,24 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         List<Long> before = counts();
 
         JsonNode saved = success(postApi("/save", new GetAiPlanRequest(id)));
-        assertThat(saved.path("saved")
+        assertThat(saved
+                        .path("saved")
                 .asBoolean())
                 .isTrue();
-        assertThat(saved.path("travelId")
+        assertThat(saved
+                        .path("travelId")
                 .asLong())
                 .isEqualTo(id);
 
         JsonNode again = success(postApi("/save", new GetAiPlanRequest(id)));
-        assertThat(again.path("saved")
+        assertThat(again
+                        .path("saved")
                 .asBoolean())
                 .isTrue();
         assertThat(counts())
                 .isEqualTo(before);
-        assertThat(travels.findById(id)
+        assertThat(travels
+                        .findById(id)
                 .orElseThrow()
                 .isSaved())
                 .isTrue();
@@ -745,21 +878,24 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         createUser(strangerUsername);
         LoginResult strangerSession = login(strangerUsername);
 
-        mockMvc.perform(post("/api/v1/travel/save")
+        mockMvc
+                .perform(post("/api/v1/travel/save")
                         .header("Authorization", strangerSession.accessToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new GetAiPlanRequest(id))))
                 .andExpect(status()
                         .isForbidden());
 
-        mockMvc.perform(post("/api/v1/travel/save")
+        mockMvc
+                .perform(post("/api/v1/travel/save")
                         .header("Authorization", session.accessToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new GetAiPlanRequest(id + 100_000L))))
                 .andExpect(status()
                         .isForbidden());
 
-        assertThat(travels.findById(id)
+        assertThat(travels
+                        .findById(id)
                 .orElseThrow()
                 .isSaved())
                 .isFalse();
@@ -774,7 +910,8 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         Long id = travelId();
 
         assertError(postApi("/share/issue", new GetAiPlanRequest(id)), "TRAVEL.EXCEPTION.TRAVEL_NOT_SAVED");
-        assertThat(travels.findById(id)
+        assertThat(travels
+                        .findById(id)
                 .orElseThrow()
                 .getShareToken())
                 .isNull();
@@ -799,14 +936,22 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
 
         List<Long> before = counts();
 
-        // 저녁 슬롯이 없고 지역 조회에도 후보가 추가되지 않는다.
+        // 저녁 슬롯·추가 지역 후보 모두 부재
         when(handler.createPlanByAi(any(), any()))
                 .thenAnswer(invocation -> {
                     PlaceCandidateContext candidates = invocation.getArgument(1);
 
                     return new CreatePlanAiResponse(List.of(
-                            dayWithoutDinner(1, 1, candidates),
-                            dayWithoutDinner(2, 2, candidates)));
+                            dayWithoutDinner(
+                                    1,
+                                    1,
+                                    candidates
+                            ),
+                            dayWithoutDinner(
+                                    2,
+                                    2,
+                                    candidates
+                            )));
                 });
 
         assertError(
@@ -830,8 +975,16 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                     PlaceCandidateContext candidates = invocation.getArgument(1);
 
                     return new CreatePlanAiResponse(List.of(
-                            dayWithoutDinner(1, 1, candidates),
-                            dayWithoutDinner(2, 2, candidates)
+                            dayWithoutDinner(
+                                    1,
+                                    1,
+                                    candidates
+                            ),
+                            dayWithoutDinner(
+                                    2,
+                                    2,
+                                    candidates
+                            )
                     ));
                 });
 
@@ -868,7 +1021,12 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         request = threeDayRequest();
 
         when(handler.createPlanByAi(any(), any()))
-                .thenAnswer(invocation -> threeDayFixture(1, 2, 3, invocation.getArgument(1)));
+                .thenAnswer(invocation -> threeDayFixture(
+                        1,
+                        2,
+                        3,
+                        invocation.getArgument(1)
+                ));
 
         success(postApi("/add-with-recommend", request));
 
@@ -880,11 +1038,11 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         when(tourismTool.getRestaurantDetail(anyString()))
                 .thenReturn(restaurantIntro("보정 메뉴"));
 
-        // 2일차는 아침도 저녁도 없다. 대표메뉴가 겹치면 보정기가 건너뛰므로 후보마다 다른 메뉴를 준다.
+        // 2일차 아침·저녁 누락과 서로 다른 대표메뉴 후보
         when(tourismTool.getRestaurantDetail("9002"))
                 .thenReturn(restaurantIntro("보정 메뉴2"));
 
-        // 2일차만 저녁 없이 돌려주고, 채울 음식점은 편집 호출의 후보로만 등록한다.
+        // 2일차 저녁 누락과 편집 호출 전용 음식점 후보
         when(handler.editPlanByAi(any(), any()))
                 .thenAnswer(invocation -> {
                     PlaceCandidateContext candidates = invocation.getArgument(1);
@@ -896,11 +1054,27 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                     return new EditPlanAiResponse(
                             request.travelName(),
                             List.of(
-                                    day(1, 1, candidates, false),
-                                    dayWithoutDinner(2, 4, candidates),
-                                    day(3, 3, candidates, false)),
+                                    day(
+                                            1,
+                                            1,
+                                            candidates,
+                                            false
+                                    ),
+                                    dayWithoutDinner(
+                                            2,
+                                            4,
+                                            candidates
+                                    ),
+                                    day(
+                                            3,
+                                            3,
+                                            candidates,
+                                            false
+                                    )
+                            ),
                             List.of("2일차 장소 변경"),
-                            true);
+                            true
+                    );
                 });
 
         JsonNode after = success(postApi(
@@ -950,15 +1124,51 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         List<PlanScheduleDetail> daySchedules = new ArrayList<>();
 
         if (number > 1) {
-            daySchedules.add(slot(source * 10, CourseType.RESTAURANT, 8, candidates, false));
+            daySchedules.add(slot(
+                            source * 10,
+                            CourseType.RESTAURANT,
+                            8,
+                            candidates,
+                            false
+                    ));
         }
 
         daySchedules.addAll(List.of(
-                slot(source * 10 + 1, CourseType.ATTRACTION, 9, candidates, false),
-                slot(source * 10 + 2, CourseType.RESTAURANT, 12, candidates, false),
-                slot(source * 10 + 3, CourseType.CAFE_REST, 14, candidates, false),
-                slot(source * 10 + 4, CourseType.ATTRACTION, 16, candidates, false),
-                slot(source * 10 + 5, CourseType.ATTRACTION, 18, candidates, false)
+                slot(
+                        source * 10 + 1,
+                        CourseType.ATTRACTION,
+                        9,
+                        candidates,
+                        false
+                ),
+                slot(
+                        source * 10 + 2,
+                        CourseType.RESTAURANT,
+                        12,
+                        candidates,
+                        false
+                ),
+                slot(
+                        source * 10 + 3,
+                        CourseType.CAFE_REST,
+                        14,
+                        candidates,
+                        false
+                ),
+                slot(
+                        source * 10 + 4,
+                        CourseType.ATTRACTION,
+                        16,
+                        candidates,
+                        false
+                ),
+                slot(
+                        source * 10 + 5,
+                        CourseType.ATTRACTION,
+                        18,
+                        candidates,
+                        false
+                )
         ));
 
         return new PlanDayDetail(
@@ -993,7 +1203,8 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                 null,
                 "FD",
                 "FD01",
-                "FD010100");
+                "FD010100"
+        );
     }
 
     private Kor2RestaurantIntroResponse restaurantIntro(String firstMenu) {
@@ -1008,10 +1219,12 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                                                         "9",
                                                         "39",
                                                         firstMenu,
-                                                        firstMenu))),
+                                                        firstMenu
+                                                ))),
                                 1,
                                 1,
-                                1)));
+                                1
+                        )));
     }
 
     private CreateTravelRequest withHealthIds(List<Long> healthIds) {
@@ -1029,7 +1242,8 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                 request.travelTheme(),
                 request.localFoods(),
                 request.recommendFoods(),
-                healthIds);
+                healthIds
+        );
     }
 
     @Test
@@ -1040,21 +1254,31 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         request = threeDayRequest();
 
         when(handler.createPlanByAi(any(), any()))
-                .thenAnswer(invocation -> threeDayFixture(1, 2, 3, invocation.getArgument(1)));
+                .thenAnswer(invocation -> threeDayFixture(
+                        1,
+                        2,
+                        3,
+                        invocation.getArgument(1)
+                ));
 
         success(postApi("/add-with-recommend", request));
 
         Long id = travelId();
 
         // 출발지에서 재는 경로와 전날 마지막 장소에서 재는 경로를 구분
-        when(kakao.getRoute(anyString(), anyString(), any()))
+        when(kakao.getRoute(
+                        anyString(),
+                        anyString(),
+                        any()
+                ))
                 .thenAnswer(invocation -> Mono.just(new KakaoRouteResult(
-                        null,
-                        null,
-                        null,
-                        THREE_DAY_DECIDED_LOCATION.equals(invocation.<String>getArgument(0))
+                                null,
+                                null,
+                                null,
+                                THREE_DAY_DECIDED_LOCATION.equals(invocation.<String>getArgument(0))
                                 ? 999
-                                : 30)));
+                                : 30
+                        )));
 
         when(handler.classifyEditScope(any()))
                 .thenReturn(new PlanEditScope(List.of(2)));
@@ -1063,10 +1287,16 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         when(handler.editPlanByAi(any(), any()))
                 .thenAnswer(invocation -> new EditPlanAiResponse(
                         request.travelName(),
-                        threeDayFixture(1, 4, 3, invocation.getArgument(1))
+                        threeDayFixture(
+                                1,
+                                4,
+                                3,
+                                invocation.getArgument(1)
+                        )
                                 .planDays(),
                         List.of("2일차 장소 변경"),
-                        true));
+                        true
+                ));
 
         // when
         JsonNode after = success(postApi(
@@ -1093,21 +1323,31 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         request = threeDayRequest();
 
         when(handler.createPlanByAi(any(), any()))
-                .thenAnswer(invocation -> threeDayFixture(1, 2, 3, invocation.getArgument(1)));
+                .thenAnswer(invocation -> threeDayFixture(
+                        1,
+                        2,
+                        3,
+                        invocation.getArgument(1)
+                ));
 
         success(postApi("/add-with-recommend", request));
 
         Long id = travelId();
 
-        // 재구성으로 2일차 마지막 장소가 바뀌면 3일차 첫 이동시간도 달라져야 한다
-        when(kakao.getRoute(anyString(), anyString(), any()))
+        // 2일차 마지막 장소 변경에 따른 3일차 첫 이동시간 재계산
+        when(kakao.getRoute(
+                        anyString(),
+                        anyString(),
+                        any()
+                ))
                 .thenAnswer(invocation -> Mono.just(new KakaoRouteResult(
-                        null,
-                        null,
-                        null,
-                        "장소-45".equals(invocation.<String>getArgument(0))
+                                null,
+                                null,
+                                null,
+                                "장소-45".equals(invocation.<String>getArgument(0))
                                 ? 77
-                                : 30)));
+                                : 30
+                        )));
 
         when(handler.classifyEditScope(any()))
                 .thenReturn(new PlanEditScope(List.of(2)));
@@ -1115,10 +1355,16 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         when(handler.editPlanByAi(any(), any()))
                 .thenAnswer(invocation -> new EditPlanAiResponse(
                         request.travelName(),
-                        threeDayFixture(1, 4, 3, invocation.getArgument(1))
+                        threeDayFixture(
+                                1,
+                                4,
+                                3,
+                                invocation.getArgument(1)
+                        )
                                 .planDays(),
                         List.of("2일차 장소 변경"),
-                        true));
+                        true
+                ));
 
         // when
         JsonNode after = success(postApi(
@@ -1145,20 +1391,30 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         request = threeDayRequest();
 
         when(handler.createPlanByAi(any(), any()))
-                .thenAnswer(invocation -> threeDayFixture(1, 2, 3, invocation.getArgument(1)));
+                .thenAnswer(invocation -> threeDayFixture(
+                        1,
+                        2,
+                        3,
+                        invocation.getArgument(1)
+                ));
 
         success(postApi("/add-with-recommend", request));
 
         Long id = travelId();
 
-        when(kakao.getRoute(anyString(), anyString(), any()))
+        when(kakao.getRoute(
+                        anyString(),
+                        anyString(),
+                        any()
+                ))
                 .thenAnswer(invocation -> Mono.just(new KakaoRouteResult(
-                        null,
-                        null,
-                        null,
-                        THREE_DAY_DECIDED_LOCATION.equals(invocation.<String>getArgument(0))
+                                null,
+                                null,
+                                null,
+                                THREE_DAY_DECIDED_LOCATION.equals(invocation.<String>getArgument(0))
                                 ? 999
-                                : 30)));
+                                : 30
+                        )));
 
         when(handler.classifyEditScope(any()))
                 .thenReturn(new PlanEditScope(List.of(2)));
@@ -1171,11 +1427,27 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                     return new EditPlanAiResponse(
                             request.travelName(),
                             List.of(
-                                    day(1, 1, candidates, false),
-                                    dayKeepingFirstPlace(2, 4, candidates),
-                                    day(3, 3, candidates, false)),
+                                    day(
+                                            1,
+                                            1,
+                                            candidates,
+                                            false
+                                    ),
+                                    dayKeepingFirstPlace(
+                                            2,
+                                            4,
+                                            candidates
+                                    ),
+                                    day(
+                                            3,
+                                            3,
+                                            candidates,
+                                            false
+                                    )
+                            ),
                             List.of("2일차 장소 변경"),
-                            true);
+                            true
+                    );
                 });
 
         // when
@@ -1205,17 +1477,53 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         List<PlanScheduleDetail> daySchedules = new ArrayList<>();
 
         if (number > 1) {
-            daySchedules.add(slot(source * 10, CourseType.RESTAURANT, 8, candidates, false));
+            daySchedules.add(slot(
+                            source * 10,
+                            CourseType.RESTAURANT,
+                            8,
+                            candidates,
+                            false
+                    ));
         }
 
         daySchedules.addAll(List.of(
                 unchangedFirstSlot(number * 10 + 1, candidates),
-                slot(source * 10 + 2, CourseType.RESTAURANT, 12, candidates, false),
-                slot(source * 10 + 3, CourseType.CAFE_REST, 14, candidates, false),
-                slot(source * 10 + 4, CourseType.ATTRACTION, 16, candidates, false),
-                // day(...)와 같은 이유로 저녁 슬롯이 있어야 한다.
-                slot(source * 10 + 6, CourseType.RESTAURANT, 18, candidates, false),
-                slot(source * 10 + 5, CourseType.ATTRACTION, 20, candidates, false)
+                slot(
+                        source * 10 + 2,
+                        CourseType.RESTAURANT,
+                        12,
+                        candidates,
+                        false
+                ),
+                slot(
+                        source * 10 + 3,
+                        CourseType.CAFE_REST,
+                        14,
+                        candidates,
+                        false
+                ),
+                slot(
+                        source * 10 + 4,
+                        CourseType.ATTRACTION,
+                        16,
+                        candidates,
+                        false
+                ),
+                // day(...)와 동일한 저녁 슬롯 필수 조건
+                slot(
+                        source * 10 + 6,
+                        CourseType.RESTAURANT,
+                        18,
+                        candidates,
+                        false
+                ),
+                slot(
+                        source * 10 + 5,
+                        CourseType.ATTRACTION,
+                        20,
+                        candidates,
+                        false
+                )
         ));
 
         return new CreatePlanAiResponse.PlanDayDetail(
@@ -1233,15 +1541,16 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
 
         if (candidates != null) {
             candidates.record(new PlaceWithRouteResult(
-                    true,
-                    "장소-" + id,
-                    "부산 " + id,
-                    "129." + id,
-                    "35.1",
-                    10,
-                    "kakao:" + id,
-                    "AT4",
-                    "관광"));
+                            true,
+                            "장소-" + id,
+                            "부산 " + id,
+                            "129." + id,
+                            "35.1",
+                            10,
+                            "kakao:" + id,
+                            "AT4",
+                            "관광"
+                    ));
         }
 
         return new CreatePlanAiResponse.PlanScheduleDetail(
@@ -1260,7 +1569,8 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                 Set.of(),
                 null,
                 null,
-                "kakao:" + id);
+                "kakao:" + id
+        );
     }
 
     private CreateTravelRequest threeDayRequest() {
@@ -1278,7 +1588,8 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                 TravelTheme.TASTE,
                 List.of(),
                 List.of(),
-                List.of(selectedHealthId));
+                List.of(selectedHealthId)
+        );
     }
 
     private CreatePlanAiResponse threeDayFixture(
@@ -1289,15 +1600,35 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     ) {
 
         return new CreatePlanAiResponse(List.of(
-                day(1, firstSource, candidates, false),
-                day(2, secondSource, candidates, false),
-                day(3, thirdSource, candidates, false)));
+                        day(
+                        1,
+                        firstSource,
+                        candidates,
+                        false
+                ),
+                        day(
+                        2,
+                        secondSource,
+                        candidates,
+                        false
+                ),
+                        day(
+                        3,
+                        thirdSource,
+                        candidates,
+                        false
+                )
+                ));
     }
 
     private void stubCreate(boolean optionalCoordinates) {
 
         when(handler.createPlanByAi(any(), any()))
-                .thenAnswer(invocation -> fixture(1, invocation.getArgument(1), optionalCoordinates));
+                .thenAnswer(invocation -> fixture(
+                        1,
+                        invocation.getArgument(1),
+                        optionalCoordinates
+                ));
     }
 
     private void stubEdit(int firstDay) {
@@ -1305,10 +1636,15 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         when(handler.editPlanByAi(any(), any()))
                 .thenAnswer(invocation -> new EditPlanAiResponse(
                         request.travelName(),
-                        fixture(firstDay, invocation.getArgument(1), false)
+                        fixture(
+                                firstDay,
+                                invocation.getArgument(1),
+                                false
+                        )
                                 .planDays(),
                         List.of("장소 변경"),
-                        true));
+                        true
+                ));
     }
 
     private CreatePlanAiResponse fixture(
@@ -1318,8 +1654,18 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
     ) {
 
         return new CreatePlanAiResponse(List.of(
-                day(1, firstDay, candidates, optionalCoordinates),
-                day(2, 2, candidates, optionalCoordinates)));
+                day(
+                        1,
+                        firstDay,
+                        candidates,
+                        optionalCoordinates
+                ),
+                day(
+                        2,
+                        2,
+                        candidates,
+                        optionalCoordinates
+                )));
     }
 
     private PlanDayDetail day(
@@ -1332,7 +1678,13 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         List<PlanScheduleDetail> daySchedules = new ArrayList<>();
 
         if (number > 1) {
-            daySchedules.add(slot(source * 10, CourseType.RESTAURANT, 8, candidates, false));
+            daySchedules.add(slot(
+                            source * 10,
+                            CourseType.RESTAURANT,
+                            8,
+                            candidates,
+                            false
+                    ));
         }
 
         daySchedules.addAll(List.of(
@@ -1364,7 +1716,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                         candidates,
                         optionalCoordinates
                 ),
-                // 하루가 등록 저녁시각(18:00)을 지나므로 저녁 슬롯이 있어야 유효한 일정이다.
+                // 등록 저녁시각 18:00을 지나는 하루의 필수 저녁 슬롯
                 slot(
                         source * 10 + 6,
                         CourseType.RESTAURANT,
@@ -1388,7 +1740,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         );
     }
 
-    // 음식점 슬롯의 식사 종류는 시각이 정한다. 어긋나면 식사 슬롯으로 세어지지 않는다.
+    // 시각 기준 음식점 식사 종류와 불일치 시 식사 슬롯 집계 제외
     private ScheduleType mealScheduleType(int hour) {
 
         if (hour < 11) {
@@ -1415,15 +1767,16 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
 
         if (candidates != null) {
             candidates.record(new PlaceWithRouteResult(
-                    true,
-                    "장소-" + id,
-                    "부산 " + id,
-                    x,
-                    y,
-                    10,
-                    "kakao:" + id,
-                    category,
-                    "관광"));
+                            true,
+                            "장소-" + id,
+                            "부산 " + id,
+                            x,
+                            y,
+                            10,
+                            "kakao:" + id,
+                            category,
+                            "관광"
+                    ));
         }
 
         RestaurantDetail restaurant = meal ? new RestaurantDetail(
@@ -1435,7 +1788,8 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                 "AI 주소",
                 "0",
                 "0",
-                null) : null;
+                null
+        ) : null;
 
         return new PlanScheduleDetail(
                 meal ? mealScheduleType(hour) : ScheduleType.ACTIVITY,
@@ -1453,7 +1807,8 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                 Set.of(),
                 null,
                 restaurant,
-                "kakao:" + id);
+                "kakao:" + id
+        );
     }
 
     private Long travelId() {
@@ -1461,7 +1816,8 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         return travels
                 .findAll()
                 .stream()
-                .filter(travel -> request.travelName()
+                .filter(travel -> request
+                        .travelName()
                         .equals(travel.getTravelName()))
                 .findFirst()
                 .orElseThrow()
@@ -1506,7 +1862,8 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                         .isOk())
                 .andReturn();
 
-        return objectMapper.readTree(result.getResponse()
+        return objectMapper.readTree(result
+                        .getResponse()
                 .getContentAsString());
     }
 
@@ -1520,13 +1877,15 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                         .isOk())
                 .andReturn();
 
-        return success(objectMapper.readTree(result.getResponse()
+        return success(objectMapper.readTree(result
+                                .getResponse()
                 .getContentAsString()));
     }
 
     private JsonNode success(JsonNode result) {
 
-        assertThat(result.path("success")
+        assertThat(result
+                        .path("success")
                 .asBoolean())
                 .withFailMessage(result.toString())
                 .isTrue();
@@ -1535,14 +1894,17 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
 
     private void assertError(JsonNode result, String code) {
 
-        assertThat(result.path("success")
+        assertThat(result
+                        .path("success")
                 .asBoolean())
                 .isFalse();
-        assertThat(result.path("error")
+        assertThat(result
+                        .path("error")
                 .path("errorCode")
                 .asText())
                 .isEqualTo(code);
-        assertThat(result.path("data")
+        assertThat(result
+                        .path("data")
                 .isNull())
                 .isTrue();
     }

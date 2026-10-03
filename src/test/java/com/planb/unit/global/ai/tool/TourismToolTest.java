@@ -217,14 +217,62 @@ class TourismToolTest {
     void keepsClearAttractionCategories() {
 
         List<Kor2KeywordSearchResponse.Item> source = List.of(
-                attraction("1", "강릉향교", null, "HS01", "HS010900"),
-                attraction("2", "대관령", null, "NA01", "NA010100"),
-                attraction("3", "체험마을", null, "EX03", "EX030100"),
-                attraction("4", "명주동골목", null, "VE04", "VE040100"),
-                attraction("5", "경포해변", null, "NA02", "NA020900"),
-                attraction("6", "주문진등대", null, "VE01", "VE010800"),
-                attraction("7", "경포호수광장", null, "VE03", "VE030500"),
-                attraction("8", "강릉시립미술관", null, "VE07", "VE070600")
+                attraction(
+                        "1",
+                        "강릉향교",
+                        null,
+                        "HS01",
+                        "HS010900"
+                ),
+                attraction(
+                        "2",
+                        "대관령",
+                        null,
+                        "NA01",
+                        "NA010100"
+                ),
+                attraction(
+                        "3",
+                        "체험마을",
+                        null,
+                        "EX03",
+                        "EX030100"
+                ),
+                attraction(
+                        "4",
+                        "명주동골목",
+                        null,
+                        "VE04",
+                        "VE040100"
+                ),
+                attraction(
+                        "5",
+                        "경포해변",
+                        null,
+                        "NA02",
+                        "NA020900"
+                ),
+                attraction(
+                        "6",
+                        "주문진등대",
+                        null,
+                        "VE01",
+                        "VE010800"
+                ),
+                attraction(
+                        "7",
+                        "경포호수광장",
+                        null,
+                        "VE03",
+                        "VE030500"
+                ),
+                attraction(
+                        "8",
+                        "강릉시립미술관",
+                        null,
+                        "VE07",
+                        "VE070600"
+                )
         );
 
         when(
@@ -482,12 +530,42 @@ class TourismToolTest {
     void excludesAttractionCandidatesWithUnusableCoordinates() {
 
         List<Kor2KeywordSearchResponse.Item> source = List.of(
-                attraction("1", "경포해변", "128.9070", "37.8050"),
-                attraction("2", "경도 누락", null, "37.8050"),
-                attraction("3", "위도 공백", "128.9070", ""),
-                attraction("4", "경도 형식 오류", "invalid", "37.8050"),
-                attraction("5", "비유한 경도", "NaN", "37.8050"),
-                attraction("6", "비유한 위도", "128.9070", "Infinity")
+                attraction(
+                        "1",
+                        "경포해변",
+                        "128.9070",
+                        "37.8050"
+                ),
+                attraction(
+                        "2",
+                        "경도 누락",
+                        null,
+                        "37.8050"
+                ),
+                attraction(
+                        "3",
+                        "위도 공백",
+                        "128.9070",
+                        ""
+                ),
+                attraction(
+                        "4",
+                        "경도 형식 오류",
+                        "invalid",
+                        "37.8050"
+                ),
+                attraction(
+                        "5",
+                        "비유한 경도",
+                        "NaN",
+                        "37.8050"
+                ),
+                attraction(
+                        "6",
+                        "비유한 위도",
+                        "128.9070",
+                        "Infinity"
+                )
         );
 
         when(
@@ -523,13 +601,48 @@ class TourismToolTest {
     void keepsAttractionCandidatesWithinKoreanCoordinateBounds() {
 
         List<Kor2KeywordSearchResponse.Item> source = List.of(
-                attraction("1", "서쪽 경계", "124.0", "36.0"),
-                attraction("2", "동쪽 경계", "132.0", "37.0"),
-                attraction("3", "남쪽 경계", "126.0", "33.0"),
-                attraction("4", "북쪽 경계", "128.0", "39.0"),
-                attraction("5", "경도 범위 밖", "133.0", "37.0"),
-                attraction("6", "위도 범위 밖", "128.0", "32.0"),
-                attraction("7", "경위도 역전", "37.5", "127.0")
+                attraction(
+                        "1",
+                        "서쪽 경계",
+                        "124.0",
+                        "36.0"
+                ),
+                attraction(
+                        "2",
+                        "동쪽 경계",
+                        "132.0",
+                        "37.0"
+                ),
+                attraction(
+                        "3",
+                        "남쪽 경계",
+                        "126.0",
+                        "33.0"
+                ),
+                attraction(
+                        "4",
+                        "북쪽 경계",
+                        "128.0",
+                        "39.0"
+                ),
+                attraction(
+                        "5",
+                        "경도 범위 밖",
+                        "133.0",
+                        "37.0"
+                ),
+                attraction(
+                        "6",
+                        "위도 범위 밖",
+                        "128.0",
+                        "32.0"
+                ),
+                attraction(
+                        "7",
+                        "경위도 역전",
+                        "37.5",
+                        "127.0"
+                )
         );
 
         when(
@@ -802,8 +915,8 @@ class TourismToolTest {
         // then
         assertEquals(response, result);
 
-        // 수치를 되찾는 쪽은 restaurantDetail.menuName()을 키로 쓴다.
-        // 여기에 표준 품목명을 넣으면 조회는 성공하는데 화면은 빈칸이 된다.
+        // 영양 수치 복원 키인 restaurantDetail.menuName()
+        // 표준 품목명을 키로 사용할 때의 화면 영양 수치 누락 방지
         verify(nutritionEvaluationCollector)
                 .record(foodName, response);
     }

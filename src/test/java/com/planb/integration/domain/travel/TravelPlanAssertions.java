@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 final class TravelPlanAssertions {
 
-    // 복약 겹침 판정에서 제외하는 식사 슬롯. 식중 복약은 식사 시간대 안에 있는 것이 정의다.
+    // 식중 복약 정의에 따라 겹침 판정에서 제외하는 식사 슬롯
     private static final Set<String> MEAL_SCHEDULE_TYPES = Set.of(
             "BREAKFAST",
             "LUNCH",
@@ -33,10 +33,12 @@ final class TravelPlanAssertions {
             boolean candidateIdsExpected
     ) {
 
-        assertThat(plan.path("planDays")
+        assertThat(plan
+                        .path("planDays")
                 .isArray())
                 .isTrue();
-        assertThat(plan.path("planDays")
+        assertThat(plan
+                        .path("planDays")
                 .size())
                 .isEqualTo(2);
 
@@ -45,48 +47,59 @@ final class TravelPlanAssertions {
         Set<Integer> numbers = new HashSet<>();
 
         for (JsonNode day : plan.path("planDays")) {
-            int number = day.path("dayNumber")
+            int number = day
+                    .path("dayNumber")
                     .asInt();
 
             assertThat(number)
                     .isBetween(1, 2);
             assertThat(numbers.add(number))
                     .isTrue();
-            assertThat(day.path("date")
+            assertThat(day
+                            .path("date")
                     .asText())
-                    .isEqualTo(startDate.plusDays(number - 1)
+                    .isEqualTo(startDate
+                            .plusDays(number - 1)
                     .toString());
-            assertThat(day.path("schedules")
+            assertThat(day
+                            .path("schedules")
                     .isArray())
                     .isTrue();
-            assertThat(day.path("schedules")
+            assertThat(day
+                            .path("schedules")
                     .size())
                     .isPositive();
 
             for (JsonNode slot : day.path("schedules")) {
                 String type = code(slot.path("courseType"));
                 String scheduleType = code(slot.path("scheduleType"));
-                LocalTime start = LocalTime.parse(slot.path("startTime")
+                LocalTime start = LocalTime.parse(slot
+                                .path("startTime")
                         .asText());
-                LocalTime end = LocalTime.parse(slot.path("endTime")
+                LocalTime end = LocalTime.parse(slot
+                                .path("endTime")
                         .asText());
 
                 assertThat(end)
                         .isAfter(start);
-                assertThat(slot.path("tags")
+                assertThat(slot
+                                .path("tags")
                         .isArray())
                         .isTrue();
-                assertThat(slot.path("stayMinutes")
+                assertThat(slot
+                                .path("stayMinutes")
                         .isNumber())
                         .isTrue();
 
                 if ("MEDICATION".equals(type)) {
                     assertThat(scheduleType)
                             .isEqualTo("CHECK_IN");
-                    assertThat(slot.path("medication")
+                    assertThat(slot
+                                    .path("medication")
                             .isObject())
                             .isTrue();
-                    assertThat(slot.path("medication")
+                    assertThat(slot
+                                    .path("medication")
                             .path("description")
                             .asText())
                             .isNotBlank();
@@ -98,64 +111,84 @@ final class TravelPlanAssertions {
                 if ("TRANSPORTATION".equals(type)) {
                     assertThat(scheduleType)
                             .isEqualTo("ACTIVITY");
-                    assertThat(slot.path("medication")
-                            .isNull() || slot.path("medication")
+                    assertThat(slot
+                                    .path("medication")
+                            .isNull() || slot
+                                    .path("medication")
                             .isMissingNode())
                             .isTrue();
                     continue;
                 }
 
-                assertThat(slot.path("medication")
-                        .isNull() || slot.path("medication")
+                assertThat(slot
+                                .path("medication")
+                        .isNull() || slot
+                                .path("medication")
                         .isMissingNode())
                         .isTrue();
 
-                assertThat(slot.path("locationName")
+                assertThat(slot
+                                .path("locationName")
                         .asText())
                         .isNotBlank();
-                assertThat(slot.path("location")
+                assertThat(slot
+                                .path("location")
                         .asText())
                         .isNotBlank();
-                assertThat(places.add(slot.path("locationName")
+                assertThat(places.add(slot
+                                        .path("locationName")
                         .asText()
                         .strip()))
                         .isTrue();
-                assertThat(slot.path("stayMinutes")
+                assertThat(slot
+                                .path("stayMinutes")
                         .asInt())
-                        .isEqualTo((int) Duration.between(start, end)
+                        .isEqualTo((int) Duration
+                                .between(start, end)
                         .toMinutes());
-                assertThat(slot.path("travelMinutes")
+                assertThat(slot
+                                .path("travelMinutes")
                         .isNumber())
                         .isTrue();
-                assertThat(slot.path("travelMinutes")
+                assertThat(slot
+                                .path("travelMinutes")
                         .asInt())
                         .isNotNegative();
 
-                // 보존 날짜 슬롯은 이번 호출의 검색 후보가 아니라 candidateId를 갖지 않는다.
-                // 값이 있다면 반드시 검색 원본 식별자 형식이어야 한다.
-                if (candidateIdsExpected && !slot.path("candidateId")
+                // 이번 검색 후보가 아닌 보존 날짜 슬롯의 candidateId 부재
+                // 값이 있는 경우 검색 원본 식별자 형식 필수
+                if (candidateIdsExpected && !slot
+                        .path("candidateId")
                         .asText()
                         .isEmpty()) {
-                    assertThat(slot.path("candidateId")
+                    assertThat(slot
+                                    .path("candidateId")
                             .asText())
                             .matches("(tour|kakao):.+");
                 }
 
                 if ("RESTAURANT".equals(type) || "LOCAL_FOOD".equals(type)) {
                     assertThat(scheduleType)
-                            .isIn("BREAKFAST", "LUNCH", "DINNER");
+                            .isIn(
+                            "BREAKFAST",
+                            "LUNCH",
+                            "DINNER"
+                    );
                     JsonNode restaurant = slot.path("restaurantDetail");
 
                     assertThat(restaurant.isObject())
                             .isTrue();
-                    assertThat(restaurant.path("menuName")
+                    assertThat(restaurant
+                                    .path("menuName")
                             .asText())
                             .isNotBlank();
-                    assertThat(menus.add(restaurant.path("menuName")
+                    assertThat(menus.add(restaurant
+                                            .path("menuName")
                             .asText()
                             .strip()))
                             .isTrue();
-                    assertThat(restaurant.path("address")
+                    assertThat(restaurant
+                                    .path("address")
                             .asText())
                             .isNotBlank();
                     assertCoordinates(restaurant);
@@ -163,10 +196,16 @@ final class TravelPlanAssertions {
                             .isEqualTo(slot.path("location"));
                 } else {
                     assertThat(type)
-                            .isIn("ATTRACTION", "CAFE_REST", "PARK_WALK", "MUST_HAVE");
+                            .isIn(
+                            "ATTRACTION",
+                            "CAFE_REST",
+                            "PARK_WALK",
+                            "MUST_HAVE"
+                    );
                     assertThat(scheduleType)
                             .isEqualTo("ACTIVITY");
-                    assertThat(slot.path("restaurantDetail")
+                    assertThat(slot
+                                    .path("restaurantDetail")
                             .isNull())
                             .isTrue();
                 }
@@ -202,7 +241,8 @@ final class TravelPlanAssertions {
                 if (actualMealEndTime == null
                         && "LUNCH".equals(code(slot.path("scheduleType")))) {
                     actualMealEndTime = LocalTime.parse(
-                            slot.path("endTime")
+                            slot
+                                    .path("endTime")
                                     .asText()
                     );
                 }
@@ -218,21 +258,22 @@ final class TravelPlanAssertions {
                 }
             }
 
-            // 식후 복약은 식사 종료 기준이다.
-            // 식사 슬롯이 없으면 설정 식사시각에 기본 소요시간(60분)을 더한 값이 기준이 된다.
+            // 식사 종료를 기준으로 한 식후 복약
+            // 식사 슬롯 부재 시 설정 시각에 기본 60분을 더한 기준
             LocalTime mealBased = actualMealEndTime == null
                     ? fallbackLunchTime.plusMinutes(90)
                     : actualMealEndTime.plusMinutes(30);
 
-            // 기준시각이 장소 시간대 안이면 그 장소가 끝난 뒤로 밀린다.
-            // 밀린 결과도 앞당겨지지는 않으므로 기준시각 이상이어야 한다.
+            // 장소 시간대에 겹치는 복약의 장소 종료 후 배치
+            // 배치 결과의 기준시각 이상 유지
             boolean overlapsPlace = placeSlots
                     .stream()
                     .anyMatch(slot -> covers(slot, mealBased));
 
             assertThat(medications)
                     .anySatisfy(slot -> {
-                LocalTime medicationTime = LocalTime.parse(slot.path("startTime")
+                LocalTime medicationTime = LocalTime.parse(slot
+                                .path("startTime")
                         .asText());
 
                 if (overlapsPlace) {
@@ -246,7 +287,8 @@ final class TravelPlanAssertions {
                             .isEqualTo(mealBased);
                 }
 
-                assertThat(slot.path("medication")
+                assertThat(slot
+                                .path("medication")
                         .path("intervalMinutes")
                         .asInt())
                         .isEqualTo(30);
@@ -254,7 +296,7 @@ final class TravelPlanAssertions {
         }
     }
 
-    // 장소 슬롯이 이 시각을 품고 있는지. 종료시각은 포함하지 않는다.
+    // 종료시각을 제외한 장소 슬롯의 시각 포함 여부
     private static boolean covers(
             JsonNode placeSlot,
             LocalTime time
@@ -283,8 +325,10 @@ final class TravelPlanAssertions {
             JsonNode found = null;
 
             for (JsonNode candidate : actual) {
-                if (candidate.path("dayNumber")
-                        .asInt() == day.path("dayNumber")
+                if (candidate
+                        .path("dayNumber")
+                        .asInt() == day
+                                .path("dayNumber")
                         .asInt()) {
                     found = candidate;
                     break;
@@ -321,7 +365,9 @@ final class TravelPlanAssertions {
             for (JsonNode slot : copy.path("schedules")) {
                 JsonNode locationName = slot.path("locationName");
 
-                if (locationName.isString() && !locationName.asString().isBlank()) {
+                if (locationName.isString() && !locationName
+                        .asString()
+                        .isBlank()) {
                     ((ObjectNode) slot).remove("travelMinutes");
 
                     break;
@@ -347,21 +393,26 @@ final class TravelPlanAssertions {
 
     static String code(JsonNode value) {
 
-        return value.isObject() ? value.path("code")
+        return value.isObject() ? value
+                .path("code")
                 .asText() : value.asText();
     }
 
     private static void assertCoordinates(JsonNode restaurant) {
 
-        assertThat(restaurant.path("longitude")
+        assertThat(restaurant
+                        .path("longitude")
                 .asText())
                 .isNotBlank();
-        assertThat(restaurant.path("latitude")
+        assertThat(restaurant
+                        .path("latitude")
                 .asText())
                 .isNotBlank();
-        double x = Double.parseDouble(restaurant.path("longitude")
+        double x = Double.parseDouble(restaurant
+                        .path("longitude")
                 .asText());
-        double y = Double.parseDouble(restaurant.path("latitude")
+        double y = Double.parseDouble(restaurant
+                        .path("latitude")
                 .asText());
 
         assertThat(Double.isFinite(x) && x != 0 && Math.abs(x) <= 180)
@@ -385,7 +436,8 @@ final class TravelPlanAssertions {
             copy.putArray("tags");
 
             for (String tag : tags) {
-                copy.withArray("tags")
+                copy
+                        .withArray("tags")
                         .add(tag);
             }
 

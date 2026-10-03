@@ -39,7 +39,7 @@ public class ScheduleNormalizer {
 
     private static final long MEAL_TIME_TOLERANCE_MINUTES = 30;
 
-    // 설정 식사시각에는 종료시각이 없다. 식후 복약의 기준을 만들기 위한 기본 식사 소요시간.
+    // 설정 식사시각에는 종료시각이 없다. 식후 복약의 기준을 만들기 위한 기본 식사 소요시간
     private static final long DEFAULT_MEAL_MINUTES = 60;
 
     private final PlanPlaceResolver planPlaceResolver;
@@ -107,8 +107,8 @@ public class ScheduleNormalizer {
                             )
                             .toMinutes();
 
-                    // 앞 장소를 당겨 식사시간을 맞출 수 있을 때만 당긴다.
-                    // 당길 수 없어도 일정 생성을 실패시키지 않고 가능한 가장 이른 시각에 배치한다.
+                    // 식사시간 충족이 가능한 경우에만 앞 장소 이동
+                    // 앞 장소 이동 불가 시 일정 생성 유지와 가장 이른 시각 배치
                     if (tryShiftPreviousPlaces(
                             schedules,
                             movableStartIndex,
@@ -134,7 +134,7 @@ public class ScheduleNormalizer {
                     startTime = mealTimeRange.latest();
                 }
 
-                // 식사시간 창으로 당긴 결과가 이동시간을 무시하게 되면 물리적 제약을 우선한다.
+                // 식사시간보다 이동시간의 물리적 제약 우선
                 if (earliestStart != null && startTime.isBefore(earliestStart)) {
                     startTime = earliestStart;
                 }
@@ -144,9 +144,10 @@ public class ScheduleNormalizer {
                     .plusMinutes(schedule.stayMinutes());
 
             schedules.add(withScheduleTimes(
-                    schedule,
-                    startTime,
-                    endTime));
+                            schedule,
+                            startTime,
+                            endTime
+                    ));
 
             previousPlaceEnd = endTime;
 
@@ -159,7 +160,8 @@ public class ScheduleNormalizer {
         return new CreatePlanAiResponse.PlanDayDetail(
                 day.dayNumber(),
                 day.date(),
-                schedules);
+                schedules
+        );
     }
 
     private MealTimeRange mealTimeRange(
@@ -204,8 +206,8 @@ public class ScheduleNormalizer {
         );
     }
 
-    // 식사시간을 맞추기 위해 직전 식사 이후의 장소들을 앞당긴다.
-    // 앞당길 수 없는 조건이면 아무것도 바꾸지 않고 false를 돌려준다. 실패는 호출부가 판단한다.
+    // 식사시간 충족을 위한 직전 식사 이후 장소 이동
+    // 이동 불가 시 변경 없이 false 반환, 실패 판정은 호출부 책임
     private boolean tryShiftPreviousPlaces(
             List<CreatePlanAiResponse.PlanScheduleDetail> schedules,
             int fromIndex,
@@ -230,7 +232,9 @@ public class ScheduleNormalizer {
 
         CreatePlanAiResponse.PlanScheduleDetail firstPlace = schedules.get(firstPlaceIndex);
 
-        LocalTime shiftedFirstStart = firstPlace.startTime().minusMinutes(shiftMinutes);
+        LocalTime shiftedFirstStart = firstPlace
+                .startTime()
+                .minusMinutes(shiftMinutes);
 
         // 자정을 넘겨 되감긴 경우
         if (shiftedFirstStart.isAfter(firstPlace.startTime())) {
@@ -260,8 +264,12 @@ public class ScheduleNormalizer {
                     index,
                     withScheduleTimes(
                             schedule,
-                            schedule.startTime().minusMinutes(shiftMinutes),
-                            schedule.endTime().minusMinutes(shiftMinutes)
+                            schedule
+                                    .startTime()
+                                    .minusMinutes(shiftMinutes),
+                            schedule
+                                    .endTime()
+                                    .minusMinutes(shiftMinutes)
                     )
             );
         }
@@ -297,10 +305,11 @@ public class ScheduleNormalizer {
                 schedule.tags(),
                 schedule.medication(),
                 schedule.restaurantDetail(),
-                schedule.candidateId());
+                schedule.candidateId()
+        );
     }
 
-    // 식사시간 판정 대상인 슬롯인지 여부. 카페 같은 비식사 슬롯은 판정하지 않는다.
+    // 카페 등 비식사 슬롯을 제외한 식사시간 판정 대상
     public boolean mealSlot(CreatePlanAiResponse.PlanScheduleDetail schedule) {
 
         return schedule != null && MEAL_SCHEDULE_TYPES.contains(schedule.scheduleType());
@@ -375,7 +384,8 @@ public class ScheduleNormalizer {
     ) {
 
         List<CreatePlanAiResponse.PlanDayDetail> fixedPlanDays =
-                response.planDays()
+                response
+                        .planDays()
                         .stream()
                         .map(planDay -> fixDayMedicationSchedules(planDay, healthContexts))
                         .toList();
@@ -390,7 +400,8 @@ public class ScheduleNormalizer {
     ) {
 
         List<CreatePlanAiResponse.PlanScheduleDetail> nonMedicationSchedules =
-                planDay.schedules()
+                planDay
+                        .schedules()
                         .stream()
                         .filter(schedule -> schedule.courseType() != CourseType.MEDICATION)
                         .toList();
@@ -470,8 +481,12 @@ public class ScheduleNormalizer {
 
         return medicationSchedule(
                 startTime,
-                medication.medication().intervalMinutes(),
-                medication.medication().description()
+                medication
+                        .medication()
+                        .intervalMinutes(),
+                medication
+                        .medication()
+                        .description()
         );
     }
 
@@ -480,7 +495,8 @@ public class ScheduleNormalizer {
             List<CreatePlanAiResponse.PlanScheduleDetail> nonMedicationSchedules
     ) {
 
-        return nonMedicationSchedules.stream()
+        return nonMedicationSchedules
+                .stream()
                 .filter(schedule -> MEAL_SCHEDULE_TYPES.contains(schedule.scheduleType()))
                 .filter(schedule -> schedule.startTime() != null)
                 .collect(
@@ -492,13 +508,15 @@ public class ScheduleNormalizer {
                 );
     }
 
-    // 식사 슬롯의 시간대. 종료시각이 비어 있으면 기본 소요시간으로 채운다.
+    // 종료시각 누락 시 기본 소요시간을 적용한 식사 슬롯 시간대
     private static MealWindow mealWindow(CreatePlanAiResponse.PlanScheduleDetail schedule) {
 
         return new MealWindow(
                 schedule.startTime(),
                 schedule.endTime() == null
-                        ? schedule.startTime().plusMinutes(DEFAULT_MEAL_MINUTES)
+                        ? schedule
+                                .startTime()
+                                .plusMinutes(DEFAULT_MEAL_MINUTES)
                         : schedule.endTime()
         );
     }
@@ -519,7 +537,8 @@ public class ScheduleNormalizer {
             Map<ScheduleType, MealWindow> dayMealTimes
     ) {
 
-        return healthContext.medicationInfos()
+        return healthContext
+                .medicationInfos()
                 .stream()
                 .flatMap(medicationInfo ->
                         medicationSchedulesFor(
@@ -542,7 +561,9 @@ public class ScheduleNormalizer {
         boolean usesMealRules =
                 (medicationInfo.medicationBasis() == MedicationBasis.WITH_MEAL
                         || medicationInfo.medicationBasis() == MedicationBasis.UNKNOWN)
-                        && !medicationInfo.mealMedicationRules().isEmpty();
+                        && !medicationInfo
+                                .mealMedicationRules()
+                                .isEmpty();
 
         if (!usesMealRules) {
             return List.of(
@@ -554,9 +575,15 @@ public class ScheduleNormalizer {
             );
         }
 
-        return medicationInfo.mealMedicationRules()
+        return medicationInfo
+                .mealMedicationRules()
                 .stream()
-                .map(rule -> medicationScheduleForRule(healthContext, medicationInfo, rule, dayMealTimes))
+                .map(rule -> medicationScheduleForRule(
+                        healthContext,
+                        medicationInfo,
+                        rule,
+                        dayMealTimes
+                ))
                 .toList();
     }
 
@@ -577,19 +604,31 @@ public class ScheduleNormalizer {
         }
 
         MealWindow mealWindow =
-                mealTimeFor(healthContext, rule.relatedMeal(), dayMealTimes);
+                mealTimeFor(
+                        healthContext,
+                        rule.relatedMeal(),
+                        dayMealTimes
+                );
 
         if (mealWindow == null) {
             throw invalidPlace("복약 기준 식사시간 누락");
         }
 
         LocalTime medicationTime =
-                applyMealTiming(mealWindow, rule.mealTiming(), rule.intervalMinutes());
+                applyMealTiming(
+                        mealWindow,
+                        rule.mealTiming(),
+                        rule.intervalMinutes()
+                );
 
         String description =
                 medicationInfo.drugName()
-                        + " " + rule.relatedMeal().getCodeName()
-                        + " " + rule.mealTiming().getCodeName()
+                        + " " + rule
+                                .relatedMeal()
+                                .getCodeName()
+                        + " " + rule
+                                .mealTiming()
+                                .getCodeName()
                         + (rule.intervalMinutes() != null && rule.intervalMinutes() > 0
                                 ? " " + rule.intervalMinutes() + "분"
                                 : "");
@@ -646,8 +685,8 @@ public class ScheduleNormalizer {
                 );
     }
 
-    // mealTiming/intervalMinutes를 식사 시간대에 적용한 실제 복약시각.
-    // 식후는 식사가 끝난 뒤를 뜻하므로 종료시각을 기준으로 잡는다.
+    // mealTiming/intervalMinutes를 식사 시간대에 적용한 실제 복약시각
+    // 식후 복약의 식사 종료시각 기준
     private LocalTime applyMealTiming(
             MealWindow mealWindow,
             MealTiming mealTiming,
@@ -657,9 +696,13 @@ public class ScheduleNormalizer {
         int minutes = intervalMinutes == null ? 0 : intervalMinutes;
 
         return switch (mealTiming) {
-            case BEFORE_MEAL -> mealWindow.start().minusMinutes(minutes);
+            case BEFORE_MEAL -> mealWindow
+                    .start()
+                    .minusMinutes(minutes);
 
-            case AFTER_MEAL -> mealWindow.end().plusMinutes(minutes);
+            case AFTER_MEAL -> mealWindow
+                    .end()
+                    .plusMinutes(minutes);
 
             case DURING_MEAL, REGARDLESS_OF_MEAL -> mealWindow.start();
         };
@@ -708,19 +751,27 @@ public class ScheduleNormalizer {
         }
 
         String mergedDescription =
-                sameTimeSchedules.stream()
-                        .map(schedule -> schedule.medication().description())
+                sameTimeSchedules
+                        .stream()
+                        .map(schedule -> schedule
+                                .medication()
+                                .description())
                         .collect(Collectors.joining(", "));
 
         Integer representativeInterval =
-                sameTimeSchedules.stream()
-                        .map(schedule -> schedule.medication().intervalMinutes())
+                sameTimeSchedules
+                        .stream()
+                        .map(schedule -> schedule
+                                .medication()
+                                .intervalMinutes())
                         .filter(Objects::nonNull)
                         .findFirst()
                         .orElse(null);
 
         return medicationSchedule(
-                sameTimeSchedules.get(0).startTime(),
+                sameTimeSchedules
+                        .get(0)
+                        .startTime(),
                 representativeInterval,
                 mergedDescription
         );

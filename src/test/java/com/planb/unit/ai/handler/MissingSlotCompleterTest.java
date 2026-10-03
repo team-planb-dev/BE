@@ -54,9 +54,24 @@ class MissingSlotCompleterTest {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();
 
-        candidates.record(attractionItem("1", "첨성대", "129.22", "35.83"));
-        candidates.record(attractionItem("2", "대릉원", "129.21", "35.83"));
-        candidates.record(attractionItem("3", "동궁과 월지", "129.22", "35.83"));
+        candidates.record(attractionItem(
+                        "1",
+                        "첨성대",
+                        "129.22",
+                        "35.83"
+                ));
+        candidates.record(attractionItem(
+                        "2",
+                        "대릉원",
+                        "129.21",
+                        "35.83"
+                ));
+        candidates.record(attractionItem(
+                        "3",
+                        "동궁과 월지",
+                        "129.22",
+                        "35.83"
+                ));
 
         CreatePlanAiResponse filled = missingSlotCompleter.complete(
                 response(attraction("첨성대", LocalTime.of(9, 0))),
@@ -83,8 +98,18 @@ class MissingSlotCompleterTest {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();
 
-        candidates.record(attractionItem("1", "첨성대", "129.22", "35.83"));
-        candidates.record(attractionItem("2", "대릉원", "129.21", "35.83"));
+        candidates.record(attractionItem(
+                        "1",
+                        "첨성대",
+                        "129.22",
+                        "35.83"
+                ));
+        candidates.record(attractionItem(
+                        "2",
+                        "대릉원",
+                        "129.21",
+                        "35.83"
+                ));
 
         CreatePlanAiResponse filled = missingSlotCompleter.complete(
                 response(attraction("첨성대", LocalTime.of(9, 0))),
@@ -105,9 +130,24 @@ class MissingSlotCompleterTest {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();
 
-        candidates.record(attractionItem("1", "첨성대", "129.22", "35.83"));
-        candidates.record(attractionItem("2", "대릉원", "129.21", "35.83"));
-        candidates.record(attractionItem("3", "동궁과 월지", "129.22", "35.83"));
+        candidates.record(attractionItem(
+                        "1",
+                        "첨성대",
+                        "129.22",
+                        "35.83"
+                ));
+        candidates.record(attractionItem(
+                        "2",
+                        "대릉원",
+                        "129.21",
+                        "35.83"
+                ));
+        candidates.record(attractionItem(
+                        "3",
+                        "동궁과 월지",
+                        "129.22",
+                        "35.83"
+                ));
 
         CreatePlanAiResponse filled = missingSlotCompleter.complete(
                 response(attraction("첨성대", LocalTime.of(9, 0))),
@@ -129,9 +169,24 @@ class MissingSlotCompleterTest {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();
 
-        candidates.record(attractionItem("1", "첨성대", "129.22", "35.83"));
-        candidates.record(attractionItem("2", "대릉원", "129.21", "35.83"));
-        candidates.record(attractionItem("3", "동궁과 월지", "129.22", "35.83"));
+        candidates.record(attractionItem(
+                        "1",
+                        "첨성대",
+                        "129.22",
+                        "35.83"
+                ));
+        candidates.record(attractionItem(
+                        "2",
+                        "대릉원",
+                        "129.21",
+                        "35.83"
+                ));
+        candidates.record(attractionItem(
+                        "3",
+                        "동궁과 월지",
+                        "129.22",
+                        "35.83"
+                ));
 
         Set<String> usedNames = new HashSet<>(Set.of("불국사"));
 
@@ -153,7 +208,12 @@ class MissingSlotCompleterTest {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();
 
-        candidates.record(restaurantItem("9", "교리김밥", "129.21", "35.83"));
+        candidates.record(restaurantItem(
+                        "9",
+                        "교리김밥",
+                        "129.21",
+                        "35.83"
+                ));
 
         CreatePlanAiResponse filled = missingSlotCompleter.complete(
                 response(
@@ -177,7 +237,9 @@ class MissingSlotCompleterTest {
                     assertThat(slot.startTime())
                             .isEqualTo(LocalTime.of(12, 0));
 
-                    assertThat(slot.restaurantDetail().menuName())
+                    assertThat(slot
+                                    .restaurantDetail()
+                                    .menuName())
                             .isEqualTo("대표메뉴");
                 });
     }
@@ -188,7 +250,12 @@ class MissingSlotCompleterTest {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();
 
-        candidates.record(restaurantItem("9", "교리김밥", "129.21", "35.83"));
+        candidates.record(restaurantItem(
+                        "9",
+                        "교리김밥",
+                        "129.21",
+                        "35.83"
+                ));
 
         CreatePlanAiResponse filled = missingSlotCompleter.complete(
                 response(
@@ -221,7 +288,12 @@ class MissingSlotCompleterTest {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();
 
-        candidates.record(restaurantItem("9", "교리김밥", "129.21", "35.83"));
+        candidates.record(restaurantItem(
+                        "9",
+                        "교리김밥",
+                        "129.21",
+                        "35.83"
+                ));
 
         TravelHealthContext health = new TravelHealthContext(
                 "동행인",
@@ -274,8 +346,18 @@ class MissingSlotCompleterTest {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();
 
-        candidates.record(attractionItem("1", "첨성대", "129.22", "35.83"));
-        candidates.record(attractionItem("2", "대릉원", "129.21", "35.83"));
+        candidates.record(attractionItem(
+                        "1",
+                        "첨성대",
+                        "129.22",
+                        "35.83"
+                ));
+        candidates.record(attractionItem(
+                        "2",
+                        "대릉원",
+                        "129.21",
+                        "35.83"
+                ));
 
         CreatePlanAiResponse filled = missingSlotCompleter.complete(
                 response(attraction("첨성대", LocalTime.of(9, 0))),
@@ -319,7 +401,12 @@ class MissingSlotCompleterTest {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();
 
-        candidates.record(restaurantItem("9", "교리김밥", "129.21", "35.83"));
+        candidates.record(restaurantItem(
+                        "9",
+                        "교리김밥",
+                        "129.21",
+                        "35.83"
+                ));
 
         TravelHealthContext health = new TravelHealthContext(
                 "동행인",
@@ -361,7 +448,12 @@ class MissingSlotCompleterTest {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();
 
-        candidates.record(restaurantItem("9", "교리김밥", "129.21", "35.83"));
+        candidates.record(restaurantItem(
+                        "9",
+                        "교리김밥",
+                        "129.21",
+                        "35.83"
+                ));
 
         TravelHealthContext health = new TravelHealthContext(
                 "동행인",
@@ -414,9 +506,19 @@ class MissingSlotCompleterTest {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();
 
-        candidates.record(restaurantItem("101", "백제삼계탕", "129.21", "35.83"));
+        candidates.record(restaurantItem(
+                        "101",
+                        "백제삼계탕",
+                        "129.21",
+                        "35.83"
+                ));
 
-        candidates.record(restaurantItem("102", "하니칼국수", "129.23", "35.84"));
+        candidates.record(restaurantItem(
+                        "102",
+                        "하니칼국수",
+                        "129.23",
+                        "35.84"
+                ));
 
         CreatePlanAiResponse filled = missingSlotCompleter.complete(
                 twoDays(
@@ -424,7 +526,11 @@ class MissingSlotCompleterTest {
                                 attraction("첨성대", LocalTime.of(9, 0)),
                                 attraction("대릉원", LocalTime.of(11, 0)),
                                 attraction("동궁과 월지", LocalTime.of(13, 0)),
-                                restaurant("고려삼계탕", "삼계탕", LocalTime.of(12, 0))
+                                restaurant(
+                                        "고려삼계탕",
+                                        "삼계탕",
+                                        LocalTime.of(12, 0)
+                                )
                         ),
                         List.of(
                                 attraction("불국사", LocalTime.of(9, 0)),
@@ -442,7 +548,8 @@ class MissingSlotCompleterTest {
                 .filteredOn(slot -> slot.scheduleType() == ScheduleType.LUNCH)
                 .singleElement()
                 .satisfies(slot ->
-                        assertThat(slot.restaurantDetail()
+                        assertThat(slot
+                                        .restaurantDetail()
                                 .menuName())
                                 .isEqualTo("칼국수"));
     }
@@ -457,7 +564,12 @@ class MissingSlotCompleterTest {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();
 
-        candidates.record(restaurantItem("101", "백제삼계탕", "129.21", "35.83"));
+        candidates.record(restaurantItem(
+                        "101",
+                        "백제삼계탕",
+                        "129.21",
+                        "35.83"
+                ));
 
         CreatePlanAiResponse filled = missingSlotCompleter.complete(
                 twoDays(
@@ -465,7 +577,11 @@ class MissingSlotCompleterTest {
                                 attraction("첨성대", LocalTime.of(9, 0)),
                                 attraction("대릉원", LocalTime.of(11, 0)),
                                 attraction("동궁과 월지", LocalTime.of(13, 0)),
-                                restaurant("고려삼계탕", "삼계탕", LocalTime.of(12, 0))
+                                restaurant(
+                                        "고려삼계탕",
+                                        "삼계탕",
+                                        LocalTime.of(12, 0)
+                                )
                         ),
                         List.of(
                                 attraction("불국사", LocalTime.of(9, 0)),
@@ -507,12 +623,20 @@ class MissingSlotCompleterTest {
                 List.of(
                         new CreatePlanAiResponse.PlanDayDetail(
                                 1,
-                                LocalDate.of(2026, 9, 19),
+                                LocalDate.of(
+                                        2026,
+                                        9,
+                                        19
+                                ),
                                 first
                         ),
                         new CreatePlanAiResponse.PlanDayDetail(
                                 2,
-                                LocalDate.of(2026, 9, 20),
+                                LocalDate.of(
+                                        2026,
+                                        9,
+                                        20
+                                ),
                                 second
                         )
                 )
@@ -568,7 +692,11 @@ class MissingSlotCompleterTest {
                 List.of(
                         new CreatePlanAiResponse.PlanDayDetail(
                                 1,
-                                LocalDate.of(2026, 9, 19),
+                                LocalDate.of(
+                                        2026,
+                                        9,
+                                        19
+                                ),
                                 List.of(schedules)
                         )
                 )
@@ -650,7 +778,14 @@ class MissingSlotCompleterTest {
             String mapY
     ) {
 
-        return item(contentId, "12", title, mapX, mapY, "HS01");
+        return item(
+                contentId,
+                "12",
+                title,
+                mapX,
+                mapY,
+                "HS01"
+        );
     }
 
     private Kor2KeywordSearchResponse.Item restaurantItem(
@@ -660,7 +795,14 @@ class MissingSlotCompleterTest {
             String mapY
     ) {
 
-        return item(contentId, "39", title, mapX, mapY, "FD01");
+        return item(
+                contentId,
+                "39",
+                title,
+                mapX,
+                mapY,
+                "FD01"
+        );
     }
 
     private Kor2KeywordSearchResponse.Item item(

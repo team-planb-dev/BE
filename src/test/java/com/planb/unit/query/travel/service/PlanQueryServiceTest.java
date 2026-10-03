@@ -82,7 +82,8 @@ class PlanQueryServiceTest {
                 );
 
         Plan planEntity =
-                Plan.builder()
+                Plan
+                        .builder()
                         .id(planId)
                         .planName("부산 AI 여행 일정")
                         .tags(tags)
@@ -129,13 +130,15 @@ class PlanQueryServiceTest {
 
         verify(
                 planQueryRepository
-        ).findPlanBasicByTravelId(
+        )
+                .findPlanBasicByTravelId(
                 travelId
         );
 
         verify(
                 planRepository
-        ).findById(
+        )
+                .findById(
                 planId
         );
     }

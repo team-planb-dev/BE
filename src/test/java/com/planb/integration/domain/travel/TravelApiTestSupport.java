@@ -59,7 +59,8 @@ abstract class TravelApiTestSupport extends IntegrationTest {
                         true
                 );
 
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(CREATE_USER_URL)
                                 .contentType(
                                         MediaType.APPLICATION_JSON
@@ -71,7 +72,8 @@ abstract class TravelApiTestSupport extends IntegrationTest {
                                 )
                 )
                 .andExpect(
-                        status().isCreated()
+                        status()
+                                .isCreated()
                 )
                 .andExpect(
                         jsonPath("$.success")
@@ -93,7 +95,8 @@ abstract class TravelApiTestSupport extends IntegrationTest {
                 );
 
         MvcResult result =
-                mockMvc.perform(
+                mockMvc
+                        .perform(
                                 post(LOGIN_URL)
                                         .contentType(
                                                 MediaType.APPLICATION_JSON
@@ -105,16 +108,19 @@ abstract class TravelApiTestSupport extends IntegrationTest {
                                         )
                         )
                         .andExpect(
-                                status().isOk()
+                                status()
+                                        .isOk()
                         )
                         .andExpect(
-                                header().string(
+                                header()
+                                        .string(
                                         "Authorization",
                                         startsWith("Bearer ")
                                 )
                         )
                         .andExpect(
-                                cookie().exists(
+                                cookie()
+                                        .exists(
                                         "refreshToken"
                                 )
                         )
@@ -170,8 +176,8 @@ abstract class TravelApiTestSupport extends IntegrationTest {
                         true,
                         true,
 
-                        // 관리 질환은 여러 개일 수 있고 질환마다 보는 영양성분이 다르다.
-                        // 실 AI 경로에서 목록 전체가 전달되는지 확인하려고 두 개를 등록한다.
+                        // 질환별 영양성분 평가를 위한 복수 관리 질환
+                        // 실제 AI 경로의 전체 목록 전달 검증을 위한 질환 2개 등록
                         new AddCompanionRequest.HealthInfo(
                                 List.of(
                                         DiseaseType.DIABETES,
@@ -222,7 +228,8 @@ abstract class TravelApiTestSupport extends IntegrationTest {
                         )
                 );
 
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post(ADD_COMPANION_URL)
                                 .header(
                                         "Authorization",
@@ -238,7 +245,8 @@ abstract class TravelApiTestSupport extends IntegrationTest {
                                 )
                 )
                 .andExpect(
-                        status().isOk()
+                        status()
+                                .isOk()
                 )
                 .andExpect(
                         jsonPath("$.success")
@@ -257,7 +265,8 @@ abstract class TravelApiTestSupport extends IntegrationTest {
     ) throws Exception {
 
         MvcResult result =
-                mockMvc.perform(
+                mockMvc
+                        .perform(
                                 get(COMPANION_SUMMARY_URL)
                                         .header(
                                                 "Authorization",
@@ -265,7 +274,8 @@ abstract class TravelApiTestSupport extends IntegrationTest {
                                         )
                         )
                         .andExpect(
-                                status().isOk()
+                                status()
+                                        .isOk()
                         )
                         .andReturn();
 
@@ -294,7 +304,8 @@ abstract class TravelApiTestSupport extends IntegrationTest {
     protected String createUniqueUsername() {
 
         return "travel-test-"
-                + UUID.randomUUID()
+                + UUID
+                        .randomUUID()
                         .toString()
                         .substring(0, 8)
                 + "@example.com";

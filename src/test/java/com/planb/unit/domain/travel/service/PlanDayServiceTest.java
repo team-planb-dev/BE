@@ -33,7 +33,8 @@ class PlanDayServiceTest {
     @DisplayName("PlanDay 객체 생성")
     void createPlanDay() {
 
-        Plan plan = Plan.builder()
+        Plan plan = Plan
+                .builder()
                 .planName("부산 여행")
                 .build();
 
@@ -77,7 +78,8 @@ class PlanDayServiceTest {
     void savePlanDay() {
 
         PlanDay planDay =
-                PlanDay.builder()
+                PlanDay
+                        .builder()
                         .dayNumber(1)
                         .planDate(
                                 LocalDate.of(
@@ -101,13 +103,15 @@ class PlanDayServiceTest {
     void findAllByPlan() {
 
         Plan plan =
-                Plan.builder()
+                Plan
+                        .builder()
                         .planName("부산 여행")
                         .build();
 
         List<PlanDay> planDays =
                 List.of(
-                        PlanDay.builder()
+                        PlanDay
+                                .builder()
                                 .plan(plan)
                                 .dayNumber(1)
                                 .build()
@@ -137,7 +141,8 @@ class PlanDayServiceTest {
     void deleteAllByPlan() {
 
         Plan plan =
-                Plan.builder()
+                Plan
+                        .builder()
                         .planName("부산 여행")
                         .build();
 

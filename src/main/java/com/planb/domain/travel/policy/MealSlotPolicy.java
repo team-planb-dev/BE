@@ -15,7 +15,7 @@ import java.util.Objects;
  */
 public final class MealSlotPolicy {
 
-    // 검증도 "그 날에 어떤 식사가 있었는가"를 같은 목록으로 판정한다.
+    // 검증과 보충에 공통으로 사용하는 날짜별 식사 목록
     public static final List<ScheduleType> MEAL_SCHEDULE_TYPES = List.of(
             ScheduleType.BREAKFAST,
             ScheduleType.LUNCH,
@@ -27,10 +27,7 @@ public final class MealSlotPolicy {
 
     /**
      * 하루에 누락된 등록 식사 전체 조회
-     * 선택한 동행인이 없으면 적용하지 않는 규칙
-     * @param day 검사할 하루
-     * @param healthContexts 이번 여행에 선택된 동행인, 없으면 규칙 미적용
-     * @return 빠진 식사의 ScheduleType 목록, 이른 식사순
+     * 동행인 미선택 시 빈 목록
      */
     public static List<ScheduleType> missingMeals(
             CreatePlanAiResponse.PlanDayDetail day,
@@ -76,10 +73,6 @@ public final class MealSlotPolicy {
 
     /**
      * 첫날 아침·마지막 날 저녁을 제외한 필수 식사 누락
-     * @param day 검사할 하루
-     * @param healthContexts 이번 여행에 선택된 동행인, 없으면 규칙 미적용
-     * @param totalDays 이번 여행의 전체 일수
-     * @return 없으면 거부해야 하는 식사의 ScheduleType 목록, 이른 식사순
      */
     public static List<ScheduleType> requiredMissingMeals(
             CreatePlanAiResponse.PlanDayDetail day,
@@ -89,7 +82,11 @@ public final class MealSlotPolicy {
 
         return missingMeals(day, healthContexts)
                 .stream()
-                .filter(mealType -> !isExempt(mealType, day, totalDays))
+                .filter(mealType -> !isExempt(
+                        mealType,
+                        day,
+                        totalDays
+                ))
                 .toList();
     }
 

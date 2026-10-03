@@ -24,8 +24,8 @@ class RecommendationTagTest {
     @DisplayName("지역음식은 음식점과 같은 태그를 허용")
     void localFoodAllowsEveryRestaurantTag() {
 
-        // PlanService.deterministicTagsFor가 RESTAURANT와 LOCAL_FOOD를 같은 분기로 다룬다.
-        // 허용 목록이 갈라지면 백엔드가 확정한 태그가 걸러진다.
+        // PlanService.deterministicTagsFor의 RESTAURANT·LOCAL_FOOD 공통 분기
+        // 허용 목록 불일치에 따른 확정 태그 유실 방지
         assertThat(RecommendationTag.candidates(CourseType.LOCAL_FOOD))
                 .containsAll(RecommendationTag.candidates(CourseType.RESTAURANT));
     }

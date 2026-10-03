@@ -15,7 +15,7 @@ public class RestaurantDetailQueryService {
 
     // planScheduleId 리스트로 RestaurantDetail객체 조회하기
     public List<RestaurantDetailQueryResponse> getRestaurantDetailsByPlanScheduleIds
-            (List<Long> planScheduleIds){
+            (List<Long> planScheduleIds) {
 
         return restaurantDetailQueryRepository
                 .findRestaurantDetailsByPlanScheduleIds(planScheduleIds);

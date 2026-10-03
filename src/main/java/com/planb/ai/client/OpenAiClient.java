@@ -37,7 +37,9 @@ public class OpenAiClient {
     private final MeterRegistry meterRegistry;
 
     // JSON Schema 후처리 전용 매퍼, 도메인 커스텀 모듈 불필요
-    private static final JsonMapper SCHEMA_MAPPER = JsonMapper.builder().build();
+    private static final JsonMapper SCHEMA_MAPPER = JsonMapper
+            .builder()
+            .build();
 
     // courseType에 따라 값이 없어야 정상인, strict 스키마에서도 null을 허용해야 하는 필드
     private static final Set<String> NULLABLE_SCHEDULE_FIELDS = Set.of(
@@ -60,17 +62,26 @@ public class OpenAiClient {
             AiPrompt prompt,
             Class<T> responseType) {
 
-        return call(prompt, responseType, new Object[0]);
+        return call(
+                prompt,
+                responseType,
+                new Object[0]
+        );
     }
 
     // 기본 호출 (Tool 포함), 응답 파싱 실패 시 1회 재시도
     public <T> T call(
             AiPrompt prompt,
             Class<T> responseType,
-            Object... tools) {
+            Object... tools
+    ) {
 
         try {
-            return callEntity(prompt, responseType, tools);
+            return callEntity(
+                    prompt,
+                    responseType,
+                    tools
+            );
         } catch (RuntimeException e) {
             if (!retryable(e)) {
                 throw e;
@@ -84,7 +95,11 @@ public class OpenAiClient {
             try {
                 return retry(
                         "parse",
-                        () -> callEntity(prompt, responseType, tools)
+                        () -> callEntity(
+                                prompt,
+                                responseType,
+                                tools
+                        )
                 );
             } catch (RuntimeException retryFailure) {
                 throw upstreamFailure(retryFailure);
@@ -95,7 +110,8 @@ public class OpenAiClient {
     private <T> T callEntity(
             AiPrompt prompt,
             Class<T> responseType,
-            Object... tools) {
+            Object... tools
+    ) {
 
         return chatClient
                 .prompt()
@@ -111,7 +127,8 @@ public class OpenAiClient {
     public <T> T call(
             AiPrompt prompt,
             BeanOutputConverter<T> outputConverter,
-            Object... tools) {
+            Object... tools
+    ) {
 
         Function<T, List<String>> validation = result -> List.of();
 
@@ -128,7 +145,8 @@ public class OpenAiClient {
             AiPrompt prompt,
             BeanOutputConverter<T> outputConverter,
             Predicate<T> isValid,
-            Object... tools) {
+            Object... tools
+    ) {
 
         Function<T, List<String>> validation = result -> isValid.test(result)
                 ? List.of()
@@ -236,7 +254,8 @@ public class OpenAiClient {
             return result;
         } finally {
             sample.stop(
-                    Timer.builder("planb.ai.retry")
+                    Timer
+                            .builder("planb.ai.retry")
                             .tag("stage", stage)
                             .tag("outcome", outcome)
                             .register(meterRegistry)
@@ -336,9 +355,11 @@ public class OpenAiClient {
                 ))
                 .tools(tools)
                 .options(
-                        OpenAiChatOptions.builder()
+                        OpenAiChatOptions
+                                .builder()
                                 .responseFormat(
-                                        OpenAiChatModel.ResponseFormat.builder()
+                                        OpenAiChatModel.ResponseFormat
+                                                .builder()
                                                 .type(OpenAiChatModel.ResponseFormat.Type.JSON_SCHEMA)
                                                 .jsonSchema(schema)
                                                 .build()
@@ -416,7 +437,7 @@ public class OpenAiClient {
 
     // NULLABLE_SCHEDULE_FIELDS null 허용 처리 + date/time format 제거된 스키마 문자열 반환
     // required는 유지하되 타입 유니언으로 null을 허용해, strict 모드에서도
-    // 값이 없어야 하는 슬롯에 AI가 억지로 값을 채우지 않도록 함
+    // AI의 불필요한 슬롯 값 채우기 방지
     private String normalizeSchema(String schemaJson) {
 
         JsonNode root = SCHEMA_MAPPER.readTree(schemaJson);
@@ -435,9 +456,13 @@ public class OpenAiClient {
 
         JsonNode properties = node.get("properties");
         if (properties != null && properties.isObject()) {
-            properties.properties().forEach(entry -> {
+            properties
+                    .properties()
+                    .forEach(entry -> {
                 if (NULLABLE_SCHEDULE_FIELDS.contains(entry.getKey())
-                        && entry.getValue().isObject()) {
+                        && entry
+                                .getValue()
+                                .isObject()) {
 
                     addNullType((ObjectNode) entry.getValue());
                 }
@@ -489,7 +514,7 @@ public class OpenAiClient {
         try {
             return outputConverter.convert(content);
         } catch (RuntimeException e) {
-            // 모델 원본 응답은 크고 여러 줄이라 로그 한도를 소모하므로 길이만 남긴다.
+            // 로그 한도 보호를 위한 모델 원본 응답 길이만 기록
             log.warn(
                     "AI 구조화 응답 JSON 파싱 실패. 응답 길이: {}",
                     content == null
@@ -501,9 +526,9 @@ public class OpenAiClient {
         }
     }
 
-    // 재시도까지 실패하면 AI 호출 자체의 실패로 분류한다.
+    // 재시도 소진 시 AI 호출 실패 분류
     // 분류되지 않은 SDK 예외(429, 타임아웃, 인증)를 그대로 올리면
-    // BASE.EXCEPTION.EXCEPTION_ISSUED로 나가 프론트가 원인을 구분할 수 없다.
+    // 프런트의 원인 구분을 막는 BASE.EXCEPTION.EXCEPTION_ISSUED 전파 방지
     private RuntimeException upstreamFailure(RuntimeException exception) {
 
         return exception instanceof AiOrchestrationException
@@ -511,12 +536,14 @@ public class OpenAiClient {
                 : new AiOrchestrationException(AiFailure.UPSTREAM_CALL_FAILED, exception);
     }
 
-    // 같은 요청을 다시 보냈을 때 결과가 달라질 수 있는 실패만 재시도한다.
-    // 분류되지 않은 실패는 AI 호출 자체의 실패로 보고 재시도 대상에 넣는다.
+    // 동일 요청의 결과 변경 가능성이 있는 실패만 재시도
+    // 미분류 실패의 AI 호출 실패·재시도 대상 포함
     private boolean retryable(RuntimeException exception) {
 
         return !(exception instanceof AiOrchestrationException failure)
-                || failure.getFailure().isRetryable();
+                || failure
+                        .getFailure()
+                        .isRetryable();
     }
 
 

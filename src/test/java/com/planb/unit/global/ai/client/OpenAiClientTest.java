@@ -88,7 +88,8 @@ class OpenAiClientTest {
                 meterRegistry
         );
 
-        lenient().when(outputConverter.getJsonSchema())
+        lenient()
+                .when(outputConverter.getJsonSchema())
                 .thenReturn("{} ");
     }
 
@@ -116,8 +117,14 @@ class OpenAiClientTest {
                 new PlaceCandidateContext()
         );
 
-        when(chatClient.prompt().system(prompt.system()).user(prompt.user()).tools(tool)
-                .options(any()).call().content())
+        when(chatClient
+                        .prompt()
+                        .system(prompt.system())
+                        .user(prompt.user())
+                        .tools(tool)
+                .options(any())
+                        .call()
+                        .content())
                 .thenReturn(rawResponse);
 
         when(outputConverter.convert(rawResponse))
@@ -165,26 +172,55 @@ class OpenAiClientTest {
     void parsingRetryKeepsCandidatesFromFailedAttempt() {
         PlaceCandidateContext candidates = new PlaceCandidateContext();
         PlanTourismTool tool = new PlanTourismTool(mock(TourismTool.class), candidates);
-        when(chatClient.prompt().system(prompt.system()).user(prompt.user()).tools(tool)
-                .options(any()).call().content())
+        when(chatClient
+                        .prompt()
+                        .system(prompt.system())
+                        .user(prompt.user())
+                        .tools(tool)
+                .options(any())
+                        .call()
+                        .content())
                 .thenReturn("raw");
         when(outputConverter.convert("raw"))
                 .thenAnswer(invocation -> {
-            candidates.record(new PlaceWithRouteResult(true, "카페", "부산", "129.1", "35.1", null,
-                    "kakao:first", "CE7", "카페"));
+            candidates.record(new PlaceWithRouteResult(
+                            true,
+                            "카페",
+                            "부산",
+                            "129.1",
+                            "35.1",
+                            null,
+                            "kakao:first",
+                            "CE7",
+                            "카페"
+                    ));
             throw new IllegalArgumentException("잘못된 JSON");
         })
                 .thenAnswer(invocation -> {
-            // 후보는 외부 검색으로 확인한 사실이므로 응답 파싱 실패와 무관하게 남는다
+            // AI 응답 파싱 실패에도 외부 검색 후보 보존
             assertNotNull(candidates.find("kakao:first"));
-            candidates.record(new PlaceWithRouteResult(true, "두 번째 카페", "부산", "129.1", "35.1", null,
-                    "kakao:second", "CE7", "카페"));
+            candidates.record(new PlaceWithRouteResult(
+                            true,
+                            "두 번째 카페",
+                            "부산",
+                            "129.1",
+                            "35.1",
+                            null,
+                            "kakao:second",
+                            "CE7",
+                            "카페"
+                    ));
             return new TestDto("ok");
         });
-        assertEquals(new TestDto("ok"), openAiClient.call(prompt, outputConverter, tool));
+        assertEquals(new TestDto("ok"), openAiClient.call(
+                        prompt,
+                        outputConverter,
+                        tool
+                ));
         assertNotNull(candidates.find("kakao:first"));
         assertNotNull(candidates.find("kakao:second"));
-        verify(outputConverter, times(2)).convert("raw");
+        verify(outputConverter, times(2))
+                .convert("raw");
     }
 
     @Test
@@ -195,7 +231,8 @@ class OpenAiClientTest {
         TestDto expected = new TestDto("ok");
 
         when(
-                chatClient.prompt()
+                chatClient
+                        .prompt()
                         .system(prompt.system())
                         .user(prompt.user())
                         .tools()
@@ -214,22 +251,25 @@ class OpenAiClientTest {
         assertEquals(expected, result);
 
         verify(
-                chatClient.prompt()
+                chatClient
+                        .prompt()
                         .system(prompt.system())
                         .user(prompt.user())
                         .tools()
                         .call(),
                 times(2)
-        ).entity(TestDto.class);
+        )
+                .entity(TestDto.class);
     }
 
     @Test
     @DisplayName("파싱 2회 연속 실패의 AI 호출 실패 분류")
     void call_withClassResponseType_throwsWhenBothAttemptsFail() {
 
-        // 분류되지 않은 SDK 예외가 그대로 올라가면 BASE.EXCEPTION.EXCEPTION_ISSUED로 나간다.
+        // 미분류 SDK 예외의 BASE.EXCEPTION.EXCEPTION_ISSUED 전파 방지
         when(
-                chatClient.prompt()
+                chatClient
+                        .prompt()
                         .system(prompt.system())
                         .user(prompt.user())
                         .tools()
@@ -267,7 +307,8 @@ class OpenAiClientTest {
         TestDto valid = new TestDto("ok");
 
         when(
-                chatClient.prompt()
+                chatClient
+                        .prompt()
                         .system(prompt.system())
                         .user(prompt.user())
                         .tools(tool)
@@ -278,7 +319,8 @@ class OpenAiClientTest {
                 .thenReturn("raw-1");
 
         when(
-                chatClient.prompt()
+                chatClient
+                        .prompt()
                         .system(prompt.system())
                         .user(contains("이전 실패 응답:\nraw-1"))
                         .tools(tool)
@@ -293,20 +335,21 @@ class OpenAiClientTest {
         )
                 .thenAnswer(invocation -> {
             candidates.record(new PlaceWithRouteResult(
-                    true,
-                    "카페",
-                    "부산",
-                    "129.1",
-                    "35.1",
-                    null,
-                    "kakao:first",
-                    "CE7",
-                    "카페"));
+                            true,
+                            "카페",
+                            "부산",
+                            "129.1",
+                            "35.1",
+                            null,
+                            "kakao:first",
+                            "CE7",
+                            "카페"
+                    ));
 
             return invalid;
         });
 
-        // correction 응답은 이전 응답을 고친 것이므로 그 응답이 가리키던 후보가 남아 있어야 한다
+        // correction 응답이 참조하는 기존 검색 후보 보존
         when(
                 outputConverter.convert("raw-2")
         )
@@ -352,7 +395,8 @@ class OpenAiClientTest {
         String missingChanges = "changes 필드에 실제 수정 내역 필요";
 
         when(
-                chatClient.prompt()
+                chatClient
+                        .prompt()
                         .system(prompt.system())
                         .user(prompt.user())
                         .tools()
@@ -363,7 +407,8 @@ class OpenAiClientTest {
                 .thenReturn("raw-1");
 
         when(
-                chatClient.prompt()
+                chatClient
+                        .prompt()
                         .system(prompt.system())
                         .user(contains(
                                 "누락 또는 위반 조건:\n- " + reason
@@ -409,7 +454,8 @@ class OpenAiClientTest {
         verify(
                 outputConverter,
                 times(2)
-        ).convert(any());
+        )
+                .convert(any());
     }
 
     @Test
@@ -420,7 +466,8 @@ class OpenAiClientTest {
         String reason = "changes 필드에 실제 수정 내역 필요";
 
         when(
-                chatClient.prompt()
+                chatClient
+                        .prompt()
                         .system(prompt.system())
                         .user(anyString())
                         .tools()
@@ -456,7 +503,9 @@ class OpenAiClientTest {
                 exception.getFailure()
         );
 
-        assertFalse(exception.getFailure().isRetryable());
+        assertFalse(exception
+                        .getFailure()
+                        .isRetryable());
     }
 
     @Test
@@ -464,7 +513,8 @@ class OpenAiClientTest {
     void call_withRepeatedEmptyResponse_classifiesAsRetryableFailure() {
 
         when(
-                chatClient.prompt()
+                chatClient
+                        .prompt()
                         .system(prompt.system())
                         .user(anyString())
                         .tools()
@@ -503,7 +553,8 @@ class OpenAiClientTest {
         String reason = "day1 관광지 3개 필요 / 실제 1개";
 
         when(
-                chatClient.prompt()
+                chatClient
+                        .prompt()
                         .system(prompt.system())
                         .user(anyString())
                         .tools()
@@ -549,11 +600,14 @@ class OpenAiClientTest {
                         .count()
         );
 
-        assertTrue(exception.getMessage().contains(reason));
+        assertTrue(exception
+                        .getMessage()
+                        .contains(reason));
         verify(
                 outputConverter,
                 times(2)
-        ).convert(any());
+        )
+                .convert(any());
     }
 
     @Test
@@ -563,7 +617,8 @@ class OpenAiClientTest {
         TestDto valid = new TestDto("ok");
 
         when(
-                chatClient.prompt()
+                chatClient
+                        .prompt()
                         .system(prompt.system())
                         .user(prompt.user())
                         .tools()
@@ -593,7 +648,8 @@ class OpenAiClientTest {
         verify(
                 outputConverter,
                 times(1)
-        ).convert(any());
+        )
+                .convert(any());
     }
 
     @Test
@@ -604,7 +660,8 @@ class OpenAiClientTest {
         TestDto result = new TestDto(null);
 
         when(
-                chatClient.prompt()
+                chatClient
+                        .prompt()
                         .system(prompt.system())
                         .user(prompt.user())
                         .tools()
@@ -630,7 +687,8 @@ class OpenAiClientTest {
         verify(
                 outputConverter,
                 times(1)
-        ).convert(any());
+        )
+                .convert(any());
     }
 
     @Test
@@ -641,7 +699,8 @@ class OpenAiClientTest {
         Flux<String> expected = Flux.just("a", "b");
 
         when(
-                chatClient.prompt()
+                chatClient
+                        .prompt()
                         .system(prompt.system())
                         .user(prompt.user())
                         .stream()
@@ -653,7 +712,8 @@ class OpenAiClientTest {
 
         Flux<String> result = openAiClient.stream(prompt);
 
-        StepVerifier.create(result)
+        StepVerifier
+                .create(result)
                 .expectNext("a", "b")
                 .verifyComplete();
     }

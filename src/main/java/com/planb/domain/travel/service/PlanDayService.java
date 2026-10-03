@@ -15,7 +15,7 @@ public class PlanDayService {
 
     private final PlanDayRepository planDayRepository;
 
-    public PlanDay createPlanDay(CreatePlanDayRequest createPlanDayRequest){
+    public PlanDay createPlanDay(CreatePlanDayRequest createPlanDayRequest) {
 
         return PlanDay
                 .builder()
@@ -31,17 +31,17 @@ public class PlanDayService {
     /*
     기본 CRUD 모음
      */
-    public void savePlanDay(PlanDay planDay){
+    public void savePlanDay(PlanDay planDay) {
         planDayRepository.save(planDay);
     }
 
     // 특정 Plan에 속한 PlanDay 리스트 조회하기
-    public List<PlanDay> findAllByPlan(Plan plan){
+    public List<PlanDay> findAllByPlan(Plan plan) {
         return planDayRepository.findAllByPlan(plan);
     }
 
     // 특정 Plan에 속한 PlanDay 리스트 일괄 삭제하기
-    public void deleteAllByPlan(Plan plan){
+    public void deleteAllByPlan(Plan plan) {
         planDayRepository.deleteAllByPlan(plan);
     }
 

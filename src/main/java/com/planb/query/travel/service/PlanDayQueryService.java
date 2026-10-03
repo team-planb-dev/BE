@@ -14,7 +14,7 @@ public class PlanDayQueryService {
     private final PlanDayQueryRepository planDayQueryRepository;
 
     // PlanId로 PlanDay 객체 리스트 가져오기
-    public List<PlanDayQueryResponse> getPlanDaysByPlanId(Long planId){
+    public List<PlanDayQueryResponse> getPlanDaysByPlanId(Long planId) {
         return planDayQueryRepository.findPlanDaysByPlanId(planId);
     }
 }

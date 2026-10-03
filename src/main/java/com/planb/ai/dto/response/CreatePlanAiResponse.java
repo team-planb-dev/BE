@@ -46,14 +46,41 @@ public record CreatePlanAiResponse(
             String candidateId
     ) {
 
-        public PlanScheduleDetail(ScheduleType scheduleType, CourseType courseType,
-                LocalTime startTime, LocalTime endTime, String locationName, String location,
-                String longitude, String latitude, String imageUrl, String thumbNailImageUrl,
-                Integer stayMinutes, Integer travelMinutes, Set<RecommendationTag> tags,
-                MedicationSchedule medication, RestaurantDetail restaurantDetail) {
-            this(scheduleType, courseType, startTime, endTime, locationName, location, longitude,
-                    latitude, imageUrl, thumbNailImageUrl, stayMinutes, travelMinutes, tags,
-                    medication, restaurantDetail, null);
+        public PlanScheduleDetail(
+                ScheduleType scheduleType,
+                CourseType courseType,
+                LocalTime startTime,
+                LocalTime endTime,
+                String locationName,
+                String location,
+                String longitude,
+                String latitude,
+                String imageUrl,
+                String thumbNailImageUrl,
+                Integer stayMinutes,
+                Integer travelMinutes,
+                Set<RecommendationTag> tags,
+                MedicationSchedule medication,
+                RestaurantDetail restaurantDetail
+        ) {
+            this(
+                    scheduleType,
+                    courseType,
+                    startTime,
+                    endTime,
+                    locationName,
+                    location,
+                    longitude,
+                    latitude,
+                    imageUrl,
+                    thumbNailImageUrl,
+                    stayMinutes,
+                    travelMinutes,
+                    tags,
+                    medication,
+                    restaurantDetail,
+                    null
+            );
         }
     }
 

@@ -463,7 +463,8 @@ class NutritionEvaluatorTest {
             NutritionType nutritionType
     ) {
 
-        return result.evaluations()
+        return result
+                .evaluations()
                 .stream()
                 .filter(evaluation ->
                         evaluation.nutritionType() == nutritionType
@@ -523,7 +524,7 @@ class NutritionEvaluatorTest {
     @DisplayName("한 질환이라도 평가 불가이면 전체 상태를 평가 불가로 반환")
     void takesWorstStatusAcrossDiseases() {
 
-        // given - 나트륨이 없어 고혈압 평가가 불가능하다
+        // given - 나트륨 부재에 따른 고혈압 평가 불가
         NutritionInfo nutritionInfo = new NutritionInfo(
                 50.0,
                 9.0,
@@ -554,7 +555,7 @@ class NutritionEvaluatorTest {
     @DisplayName("두 질환이 같은 영양성분을 보면 중복 없이 한 번만 담김")
     void keepsSharedNutritionTypeOnce() {
 
-        // given - 식이섬유는 당뇨와 이상지질혈증이 모두 보는 성분이다
+        // given - 당뇨·이상지질혈증 공통 평가 성분인 식이섬유
         NutritionInfo nutritionInfo = new NutritionInfo(
                 50.0,
                 9.0,

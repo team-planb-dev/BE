@@ -201,7 +201,8 @@ class TravelFacadeTest {
 
         verify(
                 travelService
-        ).makeRecommendFoodResponse(
+        )
+                .makeRecommendFoodResponse(
                 request
         );
     }
@@ -240,9 +241,11 @@ class TravelFacadeTest {
 
         // when
         SearchPlannedPlaceResponse result =
-                travelFacade.searchPlannedPlaceByText(
+                travelFacade
+                        .searchPlannedPlaceByText(
                         request
-                ).block();
+                )
+                        .block();
 
         // then
         assertThat(
@@ -254,7 +257,8 @@ class TravelFacadeTest {
 
         verify(
                 plannedPlaceService
-        ).searchPlannedPlace(
+        )
+                .searchPlannedPlace(
                 request
         );
     }
@@ -275,7 +279,11 @@ class TravelFacadeTest {
                 .thenReturn(healthContexts);
         when(planService.makePlanByAi(request, healthContexts))
                 .thenReturn(aiResponse);
-        when(travelService.saveGeneratedPlan(request, 1L, aiResponse))
+        when(travelService.saveGeneratedPlan(
+                        request,
+                        1L,
+                        aiResponse
+                ))
                 .thenReturn(response);
 
         CreatePlanResponse result = travelFacade.makeTravelOptionsAndRecommend(
@@ -283,13 +291,30 @@ class TravelFacadeTest {
                 username
         );
 
-        assertThat(result).isSameAs(response);
+        assertThat(result)
+                .isSameAs(response);
 
-        InOrder order = inOrder(userQueryService, travelService, planService);
-        order.verify(userQueryService).findUserIdInCache(username);
-        order.verify(travelService).loadHealthContexts(request, 1L);
-        order.verify(planService).makePlanByAi(request, healthContexts);
-        order.verify(travelService).saveGeneratedPlan(request, 1L, aiResponse);
+        InOrder order = inOrder(
+                userQueryService,
+                travelService,
+                planService
+        );
+        order
+                .verify(userQueryService)
+                .findUserIdInCache(username);
+        order
+                .verify(travelService)
+                .loadHealthContexts(request, 1L);
+        order
+                .verify(planService)
+                .makePlanByAi(request, healthContexts);
+        order
+                .verify(travelService)
+                .saveGeneratedPlan(
+                request,
+                1L,
+                aiResponse
+        );
     }
 
 
@@ -311,13 +336,19 @@ class TravelFacadeTest {
                 .thenReturn(List.of());
         when(medicationInfoQueryService.getMedicationTimesByHealthIds(List.of()))
                 .thenReturn(List.of());
-        when(planQueryService.getPlanDetailResponse(1L, List.of(), List.of()))
+        when(planQueryService.getPlanDetailResponse(
+                        1L,
+                        List.of(),
+                        List.of()
+                ))
                 .thenReturn(response);
 
         GetAiPlanResponse result = travelFacade.getAiPlan(request, username);
 
-        assertThat(result).isSameAs(response);
-        verify(travelQueryService).validateOwner(1L, 2L);
+        assertThat(result)
+                .isSameAs(response);
+        verify(travelQueryService)
+                .validateOwner(1L, 2L);
     }
 
     @Test
@@ -328,7 +359,8 @@ class TravelFacadeTest {
         GetAiPlanRequest request = new GetAiPlanRequest(1L);
         when(userQueryService.findUserIdInCache(username))
                 .thenReturn(2L);
-        org.mockito.Mockito.doThrow(new ForbiddenException(new Object[]{"권한 없음"}))
+        org.mockito.Mockito
+                .doThrow(new ForbiddenException(new Object[]{"권한 없음"}))
                 .when(travelQueryService)
                 .validateOwner(1L, 2L);
 
@@ -336,7 +368,11 @@ class TravelFacadeTest {
                 .isInstanceOf(ForbiddenException.class);
 
         verify(planQueryService, never())
-                .getPlanDetailResponse(any(), any(), any());
+                .getPlanDetailResponse(
+                any(),
+                any(),
+                any()
+        );
     }
 
     @Test
@@ -359,7 +395,8 @@ class TravelFacadeTest {
 
         CreatePlanResponse result = travelFacade.confirmEditPlan(request, username);
 
-        assertThat(result).isSameAs(expected);
+        assertThat(result)
+                .isSameAs(expected);
         verify(travelQueryService)
                 .validateOwner(1L, 2L);
         verify(travelService)
@@ -406,7 +443,8 @@ class TravelFacadeTest {
 
         CreatePlanResponse result = travelFacade.confirmEditPlan(request, username);
 
-        assertThat(result).isSameAs(expected);
+        assertThat(result)
+                .isSameAs(expected);
         verify(travelService)
                 .confirmEditPlan(1L);
     }
@@ -420,7 +458,8 @@ class TravelFacadeTest {
 
         when(userQueryService.findUserIdInCache(username))
                 .thenReturn(2L);
-        org.mockito.Mockito.doThrow(new ForbiddenException(new Object[]{"권한 없음"}))
+        org.mockito.Mockito
+                .doThrow(new ForbiddenException(new Object[]{"권한 없음"}))
                 .when(travelQueryService)
                 .validateOwner(1L, 2L);
 
@@ -456,7 +495,8 @@ class TravelFacadeTest {
         GetAiPlanRequest request = new GetAiPlanRequest(1L);
         when(userQueryService.findUserIdInCache(username))
                 .thenReturn(2L);
-        org.mockito.Mockito.doThrow(new ForbiddenException(new Object[]{"권한 없음"}))
+        org.mockito.Mockito
+                .doThrow(new ForbiddenException(new Object[]{"권한 없음"}))
                 .when(travelQueryService)
                 .validateOwner(1L, 2L);
 
@@ -473,7 +513,8 @@ class TravelFacadeTest {
 
         // given
         Health health =
-                Health.builder()
+                Health
+                        .builder()
                         .id(100L)
                         .travelerName("본인")
                         .sensitiveAgree(true)
@@ -508,7 +549,7 @@ class TravelFacadeTest {
                         List.of()
                 );
 
-        // then - 질환마다 보는 영양성분이 달라 하나라도 빠지면 그 기준이 평가에서 사라진다
+        // then - 질환별 영양성분 누락 시 평가 기준 유실 방지
         assertThat(context.diseaseTypes())
                 .containsExactly(
                         DiseaseType.DIABETES,

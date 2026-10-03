@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * 여행 일정 공유 토큰 발급 결과
- * @param shareToken 공유 링크 토큰
  */
 public record ShareTravelResponse(
 

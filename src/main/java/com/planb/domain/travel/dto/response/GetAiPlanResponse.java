@@ -51,17 +51,20 @@ public record GetAiPlanResponse(
     ) {
 
         Map<Long, List<PlanSchedule>> scheduleMap =
-                planSchedules.stream()
+                planSchedules
+                        .stream()
                         .collect(
                                 Collectors.groupingBy(
                                         schedule ->
-                                                schedule.getPlanDay()
+                                                schedule
+                                                        .getPlanDay()
                                                         .getId()
                                 )
                         );
 
         Map<Long, RestaurantDetailQueryResponse> restaurantMap =
-                restaurantDetails.stream()
+                restaurantDetails
+                        .stream()
                         .collect(
                                 Collectors.toMap(
                                         RestaurantDetailQueryResponse::planScheduleId,
@@ -69,9 +72,10 @@ public record GetAiPlanResponse(
                                 )
                         );
 
-        // 구성원마다 관리 질환이 여러 개일 수 있어 펼친 뒤 중복을 없앤다.
+        // 구성원별 관리 질환의 펼침과 중복 제거
         List<DiseaseType> diseaseTypes =
-                healthSummaries.stream()
+                healthSummaries
+                        .stream()
                         .map(
                                 HealthSummaryQueryResponse::diseaseTypes
                         )
@@ -83,7 +87,8 @@ public record GetAiPlanResponse(
                         .toList();
 
         List<PlanDayDetail> planDayDetails =
-                planDays.stream()
+                planDays
+                        .stream()
                         .map(planDay ->
                                 PlanDayDetail.from(
                                         planDay,
@@ -120,7 +125,8 @@ public record GetAiPlanResponse(
         ) {
 
             List<PlanScheduleDetail> scheduleDetails =
-                    planSchedules.stream()
+                    planSchedules
+                            .stream()
                             .map(schedule ->
                                     PlanScheduleDetail.from(
                                             schedule,

@@ -23,9 +23,7 @@ public final class TouristPlaceCountPolicy {
     }
 
     /**
-     * 동행인의 걷기 수준에 따른 하루 관광 장소 개수
-     * @param healthContexts 이번 여행에 선택된 동행인, 없으면 규칙 미적용
-     * @return 하루 관광 장소 개수, 동행인이 없으면 0개
+     * 동행인의 걷기 수준에 따른 하루 관광 장소 개수, 동행인 미선택 시 0개
      */
     public static int expectedCount(List<TravelHealthContext> healthContexts) {
 
@@ -44,9 +42,6 @@ public final class TouristPlaceCountPolicy {
 
     /**
      * 밀도 감소 허용 여부를 반영한 하루 관광 장소 최소 개수
-     * @param healthContexts 이번 여행에 선택된 동행인, 없으면 규칙 미적용
-     * @param densityReductionAllowed 밀도 감소가 허용된 날짜인지 여부
-     * @return 허용되는 최소 관광 장소 개수
      */
     public static int minimumCount(
             List<TravelHealthContext> healthContexts,
@@ -66,10 +61,7 @@ public final class TouristPlaceCountPolicy {
     }
 
     /**
-     * 기준 개수를 넘는 관광 장소의 초과분 제거
-     * @param response 검사할 일정, planDays가 없으면 원본 유지
-     * @param healthContexts 이번 여행에 선택된 동행인, 없으면 규칙 미적용
-     * @return 초과분을 제거한 일정
+     * 기준 개수를 넘는 관광 장소의 초과분 제거, 일정 미존재 시 원본 유지
      */
     public static CreatePlanAiResponse trimExcess(
             CreatePlanAiResponse response,
@@ -99,8 +91,8 @@ public final class TouristPlaceCountPolicy {
     }
 
     // 하루치 관광 장소 초과분 제거
-    // ponytail: 제거 이후 남은 슬롯의 travelMinutes는 이전 장소 기준 그대로 둔다.
-    // 일정 시간이 앞당겨지지 않을 뿐 순서와 시간 검증은 통과하며, 정확한 이동시간이 필요해지면 재계산을 붙인다.
+    // ponytail: 초과 관광지 제거 후 남은 travelMinutes 재계산 생략
+    // 일정 시각은 유지하고 순서·시간 검증만 통과; 정확한 이동시간이 필요해지면 재계산 추가
     private static CreatePlanAiResponse.PlanDayDetail trimDay(
             CreatePlanAiResponse.PlanDayDetail day,
             int expectedCount
@@ -124,7 +116,7 @@ public final class TouristPlaceCountPolicy {
             return day;
         }
 
-        // 사용자가 지정한 MUST_HAVE는 남기고 뒤쪽 ATTRACTION부터 뺀다.
+        // MUST_HAVE 보존과 뒤쪽 ATTRACTION 우선 제거
         Set<Integer> removeIndexes = new HashSet<>();
 
         for (int cursor = touristIndexes.size() - 1;
@@ -133,7 +125,9 @@ public final class TouristPlaceCountPolicy {
 
             int index = touristIndexes.get(cursor);
 
-            if (schedules.get(index).courseType() == CourseType.MUST_HAVE) {
+            if (schedules
+                    .get(index)
+                    .courseType() == CourseType.MUST_HAVE) {
                 continue;
             }
 
@@ -155,7 +149,7 @@ public final class TouristPlaceCountPolicy {
         );
     }
 
-    // 관광 장소로 세는 슬롯. 검증(validateTouristPlaceCounts)과 같은 기준이어야 한다.
+    // validateTouristPlaceCounts와 동일한 관광 장소 집계 기준
     private static boolean isTouristPlace(CreatePlanAiResponse.PlanScheduleDetail schedule) {
 
         return schedule != null

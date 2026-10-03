@@ -31,17 +31,39 @@ class ScheduleNormalizerTest {
     private final ScheduleNormalizer scheduleNormalizer =
             new ScheduleNormalizer(new PlanPlaceResolver());
 
-    private final LocalDate date = LocalDate.of(2026, 9, 10);
+    private final LocalDate date = LocalDate.of(
+            2026,
+            9,
+            10
+    );
 
     @Test
     @DisplayName("이동시간 반영 시간표 정규화의 반복 적용 시 동일 결과")
     void normalizeScheduleTimesIsIdempotent() {
 
         CreatePlanAiResponse response = response(
-                restaurant("아침 식당", ScheduleType.BREAKFAST, LocalTime.of(8, 0), null),
-                attraction("해운대해수욕장", LocalTime.of(9, 0), 40),
-                restaurant("점심 식당", ScheduleType.LUNCH, LocalTime.of(12, 0), 30),
-                attraction("동백섬", LocalTime.of(14, 0), 25)
+                restaurant(
+                        "아침 식당",
+                        ScheduleType.BREAKFAST,
+                        LocalTime.of(8, 0),
+                        null
+                ),
+                attraction(
+                        "해운대해수욕장",
+                        LocalTime.of(9, 0),
+                        40
+                ),
+                restaurant(
+                        "점심 식당",
+                        ScheduleType.LUNCH,
+                        LocalTime.of(12, 0),
+                        30
+                ),
+                attraction(
+                        "동백섬",
+                        LocalTime.of(14, 0),
+                        25
+                )
         );
 
         CreatePlanAiResponse once = scheduleNormalizer
@@ -64,9 +86,24 @@ class ScheduleNormalizerTest {
     void ensureMedicationSchedulesIsIdempotent() {
 
         CreatePlanAiResponse response = response(
-                restaurant("아침 식당", ScheduleType.BREAKFAST, LocalTime.of(8, 0), null),
-                restaurant("점심 식당", ScheduleType.LUNCH, LocalTime.of(12, 0), 30),
-                restaurant("저녁 식당", ScheduleType.DINNER, LocalTime.of(18, 0), 30)
+                restaurant(
+                        "아침 식당",
+                        ScheduleType.BREAKFAST,
+                        LocalTime.of(8, 0),
+                        null
+                ),
+                restaurant(
+                        "점심 식당",
+                        ScheduleType.LUNCH,
+                        LocalTime.of(12, 0),
+                        30
+                ),
+                restaurant(
+                        "저녁 식당",
+                        ScheduleType.DINNER,
+                        LocalTime.of(18, 0),
+                        30
+                )
         );
 
         CreatePlanAiResponse once = scheduleNormalizer
@@ -89,10 +126,20 @@ class ScheduleNormalizerTest {
     void keepsPlanWhenMealTimeCannotBeMet() {
 
         // 아침(08:00~09:30) 직후 곧바로 점심이고, 이동시간 200분이라
-        // 점심을 허용 상한 12:30 이내로 넣을 수 없고 앞당길 장소도 없다.
+        // 점심 12:30 상한 초과와 앞당길 장소 부재
         CreatePlanAiResponse response = response(
-                restaurant("아침 식당", ScheduleType.BREAKFAST, LocalTime.of(8, 0), null),
-                restaurant("점심 식당", ScheduleType.LUNCH, LocalTime.of(12, 0), 200)
+                restaurant(
+                        "아침 식당",
+                        ScheduleType.BREAKFAST,
+                        LocalTime.of(8, 0),
+                        null
+                ),
+                restaurant(
+                        "점심 식당",
+                        ScheduleType.LUNCH,
+                        LocalTime.of(12, 0),
+                        200
+                )
         );
 
         CreatePlanAiResponse normalized = scheduleNormalizer
@@ -113,13 +160,15 @@ class ScheduleNormalizerTest {
                 .schedules()
                 .get(1);
 
-        // 이동시간을 무시한 시각으로 당기지 않는다
+        // 이동시간을 무시한 시각 당김 방지
         assertEquals(
-                breakfast.endTime().plusMinutes(200),
+                breakfast
+                        .endTime()
+                        .plusMinutes(200),
                 lunch.startTime()
         );
 
-        // 맞추지 못한 식사는 MEAL_TIME_APPLIED 대상이 아니다
+        // 식사시각을 맞추지 못한 슬롯의 MEAL_TIME_APPLIED 제외
         assertFalse(
                 scheduleNormalizer.mealTimeSatisfied(
                         lunch,
@@ -127,7 +176,7 @@ class ScheduleNormalizerTest {
                 )
         );
 
-        // 맞춘 식사는 대상이다
+        // 식사시각을 맞춘 슬롯의 MEAL_TIME_APPLIED 포함
         assertTrue(
                 scheduleNormalizer.mealTimeSatisfied(
                         breakfast,
@@ -140,9 +189,14 @@ class ScheduleNormalizerTest {
     @DisplayName("식후 복약의 식사 종료 기준 배치")
     void placesAfterMealMedicationFromMealEnd() {
 
-        // 식사 슬롯이 90분이라 시작 기준으로 잡으면 "식후 30분"이 식사 도중이 된다.
+        // 90분 식사 슬롯의 종료 기준 식후 30분 복약
         CreatePlanAiResponse response = response(
-                restaurant("점심 식당", ScheduleType.LUNCH, LocalTime.of(12, 0), 0)
+                restaurant(
+                        "점심 식당",
+                        ScheduleType.LUNCH,
+                        LocalTime.of(12, 0),
+                        0
+                )
         );
 
         CreatePlanAiResponse result = scheduleNormalizer.ensureMedicationSchedules(
@@ -159,9 +213,13 @@ class ScheduleNormalizerTest {
     @DisplayName("식사 슬롯 없는 날의 설정 식사시간 기준 식후 복약 배치")
     void placesAfterMealMedicationWithoutMealSlot() {
 
-        // 설정 식사시각에는 종료시각이 없으므로 기본 식사 소요시간을 더해 "식후"를 지킨다.
+        // 설정 식사시각에 기본 식사 소요시간을 더한 식후 복약 기준
         CreatePlanAiResponse response = response(
-                attraction("해운대해수욕장", LocalTime.of(9, 0), 0)
+                attraction(
+                        "해운대해수욕장",
+                        LocalTime.of(9, 0),
+                        0
+                )
         );
 
         CreatePlanAiResponse result = scheduleNormalizer.ensureMedicationSchedules(
@@ -178,10 +236,19 @@ class ScheduleNormalizerTest {
     @DisplayName("장소 시간대 안에 들어간 복약의 장소 종료시각 배치")
     void movesMedicationOutOfPlaceSlot() {
 
-        // 식후 30분은 14:00이지만 그 시각은 다음 관광지 13:40-15:10 한가운데다.
+        // 관광지 13:40~15:10과 겹치는 식후 14:00 복약
         CreatePlanAiResponse response = response(
-                restaurant("점심 식당", ScheduleType.LUNCH, LocalTime.of(12, 0), 0),
-                attraction("해운대해수욕장", LocalTime.of(13, 40), 10)
+                restaurant(
+                        "점심 식당",
+                        ScheduleType.LUNCH,
+                        LocalTime.of(12, 0),
+                        0
+                ),
+                attraction(
+                        "해운대해수욕장",
+                        LocalTime.of(13, 40),
+                        10
+                )
         );
 
         CreatePlanAiResponse result = scheduleNormalizer.ensureMedicationSchedules(
@@ -198,11 +265,16 @@ class ScheduleNormalizerTest {
     @DisplayName("식중 복약의 식사 시간대 유지")
     void keepsDuringMealMedicationInsideMealSlot() {
 
-        // 식사 슬롯은 식중 복약의 기준이므로 겹쳐도 밀지 않는다.
+        // 식중 복약 기준인 식사 슬롯과의 겹침 허용
         List<TravelHealthContext> duringMeal = healthContexts(MealTiming.DURING_MEAL, 0);
 
         CreatePlanAiResponse response = response(
-                restaurant("점심 식당", ScheduleType.LUNCH, LocalTime.of(12, 0), 0)
+                restaurant(
+                        "점심 식당",
+                        ScheduleType.LUNCH,
+                        LocalTime.of(12, 0),
+                        0
+                )
         );
 
         CreatePlanAiResponse result = scheduleNormalizer.ensureMedicationSchedules(

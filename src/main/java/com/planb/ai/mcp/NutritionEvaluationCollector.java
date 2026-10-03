@@ -28,7 +28,9 @@ public class NutritionEvaluationCollector {
 
     // Tool 호출 결과 기록
     public void record(String foodName, NutritionEvaluationResult result) {
-        evaluations.get().add(
+        evaluations
+                .get()
+                .add(
                 new FoodNutritionEvaluation(foodName, result)
         );
     }

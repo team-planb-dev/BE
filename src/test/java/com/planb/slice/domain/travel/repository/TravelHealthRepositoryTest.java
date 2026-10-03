@@ -113,7 +113,8 @@ class TravelHealthRepositoryTest
 
     private User createUser() {
 
-        User user = User.builder()
+        User user = User
+                .builder()
                 .username("travel-health" + System.nanoTime() + "@example.com")
                 .password("password")
                 .role("ROLE_USER")
@@ -140,13 +141,22 @@ class TravelHealthRepositoryTest
 
     private Travel createTravel(User user) {
 
-        Travel travel = Travel.builder()
+        Travel travel = Travel
+                .builder()
                 .user(user)
                 .travelName("부산 여행")
                 .locationDo("부산")
                 .locationSigungu("해운대구")
-                .startDate(LocalDate.of(2026, 9, 1))
-                .endDate(LocalDate.of(2026, 9, 2))
+                .startDate(LocalDate.of(
+                        2026,
+                        9,
+                        1
+                ))
+                .endDate(LocalDate.of(
+                        2026,
+                        9,
+                        2
+                ))
                 .dateType(DateType.ONE_NIGHT_TWO_DAYS)
                 .transportation(Transportation.TRANSIT)
                 .travelStyle(TravelStyle.LESS_WALK)
@@ -166,7 +176,8 @@ class TravelHealthRepositoryTest
             String travelerName
     ) {
 
-        Health health = Health.builder()
+        Health health = Health
+                .builder()
                 .user(user)
                 .travelerName(travelerName)
                 .sensitiveAgree(true)

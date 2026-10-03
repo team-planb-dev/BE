@@ -3,9 +3,7 @@ package com.planb.domain.travel.dto.response;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * 여행 일정 저장 확정 결과
- * @param travelId 저장한 여행 id
- * @param saved 저장 확정 여부, 저장 후 true 고정
+ * 여행 일정 저장 확정 결과, 저장 후 saved는 true
  */
 public record SaveTravelResponse(
 

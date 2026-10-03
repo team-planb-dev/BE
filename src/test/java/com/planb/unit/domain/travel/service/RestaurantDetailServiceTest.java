@@ -34,7 +34,8 @@ class RestaurantDetailServiceTest {
     void createRestaurantDetail() {
 
         PlanSchedule planSchedule =
-                PlanSchedule.builder()
+                PlanSchedule
+                        .builder()
                         .locationName("막국수집")
                         .build();
 
@@ -113,12 +114,14 @@ class RestaurantDetailServiceTest {
     void makeRestaurantDetailList() {
 
         PlanSchedule attractionSchedule =
-                PlanSchedule.builder()
+                PlanSchedule
+                        .builder()
                         .locationName("관광지")
                         .build();
 
         PlanSchedule restaurantSchedule =
-                PlanSchedule.builder()
+                PlanSchedule
+                        .builder()
                         .locationName("막국수집")
                         .build();
 
@@ -145,12 +148,14 @@ class RestaurantDetailServiceTest {
                         CreatePlanAiResponse.PlanScheduleDetail.class
                 );
 
-        org.mockito.Mockito.when(
+        org.mockito.Mockito
+                .when(
                 attractionDetail.restaurantDetail()
         )
                 .thenReturn(null);
 
-        org.mockito.Mockito.when(
+        org.mockito.Mockito
+                .when(
                 restaurantScheduleDetail.restaurantDetail()
         )
                 .thenReturn(restaurant);
@@ -174,13 +179,15 @@ class RestaurantDetailServiceTest {
 
         assertSame(
                 restaurantSchedule,
-                result.get(0)
+                result
+                        .get(0)
                         .getPlanSchedule()
         );
 
         assertEquals(
                 "막국수",
-                result.get(0)
+                result
+                        .get(0)
                         .getMenuName()
         );
     }
@@ -191,10 +198,12 @@ class RestaurantDetailServiceTest {
 
         List<RestaurantDetail> restaurantDetails =
                 List.of(
-                        RestaurantDetail.builder()
+                        RestaurantDetail
+                                .builder()
                                 .menuName("막국수")
                                 .build(),
-                        RestaurantDetail.builder()
+                        RestaurantDetail
+                                .builder()
                                 .menuName("닭갈비")
                                 .build()
                 );
@@ -212,7 +221,8 @@ class RestaurantDetailServiceTest {
     void deleteAllByPlanScheduleIn() {
 
         PlanSchedule planSchedule =
-                PlanSchedule.builder()
+                PlanSchedule
+                        .builder()
                         .locationName("막국수집")
                         .build();
 

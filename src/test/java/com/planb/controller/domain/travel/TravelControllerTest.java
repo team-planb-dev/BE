@@ -73,12 +73,14 @@ class TravelControllerTest {
                 .thenReturn(response);
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get("/api/v1/travel/recommend-local-food")
                                 .param("locationDo", "부산")
                                 .param("locationSigungu", "해운대구")
                 )
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(
                         jsonPath("$.success")
                                 .value(true)
@@ -115,20 +117,24 @@ class TravelControllerTest {
 
         // when
         MvcResult mvcResult =
-                mockMvc.perform(
+                mockMvc
+                        .perform(
                                 get("/api/v1/travel/search-planned-place")
                                         .param("searchText", "해운대")
                         )
                         .andExpect(
-                                request().asyncStarted()
+                                request()
+                                        .asyncStarted()
                         )
                         .andReturn();
 
         // then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         asyncDispatch(mvcResult)
                 )
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(
                         jsonPath("$.success")
                                 .value(true)
@@ -189,12 +195,14 @@ class TravelControllerTest {
                 """;
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post("/api/v1/travel/add-with-recommend")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(request)
                 )
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(
                         jsonPath("$.success")
                                 .value(true)
@@ -234,11 +242,13 @@ class TravelControllerTest {
                 .thenReturn(response);
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         get("/api/v1/travel/get-ai-travel-plan")
                                 .param("travelId", "1")
                 )
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(
                         jsonPath("$.success")
                                 .value(true)
@@ -288,12 +298,14 @@ class TravelControllerTest {
                 """;
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post("/api/v1/travel/edit-plan/preview")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(request)
                 )
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(
                         jsonPath("$.success")
                                 .value(true)
@@ -336,12 +348,14 @@ class TravelControllerTest {
                 """;
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post("/api/v1/travel/edit-plan/confirm")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(request)
                 )
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(
                         jsonPath("$.success")
                                 .value(true)
@@ -370,12 +384,14 @@ class TravelControllerTest {
                 """;
 
         // when & then
-        mockMvc.perform(
+        mockMvc
+                .perform(
                         post("/api/v1/travel/edit-plan/cancel")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(request)
                 )
-                .andExpect(status().isOk())
+                .andExpect(status()
+                        .isOk())
                 .andExpect(
                         jsonPath("$.success")
                                 .value(true)

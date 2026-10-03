@@ -66,7 +66,11 @@ class RestaurantDetailQueryRepositoryTest
         PlanDay planDay = createPlanDay(
                 plan,
                 1,
-                LocalDate.of(2026, 9, 1)
+                LocalDate.of(
+                        2026,
+                        9,
+                        1
+                )
         );
 
         PlanSchedule lunchSchedule =
@@ -169,7 +173,11 @@ class RestaurantDetailQueryRepositoryTest
         PlanDay planDay = createPlanDay(
                 plan,
                 1,
-                LocalDate.of(2026, 9, 1)
+                LocalDate.of(
+                        2026,
+                        9,
+                        1
+                )
         );
 
         PlanSchedule planSchedule =
@@ -295,7 +303,11 @@ class RestaurantDetailQueryRepositoryTest
         PlanDay planDay = createPlanDay(
                 plan,
                 1,
-                LocalDate.of(2026, 9, 1)
+                LocalDate.of(
+                        2026,
+                        9,
+                        1
+                )
         );
 
         PlanSchedule targetSchedule =
@@ -357,14 +369,18 @@ class RestaurantDetailQueryRepositoryTest
                 .hasSize(1);
 
         assertThat(
-                result.get(0).planScheduleId()
+                result
+                        .get(0)
+                        .planScheduleId()
         )
                 .isEqualTo(
                 targetSchedule.getId()
         );
 
         assertThat(
-                result.get(0).menuName()
+                result
+                        .get(0)
+                        .menuName()
         )
                 .isEqualTo(
                 "돼지국밥"
@@ -373,7 +389,8 @@ class RestaurantDetailQueryRepositoryTest
 
     private User createUser() {
 
-        User user = User.builder()
+        User user = User
+                .builder()
                 .username("test" + System.nanoTime() + "@example.com")
                 .password("password")
                 .role("ROLE_USER")
@@ -400,7 +417,8 @@ class RestaurantDetailQueryRepositoryTest
 
     private Travel createTravel(String travelName) {
 
-        Travel travel = Travel.builder()
+        Travel travel = Travel
+                .builder()
                 .user(createUser())
                 .travelName(travelName)
                 .build();
@@ -415,7 +433,8 @@ class RestaurantDetailQueryRepositoryTest
             String planName
     ) {
 
-        Plan plan = Plan.builder()
+        Plan plan = Plan
+                .builder()
                 .travel(travel)
                 .planName(planName)
                 .build();
@@ -431,7 +450,8 @@ class RestaurantDetailQueryRepositoryTest
             LocalDate planDate
     ) {
 
-        PlanDay planDay = PlanDay.builder()
+        PlanDay planDay = PlanDay
+                .builder()
                 .plan(plan)
                 .dayNumber(dayNumber)
                 .planDate(planDate)
@@ -450,7 +470,8 @@ class RestaurantDetailQueryRepositoryTest
     ) {
 
         PlanSchedule planSchedule =
-                PlanSchedule.builder()
+                PlanSchedule
+                        .builder()
                         .planDay(planDay)
                         .scheduleType(scheduleType)
                         .courseType(
@@ -482,7 +503,8 @@ class RestaurantDetailQueryRepositoryTest
     ) {
 
         RestaurantDetail restaurantDetail =
-                RestaurantDetail.builder()
+                RestaurantDetail
+                        .builder()
                         .planSchedule(planSchedule)
                         .menuName(menuName)
                         .carbohydrate(carbohydrate)

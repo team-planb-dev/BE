@@ -19,8 +19,18 @@ class PlaceCandidateContextTest {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();
 
-        candidates.record(candidate("kakao:1", "첨성대", "129.2", "35.8"));
-        candidates.record(candidate("kakao:2", "카페 황남다락", "129.3", "35.9"));
+        candidates.record(candidate(
+                        "kakao:1",
+                        "첨성대",
+                        "129.2",
+                        "35.8"
+                ));
+        candidates.record(candidate(
+                        "kakao:2",
+                        "카페 황남다락",
+                        "129.3",
+                        "35.9"
+                ));
 
         PlaceCandidateContext.Candidate found = candidates.findByName("첨성대");
 
@@ -33,11 +43,21 @@ class PlaceCandidateContextTest {
     @DisplayName("같은 이름 후보가 둘 이상이면 좌표 미확정")
     void ignoresAmbiguousName() {
 
-        // 어느 쪽인지 고를 근거가 없다. 임의로 하나를 고르면 고치려는 오지오코딩과 같은 실수가 된다.
+        // 동일 이름 후보의 임의 선택을 피하기 위한 판정 근거 부재
         PlaceCandidateContext candidates = new PlaceCandidateContext();
 
-        candidates.record(candidate("kakao:1", "고려삼계탕", "126.9", "37.5"));
-        candidates.record(candidate("kakao:2", "고려삼계탕", "127.4", "36.6"));
+        candidates.record(candidate(
+                        "kakao:1",
+                        "고려삼계탕",
+                        "126.9",
+                        "37.5"
+                ));
+        candidates.record(candidate(
+                        "kakao:2",
+                        "고려삼계탕",
+                        "127.4",
+                        "36.6"
+                ));
 
         assertNull(candidates.findByName("고려삼계탕"));
     }
@@ -55,12 +75,21 @@ class PlaceCandidateContextTest {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();
 
-        candidates.record(tourItem("126508", "12", "경복궁"));
-        candidates.record(tourItem("134712", "39", "토속촌삼계탕"));
+        candidates.record(tourItem(
+                        "126508",
+                        "12",
+                        "경복궁"
+                ));
+        candidates.record(tourItem(
+                        "134712",
+                        "39",
+                        "토속촌삼계탕"
+                ));
 
         assertEquals(
                 List.of("경복궁"),
-                candidates.attractionCandidates()
+                candidates
+                        .attractionCandidates()
                         .stream()
                         .map(PlaceCandidateContext.Candidate::name)
                         .toList()
@@ -68,7 +97,8 @@ class PlaceCandidateContextTest {
 
         assertEquals(
                 List.of("토속촌삼계탕"),
-                candidates.restaurantCandidates()
+                candidates
+                        .restaurantCandidates()
                         .stream()
                         .map(PlaceCandidateContext.Candidate::name)
                         .toList()

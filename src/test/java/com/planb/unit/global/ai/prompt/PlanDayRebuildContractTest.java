@@ -24,7 +24,11 @@ import static org.mockito.Mockito.mock;
 
 class PlanDayRebuildContractTest {
 
-    private final LocalDate date = LocalDate.of(2026, 9, 14);
+    private final LocalDate date = LocalDate.of(
+            2026,
+            9,
+            14
+    );
 
     private final PlanEditValidator helper = new PlanEditValidator();
 
@@ -191,9 +195,10 @@ class PlanDayRebuildContractTest {
 
         String reason = helper
                 .rebuildFailure(
-                        context(),
-                        1,
-                        response)
+                context(),
+                1,
+                response
+        )
                 .orElseThrow();
 
         assertFalse(response.rebuilt());
@@ -212,13 +217,15 @@ class PlanDayRebuildContractTest {
                 "",
                 List.of(
                         day(1),
-                        day(2)));
+                        day(2))
+        );
 
         String reason = helper
                 .rebuildFailure(
-                        context(),
-                        1,
-                        response)
+                context(),
+                1,
+                response
+        )
                 .orElseThrow();
 
         assertTrue(reason.contains("날짜 개수=2"));
@@ -239,26 +246,31 @@ class PlanDayRebuildContractTest {
                         new CreatePlanAiResponse.PlanDayDetail(
                                 1,
                                 date,
-                                List.of())));
+                                List.of()
+                        ))
+        );
 
         assertTrue(
                 helper
                         .rebuildFailure(
-                                context(),
-                                1,
-                                empty)
+                        context(),
+                        1,
+                        empty
+                )
                         .orElseThrow()
                         .contains("schedules=0"));
 
         assertTrue(
                 helper
                         .rebuildFailure(
-                                context(),
-                                1,
-                                new RebuildPlanDayResponse(
+                        context(),
+                        1,
+                        new RebuildPlanDayResponse(
                                         true,
                                         "",
-                                        List.of(day(2))))
+                                        List.of(day(2))
+                                )
+                )
                         .orElseThrow()
                         .contains("dayNumber=2"));
     }
@@ -270,12 +282,14 @@ class PlanDayRebuildContractTest {
         assertTrue(
                 helper
                         .rebuildFailure(
-                                context(),
-                                1,
-                                new RebuildPlanDayResponse(
+                        context(),
+                        1,
+                        new RebuildPlanDayResponse(
                                         true,
                                         "",
-                                        List.of(day(1))))
+                                        List.of(day(1))
+                                )
+                )
                         .isEmpty());
     }
 
@@ -290,16 +304,24 @@ class PlanDayRebuildContractTest {
                                 new CreatePlanAiResponse.PlanDayDetail(
                                         1,
                                         date,
-                                        List.of()))),
+                                        List.of()
+                                ))),
                 1,
                 "이전 응답 날짜 오류",
-                new AppConfig().objectMapper());
+                new AppConfig().objectMapper()
+        );
 
-        assertFalse(prompt.system().contains("[STEP 2. 변경 대상과 유지 대상 분리]"));
+        assertFalse(prompt
+                        .system()
+                        .contains("[STEP 2. 변경 대상과 유지 대상 분리]"));
 
-        assertTrue(prompt.system().contains("rebuilt=false"));
+        assertTrue(prompt
+                        .system()
+                        .contains("rebuilt=false"));
 
-        assertTrue(prompt.system().contains("searchAttractionsByRegion(locationDo, locationSigungu)"));
+        assertTrue(prompt
+                        .system()
+                        .contains("searchAttractionsByRegion(locationDo, locationSigungu)"));
 
         assertEquals(
                 1,
@@ -316,7 +338,8 @@ class PlanDayRebuildContractTest {
         return new CreatePlanAiResponse.PlanDayDetail(
                 number,
                 date.plusDays(number - 1),
-                List.of(mock(CreatePlanAiResponse.PlanScheduleDetail.class)));
+                List.of(mock(CreatePlanAiResponse.PlanScheduleDetail.class))
+        );
     }
 
     private PlanEditContext context() {
@@ -335,7 +358,10 @@ class PlanDayRebuildContractTest {
                                 new GetAiPlanResponse.PlanDayDetail(
                                         1,
                                         date,
-                                        List.of()))),
-                "1일차 통째로 재구성");
+                                        List.of()
+                                ))
+                ),
+                "1일차 통째로 재구성"
+        );
     }
 }
