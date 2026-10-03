@@ -104,13 +104,10 @@ public class UserQueryService {
     }
 
     /**
-     * 계정 복구 질문과 답변으로 사용자를 단건 조회한다.
-     *
-     * 닉네임으로 계정을 특정하고 질문/답변으로 본인을 확인한다.
-     *
-     * @param nickname         계정을 특정하는 닉네임
+     * 복구 질문과 답변으로 확인한 사용자 단건 조회
+     * @param nickname 계정을 특정하는 닉네임
      * @param recoveryQuestion 선택한 복구 질문
-     * @param recoveryAnswer   사용자가 입력한 복구 답변
+     * @param recoveryAnswer 사용자가 입력한 복구 답변
      * @return 조건에 일치하는 사용자
      */
     public User findByAccountRecovery(
