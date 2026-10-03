@@ -54,12 +54,20 @@ class ScrapeTokenScriptTest {
 
         server.createContext("/api/v1/user/create", exchange -> {
             record(exchange);
-            reply(exchange, createStatus, null);
+            reply(
+                    exchange,
+                    createStatus,
+                    null
+            );
         });
 
         server.createContext("/login", exchange -> {
             record(exchange);
-            reply(exchange, 200, loginAuthorization);
+            reply(
+                    exchange,
+                    200,
+                    loginAuthorization
+            );
         });
 
         server.start();
@@ -81,8 +89,10 @@ class ScrapeTokenScriptTest {
 
         Result result = run("create", token);
 
-        assertThat(result.exitCode).isZero();
-        assertThat(Files.readString(token)).isEqualTo(JWT);
+        assertThat(result.exitCode)
+                .isZero();
+        assertThat(Files.readString(token))
+                .isEqualTo(JWT);
     }
 
     @Test
@@ -103,7 +113,8 @@ class ScrapeTokenScriptTest {
 
         Result result = run("create", directory.resolve("token"));
 
-        assertThat(result.output).doesNotContain(JWT);
+        assertThat(result.output)
+                .doesNotContain(JWT);
     }
 
     @Test
@@ -112,12 +123,15 @@ class ScrapeTokenScriptTest {
 
         run("create", directory.resolve("token"));
 
-        assertThat(requests).hasSize(2);
+        assertThat(requests)
+                .hasSize(2);
 
         String username = field(requests.get(0), "username");
 
-        assertThat(username).endsWith("@example.com");
-        assertThat(field(requests.get(1), "username")).isEqualTo(username);
+        assertThat(username)
+                .endsWith("@example.com");
+        assertThat(field(requests.get(1), "username"))
+                .isEqualTo(username);
         assertThat(field(requests.get(1), "password"))
                 .isEqualTo(field(requests.get(0), "password"));
     }
@@ -131,9 +145,12 @@ class ScrapeTokenScriptTest {
 
         Result result = run("create", token);
 
-        assertThat(result.exitCode).isNotZero();
-        assertThat(token).doesNotExist();
-        assertThat(requests).hasSize(1);
+        assertThat(result.exitCode)
+                .isNotZero();
+        assertThat(token)
+                .doesNotExist();
+        assertThat(requests)
+                .hasSize(1);
     }
 
     @Test
@@ -145,8 +162,10 @@ class ScrapeTokenScriptTest {
 
         Result result = run("create", token);
 
-        assertThat(result.exitCode).isNotZero();
-        assertThat(token).doesNotExist();
+        assertThat(result.exitCode)
+                .isNotZero();
+        assertThat(token)
+                .doesNotExist();
     }
 
     @Test
@@ -158,9 +177,12 @@ class ScrapeTokenScriptTest {
 
         Result result = run("create", token);
 
-        assertThat(result.exitCode).isNotZero();
-        assertThat(result.output).contains("계정 생성 실패");
-        assertThat(token).doesNotExist();
+        assertThat(result.exitCode)
+                .isNotZero();
+        assertThat(result.output)
+                .contains("계정 생성 실패");
+        assertThat(token)
+                .doesNotExist();
     }
 
     @Test
@@ -170,10 +192,13 @@ class ScrapeTokenScriptTest {
         Path token = directory.resolve("token");
         Files.writeString(token, JWT);
 
-        assertThat(run("remove", token).exitCode).isZero();
-        assertThat(token).doesNotExist();
+        assertThat(run("remove", token).exitCode)
+                .isZero();
+        assertThat(token)
+                .doesNotExist();
 
-        assertThat(run("remove", token).exitCode).isZero();
+        assertThat(run("remove", token).exitCode)
+                .isZero();
     }
 
     private Result run(
@@ -183,7 +208,9 @@ class ScrapeTokenScriptTest {
 
         ProcessBuilder builder = new ProcessBuilder(
                 "bash",
-                SCRIPT.toAbsolutePath().toString(),
+                SCRIPT
+                        .toAbsolutePath()
+                        .toString(),
                 command,
                 token.toString()
         )
@@ -191,7 +218,9 @@ class ScrapeTokenScriptTest {
 
         builder
                 .environment()
-                .put("BASE_URL", "http://localhost:" + server.getAddress().getPort());
+                .put("BASE_URL", "http://localhost:" + server
+                        .getAddress()
+                        .getPort());
 
         Process process = builder.start();
 
@@ -234,7 +263,7 @@ class ScrapeTokenScriptTest {
         exchange.close();
     }
 
-    // 요청 본문은 평평한 JSON이라 정규식 한 줄로 값을 꺼낸다.
+    // 평평한 JSON 요청 본문의 단일 정규식 값 추출
     private String field(
             String body,
             String name
@@ -254,7 +283,11 @@ class ScrapeTokenScriptTest {
     private boolean exists(String command) {
 
         try {
-            return new ProcessBuilder("sh", "-c", "command -v " + command)
+            return new ProcessBuilder(
+                    "sh",
+                    "-c",
+                    "command -v " + command
+            )
                     .start()
                     .waitFor() == 0;
         } catch (Exception exception) {

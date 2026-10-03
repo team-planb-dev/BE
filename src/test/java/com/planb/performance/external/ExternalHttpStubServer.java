@@ -74,10 +74,6 @@ public final class ExternalHttpStubServer implements AutoCloseable {
 
     /**
      * API별 응답 시나리오와 지연 시간 설정
-     * @param defaultScenario 모든 API에 적용할 시나리오
-     * @param overrides API별로 덮어쓸 시나리오
-     * @param delay DELAY 시나리오에서 응답을 늦출 시간
-     * @param timeout TIMEOUT 시나리오에서 응답 없이 연결을 붙잡을 시간
      */
     public record Settings(
             Scenario defaultScenario,
@@ -198,7 +194,6 @@ public final class ExternalHttpStubServer implements AutoCloseable {
 
     /**
      * 지정 포트의 스텁 시작, 0은 임의 포트
-     * @param port 0은 임의 포트 선택
      */
     public static ExternalHttpStubServer start(
             int port,
@@ -214,7 +209,7 @@ public final class ExternalHttpStubServer implements AutoCloseable {
                     0
             );
 
-            // 지연·timeout 시나리오에서 요청마다 스레드를 붙잡으므로 가상 스레드로 처리한다.
+            // 요청별 스레드 점유가 필요한 지연·timeout 시나리오의 가상 스레드 처리
             ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
             server.setExecutor(executor);
 
@@ -322,7 +317,7 @@ public final class ExternalHttpStubServer implements AutoCloseable {
                     "{\"stub\":\"server-error\",\"message\":\"stubbed unavailable\"}"
             );
 
-            // 응답 헤더를 보내지 않고 연결을 닫아, 외부 API가 응답하지 않는 상황을 흉내 낸다.
+            // 응답 헤더 없이 연결을 닫는 외부 API 무응답 시뮬레이션
             case TIMEOUT -> {
                 pause(settings.timeout());
                 exchange.close();
@@ -341,7 +336,8 @@ public final class ExternalHttpStubServer implements AutoCloseable {
                 api,
                 path,
                 query
-        ).flatMap(name -> fixture(api.fixtureDirectory + "/" + name));
+        )
+                .flatMap(name -> fixture(api.fixtureDirectory + "/" + name));
 
         if (body.isEmpty()) {
             respond(
@@ -362,7 +358,7 @@ public final class ExternalHttpStubServer implements AutoCloseable {
         );
     }
 
-    // 요청 경로와 파라미터로 fixture 파일을 고른다. 없으면 빈 값을 돌려 404로 드러낸다.
+    // 경로·파라미터별 fixture 선택, 파일이 없으면 빈 값과 404 응답
     private Optional<String> fixtureName(
             Api api,
             String path,
@@ -381,7 +377,8 @@ public final class ExternalHttpStubServer implements AutoCloseable {
 
                 case "/areaBasedList2", "/searchKeyword2" -> restaurantOrAttraction;
 
-                case "/detailIntro2" -> fixture("kor2/detail-intro/" + query.get("contentId") + ".json").isPresent()
+                case "/detailIntro2" -> fixture("kor2/detail-intro/" + query.get("contentId") + ".json")
+                        .isPresent()
                         ? "detail-intro/" + query.get("contentId") + ".json"
                         : "detail-intro/default.json";
 
@@ -425,7 +422,7 @@ public final class ExternalHttpStubServer implements AutoCloseable {
         );
     }
 
-    // {{param:이름}}은 요청 값으로, {{hash:이름}}은 요청 값에서 계산한 고정 숫자로 채운다.
+    // {{param:이름}}의 요청 값 치환과 {{hash:이름}}의 고정 숫자 치환
     private String fill(
             String body,
             Map<String, String> query
@@ -452,7 +449,7 @@ public final class ExternalHttpStubServer implements AutoCloseable {
         return filled.toString();
     }
 
-    // 단독 실행 시 부하 테스트 스크립트가 호출 수를 확인하거나 비울 때 쓴다.
+    // 단독 실행 부하 테스트의 호출 수 조회·초기화
     private void handleAdmin(HttpExchange exchange) throws IOException {
 
         if ("DELETE".equals(exchange.getRequestMethod())) {
