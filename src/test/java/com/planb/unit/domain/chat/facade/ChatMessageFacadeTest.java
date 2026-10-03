@@ -11,18 +11,25 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.planb.domain.chat.dto.MessageType;
 import com.planb.domain.chat.dto.request.SendChatMessageRequest;
-import com.planb.domain.chat.facade.ChatFacade;
 import com.planb.domain.chat.facade.ChatMessageFacade;
-import com.planb.domain.travel.dto.request.EditPlanRequest;
-import com.planb.domain.travel.dto.request.GetAiPlanRequest;
+import com.planb.domain.chat.service.ChatMessageService;
+import com.planb.ai.context.PlanEditContext;
+import com.planb.ai.dto.response.EditPlanAiResponse;
 import com.planb.domain.travel.dto.response.EditPlanPreviewResponse;
-import com.planb.domain.travel.facade.TravelFacade;
+import com.planb.domain.travel.service.PlanEditCacheService;
+import com.planb.domain.travel.service.PlanService;
+import com.planb.domain.travel.service.TravelService;
+import com.planb.query.chat.service.ChatRoomQueryService;
+import com.planb.query.travel.service.TravelQueryService;
+import com.planb.query.user.service.UserQueryService;
 
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -32,10 +39,25 @@ import static org.mockito.Mockito.when;
 class ChatMessageFacadeTest {
 
     @Mock
-    private ChatFacade chatFacade;
+    private ChatMessageService chatMessageService;
 
     @Mock
-    private TravelFacade travelFacade;
+    private ChatRoomQueryService chatRoomQueryService;
+
+    @Mock
+    private UserQueryService userQueryService;
+
+    @Mock
+    private TravelQueryService travelQueryService;
+
+    @Mock
+    private TravelService travelService;
+
+    @Mock
+    private PlanService planService;
+
+    @Mock
+    private PlanEditCacheService planEditCacheService;
 
     @InjectMocks
     private ChatMessageFacade chatMessageFacade;
@@ -55,21 +77,23 @@ class ChatMessageFacadeTest {
                         "일정을 수정해 주세요."
                 );
 
-        EditPlanPreviewResponse preview =
-                org.mockito.Mockito.mock(EditPlanPreviewResponse.class);
+        PlanEditContext editContext = mock(PlanEditContext.class);
+        EditPlanAiResponse editResponse = mock(EditPlanAiResponse.class);
+        EditPlanPreviewResponse preview = mock(EditPlanPreviewResponse.class);
 
-        when(chatFacade
-                .findTravelIdByRoomId(roomId))
+        when(chatRoomQueryService.findTravelIdByRoomId(roomId))
                 .thenReturn(Optional.of(travelId));
 
-        when(travelFacade
-                .makeEditPlanPreview(
-                        new EditPlanRequest(
-                                travelId,
-                                request.message()
-                        ),
-                        username
-                ))
+        when(userQueryService.findUserIdInCache(username))
+                .thenReturn(50L);
+
+        when(travelService.prepareEditContext(travelId, request.message()))
+                .thenReturn(editContext);
+
+        when(planService.makeEditPlanByAi(editContext))
+                .thenReturn(editResponse);
+
+        when(planService.createEditPreviewResponse(editContext, editResponse))
                 .thenReturn(preview);
 
         // when
@@ -81,34 +105,48 @@ class ChatMessageFacadeTest {
 
         // then
         InOrder inOrder = inOrder(
-                chatFacade,
-                travelFacade
+                chatMessageService,
+                chatRoomQueryService,
+                userQueryService,
+                travelQueryService,
+                travelService,
+                planService,
+                planEditCacheService
         );
 
-        inOrder.verify(chatFacade)
-                .publishMessage(
+        inOrder.verify(chatMessageService)
+                .validateRequest(request);
+
+        inOrder.verify(chatMessageService)
+                .publishUserMessage(
                         roomId,
-                        request,
+                        request.message(),
                         username
                 );
 
-        inOrder.verify(chatFacade)
+        inOrder.verify(chatRoomQueryService)
                 .findTravelIdByRoomId(roomId);
 
-        inOrder.verify(travelFacade)
-                .makeEditPlanPreview(
-                        new EditPlanRequest(
-                                travelId,
-                                request.message()
-                        ),
-                        username
-                );
+        inOrder.verify(userQueryService)
+                .findUserIdInCache(username);
 
-        inOrder.verify(chatFacade)
-                .publishTalkReply(
-                        roomId,
-                        preview
-                );
+        inOrder.verify(travelQueryService)
+                .validateOwner(travelId, 50L);
+
+        inOrder.verify(travelService)
+                .prepareEditContext(travelId, request.message());
+
+        inOrder.verify(planService)
+                .makeEditPlanByAi(editContext);
+
+        inOrder.verify(planEditCacheService)
+                .saveEditResult(travelId, editResponse);
+
+        inOrder.verify(planService)
+                .createEditPreviewResponse(editContext, editResponse);
+
+        inOrder.verify(chatMessageService)
+                .publishTalkReply(roomId, preview);
     }
 
     @Test
@@ -125,7 +163,7 @@ class ChatMessageFacadeTest {
                         "안녕하세요."
                 );
 
-        when(chatFacade
+        when(chatRoomQueryService
                 .findTravelIdByRoomId(roomId))
                 .thenReturn(Optional.empty());
 
@@ -137,16 +175,21 @@ class ChatMessageFacadeTest {
         );
 
         // then
-        verify(chatFacade)
-                .publishMessage(
+        verify(chatMessageService)
+                .publishUserMessage(
                         roomId,
-                        request,
+                        request.message(),
                         username
                 );
 
-        verifyNoInteractions(travelFacade);
+        verifyNoInteractions(
+                travelService,
+                planService,
+                planEditCacheService,
+                travelQueryService
+        );
 
-        verify(chatFacade, never())
+        verify(chatMessageService, never())
                 .publishTalkReply(
                         any(),
                         any()
@@ -168,9 +211,12 @@ class ChatMessageFacadeTest {
                         null
                 );
 
-        when(chatFacade
+        when(chatRoomQueryService
                 .getTravelIdByRoomId(roomId))
                 .thenReturn(travelId);
+
+        when(userQueryService.findUserIdInCache(username))
+                .thenReturn(50L);
 
         // when
         chatMessageFacade.handleMessage(
@@ -181,20 +227,29 @@ class ChatMessageFacadeTest {
 
         // then
         InOrder inOrder = inOrder(
-                chatFacade,
-                travelFacade
+                chatMessageService,
+                chatRoomQueryService,
+                userQueryService,
+                travelQueryService,
+                travelService
         );
 
-        inOrder.verify(chatFacade)
+        inOrder.verify(chatMessageService)
+                .validateRequest(request);
+
+        inOrder.verify(chatRoomQueryService)
                 .getTravelIdByRoomId(roomId);
 
-        inOrder.verify(travelFacade)
-                .confirmEditPlan(
-                        new GetAiPlanRequest(travelId),
-                        username
-                );
+        inOrder.verify(userQueryService)
+                .findUserIdInCache(username);
 
-        inOrder.verify(chatFacade)
+        inOrder.verify(travelQueryService)
+                .validateOwner(travelId, 50L);
+
+        inOrder.verify(travelService)
+                .confirmEditPlanInTransaction(travelId);
+
+        inOrder.verify(chatMessageService)
                 .publishConfirmReply(roomId);
     }
 
@@ -213,9 +268,12 @@ class ChatMessageFacadeTest {
                         null
                 );
 
-        when(chatFacade
+        when(chatRoomQueryService
                 .getTravelIdByRoomId(roomId))
                 .thenReturn(travelId);
+
+        when(userQueryService.findUserIdInCache(username))
+                .thenReturn(50L);
 
         // when
         chatMessageFacade.handleMessage(
@@ -226,20 +284,29 @@ class ChatMessageFacadeTest {
 
         // then
         InOrder inOrder = inOrder(
-                chatFacade,
-                travelFacade
+                chatMessageService,
+                chatRoomQueryService,
+                userQueryService,
+                travelQueryService,
+                planEditCacheService
         );
 
-        inOrder.verify(chatFacade)
+        inOrder.verify(chatMessageService)
+                .validateRequest(request);
+
+        inOrder.verify(chatRoomQueryService)
                 .getTravelIdByRoomId(roomId);
 
-        inOrder.verify(travelFacade)
-                .cancelEditPlan(
-                        new GetAiPlanRequest(travelId),
-                        username
-                );
+        inOrder.verify(userQueryService)
+                .findUserIdInCache(username);
 
-        inOrder.verify(chatFacade)
+        inOrder.verify(travelQueryService)
+                .validateOwner(travelId, 50L);
+
+        inOrder.verify(planEditCacheService)
+                .deleteEditResult(travelId);
+
+        inOrder.verify(chatMessageService)
                 .publishCancelReply(roomId);
     }
 
@@ -265,8 +332,10 @@ class ChatMessageFacadeTest {
                 .hasMessage("지원하지 않는 메시지 타입입니다.");
 
         verifyNoInteractions(
-                chatFacade,
-                travelFacade
+                chatRoomQueryService,
+                travelService,
+                planService,
+                planEditCacheService
         );
     }
 
@@ -281,6 +350,10 @@ class ChatMessageFacadeTest {
                         "일정을 수정해 주세요."
                 );
 
+        doThrow(new IllegalArgumentException("메시지 타입은 필수입니다."))
+                .when(chatMessageService)
+                .validateRequest(request);
+
         // when & then
         assertThatThrownBy(() ->
                 chatMessageFacade.handleMessage(
@@ -292,8 +365,10 @@ class ChatMessageFacadeTest {
                 .hasMessage("메시지 타입은 필수입니다.");
 
         verifyNoInteractions(
-                chatFacade,
-                travelFacade
+                chatRoomQueryService,
+                travelService,
+                planService,
+                planEditCacheService
         );
     }
 
@@ -308,6 +383,10 @@ class ChatMessageFacadeTest {
                         "  "
                 );
 
+        doThrow(new IllegalArgumentException("TALK 메시지 내용은 필수입니다."))
+                .when(chatMessageService)
+                .validateRequest(request);
+
         // when & then
         assertThatThrownBy(() ->
                 chatMessageFacade.handleMessage(
@@ -319,8 +398,10 @@ class ChatMessageFacadeTest {
                 .hasMessage("TALK 메시지 내용은 필수입니다.");
 
         verifyNoInteractions(
-                chatFacade,
-                travelFacade
+                chatRoomQueryService,
+                travelService,
+                planService,
+                planEditCacheService
         );
     }
 }

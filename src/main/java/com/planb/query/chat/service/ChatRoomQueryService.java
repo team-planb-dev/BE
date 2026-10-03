@@ -3,6 +3,7 @@ package com.planb.query.chat.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.planb.domain.chat.entity.ChatRoom;
+import com.planb.domain.travel.entity.Travel;
 import com.planb.global.config.exception.WebSocketExceptionEnum;
 import com.planb.global.config.exception.domain.BaseException;
 import com.planb.query.chat.repository.ChatRoomQueryRepository;
@@ -30,6 +31,22 @@ public class ChatRoomQueryService {
 
         return chatRoomQueryRepository
                 .findByTravelId(travelId);
+    }
+
+    public Long getTravelIdByRoomId(Long roomId) {
+
+        return findTravelIdByRoomId(roomId)
+                .orElseThrow(() -> new BaseException(
+                        WebSocketExceptionEnum.TRAVEL_NOT_LINKED
+                ));
+    }
+
+    public Optional<Long> findTravelIdByRoomId(Long roomId) {
+
+        ChatRoom chatRoom = findChatRoomByRoomId(roomId);
+
+        return Optional.ofNullable(chatRoom.getTravel())
+                .map(Travel::getId);
     }
 
 }

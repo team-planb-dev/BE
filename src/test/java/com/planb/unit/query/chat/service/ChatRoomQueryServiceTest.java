@@ -9,6 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.planb.domain.chat.entity.ChatRoom;
+import com.planb.domain.travel.entity.Travel;
 import com.planb.global.config.exception.WebSocketExceptionEnum;
 import com.planb.global.config.exception.domain.BaseException;
 import com.planb.query.chat.repository.ChatRoomQueryRepository;
@@ -133,6 +134,40 @@ class ChatRoomQueryServiceTest {
 
         verify(chatRoomQueryRepository)
                 .findByTravelId(travelId);
+    }
+
+    @Test
+    @DisplayName("여행과 연결되지 않은 채팅방의 여행 ID 조회 거부")
+    void getTravelIdByRoomIdRejectsUnlinkedRoom() {
+
+        ChatRoom chatRoom = ChatRoom.builder()
+                .id(1L)
+                .build();
+        when(chatRoomQueryRepository.findByRoomId(1L))
+                .thenReturn(Optional.of(chatRoom));
+
+        BaseException exception = assertThrows(
+                BaseException.class,
+                () -> chatRoomQueryService.getTravelIdByRoomId(1L)
+        );
+
+        assertThat(exception.getErrorCode())
+                .isEqualTo(WebSocketExceptionEnum.TRAVEL_NOT_LINKED.getCode());
+    }
+
+    @Test
+    @DisplayName("여행 채팅방의 여행 ID 조회")
+    void findTravelIdByRoomId() {
+
+        ChatRoom chatRoom = ChatRoom.builder()
+                .id(1L)
+                .travel(Travel.builder().id(10L).build())
+                .build();
+        when(chatRoomQueryRepository.findByRoomId(1L))
+                .thenReturn(Optional.of(chatRoom));
+
+        assertThat(chatRoomQueryService.findTravelIdByRoomId(1L))
+                .contains(10L);
     }
 
 }

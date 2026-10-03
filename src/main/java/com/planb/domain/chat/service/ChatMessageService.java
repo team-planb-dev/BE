@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import com.planb.domain.chat.dto.MessageType;
 import com.planb.domain.chat.dto.response.AiReplyContent;
 import com.planb.domain.chat.dto.response.SendChatMessageResponse;
+import com.planb.domain.chat.dto.request.SendChatMessageRequest;
 import com.planb.domain.chat.entity.ChatMessage;
 import com.planb.domain.chat.entity.ChatRoom;
 import com.planb.domain.chat.helper.ChatAiReplyMessageHelper;
@@ -12,6 +13,10 @@ import com.planb.domain.chat.repository.ChatMessageRepository;
 import com.planb.domain.travel.dto.response.EditPlanPreviewResponse;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import com.planb.domain.user.entity.User;
+import com.planb.domain.user.constant.SystemAccountConstants;
+import com.planb.query.chat.service.ChatRoomQueryService;
+import com.planb.query.user.service.UserQueryService;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
@@ -23,6 +28,163 @@ public class ChatMessageService {
     private final ChatMessageRepository chatMessageRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final ChatAiReplyMessageHelper chatAiReplyMessageHelper;
+    private final ChatRoomQueryService chatRoomQueryService;
+    private final UserQueryService userQueryService;
+
+    public void validateRequest(SendChatMessageRequest request) {
+
+        if (request.type() == null) {
+            throw new IllegalArgumentException("메시지 타입은 필수입니다.");
+        }
+
+        if (request.type() == MessageType.TALK
+                && (request.message() == null || request.message().isBlank())) {
+            throw new IllegalArgumentException("TALK 메시지 내용은 필수입니다.");
+        }
+    }
+
+    @Transactional
+    public void publishUserMessage(
+            Long roomId,
+            String message,
+            String username
+    ) {
+
+        ChatRoom chatRoom = chatRoomQueryService.findChatRoomByRoomId(roomId);
+        User sender = userQueryService.findByUsername(username);
+        ChatMessage chatMessage = createChatMessage(
+                chatRoom,
+                sender,
+                message
+        );
+
+        saveMessage(chatMessage);
+
+        SendChatMessageResponse response = makeChatResponse(
+                roomId,
+                sender,
+                chatMessage
+        );
+
+        publishMessage(roomId, response);
+    }
+
+    @Transactional
+    public void publishAiReply(
+            Long roomId,
+            String message,
+            EditPlanPreviewResponse editPreview,
+            MessageType type
+    ) {
+
+        User aiUser = userQueryService.findByUsername(
+                SystemAccountConstants.AI_BOT_USERNAME
+        );
+        ChatRoom chatRoom = chatRoomQueryService.findChatRoomByRoomId(roomId);
+        ChatMessage chatMessage = createChatMessage(
+                chatRoom,
+                aiUser,
+                message
+        );
+
+        saveMessage(chatMessage);
+
+        SendChatMessageResponse response = makeAiChatResponse(
+                roomId,
+                aiUser,
+                chatMessage,
+                editPreview,
+                type
+        );
+
+        publishMessage(roomId, response);
+    }
+
+    @Transactional
+    public void publishTalkReply(Long roomId, EditPlanPreviewResponse preview) {
+
+        AiReplyContent content = resolveAiReplyContent(preview);
+
+        publishAiReply(
+                roomId,
+                content.message(),
+                content.editPreview(),
+                MessageType.TALK
+        );
+    }
+
+    @Transactional
+    public void publishConfirmReply(Long roomId) {
+
+        String message = resolveConfirmMessage();
+
+        publishAiReply(roomId, message, null, MessageType.CONFIRM);
+    }
+
+    @Transactional
+    public void publishCancelReply(Long roomId) {
+
+        String message = resolveCancelMessage();
+
+        publishAiReply(roomId, message, null, MessageType.CANCEL);
+    }
+
+    @Transactional
+    public void publishEditFailedReply(Long roomId, Exception exception) {
+
+        String message = resolveEditFailedMessage(exception);
+
+        publishAiReply(roomId, message, null, MessageType.TALK);
+    }
+
+    @Transactional
+    public void publishAiGreetingIfNeeded(
+            Long roomId,
+            String username
+    ) {
+
+        if (chatRoomQueryService.findTravelIdByRoomId(roomId).isEmpty()) {
+            return;
+        }
+
+        if (existsAnyMessage(roomId)) {
+            return;
+        }
+
+        User participant = userQueryService.findByUsername(username);
+        User aiUser = userQueryService.findByUsername(SystemAccountConstants.AI_BOT_USERNAME);
+
+        List<String> greetingMessages = resolveGreetingMessages(
+                participant.getNickname(),
+                aiUser.getNickname()
+        );
+
+        for (String message : greetingMessages) {
+            publishAiReply(roomId, message, null, MessageType.TALK);
+        }
+    }
+
+    public void publishSystemMessage(
+            Long roomId,
+            String username,
+            MessageType messageType
+    ) {
+
+        User participant = userQueryService.findByUsername(username);
+        String systemMessage = createSystemMessage(messageType, participant.getNickname());
+
+        SendChatMessageResponse response = new SendChatMessageResponse(
+                messageType,
+                roomId,
+                participant.getId(),
+                participant.getNickname(),
+                systemMessage,
+                null,
+                Instant.now()
+        );
+
+        publishMessage(roomId, response);
+    }
 
 
     // 채팅방에 채팅 게시하기
