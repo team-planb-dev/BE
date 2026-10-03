@@ -17,9 +17,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 /**
- * STOMP 기반 WebSocket 통합 테스트 지원 클래스.
- * STOMP 클라이언트 생성, 연결, 구독 및
- * 특정 메시지 타입 대기 기능 제공
+ * STOMP 연결·구독·메시지 수신 테스트 지원
  */
 public class StompTestClientHelper {
 

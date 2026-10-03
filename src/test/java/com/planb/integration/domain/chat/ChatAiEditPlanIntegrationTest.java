@@ -67,9 +67,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Chat 도메인 AI 일정 수정 STOMP 통합 테스트.
- * 최초 입장 인사, TALK 발행 시 AI 미리보기 응답 발행, CONFIRM/CANCEL 처리 검증
- * 실제 AI 호출은 TravelRecommendHandler Mock으로 대체(결정적 검증, 외부 API 미의존)
+ * AI 일정 수정의 STOMP 메시지 흐름 검증
  */
 public class ChatAiEditPlanIntegrationTest
         extends ChatIntegrationTestSupport {
