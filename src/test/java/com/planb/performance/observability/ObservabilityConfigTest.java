@@ -160,6 +160,18 @@ class ObservabilityConfigTest {
     }
 
     @Test
+    @DisplayName("다중 계정 수는 실행 스크립트에서 k6까지 전달되고 기본값은 기존 단일 계정")
+    void runScriptForwardsUserCountToK6() throws IOException {
+
+        assertThat(Files.readString(ROOT.resolve("run-observed-load.sh")))
+                .containsPattern("for name in [A-Z_ ]*USER_COUNT");
+
+        assertThat(Files.readString(Path.of("src/test/k6/travel-plan.js")))
+                .contains("const USER_COUNT = Number(__ENV.USER_COUNT || 1);")
+                .contains("setupTimeout: __ENV.SETUP_TIMEOUT || '10m'");
+    }
+
+    @Test
     @DisplayName("Grafana는 Prometheus datasource와 대시보드 폴더를 provisioning")
     void grafanaProvisioning() throws IOException {
 
