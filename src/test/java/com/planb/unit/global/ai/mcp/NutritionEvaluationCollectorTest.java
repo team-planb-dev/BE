@@ -6,9 +6,14 @@ import com.planb.domain.travel.entity.constant.NutritionEvaluationStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -128,5 +133,55 @@ class NutritionEvaluationCollectorTest {
                 collector.finish();
 
         assertEquals(1, mainCollected.size());
+    }
+
+    @Test
+    @DisplayName("가상 스레드 요청이 동시에 대기해도 각 요청은 자기 기록만 받음")
+    void evaluationsAreIsolatedPerVirtualThreadAcrossBlocking() throws Exception {
+
+        int requests = 200;
+
+        CountDownLatch ready = new CountDownLatch(requests);
+
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+
+            List<Future<List<String>>> results = IntStream
+                    .range(0, requests)
+                    .mapToObj(request -> executor.submit(() -> {
+
+                        collector.start();
+                        ready.countDown();
+                        ready.await();
+
+                        for (int index = 0; index < 3; index++) {
+
+                            collector.record("menu-" + request, result("vt"));
+
+                            // 외부 호출 대기처럼 carrier thread에서 내려갔다가 다시 올라오게 함
+                            Thread.sleep(Duration.ofMillis(5));
+                        }
+
+                        return collector
+                                .finish()
+                                .stream()
+                                .map(NutritionEvaluationCollector.FoodNutritionEvaluation::foodName)
+                                .toList();
+                    }))
+                    .toList();
+
+            for (int request = 0; request < requests; request++) {
+
+                assertEquals(
+                        List.of(
+                                "menu-" + request,
+                                "menu-" + request,
+                                "menu-" + request
+                        ),
+                        results
+                                .get(request)
+                                .get()
+                );
+            }
+        }
     }
 }

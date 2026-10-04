@@ -9,6 +9,7 @@
 #   MANAGEMENT_URL      관리 포트 주소 (기본 http://localhost:8081)
 #   TESTID              k6 지표의 testid 라벨 (기본 UTC 시각)
 #   SCENARIO, PLAN_RATE, PLAN_DURATION, PRE_ALLOCATED_VUS, MAX_VUS, GRACEFUL_STOP, STUB_PLAN_START_DATE  k6 시나리오 설정
+#   USER_COUNT, SETUP_TIMEOUT, SMOKE_ITERATIONS  다중 계정 수(기본 1), setup 제한 시간, smoke 반복 수
 #   SCRAPE_DRAIN_SECONDS  k6 종료·중단 후 남은 요청을 수집할 시간 (기본 30초)
 #   DOCKER              docker 실행 파일 (기본 docker)
 
@@ -76,7 +77,7 @@ echo "Grafana live: http://localhost:3000/d/travel-load?var-testid=${testid}&fro
 
 k6_env=(-e "BASE_URL=http://host.docker.internal:${base_url##*:}" -e "MANAGEMENT_URL=http://host.docker.internal:${management_url##*:}")
 
-for name in SCENARIO PLAN_RATE PLAN_DURATION PRE_ALLOCATED_VUS MAX_VUS GRACEFUL_STOP STUB_PLAN_START_DATE; do
+for name in SCENARIO PLAN_RATE PLAN_DURATION PRE_ALLOCATED_VUS MAX_VUS GRACEFUL_STOP STUB_PLAN_START_DATE USER_COUNT SETUP_TIMEOUT SMOKE_ITERATIONS; do
     [ -n "${!name:-}" ] && k6_env+=(-e "$name=${!name}")
 done
 
