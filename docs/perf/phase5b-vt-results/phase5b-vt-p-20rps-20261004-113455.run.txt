@@ -1,0 +1,3 @@
+testid=phase5b-vt-p-20rps-20261004-113455 exit=99 listen_queue_overflow_delta=0
+pinned_events=0
+request_failed=1 dial_timeout=1
