@@ -1,0 +1,142 @@
+{
+  "k6": {
+    "testid": "phase5b-5rps-20261004-010152",
+    "k6_exit": 0,
+    "grafana": "http://localhost:3000/d/travel-load?var-testid=phase5b-5rps-20261004-010152&from=1791043319000&to=1791043416000",
+    "complete": 300,
+    "interrupted": 0,
+    "plan_duration": "avg=6.09s min=6.05s  med=6.08s max=6.16s p(90)=6.11s p(95)=6.12s p(99)=6.15s",
+    "plan_success": "100.00% 300 out of 300",
+    "http_req_failed": "0.00%   0 out of 305",
+    "dropped_iterations": null,
+    "iterations": "300     4.537601/s",
+    "vus_max_line": "1       min=1          max=31"
+  },
+  "window": {
+    "start": 1791043320.15,
+    "end": 1791043385.889,
+    "seconds": 65.73899984359741
+  },
+  "hikari": {
+    "max": {
+      "{}": 10.0
+    },
+    "active": {
+      "max": 1.0,
+      "samples": 33
+    },
+    "pending": {
+      "max": 0.0,
+      "samples": 33,
+      "positive_samples": 0,
+      "longest_positive_run_seconds": 0
+    },
+    "timeout_increase": {
+      "{}": 0.0
+    },
+    "acquire_max_seconds": {
+      "max": 0.006,
+      "samples": 33
+    },
+    "usage_max_seconds": {
+      "max": 0.134,
+      "samples": 33
+    },
+    "usage_avg_seconds": {
+      "{}": 0.023332203389830507
+    },
+    "usage_count_increase": {
+      "{}": 599.2281129392646
+    },
+    "usage_seconds_increase": {
+      "{}": 13.98131220800325
+    }
+  },
+  "tomcat": {
+    "max_threads": {
+      "{}": 200.0
+    },
+    "busy": {
+      "max": 31.0,
+      "samples": 33
+    },
+    "current": {
+      "max": 31.0,
+      "samples": 33
+    },
+    "busy_ratio": {
+      "max": 0.155,
+      "samples": 33,
+      "samples_at_or_above": 0,
+      "longest_run_seconds": 0
+    }
+  },
+  "cpu": {
+    "process": {
+      "max": 0.04195450406057809,
+      "samples": 33,
+      "samples_at_or_above": 0,
+      "longest_run_seconds": 0
+    },
+    "system": {
+      "max": 0.3841349156777014,
+      "samples": 33,
+      "samples_at_or_above": 0,
+      "longest_run_seconds": 0
+    }
+  },
+  "jvm": {
+    "heap_used_ratio": {
+      "max": 0.03754391148686409,
+      "samples": 33,
+      "samples_at_or_above": 0,
+      "longest_run_seconds": 0
+    },
+    "heap_used_max_bytes": {
+      "max": 161249872.0,
+      "samples": 33
+    },
+    "live_threads": {
+      "max": 84.0,
+      "samples": 33
+    }
+  },
+  "server": {
+    "in_flight": {
+      "max": 31.0,
+      "samples": 33
+    },
+    "plan_requests_by_status": {
+      "{\"outcome\": \"SUCCESS\", \"status\": \"200\"}": 299.6140564696323
+    },
+    "plan_p95_seconds": {
+      "{}": 7.9
+    },
+    "orchestration_p95_seconds": {
+      "{}": 7.9
+    },
+    "orchestration_by_outcome": {
+      "{\"outcome\": \"success\"}": 299.6140564696323
+    }
+  },
+  "external_http": {
+    "webclient_by_status": {
+      "{\"client_name\": \"localhost\", \"exception\": \"none\", \"outcome\": \"SUCCESS\", \"status\": \"200\"}": 2107.454803981312
+    },
+    "webclient_max_seconds": {
+      "max": 0.029076,
+      "samples": 33
+    },
+    "openai_by_status": {
+      "{\"outcome\": \"SUCCESS\", \"status\": \"200\"}": 604.3063172862076
+    },
+    "openai_max_seconds": {
+      "max": 3.037900625,
+      "samples": 33
+    }
+  },
+  "scrape_up_min": {
+    "max": 1.0,
+    "samples": 33
+  }
+}
