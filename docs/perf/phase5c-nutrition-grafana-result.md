@@ -1,7 +1,7 @@
 # Phase 5C 영양 조회 병렬화 전후 부하 측정
 
 측정일: 2026-10-06
-코드 기준: `6d23bcd`와 동일한 미커밋 단계 계측. Before는 Claude의 영양 병렬화 patch만 역적용, After는 patch 적용.
+코드 기준: 5A 트랜잭션 분리와 5B 가상 스레드가 적용된 `6d23bcd` 위에 동일한 5C 단계 계측을 추가. Before는 영양 병렬화 patch만 역적용한 5B 기반 순차 버전, After는 같은 조건에 영양 병렬화만 적용한 5C 버전.
 판정 범위: 로컬 고정 지연 스텁의 응답 시간과 회귀. 실제 영양 API 처리량·요금·제한 검증 제외.
 
 ## 측정 계약
@@ -15,16 +15,18 @@
 
 ## 결과
 
+비교 기준은 이전에 캡처한 5B 부하 결과가 아니라, **5B 구조를 유지한 채 이번 식사 fixture로 새로 측정한 5C Before**. 기존 5B 실험에는 영양 조회 2건과 4초 지연 조건이 없어 수치를 직접 비교하지 않음.
+
 | 상태 | 반복 | 완료한 일정 | 일정 생성 p95 | 영양 보강 평균 | 영양 조회 | 성공률 | Hikari pending 최대 |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| 순차 | 1 | 181 | 14.17초 | 8.014초 | 362 | 100% | 0 |
-| 순차 | 2 | 180 | 14.21초 | 8.012초 | 360 | 100% | 0 |
-| 순차 | 3 | 180 | 14.15초 | 8.009초 | 360 | 100% | 0 |
-| 병렬 2건 | 1 | 180 | 10.14초 | 4.005초 | 360 | 100% | 0 |
-| 병렬 2건 | 2 | 181 | 10.10초 | 4.004초 | 362 | 100% | 0 |
-| 병렬 2건 | 3 | 181 | 10.13초 | 4.006초 | 362 | 100% | 0 |
+| 5B 기반 순차 (5C Before) | 1 | 181 | 14.17초 | 8.014초 | 362 | 100% | 0 |
+| 5B 기반 순차 (5C Before) | 2 | 180 | 14.21초 | 8.012초 | 360 | 100% | 0 |
+| 5B 기반 순차 (5C Before) | 3 | 180 | 14.15초 | 8.009초 | 360 | 100% | 0 |
+| 5B + 5C 병렬 2건 (5C After) | 1 | 180 | 10.14초 | 4.005초 | 360 | 100% | 0 |
+| 5B + 5C 병렬 2건 (5C After) | 2 | 181 | 10.10초 | 4.004초 | 362 | 100% | 0 |
+| 5B + 5C 병렬 2건 (5C After) | 3 | 181 | 10.13초 | 4.006초 | 362 | 100% | 0 |
 
-세 번의 p95 중앙값은 **14.17초 → 10.13초**, 4.04초·28.5% 감소. 영양 보강 평균 중앙값은 **8.012초 → 4.005초**, 약 절반. 순차 p95 범위 14.15~14.21초와 병렬 범위 10.10~10.14초는 겹치지 않음.
+5B 기반 순차 기준선과 5C 병렬화 버전의 p95 중앙값은 **14.17초 → 10.13초**, 4.04초·28.5% 감소. 영양 보강 평균 중앙값은 **8.012초 → 4.005초**, 약 절반. 순차 p95 범위 14.15~14.21초와 병렬 범위 10.10~10.14초는 겹치지 않음.
 
 모든 실행에서 검사 실패·HTTP 실패·dropped iteration·Hikari connection timeout 0건. 영양 조회는 정확히 **요청당 2회**, OpenAI **2회**, 외부 WebClient **15회**로 전후 동일. 영양 평가 상태는 모두 `NOT_EVALUABLE`로 동일. `nutrition_lookup` Timer는 두 조회의 시간을 각각 세므로 병렬 상태의 조회 시간 **합계**를 영양 보강 wall-clock과 직접 비교하지 않음.
 
@@ -40,12 +42,12 @@
 
 | 상태 | 반복 | 링크 |
 |---|---:|---|
-| 순차 | 1 | [before r1](http://localhost:3000/d/travel-load?var-testid=phase5c-before-3rps-r1-20261006&from=1791266440000&to=1791266588000) |
-| 순차 | 2 | [before r2](http://localhost:3000/d/travel-load?var-testid=phase5c-before-3rps-r2-20261006&from=1791266597000&to=1791266744000) |
-| 순차 | 3 | [before r3](http://localhost:3000/d/travel-load?var-testid=phase5c-before-3rps-r3-20261006&from=1791266747000&to=1791266893000) |
-| 병렬 | 1 | [after r1](http://localhost:3000/d/travel-load?var-testid=phase5c-after-3rps-r1-20261006&from=1791267105000&to=1791267252000) |
-| 병렬 | 2 | [after r2](http://localhost:3000/d/travel-load?var-testid=phase5c-after-3rps-r2-20261006&from=1791267260000&to=1791267403000) |
-| 병렬 | 3 | [after r3](http://localhost:3000/d/travel-load?var-testid=phase5c-after-3rps-r3-20261006&from=1791267405000&to=1791267547000) |
+| 5B 기반 순차 (5C Before) | 1 | [before r1](http://localhost:3000/d/travel-load?var-testid=phase5c-before-3rps-r1-20261006&from=1791266440000&to=1791266588000) |
+| 5B 기반 순차 (5C Before) | 2 | [before r2](http://localhost:3000/d/travel-load?var-testid=phase5c-before-3rps-r2-20261006&from=1791266597000&to=1791266744000) |
+| 5B 기반 순차 (5C Before) | 3 | [before r3](http://localhost:3000/d/travel-load?var-testid=phase5c-before-3rps-r3-20261006&from=1791266747000&to=1791266893000) |
+| 5B + 5C 병렬 (5C After) | 1 | [after r1](http://localhost:3000/d/travel-load?var-testid=phase5c-after-3rps-r1-20261006&from=1791267105000&to=1791267252000) |
+| 5B + 5C 병렬 (5C After) | 2 | [after r2](http://localhost:3000/d/travel-load?var-testid=phase5c-after-3rps-r2-20261006&from=1791267260000&to=1791267403000) |
+| 5B + 5C 병렬 (5C After) | 3 | [after r3](http://localhost:3000/d/travel-load?var-testid=phase5c-after-3rps-r3-20261006&from=1791267405000&to=1791267547000) |
 
 Grafana의 기존 대시보드는 k6 일정 지연·DB·JVM 지표 표시. 영양 단계 수치는 Prometheus의 `planb_travel_plan_stage_seconds_{count,sum}`에서 실행별 Counter 증가량으로 집계. Prometheus 보존 기간은 현행 Compose 설정상 2일이며, 대시보드 링크는 로컬 서비스 실행 중에만 접근 가능.
 
