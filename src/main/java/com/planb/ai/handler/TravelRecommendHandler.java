@@ -26,6 +26,7 @@ import com.planb.domain.travel.dto.response.MakeRecommendFoodResponse;
 import com.planb.domain.health.entity.constant.WalkType;
 import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.DateType;
+import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +34,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.converter.BeanOutputConverter;
@@ -89,6 +89,16 @@ public class TravelRecommendHandler {
             PlaceCandidateContext candidates
     ) {
 
+        // 지정 장소를 무작위 관광지 후보와 별도로 고정 (모델 계약 불변, tool 결과 내용만 보강)
+        List<Kor2KeywordSearchResponse.Item> plannedPlaces = tourismTool.findPlannedPlaces(
+                travelPlanContext
+                        .createTravelRequest()
+                        .plannedPlaces(),
+                travelPlanContext
+                        .createTravelRequest()
+                        .locationDo()
+        );
+
         CreatePlanAiResponse response = openAiClient
                 .call(
                         new VerifiedPlacePrompt(new TravelPlanPrompt(
@@ -100,8 +110,15 @@ public class TravelRecommendHandler {
                                 travelPlanContext,
                                 candidates
                         ),
-                        new PlanTourismTool(tourismTool, candidates)
+                        new PlanTourismTool(
+                                tourismTool,
+                                candidates,
+                                plannedPlaces
+                        )
                 );
+
+        // 재시도 초기화나 모델의 관광지 검색 생략과 무관하게 후속 보충 단계에 고정 후보 전달
+        plannedPlaces.forEach(candidates::pin);
 
         // PlanService 검증 직전의 관광지 개수·빈 슬롯 단일 보정
         // 생성·편집·재구성의 공통 보정 지점
@@ -273,12 +290,9 @@ public class TravelRecommendHandler {
             // 검색 후보로 보충 가능한 부족분의 AI 재시도 제외
             // 확정 후보의 Java 보충으로 AI 재시도 예산 보존
             failures.addAll(
-                    unfillable(
-                            touristPlaceCountFailures(
-                                    response,
-                                    context.healthContexts(),
-                                    expectedDayCount
-                            ),
+                    unfillableShortages(
+                            response,
+                            context.healthContexts(),
                             unusedAttractionCandidateCount(response, candidates)
                     )
             );
@@ -288,19 +302,50 @@ public class TravelRecommendHandler {
     }
 
     /**
-     * 후보 보충 후 남은 누락 슬롯의 교정 사유
+     * 미사용 후보로 날짜 순서대로 보충한 뒤에도 남는 관광지 부족분의 교정 사유
+     * 부족 개수(슬롯 단위)와 미사용 후보 수(후보 단위)를 같은 단위로 비교
+     * 개수 판정은 최종 검증과 같은 TouristPlaceCountPolicy.violations 사용
      */
-    private static List<String> unfillable(
-            List<String> failures,
+    private static List<String> unfillableShortages(
+            CreatePlanAiResponse response,
+            List<TravelHealthContext> healthContexts,
             int fillableCount
     ) {
 
-        return failures.size() <= fillableCount
-                ? List.of()
-                : failures.subList(fillableCount, failures.size());
+        int remaining = fillableCount;
+
+        List<String> failures = new ArrayList<>();
+
+        for (TouristPlaceCountPolicy.Violation violation : TouristPlaceCountPolicy.violations(
+                response,
+                healthContexts,
+                Set.of()
+        )) {
+            int shortage = violation.shortage();
+
+            // 초과분은 TouristPlaceCountPolicy.trimExcess가 제거하므로 부족한 경우만 재시도 대상
+            if (shortage == 0) {
+                continue;
+            }
+
+            if (shortage <= remaining) {
+                remaining -= shortage;
+
+                continue;
+            }
+
+            remaining = 0;
+
+            failures.add(shortageReason(
+                    response,
+                    violation
+            ));
+        }
+
+        return failures;
     }
 
-    // Java가 보충할 수 있는 미사용 관광지 후보 수
+    // Java가 보충할 수 있는 미사용 관광지 후보 수, 이름이 아닌 candidateId 기준
     private static int unusedAttractionCandidateCount(
             CreatePlanAiResponse response,
             PlaceCandidateContext candidates
@@ -310,7 +355,7 @@ public class TravelRecommendHandler {
             return 0;
         }
 
-        Set<String> usedNames = response
+        Set<String> usedCandidateIds = response
                 .planDays()
                 .stream()
                 .filter(Objects::nonNull)
@@ -319,76 +364,47 @@ public class TravelRecommendHandler {
                         .schedules()
                         .stream())
                 .filter(Objects::nonNull)
-                .map(CreatePlanAiResponse.PlanScheduleDetail::locationName)
+                .map(CreatePlanAiResponse.PlanScheduleDetail::candidateId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
         return (int) candidates
                 .attractionCandidates()
                 .stream()
-                .map(PlaceCandidateContext.Candidate::name)
+                .map(PlaceCandidateContext.Candidate::candidateId)
                 .filter(Objects::nonNull)
-                .filter(name -> !usedNames.contains(name))
+                .filter(candidateId -> !usedCandidateIds.contains(candidateId))
                 .count();
     }
 
-    private static List<String> touristPlaceCountFailures(
+    private static String shortageReason(
             CreatePlanAiResponse response,
-            List<TravelHealthContext> healthContexts,
-            int expectedDayCount
+            TouristPlaceCountPolicy.Violation violation
     ) {
 
-        int expectedCount = TouristPlaceCountPolicy.expectedCount(healthContexts);
-
-        if (expectedCount <= 0) {
-            return List.of();
-        }
-
-        List<CreatePlanAiResponse.PlanDayDetail> planDays = response.planDays();
-
-        List<String> failures = IntStream
-                .range(0, expectedDayCount)
-                .mapToObj(dayIndex -> {
-                    CreatePlanAiResponse.PlanDayDetail day = dayIndex < planDays.size()
-                            ? planDays.get(dayIndex)
-                            : null;
-
-                    List<CreatePlanAiResponse.PlanScheduleDetail> touristPlaces =
-                            day == null || day.schedules() == null
-                                    ? List.of()
-                                    : day
-                                            .schedules()
-                                            .stream()
-                                            .filter(Objects::nonNull)
-                                            .filter(schedule -> schedule.courseType() == CourseType.ATTRACTION
-                                                    || schedule.courseType() == CourseType.MUST_HAVE)
-                                            .toList();
-
-                    int actualCount = touristPlaces.size();
-
-                    // 초과분은 TouristPlaceCountPolicy.trimExcess가 제거하므로 부족한 경우만 재시도 대상
-                    if (actualCount >= expectedCount) {
-                        return null;
-                    }
-
-                    String selectedCandidateIds = touristPlaces
-                            .stream()
-                            .map(CreatePlanAiResponse.PlanScheduleDetail::candidateId)
-                            .filter(Objects::nonNull)
-                            .toList()
-                            .toString();
-
-                    return "planDays[day" + (day == null ? dayIndex + 1 : day.dayNumber())
-                            + "].schedules: 관광지 " + expectedCount
-                            + "개 필요 / 실제 " + actualCount + "개"
-                            + " / 추가 " + (expectedCount - actualCount) + "개"
-                            + " / 유지 candidateId " + selectedCandidateIds
-                            + " / 최초 관광지 candidate 목록 안에서 교정";
-                })
+        String selectedCandidateIds = response
+                .planDays()
+                .stream()
                 .filter(Objects::nonNull)
-                .toList();
+                .filter(day -> day.dayNumber() == violation.dayNumber())
+                .filter(day -> day.schedules() != null)
+                .flatMap(day -> day
+                        .schedules()
+                        .stream())
+                .filter(Objects::nonNull)
+                .filter(schedule -> schedule.courseType() == CourseType.ATTRACTION
+                        || schedule.courseType() == CourseType.MUST_HAVE)
+                .map(CreatePlanAiResponse.PlanScheduleDetail::candidateId)
+                .filter(Objects::nonNull)
+                .toList()
+                .toString();
 
-        return failures;
+        return "planDays[day" + violation.dayNumber()
+                + "].schedules: 관광지 " + violation.minimumCount()
+                + "개 필요 / 실제 " + violation.actualCount() + "개"
+                + " / 추가 " + violation.shortage() + "개"
+                + " / 유지 candidateId " + selectedCandidateIds
+                + " / 최초 관광지 candidate 목록 안에서 교정";
     }
 
     // 수정 응답의 모든 누락 조건을 한 번에 수집

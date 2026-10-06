@@ -109,6 +109,12 @@ public class MissingSlotCompleter {
         Map<PlanScheduleDetail, PlanScheduleDetail> previousPlaces =
                 previousPlaces(response);
 
+        // 출발 장소 변경 감지를 위해 원본 직전 장소 기록 후 지정 장소 교체
+        response = pinPlannedPlaces(
+                response,
+                candidates
+        );
+
         // 여행 전체의 장소 중복 선택 방지
         // 응답 안팎에서 사용한 장소명 통합
         Set<String> selectedNames = merged(
@@ -164,6 +170,123 @@ public class MissingSlotCompleter {
         return invalidateChangedTravelMinutes(
                 new CreatePlanAiResponse(days),
                 previousPlaces
+        );
+    }
+
+    /**
+     * 고정한 지정 장소가 응답에 없으면 날짜 순서대로 그날 첫 관광지를 지정 장소로 교체
+     * 시각·체류시간 유지, 관광 장소 개수 불변, 이동시간은 후속 단계가 재조회
+     */
+    private CreatePlanAiResponse pinPlannedPlaces(
+            CreatePlanAiResponse response,
+            PlaceCandidateContext candidates
+    ) {
+
+        if (candidates == null || response.planDays().isEmpty()) {
+            return response;
+        }
+
+        Set<String> usedIds = new HashSet<>();
+        Set<String> usedNames = usedNames(response);
+
+        response
+                .planDays()
+                .stream()
+                .filter(Objects::nonNull)
+                .filter(day -> day.schedules() != null)
+                .flatMap(day -> day
+                        .schedules()
+                        .stream())
+                .filter(Objects::nonNull)
+                .map(PlanScheduleDetail::candidateId)
+                .filter(Objects::nonNull)
+                .forEach(usedIds::add);
+
+        List<PlaceCandidateContext.Candidate> missing = candidates
+                .pinnedCandidates()
+                .stream()
+                .filter(candidate -> !usedIds.contains(candidate.candidateId())
+                        && !usedNames.contains(normalized(candidate.name())))
+                .toList();
+
+        if (missing.isEmpty()) {
+            return response;
+        }
+
+        List<CreatePlanAiResponse.PlanDayDetail> days = new ArrayList<>(response.planDays());
+
+        for (int index = 0; index < missing.size(); index++) {
+            int dayIndex = index % days.size();
+            CreatePlanAiResponse.PlanDayDetail day = days.get(dayIndex);
+
+            if (day == null || day.schedules() == null) {
+                continue;
+            }
+
+            List<PlanScheduleDetail> schedules = new ArrayList<>(day.schedules());
+
+            for (int slotIndex = 0; slotIndex < schedules.size(); slotIndex++) {
+                PlanScheduleDetail slot = schedules.get(slotIndex);
+
+                if (slot == null || slot.courseType() != CourseType.ATTRACTION) {
+                    continue;
+                }
+
+                schedules.set(
+                        slotIndex,
+                        plannedSlot(
+                                slot,
+                                missing.get(index)
+                        )
+                );
+
+                log.info(
+                        "[SLOT FILL] 지정 장소 교체 - day: {}, replaced: {}, planned: {}",
+                        day.dayNumber(),
+                        slot.locationName(),
+                        missing
+                                .get(index)
+                                .name()
+                );
+
+                break;
+            }
+
+            days.set(
+                    dayIndex,
+                    new CreatePlanAiResponse.PlanDayDetail(
+                            day.dayNumber(),
+                            day.date(),
+                            schedules
+                    )
+            );
+        }
+
+        return new CreatePlanAiResponse(days);
+    }
+
+    private PlanScheduleDetail plannedSlot(
+            PlanScheduleDetail slot,
+            PlaceCandidateContext.Candidate candidate
+    ) {
+
+        return new PlanScheduleDetail(
+                slot.scheduleType(),
+                CourseType.MUST_HAVE,
+                slot.startTime(),
+                slot.endTime(),
+                candidate.name(),
+                candidate.address(),
+                candidate.longitude(),
+                candidate.latitude(),
+                candidate.imageUrl(),
+                candidate.thumbnailUrl(),
+                slot.stayMinutes(),
+                null,
+                Set.of(RecommendationTag.MUST_VISIT),
+                null,
+                null,
+                candidate.candidateId()
         );
     }
 
@@ -498,6 +621,7 @@ public class MissingSlotCompleter {
         for (PlaceCandidateContext.Candidate candidate : candidates.restaurantCandidates()) {
             MealCandidateSelection selection = mealCandidate(
                     candidate,
+                    candidates,
                     usedNames,
                     usedMenus
             );
@@ -540,6 +664,7 @@ public class MissingSlotCompleter {
 
     private MealCandidateSelection mealCandidate(
             PlaceCandidateContext.Candidate candidate,
+            PlaceCandidateContext candidates,
             Set<String> usedNames,
             Set<String> usedMenus
     ) {
@@ -548,22 +673,13 @@ public class MissingSlotCompleter {
             return null;
         }
 
-        String menuName = representativeMenu(candidate);
+        String menuName;
 
-        if (menuName == null || usedMenus.contains(normalized(menuName))) {
-            return null;
-        }
-
-        return new MealCandidateSelection(candidate, menuName);
-    }
-
-    private String representativeMenu(PlaceCandidateContext.Candidate candidate) {
-
-        Kor2RestaurantIntroResponse intro;
-
+        // 조회 성공 결과만 요청 범위 메모이즈, 일시 실패는 다음 보정에서 재시도
         try {
-            intro = tourismTool.getRestaurantDetail(
-                    PlaceCandidateContext.contentId(candidate.candidateId())
+            menuName = candidates.representativeMenu(
+                    candidate.candidateId(),
+                    () -> representativeMenu(candidate)
             );
         } catch (RuntimeException failure) {
             log.info(
@@ -574,6 +690,19 @@ public class MissingSlotCompleter {
 
             return null;
         }
+
+        if (menuName == null || usedMenus.contains(normalized(menuName))) {
+            return null;
+        }
+
+        return new MealCandidateSelection(candidate, menuName);
+    }
+
+    private String representativeMenu(PlaceCandidateContext.Candidate candidate) {
+
+        Kor2RestaurantIntroResponse intro = tourismTool.getRestaurantDetail(
+                PlaceCandidateContext.contentId(candidate.candidateId())
+        );
 
         if (intro == null
                 || intro.response() == null

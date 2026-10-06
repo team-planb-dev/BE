@@ -9,21 +9,51 @@ import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
 import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
-import lombok.RequiredArgsConstructor;
 import org.springframework.ai.tool.annotation.Tool;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
-@RequiredArgsConstructor
 public class PlanTourismTool {
 
     private final TourismTool tourismTool;
 
     private final PlaceCandidateContext candidates;
+
+    // 생성 시작 시 Java가 찾은 사용자 지정 장소, 관광지 검색 결과 맨 앞에 항상 포함
+    private final List<Kor2KeywordSearchResponse.Item> plannedPlaces;
+
     private String attractionLocationDo;
     private String attractionLocationSigungu;
     private Kor2KeywordSearchResponse attractionResponse;
+
+    public PlanTourismTool(
+            TourismTool tourismTool,
+            PlaceCandidateContext candidates
+    ) {
+
+        this(
+                tourismTool,
+                candidates,
+                List.of()
+        );
+    }
+
+    public PlanTourismTool(
+            TourismTool tourismTool,
+            PlaceCandidateContext candidates,
+            List<Kor2KeywordSearchResponse.Item> plannedPlaces
+    ) {
+
+        this.tourismTool = tourismTool;
+        this.candidates = candidates;
+        this.plannedPlaces = plannedPlaces == null
+                ? List.of()
+                : List.copyOf(plannedPlaces);
+    }
 
     public void resetCandidates() {
 
@@ -44,23 +74,46 @@ public class PlanTourismTool {
             String locationSigungu
     ) {
 
-        if (attractionResponse != null
-                && Objects.equals(attractionLocationDo, locationDo)
-                && Objects.equals(attractionLocationSigungu, locationSigungu)) {
-            return recordCandidates(attractionResponse);
+        if (attractionResponse == null
+                || !Objects.equals(attractionLocationDo, locationDo)
+                || !Objects.equals(attractionLocationSigungu, locationSigungu)) {
+            attractionLocationDo = locationDo;
+            attractionLocationSigungu = locationSigungu;
+            attractionResponse = tourismTool
+                    .searchAttractionsByRegion(
+                            locationDo,
+                            locationSigungu
+                    );
         }
 
-        attractionLocationDo = locationDo;
-        attractionLocationSigungu = locationSigungu;
-        attractionResponse = tourismTool
-                .searchAttractionsByRegion(
-                        locationDo,
-                        locationSigungu
-                );
+        return withPlannedPlaces(recordCandidates(attractionResponse));
+    }
 
-        return recordCandidates(
-                attractionResponse
-        );
+    // 지정 장소 고정 후보를 앞에 두고 같은 후보 중복 제거
+    private List<PlaceCandidateContext.Candidate> withPlannedPlaces(
+            List<PlaceCandidateContext.Candidate> regionCandidates
+    ) {
+
+        if (plannedPlaces.isEmpty()) {
+            return regionCandidates;
+        }
+
+        Map<String, PlaceCandidateContext.Candidate> merged = new LinkedHashMap<>();
+
+        plannedPlaces
+                .stream()
+                .map(candidates::pin)
+                .forEach(candidate -> merged.put(
+                        candidate.candidateId(),
+                        candidate
+                ));
+
+        regionCandidates.forEach(candidate -> merged.putIfAbsent(
+                candidate.candidateId(),
+                candidate
+        ));
+
+        return new ArrayList<>(merged.values());
     }
 
     @Tool(description = """

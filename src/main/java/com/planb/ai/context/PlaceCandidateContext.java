@@ -6,7 +6,11 @@ import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchRespons
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 public class PlaceCandidateContext {
 
@@ -19,6 +23,12 @@ public class PlaceCandidateContext {
     private static final String RESTAURANT_CONTENT_TYPE_ID = "39";
 
     private final Map<String, Candidate> candidates = new ConcurrentHashMap<>();
+
+    // 사용자 지정 장소로 고정한 관광지 후보 ID
+    private final Set<String> pinnedIds = ConcurrentHashMap.newKeySet();
+
+    // 음식점 후보 ID별 대표 메뉴, 요청 안 상세 재조회 방지
+    private final Map<String, Optional<String>> representativeMenus = new ConcurrentHashMap<>();
 
     // TourAPI 요청용 contentId 복원, 접두사가 없으면 원본 유지
     public static String contentId(String candidateId) {
@@ -130,6 +140,47 @@ public class PlaceCandidateContext {
     public void clear() {
 
         candidates.clear();
+        pinnedIds.clear();
+    }
+
+    /**
+     * 사용자 지정 장소를 관광지 후보로 기록하고 고정
+     */
+    public Candidate pin(Kor2KeywordSearchResponse.Item item) {
+
+        Candidate candidate = record(item);
+        pinnedIds.add(candidate.candidateId());
+
+        return candidate;
+    }
+
+    /**
+     * 고정한 지정 장소 후보
+     */
+    public List<Candidate> pinnedCandidates() {
+
+        return pinnedIds
+                .stream()
+                .map(candidates::get)
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparing(Candidate::candidateId))
+                .toList();
+    }
+
+    /**
+     * 음식점 대표 메뉴의 요청 범위 메모이즈, 결과 없음도 기록하고 조회 예외는 기록하지 않음
+     */
+    public String representativeMenu(
+            String candidateId,
+            Supplier<String> loader
+    ) {
+
+        return representativeMenus
+                .computeIfAbsent(
+                        candidateId,
+                        id -> Optional.ofNullable(loader.get())
+                )
+                .orElse(null);
     }
 
     private static String text(String value) {
