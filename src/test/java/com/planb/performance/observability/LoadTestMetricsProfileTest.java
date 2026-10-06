@@ -58,6 +58,23 @@ class LoadTestMetricsProfileTest {
     }
 
     @Test
+    @DisplayName("일정 생성 구간은 짧은 조회부터 AI 대기까지 SLO 버킷을 가짐")
+    void travelPlanStagesHaveBuckets() {
+
+        assertThat(bounds(timer("planb.travel.plan.stage")))
+                .contains(
+                        0.005,
+                        0.1,
+                        1.0,
+                        6.0,
+                        15.0,
+                        30.0,
+                        120.0,
+                        300.0
+                );
+    }
+
+    @Test
     @DisplayName("외부 HTTP 요청과 재시도 timer에는 버킷을 만들지 않음")
     void otherTimersStayWithoutBuckets() {
 

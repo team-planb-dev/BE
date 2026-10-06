@@ -71,6 +71,8 @@ class PlanPlaceValidationTest {
 
     private final ScheduleNormalizer scheduleNormalizer = new ScheduleNormalizer(helper);
 
+    private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+
     private final PlanService service = new PlanService(
             mock(PlanRepository.class),
             helper,
@@ -81,7 +83,7 @@ class PlanPlaceValidationTest {
             nutrition,
             nutritionService,
             new MissingSlotCompleter(tourismTool),
-            new SimpleMeterRegistry()
+            meterRegistry
     );
 
     private final LocalDate date = LocalDate.of(
@@ -3615,6 +3617,25 @@ class PlanPlaceValidationTest {
                         "오죽헌"
                 ),
                 touristPlaceNames(result));
+
+        assertEquals(
+                1L,
+                meterRegistry
+                        .get("planb.travel.plan.stage")
+                        .tag("flow", "edit")
+                        .tag("stage", "nutrition_enrichment")
+                        .tag("outcome", "success")
+                        .timer()
+                        .count()
+        );
+
+        assertNull(
+                meterRegistry
+                        .find("planb.travel.plan.stage")
+                        .tag("flow", "create")
+                        .tag("stage", "nutrition_enrichment")
+                        .timer()
+        );
     }
 
     @Test

@@ -11,17 +11,25 @@ import com.planb.domain.travel.entity.constant.TravelStyle;
 import com.planb.domain.travel.entity.constant.TravelTheme;
 import com.planb.performance.external.ExternalHttpStubServer;
 import com.planb.performance.openai.OpenAiChatCompletionStub;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.RepetitionInfo;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import tools.jackson.databind.JsonNode;
 
+import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -42,18 +50,38 @@ class TravelLoadTestSmokeIntegrationTest extends TravelApiTestSupport {
             1
     );
 
+    private static final long NUTRITION_DELAY_MILLIS = Long.parseLong(System
+            .getenv()
+            .getOrDefault("PHASE5C_NUTRITION_DELAY_MS", "250"));
+
+    private static final long OPENAI_DELAY_MILLIS = Long.parseLong(System
+            .getenv()
+            .getOrDefault("PHASE5C_OPENAI_DELAY_MS", "0"));
+
     private static final ExternalHttpStubServer EXTERNAL_STUB =
             ExternalHttpStubServer.start(
                     0,
-                    ExternalHttpStubServer.Settings.normal()
+                    new ExternalHttpStubServer.Settings(
+                            ExternalHttpStubServer.Scenario.NORMAL,
+                            Map.of(
+                                    ExternalHttpStubServer.Api.FOOD_NUTRITION,
+                                    ExternalHttpStubServer.Scenario.DELAY
+                            ),
+                            Duration.ofMillis(NUTRITION_DELAY_MILLIS),
+                            Duration.ofSeconds(30)
+                    )
             );
 
     private static final OpenAiChatCompletionStub OPENAI_STUB =
             OpenAiChatCompletionStub.startTravelPlan(
                     0,
                     START_DATE,
-                    START_DATE.plusDays(1)
+                    START_DATE.plusDays(1),
+                    Duration.ofMillis(OPENAI_DELAY_MILLIS)
             );
+
+    @Autowired
+    private MeterRegistry meterRegistry;
 
     @DynamicPropertySource
     static void stubProperties(DynamicPropertyRegistry registry) {
@@ -76,7 +104,7 @@ class TravelLoadTestSmokeIntegrationTest extends TravelApiTestSupport {
         );
         registry.add(
                 "spring.ai.openai.timeout",
-                () -> "2s"
+                () -> "10s"
         );
 
         registerExternalApi(
@@ -128,6 +156,13 @@ class TravelLoadTestSmokeIntegrationTest extends TravelApiTestSupport {
     @Test
     @DisplayName("로컬 외부 스텁 기반 일정 생성과 저장 재조회")
     void createsAndReadsPlanWithLocalStubs() throws Exception {
+
+        long persistenceBefore = stageCount("persistence");
+        long nutritionBefore = stageCount("nutrition_enrichment");
+        int openAiBefore = OPENAI_STUB.requests().size();
+        int routeBefore = EXTERNAL_STUB
+                .requests(ExternalHttpStubServer.Api.KAKAO_MOBILITY)
+                .size();
 
         String username = createUniqueUsername();
         createUser(username);
@@ -202,10 +237,10 @@ class TravelLoadTestSmokeIntegrationTest extends TravelApiTestSupport {
 
         assertThat(OPENAI_STUB
                 .requests())
-                .hasSize(2);
+                .hasSize(openAiBefore + 2);
         assertThat(OPENAI_STUB
                 .requests()
-                .get(1))
+                .get(openAiBefore + 1))
                 .contains("tour:900001");
 
         assertThat(EXTERNAL_STUB
@@ -218,7 +253,214 @@ class TravelLoadTestSmokeIntegrationTest extends TravelApiTestSupport {
 
         assertThat(EXTERNAL_STUB
                 .requests(ExternalHttpStubServer.Api.KAKAO_MOBILITY))
-                .hasSize(4);
+                .hasSize(routeBefore + 4);
+
+        assertThat(stageCount("persistence"))
+                .isEqualTo(persistenceBefore + 1);
+        assertThat(stageCount("nutrition_enrichment"))
+                .isEqualTo(nutritionBefore + 1);
+    }
+
+    @RepeatedTest(3)
+    @DisplayName("등록된 점심 메뉴 2개와 지연 영양 조회의 요청 시간 기여")
+    void measuresDelayedNutritionLookupsInTravelCreation(
+            RepetitionInfo repetitionInfo
+    ) throws Exception {
+
+        long lookupBefore = stageCount("nutrition_lookup");
+        double lookupNanosBefore = stageNanos("nutrition_lookup");
+        double enrichmentNanosBefore = stageNanos("nutrition_enrichment");
+        double orchestrationNanosBefore = orchestrationNanos();
+        int foodBefore = EXTERNAL_STUB
+                .requests(ExternalHttpStubServer.Api.FOOD_NUTRITION)
+                .size();
+
+        String username = createUniqueUsername();
+        createUser(username);
+
+        LoginResult login = login(username);
+        Long healthId = addLunchCompanion(login.accessToken());
+
+        CreateTravelRequest request = new CreateTravelRequest(
+                "영양 지연 스텁 여행",
+                "서울",
+                "종로구",
+                START_DATE,
+                DateType.ONE_NIGHT_TWO_DAYS,
+                Transportation.CAR,
+                "서울역",
+                List.of(),
+                TravelStyle.LESS_WALK,
+                TravelTheme.NATURE,
+                List.of(),
+                List.of(),
+                List.of(healthId)
+        );
+
+        long started = System.nanoTime();
+
+        JsonNode created = response(
+                post(ADD_WITH_RECOMMEND_URL)
+                        .header("Authorization", login.accessToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+        );
+
+        long requestNanos = System.nanoTime() - started;
+        long lookupCount = stageCount("nutrition_lookup") - lookupBefore;
+        double lookupNanos = stageNanos("nutrition_lookup") - lookupNanosBefore;
+        double enrichmentNanos = stageNanos("nutrition_enrichment") - enrichmentNanosBefore;
+        double orchestrationNanos = orchestrationNanos() - orchestrationNanosBefore;
+        int foodCount = EXTERNAL_STUB
+                .requests(ExternalHttpStubServer.Api.FOOD_NUTRITION)
+                .size() - foodBefore;
+
+        assertThat(created.path("success").asBoolean())
+                .isTrue();
+
+        List<String> menus = new ArrayList<>();
+
+        for (JsonNode day : created.path("data").path("planDays")) {
+            for (JsonNode schedule : day.path("schedules")) {
+                if ("LUNCH".equals(schedule.path("scheduleType").asText())) {
+                    menus.add(
+                            schedule
+                                    .path("restaurantDetail")
+                                    .path("menuName")
+                                    .asText()
+                    );
+                }
+            }
+        }
+
+        assertThat(menus)
+                .containsExactly(
+                        "비빔밥",
+                        "불고기"
+                );
+
+        List<ExternalHttpStubServer.RecordedRequest> foodRequests = EXTERNAL_STUB
+                .requests(ExternalHttpStubServer.Api.FOOD_NUTRITION);
+
+        assertThat(foodRequests
+                .subList(
+                        foodBefore,
+                        foodRequests.size()
+                ))
+                .extracting(recorded -> recorded.query().get("FOOD_NM_KR"))
+                // 동시 조회로 도착 순서는 계약 아님. 응답 메뉴 순서는 위에서 검증
+                .containsExactlyInAnyOrderElementsOf(menus);
+
+        assertThat(lookupCount)
+                .isEqualTo(2);
+        assertThat(foodCount)
+                .isEqualTo(2);
+        assertThat(lookupNanos)
+                .isGreaterThanOrEqualTo(
+                        Duration.ofMillis(NUTRITION_DELAY_MILLIS * lookupCount)
+                                .toNanos()
+                );
+        assertThat(enrichmentNanos)
+                .isGreaterThanOrEqualTo(
+                        Duration.ofMillis(NUTRITION_DELAY_MILLIS)
+                                .toNanos()
+                );
+
+        // 두 조회 대기의 겹침. 지연이 짧으면 오차가 커서 판정 생략
+        if (NUTRITION_DELAY_MILLIS >= 100) {
+            assertThat(enrichmentNanos)
+                    .isLessThan(lookupNanos);
+        }
+        assertThat(orchestrationNanos)
+                .isGreaterThanOrEqualTo(enrichmentNanos);
+        assertThat((double) requestNanos)
+                .isGreaterThanOrEqualTo(orchestrationNanos);
+
+        System.out.printf(
+                "PHASE5C_NUTRITION repetition=%d openai_delay_ms=%d nutrition_delay_ms=%d request_ms=%.1f orchestration_ms=%.1f enrichment_ms=%.1f lookup_sum_ms=%.1f lookup_count=%d food_requests=%d%n",
+                repetitionInfo.getCurrentRepetition(),
+                OPENAI_DELAY_MILLIS,
+                NUTRITION_DELAY_MILLIS,
+                requestNanos / 1_000_000.0,
+                orchestrationNanos / 1_000_000.0,
+                enrichmentNanos / 1_000_000.0,
+                lookupNanos / 1_000_000.0,
+                lookupCount,
+                foodCount
+        );
+    }
+
+    private double stageNanos(String stage) {
+
+        var timer = meterRegistry
+                .find("planb.travel.plan.stage")
+                .tag("flow", "create")
+                .tag("stage", stage)
+                .tag("outcome", "success")
+                .timer();
+
+        return timer == null ? 0 : timer.totalTime(TimeUnit.NANOSECONDS);
+    }
+
+    private double orchestrationNanos() {
+
+        return meterRegistry
+                .find("planb.travel.ai.orchestration")
+                .tag("days", "2")
+                .tag("outcome", "success")
+                .timers()
+                .stream()
+                .mapToDouble(timer -> timer.totalTime(TimeUnit.NANOSECONDS))
+                .sum();
+    }
+
+    private Long addLunchCompanion(String accessToken) throws Exception {
+
+        String travelerName = "점심 스텁 동행인";
+
+        AddCompanionRequest request = new AddCompanionRequest(
+                travelerName,
+                true,
+                false,
+                new AddCompanionRequest.HealthInfo(
+                        List.of(DiseaseType.DIABETES),
+                        WalkType.MINIMAL
+                ),
+                new AddCompanionRequest.MealInfo(
+                        true,
+                        false,
+                        null,
+                        true,
+                        LocalTime.of(12, 0),
+                        false,
+                        null
+                ),
+                List.of(),
+                List.of()
+        );
+
+        mockMvc
+                .perform(
+                        post("/api/v1/health/add-traveler")
+                                .header("Authorization", accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                )
+                .andExpect(status().isOk());
+
+        return findHealthId(accessToken, travelerName);
+    }
+
+    private long stageCount(String stage) {
+
+        var timer = meterRegistry
+                .find("planb.travel.plan.stage")
+                .tag("flow", "create")
+                .tag("stage", stage)
+                .tag("outcome", "success")
+                .timer();
+
+        return timer == null ? 0 : timer.count();
     }
 
     private void assertCandidateIds(JsonNode plan) {

@@ -1,0 +1,145 @@
+{
+  "method": "Prometheus increase(sum/count) over the recorded execution window; fractional counts reflect range extrapolation. Nested timers are not additive.",
+  "runs": [
+    {
+      "testid": "phase5b-main-p-1rps-20261004",
+      "source_git_sha": "403b084405c1587028d82e7a655fdf3b0864d480",
+      "window": {
+        "start": 1791093139.0,
+        "end": 1791093225.0
+      },
+      "k6_plan_duration": "avg=6.14s min=6.09s   med=6.13s max=6.73s p(90)=6.16s p(95)=6.17s p(99)=6.42s",
+      "metrics": {
+        "planb_travel_ai_orchestration_seconds": {
+          "count": 57.336746234894946,
+          "sum": 347.35577096008103
+        },
+        "spring_ai_chat_client_seconds": {
+          "count": 57.336746234894946,
+          "sum": 346.01057559285675
+        },
+        "gen_ai_client_operation_seconds": {
+          "count": 111.60188106434909,
+          "sum": 336.1876507939759
+        },
+        "spring_ai_tool_seconds": {
+          "count": 54.26513482945414,
+          "sum": 0.4316576473123401
+        },
+        "okhttp_requests_seconds": {
+          "count": 111.60188106434909,
+          "sum": 335.96913269416046
+        },
+        "http_client_requests_seconds": {
+          "count": 395.214000833383,
+          "sum": 1.0446072447169477
+        }
+      }
+    },
+    {
+      "testid": "phase5b-main-p-36rps-20261004",
+      "source_git_sha": "403b084405c1587028d82e7a655fdf3b0864d480",
+      "window": {
+        "start": 1791093477.0,
+        "end": 1791093569.0
+      },
+      "k6_plan_duration": "avg=8.26s min=0s     med=8.54s max=10.65s p(90)=9.83s p(95)=10.05s p(99)=10.31s",
+      "metrics": {
+        "planb_travel_ai_orchestration_seconds": {
+          "count": 2064.8888888888887,
+          "sum": 12466.067919854577
+        },
+        "spring_ai_chat_client_seconds": {
+          "count": 2064.8888888888887,
+          "sum": 12433.321116603376
+        },
+        "gen_ai_client_operation_seconds": {
+          "count": 4025.511111111111,
+          "sum": 12109.913422746
+        },
+        "spring_ai_tool_seconds": {
+          "count": 1960.622222222222,
+          "sum": 7.839415195466667
+        },
+        "okhttp_requests_seconds": {
+          "count": 4025.511111111111,
+          "sum": 12106.183002656087
+        },
+        "http_client_requests_seconds": {
+          "count": 14245.688888888888,
+          "sum": 15.627545410044442
+        }
+      }
+    },
+    {
+      "testid": "phase5b-main-p-3rps-20261004",
+      "source_git_sha": "403b084405c1587028d82e7a655fdf3b0864d480",
+      "window": {
+        "start": 1791093258.0,
+        "end": 1791093344.0
+      },
+      "k6_plan_duration": "avg=6.11s min=6.07s   med=6.11s max=6.17s p(90)=6.14s p(95)=6.14s p(99)=6.17s",
+      "metrics": {
+        "planb_travel_ai_orchestration_seconds": {
+          "count": 167.90676079477137,
+          "sum": 1014.9166850833939
+        },
+        "spring_ai_chat_client_seconds": {
+          "count": 167.90676079477137,
+          "sum": 1012.2438638804509
+        },
+        "gen_ai_client_operation_seconds": {
+          "count": 325.5753044679103,
+          "sum": 980.2379588909154
+        },
+        "spring_ai_tool_seconds": {
+          "count": 158.6923653853022,
+          "sum": 0.8498073050631555
+        },
+        "okhttp_requests_seconds": {
+          "count": 325.5753044679103,
+          "sum": 979.7088471461567
+        },
+        "http_client_requests_seconds": {
+          "count": 1155.894713032298,
+          "sum": 1.6773008407957237
+        }
+      }
+    },
+    {
+      "testid": "phase5b-main-v-36rps-20261004",
+      "source_git_sha": "403b084405c1587028d82e7a655fdf3b0864d480",
+      "window": {
+        "start": 1791093811.0,
+        "end": 1791093895.0
+      },
+      "k6_plan_duration": "avg=6.06s min=6.03s  med=6.04s max=7.42s p(90)=6.06s p(95)=6.12s p(99)=6.72s",
+      "metrics": {
+        "planb_travel_ai_orchestration_seconds": {
+          "count": 2008.7557772276625,
+          "sum": 12089.385038809654
+        },
+        "spring_ai_chat_client_seconds": {
+          "count": 2008.7557772276625,
+          "sum": 12076.05863026221
+        },
+        "gen_ai_client_operation_seconds": {
+          "count": 3905.8571027889225,
+          "sum": 11735.714699641037
+        },
+        "spring_ai_tool_seconds": {
+          "count": 1897.1013255612602,
+          "sum": 3.135422407082668
+        },
+        "okhttp_requests_seconds": {
+          "count": 3905.8571027889225,
+          "sum": 11732.70239916325
+        },
+        "http_client_requests_seconds": {
+          "count": 13837.981537260834,
+          "sum": 5.144129332926845
+        }
+      }
+    }
+  ]
+}

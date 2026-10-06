@@ -39,6 +39,8 @@ import com.planb.domain.travel.repository.TravelHealthRepository;
 import com.planb.domain.travel.repository.TravelRepository;
 import com.planb.domain.user.entity.User;
 import com.planb.domain.user.repository.UserRepository;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -47,6 +49,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 @Service
 @RequiredArgsConstructor
@@ -77,6 +80,7 @@ public class TravelService {
     private final MedicationInfoQueryService medicationInfoQueryService;
     private final PlanQueryService planQueryService;
     private final PlanEditCacheService planEditCacheService;
+    private final MeterRegistry meterRegistry;
 
 
     public List<TravelHealthContext> loadHealthContexts(
@@ -84,16 +88,19 @@ public class TravelService {
             Long userId
     ) {
 
-        return travelTransactionService.readOnly(() -> {
-            userQueryService.findById(userId);
+        return recordStage(
+                "health_snapshot",
+                () -> travelTransactionService.readOnly(() -> {
+                    userQueryService.findById(userId);
 
-            List<Health> selectedHealths = findSelectedHealths(
-                    request.healthIds(),
-                    userId
-            );
+                    List<Health> selectedHealths = findSelectedHealths(
+                            request.healthIds(),
+                            userId
+                    );
 
-            return buildHealthContexts(selectedHealths);
-        });
+                    return buildHealthContexts(selectedHealths);
+                })
+        );
     }
 
     public CreatePlanResponse saveGeneratedPlan(
@@ -104,39 +111,67 @@ public class TravelService {
 
         Set<RecommendationTag> tags = planService.aggregateTags(aiResponse.planDays());
 
-        return travelTransactionService.write(() -> {
-            userQueryService.findById(userId);
+        return recordStage(
+                "persistence",
+                () -> travelTransactionService.write(() -> {
+                    userQueryService.findById(userId);
 
-            List<Health> selectedHealths = findSelectedHealths(
-                    request.healthIds(),
-                    userId
+                    List<Health> selectedHealths = findSelectedHealths(
+                            request.healthIds(),
+                            userId
+                    );
+
+                    Travel travel = createTravel(request, userId);
+                    saveTravel(travel);
+                    saveTravelHealths(travel, selectedHealths);
+
+                    plannedPlaceService.savePlannedPlaceList(
+                            plannedPlaceService.makePlannedPlace(
+                                    CreatePlannedPlaceRequest.from(travel, request)
+                            )
+                    );
+
+                    Plan plan = planService.createPlan(
+                            new CreatePlanRequest(travel, request.travelName())
+                    );
+                    planService.savePlan(plan);
+                    plan.updateTags(tags);
+                    planService.savePlan(plan);
+
+                    materializePlanDays(plan, aiResponse.planDays());
+
+                    return CreatePlanResponse.of(
+                            travel,
+                            tags,
+                            aiResponse
+                    );
+                })
+        );
+    }
+
+    private <T> T recordStage(
+            String stage,
+            Supplier<T> operation
+    ) {
+
+        Timer.Sample sample = Timer.start(meterRegistry);
+        String outcome = "failure";
+
+        try {
+            T result = operation.get();
+            outcome = "success";
+
+            return result;
+        } finally {
+            sample.stop(
+                    Timer
+                            .builder("planb.travel.plan.stage")
+                            .tag("flow", "create")
+                            .tag("stage", stage)
+                            .tag("outcome", outcome)
+                            .register(meterRegistry)
             );
-
-            Travel travel = createTravel(request, userId);
-            saveTravel(travel);
-            saveTravelHealths(travel, selectedHealths);
-
-            plannedPlaceService.savePlannedPlaceList(
-                    plannedPlaceService.makePlannedPlace(
-                            CreatePlannedPlaceRequest.from(travel, request)
-                    )
-            );
-
-            Plan plan = planService.createPlan(
-                    new CreatePlanRequest(travel, request.travelName())
-            );
-            planService.savePlan(plan);
-            plan.updateTags(tags);
-            planService.savePlan(plan);
-
-            materializePlanDays(plan, aiResponse.planDays());
-
-            return CreatePlanResponse.of(
-                    travel,
-                    tags,
-                    aiResponse
-            );
-        });
+        }
     }
 
     public GetAiPlanResponse loadCurrentPlan(Long travelId) {
