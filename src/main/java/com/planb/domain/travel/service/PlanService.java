@@ -7,7 +7,6 @@ import com.planb.ai.context.TravelPlanContext;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
 import com.planb.ai.dto.response.EditPlanAiResponse;
 import com.planb.ai.dto.response.RebuildPlanDayResponse;
-import com.planb.ai.dto.response.KakaoRouteResult;
 import com.planb.ai.dto.response.PlanEditScope;
 import com.planb.domain.travel.helper.PlanEditValidator;
 import com.planb.ai.client.AiCorrectionTracker;
@@ -35,7 +34,6 @@ import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.domain.travel.helper.PlanPlaceResolver.Validation;
 import com.planb.domain.travel.helper.PlanPlaceResolver;
 import com.planb.domain.travel.repository.PlanRepository;
-import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.global.config.exception.PlanEditExceptionEnum;
 import com.planb.global.config.exception.domain.BaseException;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -118,9 +116,8 @@ public class PlanService {
      */
     private final TravelRecommendHandler travelRecommendHandler;
 
-    // STEP 7에서 AI가 getRoute Tool 호출을 빠뜨려 travelMinutes가 비어 있는 슬롯을
-    // Java에서 직접 채우기 위한 route 조회 (AI Tool인 TourismTool.getRoute와 동일한 호출)
-    private final KakaoMapServiceHandler kakaoMapServiceHandler;
+    // AI가 비운 이동시간의 Java 확정 (병렬·요청 범위 메모이즈·근거리 도보 추정)
+    private final TravelMinutesResolver travelMinutesResolver;
 
     /*
     Tool 호출 결과 수집기
@@ -1399,42 +1396,25 @@ public class PlanService {
             Set<Integer> densityReductionDays
     ) {
 
-        int maximumCount = TouristPlaceCountPolicy.expectedCount(healthContexts);
+        TouristPlaceCountPolicy
+                .violations(
+                        response,
+                        healthContexts,
+                        densityReductionDays
+                )
+                .stream()
+                .findFirst()
+                .ifPresent(violation -> {
+                    String expectedCount = violation.minimumCount() == violation.maximumCount()
+                            ? String.valueOf(violation.maximumCount())
+                            : violation.minimumCount() + "~" + violation.maximumCount();
 
-        if (maximumCount == 0) {
-            return;
-        }
-
-        for (CreatePlanAiResponse.PlanDayDetail day : response.planDays()) {
-            int minimumCount = TouristPlaceCountPolicy.minimumCount(
-                    healthContexts,
-                    densityReductionDays != null
-                            && densityReductionDays.contains(day.dayNumber())
-            );
-
-            long touristPlaceCount = day.schedules() == null
-                    ? 0
-                    : day
-                            .schedules()
-                            .stream()
-                            .filter(Objects::nonNull)
-                            .map(CreatePlanAiResponse.PlanScheduleDetail::courseType)
-                            .filter(type -> type == CourseType.ATTRACTION
-                                    || type == CourseType.MUST_HAVE)
-                            .count();
-
-            if (touristPlaceCount < minimumCount || touristPlaceCount > maximumCount) {
-                String expectedCount = minimumCount == maximumCount
-                        ? String.valueOf(maximumCount)
-                        : minimumCount + "~" + maximumCount;
-
-                throw invalidPlace(
-                        "관광 장소 개수 불일치: day=" + day.dayNumber()
-                                + ", expected=" + expectedCount
-                                + ", actual=" + touristPlaceCount
-                );
-            }
-        }
+                    throw invalidPlace(
+                            "관광 장소 개수 불일치: day=" + violation.dayNumber()
+                                    + ", expected=" + expectedCount
+                                    + ", actual=" + violation.actualCount()
+                    );
+                });
     }
 
     private void validateTravelMinutes(CreatePlanAiResponse response) {
@@ -1589,19 +1569,17 @@ public class PlanService {
             CreateTravelRequest request
     ) {
 
-        KakaoRouteResult route = lookupRoute(
-                previousLocation,
-                previousPlace,
-                slot,
-                request.transportation()
-        );
+        int travelMinutes = travelMinutesResolver
+                .minutes(
+                        previousLocation,
+                        previousPlace,
+                        slot,
+                        request.transportation()
+                )
+                .orElseThrow(() -> invalidPlace("장소 변경 후 이동시간 확인 실패: origin=" + previousLocation
+                        + ", destination=" + slot.locationName() + ", transportation=" + request.transportation()));
 
-        if (route == null || route.travelMinutes() == null || route.travelMinutes() < 0) {
-            throw invalidPlace("장소 변경 후 이동시간 확인 실패: origin=" + previousLocation
-                    + ", destination=" + slot.locationName() + ", transportation=" + request.transportation());
-        }
-
-        LocalTime arrival = previousEnd == null ? slot.startTime() : previousEnd.plusMinutes(route.travelMinutes());
+        LocalTime arrival = previousEnd == null ? slot.startTime() : previousEnd.plusMinutes(travelMinutes);
 
         LocalTime start = arrival.isAfter(slot.startTime()) ? arrival : slot.startTime();
 
@@ -1623,7 +1601,7 @@ public class PlanService {
                 slot.imageUrl(),
                 slot.thumbNailImageUrl(),
                 slot.stayMinutes(),
-                route.travelMinutes(),
+                travelMinutes,
                 slot.tags(),
                 slot.medication(),
                 slot.restaurantDetail(),
@@ -2000,115 +1978,11 @@ public class PlanService {
             RouteAnchor anchor
     ) {
 
-        List<CreatePlanAiResponse.PlanDayDetail> filledPlanDays = new ArrayList<>();
-        String previousLocation = anchor.previousLocation();
-        CreatePlanAiResponse.PlanScheduleDetail previousPlace = anchor.previousPlace();
-
-        for (CreatePlanAiResponse.PlanDayDetail planDay : response.planDays()) {
-            List<CreatePlanAiResponse.PlanScheduleDetail> schedules = new ArrayList<>();
-
-            for (CreatePlanAiResponse.PlanScheduleDetail schedule : planDay.schedules()) {
-                CreatePlanAiResponse.PlanScheduleDetail filled = fillScheduleTravelMinutes(
-                        schedule,
-                        previousLocation,
-                        previousPlace,
-                        createTravelRequest.transportation()
-                );
-
-                schedules.add(filled);
-
-                if (filled.courseType() != CourseType.MEDICATION
-                        && filled.courseType() != CourseType.TRANSPORTATION
-                        && !isBlank(filled.locationName())) {
-                    previousLocation = filled.locationName();
-                    previousPlace = filled;
-                }
-            }
-
-            filledPlanDays.add(
-                    new CreatePlanAiResponse.PlanDayDetail(
-                            planDay.dayNumber(),
-                            planDay.date(),
-                            schedules
-                    )
-            );
-        }
-
-        return new CreatePlanAiResponse(filledPlanDays);
-    }
-
-    /**
-     * 0분을 포함한 이동시간 재확인
-     * 조회 실패 시 기존 값 유지
-     */
-    private CreatePlanAiResponse.PlanScheduleDetail fillScheduleTravelMinutes(
-            CreatePlanAiResponse.PlanScheduleDetail schedule,
-            String previousLocation,
-            CreatePlanAiResponse.PlanScheduleDetail previousPlace,
-            Transportation transportation
-    ) {
-
-        boolean needsTravelMinutes =
-                (schedule.travelMinutes() == null || schedule.travelMinutes() == 0)
-                        && !isBlank(schedule.locationName())
-                        && !isBlank(previousLocation);
-
-        if (!needsTravelMinutes) {
-            return schedule;
-        }
-
-        KakaoRouteResult route = lookupRoute(
-                previousLocation,
-                previousPlace,
-                schedule,
-                transportation
+        return travelMinutesResolver.fill(
+                response,
+                createTravelRequest.transportation(),
+                anchor
         );
-
-        Integer travelMinutes =
-                route == null ? null : route.travelMinutes();
-
-        if (travelMinutes == null) {
-            return schedule;
-        }
-
-        return new CreatePlanAiResponse.PlanScheduleDetail(
-                schedule.scheduleType(),
-                schedule.courseType(),
-                schedule.startTime(),
-                schedule.endTime(),
-                schedule.locationName(),
-                schedule.location(),
-                schedule.longitude(),
-                schedule.latitude(),
-                schedule.imageUrl(),
-                schedule.thumbNailImageUrl(),
-                schedule.stayMinutes(),
-                travelMinutes,
-                schedule.tags(),
-                schedule.medication(),
-                schedule.restaurantDetail(),
-                schedule.candidateId()
-        );
-    }
-
-    private KakaoRouteResult lookupRoute(
-            String previousLocation,
-            CreatePlanAiResponse.PlanScheduleDetail previousPlace,
-            CreatePlanAiResponse.PlanScheduleDetail destination,
-            Transportation transportation
-    ) {
-
-        return kakaoMapServiceHandler
-                .getRoute(
-                previousLocation,
-                destination.locationName(),
-                transportation,
-                previousPlace == null ? null : previousPlace.longitude(),
-                previousPlace == null ? null : previousPlace.latitude(),
-                destination.longitude(),
-                destination.latitude()
-        )
-                .block();
     }
 
     /*

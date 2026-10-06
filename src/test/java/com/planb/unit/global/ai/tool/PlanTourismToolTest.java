@@ -95,6 +95,90 @@ class PlanTourismToolTest {
     }
 
     @Test
+    @DisplayName("지정 장소 고정 후보를 지역 관광지 검색 결과 맨 앞에 중복 없이 포함")
+    void putsPlannedPlacesBeforeRegionalAttractions() {
+
+        TourismTool tourismTool = mock(TourismTool.class);
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        Kor2KeywordSearchResponse.Item regional = attractionItem(
+                "123",
+                "경복궁"
+        );
+        Kor2KeywordSearchResponse.Item planned = attractionItem(
+                "456",
+                "창덕궁"
+        );
+
+        when(
+                tourismTool
+                        .searchAttractionsByRegion(
+                                "서울",
+                                "종로구"
+                        )
+        )
+                .thenReturn(response(regional));
+
+        PlanTourismTool tool = new PlanTourismTool(
+                tourismTool,
+                candidates,
+                List.of(
+                        planned,
+                        regional
+                )
+        );
+
+        List<PlaceCandidateContext.Candidate> result = tool
+                .searchAttractionsByRegion(
+                        "서울",
+                        "종로구"
+                );
+
+        assertEquals(
+                List.of(
+                        "tour:456",
+                        "tour:123"
+                ),
+                result
+                        .stream()
+                        .map(PlaceCandidateContext.Candidate::candidateId)
+                        .toList()
+        );
+        assertEquals(
+                List.of(
+                        "tour:123",
+                        "tour:456"
+                ),
+                candidates
+                        .pinnedCandidates()
+                        .stream()
+                        .map(PlaceCandidateContext.Candidate::candidateId)
+                        .toList()
+        );
+    }
+
+    private Kor2KeywordSearchResponse.Item attractionItem(
+            String contentId,
+            String title
+    ) {
+
+        Kor2KeywordSearchResponse.Item item = mock(
+                Kor2KeywordSearchResponse.Item.class
+        );
+
+        when(item.contentid())
+                .thenReturn(contentId);
+
+        when(item.contenttypeid())
+                .thenReturn("12");
+
+        when(item.title())
+                .thenReturn(title);
+
+        return item;
+    }
+
+    @Test
     @DisplayName("지역 음식점 후보의 candidateId와 장소 identity 유지")
     void recordsRegionalRestaurantCandidateIdentity() {
 

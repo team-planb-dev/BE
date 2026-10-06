@@ -182,6 +182,86 @@ class TouristPlaceCountPolicyTest {
         );
     }
 
+    @Test
+    @DisplayName("중간 관광지 제거 시 다음 슬롯의 이전 구간 이동시간 무효화")
+    void clearsFollowingTravelMinutesAfterTrimming() {
+
+        CreatePlanAiResponse trimmed = TouristPlaceCountPolicy.trimExcess(
+                response(day(
+                                attraction("가"),
+                                attraction("나"),
+                                mustHave("다"),
+                                attraction("라"),
+                                slot(CourseType.CAFE_REST, "마")
+                        )),
+                List.of(healthContext(WalkType.MINIMAL)));
+
+        // MINIMAL 기준 2개: 뒤쪽 ATTRACTION 라·나 제거, MUST_HAVE 다 보존
+        assertThat(locationNames(trimmed))
+                .containsExactly(
+                "가",
+                "다",
+                "마"
+        );
+
+        List<CreatePlanAiResponse.PlanScheduleDetail> schedules = trimmed
+                .planDays()
+                .getFirst()
+                .schedules();
+
+        assertThat(schedules
+                .get(0)
+                .travelMinutes())
+                .isEqualTo(10);
+        assertThat(schedules
+                .get(1)
+                .travelMinutes())
+                .isNull();
+        assertThat(schedules
+                .get(2)
+                .travelMinutes())
+                .isNull();
+    }
+
+    @Test
+    @DisplayName("MUST_HAVE만으로 기준을 넘는 날은 그 수를 최대 개수로 인정")
+    void mustHaveRaisesMaximumCount() {
+
+        CreatePlanAiResponse response = response(day(
+                mustHave("가"),
+                mustHave("나"),
+                mustHave("다")
+        ));
+
+        assertThat(TouristPlaceCountPolicy.violations(
+                response,
+                List.of(healthContext(WalkType.MINIMAL)),
+                Set.of()
+        ))
+                .isEmpty();
+    }
+
+    @Test
+    @DisplayName("기준보다 부족한 날의 최소·최대·실제 개수 위반 반환")
+    void reportsShortageViolation() {
+
+        CreatePlanAiResponse response = response(day(
+                attraction("가")
+        ));
+
+        assertThat(TouristPlaceCountPolicy.violations(
+                response,
+                List.of(healthContext(WalkType.MODERATE)),
+                Set.of()
+        ))
+                .containsExactly(new TouristPlaceCountPolicy.Violation(
+                        1,
+                        3,
+                        3,
+                        1
+                ));
+    }
+
     private List<String> locationNames(CreatePlanAiResponse response) {
 
         return response
