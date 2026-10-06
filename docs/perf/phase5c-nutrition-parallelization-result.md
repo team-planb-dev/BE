@@ -2,7 +2,7 @@
 
 작성일: 2026-10-06
 작업 트리: `/Users/wooju-kang/.codex/worktrees/phase5c-stage-metrics/planB` (`codex/phase5c-stage-metrics`, HEAD `6d23bcd`)
-상태: 구현과 테스트 완료, 미커밋. 성능 전후 판정은 Codex Grafana 측정으로 넘김(§8)
+상태: 작성 당시 구현과 테스트 완료. 이후 #137로 dev, #138로 main 병합. 성능 전후 판정은 후속 Grafana 측정에 기록.
 
 ## 1. 결론
 
@@ -241,6 +241,6 @@ src/test/observability/run-observed-load.sh
 
 ## 후속 Grafana 측정
 
-2026-10-06 로컬 고정 지연 스텁에서 3 req/s 전후 각 3회 측정 완료. p95 중앙값 14.17초에서 10.13초로 감소. 상세 지표·실행 조건·공급자 한도 미확인 사항은 [Grafana 결과](phase5c-nutrition-grafana-result.md) 참고.
+2026-10-06 5A 트랜잭션 분리·5B 가상 스레드를 공통으로 적용한 뒤, 영양 조회만 순차(5B 기반 5C Before)·병렬(5C After)로 바꿔 로컬 3 req/s·4초 영양 스텁 조건에서 각 3회 측정. 일정 생성 p95 중앙값 14.17초에서 10.13초로 감소. 기존 5B 부하 실행은 식사 fixture가 달라 수치 비교에 사용하지 않음. 상세 지표·실행 조건·공급자 한도 미확인 사항은 [Grafana 결과](phase5c-nutrition-grafana-result.md) 참고.
 
 운영 안전장치: `common-prod`의 `NUTRITION_LOOKUP_CONCURRENCY` 기본값은 1. 공급자 한도 확인 전에는 기존 순차 조회를 유지하며, 로컬 실험과 단위 테스트는 동시성 2.
