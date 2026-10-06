@@ -55,6 +55,12 @@ class UserAuthCacheRepositoryTest {
                 "spring.data.redis.port",
                 () -> REDIS.getMappedPort(6379)
         );
+
+        // 프로필의 spring.data.redis.url이 host·port보다 우선하므로 컨테이너 주소로 덮어씀
+        registry.add(
+                "spring.data.redis.url",
+                () -> "redis://" + REDIS.getHost() + ":" + REDIS.getMappedPort(6379)
+        );
     }
 
     // 테스트 후 플러싱
