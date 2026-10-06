@@ -51,12 +51,17 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @Service
@@ -88,6 +93,10 @@ public class PlanService {
             NutritionType.SATURATED_FAT,
             RecommendationTag.SATURATED_FAT_REFERENCE
     );
+
+    // 요청당 누락 메뉴 영양 조회 동시성 상한. 공급자 전역 상한과 별개
+    @Value("${planb.travel.nutrition.lookup-concurrency:2}")
+    private int nutritionLookupConcurrency = 2;
 
     /*
     Repository
@@ -162,28 +171,42 @@ public class PlanService {
             CreatePlanAiResponse response;
 
             try {
-                response = travelRecommendHandler.createPlanByAi(context, candidates);
+                response = recordStage(
+                        "create",
+                        "ai_response",
+                        () -> travelRecommendHandler.createPlanByAi(context, candidates)
+                );
 
-                validated = validatePlaces(
-                        response,
-                        candidates,
-                        context,
-                        null
+                CreatePlanAiResponse aiResponse = response;
+
+                validated = recordStage(
+                        "create",
+                        "place_validation",
+                        () -> validatePlaces(
+                                aiResponse,
+                                candidates,
+                                context,
+                                null
+                        )
                 );
             } finally {
                 evaluations = nutritionEvaluationCollector.finish();
             }
 
-            CreatePlanAiResponse result = finishPlan(
-                    validated,
-                    context,
-                    evaluations,
-                    RouteAnchor.from(context
-                                    .createTravelRequest()
-                                    .decidedLocation()),
-                    candidates,
-                    Set.of(),
-                    null
+            CreatePlanAiResponse result = recordStage(
+                    "create",
+                    "finish_plan",
+                    () -> finishPlan(
+                            validated,
+                            context,
+                            evaluations,
+                            RouteAnchor.from(context
+                                            .createTravelRequest()
+                                            .decidedLocation()),
+                            candidates,
+                            Set.of(),
+                            null
+                    )
             );
 
             outcome = "success";
@@ -207,6 +230,29 @@ public class PlanService {
                             .tag("corrected", corrected)
                             .register(meterRegistry)
             );
+        }
+    }
+
+    private <T> T recordStage(
+            String flow,
+            String stage,
+            Supplier<T> operation
+    ) {
+
+        Timer.Sample sample = Timer.start(meterRegistry);
+        String outcome = "failure";
+
+        try {
+            T result = operation.get();
+            outcome = "success";
+
+            return result;
+        } finally {
+            sample.stop(stageTimer(
+                    flow,
+                    stage,
+                    outcome
+            ));
         }
     }
 
@@ -761,11 +807,18 @@ public class PlanService {
                         .getPlusDays() + 1
         );
 
+        String flow = currentPlan == null ? "create" : "edit";
+
         List<NutritionEvaluationCollector.FoodNutritionEvaluation> finalEvaluations =
-                enrichMissingNutritionEvaluations(
-                        mealFixed,
-                        context.healthContexts(),
-                        evaluations
+                recordStage(
+                        flow,
+                        "nutrition_enrichment",
+                        () -> enrichMissingNutritionEvaluations(
+                                mealFixed,
+                                context.healthContexts(),
+                                evaluations,
+                                flow
+                        )
                 );
 
         // 식사 슬롯 확정 후 식전·식후 복약 배치
@@ -787,7 +840,8 @@ public class PlanService {
     private List<NutritionEvaluationCollector.FoodNutritionEvaluation> enrichMissingNutritionEvaluations(
             CreatePlanAiResponse response,
             List<TravelHealthContext> healthContexts,
-            List<NutritionEvaluationCollector.FoodNutritionEvaluation> evaluations
+            List<NutritionEvaluationCollector.FoodNutritionEvaluation> evaluations,
+            String flow
     ) {
 
         List<NutritionEvaluationCollector.FoodNutritionEvaluation> enriched =
@@ -812,7 +866,8 @@ public class PlanService {
                 .stream()
                 .toList();
 
-        response
+        // 조회 전 중복 제거로 메뉴 목록 확정
+        List<String> missingMenus = response
                 .planDays()
                 .stream()
                 .flatMap(planDay -> planDay
@@ -823,20 +878,72 @@ public class PlanService {
                 .map(CreatePlanAiResponse.RestaurantDetail::menuName)
                 .filter(menuName -> !isBlank(menuName))
                 .filter(evaluatedMenus::add)
-                .forEach(menuName -> nutritionService
-                        .evaluateFoodNutrition(
+                .toList();
+
+        // 동시 조회 결과의 기존 메뉴 순서 보존
+        enriched.addAll(Flux
+                .fromIterable(missingMenus)
+                .flatMapSequential(
+                        menuName -> lookupNutrition(
                                 menuName,
-                                diseaseTypes
-                        )
-                        .blockOptional()
-                        .ifPresent(result -> enriched.add(
-                                new NutritionEvaluationCollector.FoodNutritionEvaluation(
-                                        menuName,
-                                        result
-                                )
-                        )));
+                                diseaseTypes,
+                                flow
+                        ),
+                        nutritionLookupConcurrency
+                )
+                .collectList()
+                .block());
 
         return enriched;
+    }
+
+    // 메뉴 1건 조회와 구독 시작부터 종료까지의 단계 시간
+    private Mono<NutritionEvaluationCollector.FoodNutritionEvaluation> lookupNutrition(
+            String menuName,
+            List<DiseaseType> diseaseTypes,
+            String flow
+    ) {
+
+        return Mono.defer(() -> {
+
+            Timer.Sample sample = Timer.start(meterRegistry);
+
+            // 하류 전달 전 결과 확정과 다른 메뉴 실패로 인한 취소 구분
+            AtomicReference<String> outcome = new AtomicReference<>("cancelled");
+
+            // 조회 호출의 동기 예외 기록
+            return Mono
+                    .defer(() -> nutritionService
+                            .evaluateFoodNutrition(
+                                    menuName,
+                                    diseaseTypes
+                            ))
+                    .map(result -> new NutritionEvaluationCollector.FoodNutritionEvaluation(
+                            menuName,
+                            result
+                    ))
+                    .doOnSuccess(ignored -> outcome.set("success"))
+                    .doOnError(ignored -> outcome.set("failure"))
+                    .doFinally(ignored -> sample.stop(stageTimer(
+                            flow,
+                            "nutrition_lookup",
+                            outcome.get()
+                    )));
+        });
+    }
+
+    private Timer stageTimer(
+            String flow,
+            String stage,
+            String outcome
+    ) {
+
+        return Timer
+                .builder("planb.travel.plan.stage")
+                .tag("flow", flow)
+                .tag("stage", stage)
+                .tag("outcome", outcome)
+                .register(meterRegistry);
     }
 
     /**
