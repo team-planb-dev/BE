@@ -10,6 +10,7 @@ import com.planb.ai.dto.response.RebuildPlanDayResponse;
 import com.planb.ai.dto.response.KakaoRouteResult;
 import com.planb.ai.dto.response.PlanEditScope;
 import com.planb.domain.travel.helper.PlanEditValidator;
+import com.planb.ai.client.AiCorrectionTracker;
 import com.planb.ai.handler.MissingSlotCompleter;
 import com.planb.ai.handler.TravelRecommendHandler;
 import com.planb.ai.mcp.NutritionEvaluationCollector;
@@ -158,6 +159,8 @@ public class PlanService {
         String outcome = "failure";
         String corrected = "false";
 
+        AiCorrectionTracker.start();
+
         try {
             nutritionEvaluationCollector.start();
 
@@ -210,10 +213,11 @@ public class PlanService {
             );
 
             outcome = "success";
-            corrected = Boolean.toString(!response.equals(result));
 
             return result;
         } finally {
+            corrected = Boolean.toString(AiCorrectionTracker.finish());
+
             sample.stop(
                     Timer
                             .builder("planb.travel.ai.orchestration")
@@ -1500,15 +1504,23 @@ public class PlanService {
         for (int attempt = 0; attempt < 2; attempt++) {
             PlaceCandidateContext retryCandidates = new PlaceCandidateContext();
 
-            CreatePlanAiResponse.PlanScheduleDetail choice = travelRecommendHandler.reselectPlace(
-                    new PlaceReselectPrompt(
-                            context,
-                            slot,
-                            result.reason(),
-                            Set.copyOf(usedPlaces),
-                            Set.copyOf(usedMenus)
-                    ),
-                    retryCandidates);
+            String reason = result.reason();
+
+            // 재선택 LLM 호출의 횟수·시간 계측, 기존 일정 유무로 생성·편집 구분
+            CreatePlanAiResponse.PlanScheduleDetail choice = recordStage(
+                    existing == null ? "create" : "edit",
+                    "reselect",
+                    () -> travelRecommendHandler.reselectPlace(
+                            new PlaceReselectPrompt(
+                                    context,
+                                    slot,
+                                    reason,
+                                    Set.copyOf(usedPlaces),
+                                    Set.copyOf(usedMenus)
+                            ),
+                            retryCandidates
+                    )
+            );
 
             result = planPlaceResolver.validate(
                     planPlaceResolver.select(slot, choice),

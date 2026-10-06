@@ -18,6 +18,8 @@ import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.RepetitionInfo;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -82,6 +84,20 @@ class TravelLoadTestSmokeIntegrationTest extends TravelApiTestSupport {
 
     @Autowired
     private MeterRegistry meterRegistry;
+
+    @Autowired
+    private LlmCallRecorder llmCallRecorder;
+
+    // 유료 기준선 실행 전 계측 경로 사전 확인용 호출별 기록기
+    @TestConfiguration
+    static class RecorderConfig {
+
+        @Bean
+        LlmCallRecorder llmCallRecorder() {
+
+            return new LlmCallRecorder();
+        }
+    }
 
     @DynamicPropertySource
     static void stubProperties(DynamicPropertyRegistry registry) {
@@ -159,6 +175,9 @@ class TravelLoadTestSmokeIntegrationTest extends TravelApiTestSupport {
 
         long persistenceBefore = stageCount("persistence");
         long nutritionBefore = stageCount("nutrition_enrichment");
+        long modelCallsBefore = meterCount("gen_ai.client.operation");
+        long toolCallsBefore = meterCount("spring.ai.tool");
+        llmCallRecorder.reset();
         int openAiBefore = OPENAI_STUB.requests().size();
         int routeBefore = EXTERNAL_STUB
                 .requests(ExternalHttpStubServer.Api.KAKAO_MOBILITY)
@@ -259,6 +278,35 @@ class TravelLoadTestSmokeIntegrationTest extends TravelApiTestSupport {
                 .isEqualTo(persistenceBefore + 1);
         assertThat(stageCount("nutrition_enrichment"))
                 .isEqualTo(nutritionBefore + 1);
+
+        // Part 2 기준선 계측 사전 확인: 모델 호출 2회(tool 요청 1회 + 최종 응답)와 tool 실행 기록
+        assertThat(meterCount("gen_ai.client.operation"))
+                .isEqualTo(modelCallsBefore + 2);
+        assertThat(meterCount("spring.ai.tool"))
+                .isGreaterThan(toolCallsBefore);
+        assertThat(llmCallRecorder.calls())
+                .hasSize(2);
+        assertThat(llmCallRecorder
+                .calls()
+                .getFirst()
+                .hasToolCalls())
+                .isTrue();
+        assertThat(llmCallRecorder
+                .calls()
+                .getLast()
+                .hasToolCalls())
+                .isFalse();
+    }
+
+    // 태그와 무관한 meter 전체 기록 횟수
+    private long meterCount(String name) {
+
+        return meterRegistry
+                .find(name)
+                .timers()
+                .stream()
+                .mapToLong(timer -> timer.count())
+                .sum();
     }
 
     @RepeatedTest(3)

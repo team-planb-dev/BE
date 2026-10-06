@@ -244,6 +244,10 @@ public class OpenAiClient {
             Supplier<T> retry
     ) {
 
+        if ("correction".equals(stage)) {
+            AiCorrectionTracker.mark();
+        }
+
         Timer.Sample sample = Timer.start(meterRegistry);
         String outcome = "failure";
 

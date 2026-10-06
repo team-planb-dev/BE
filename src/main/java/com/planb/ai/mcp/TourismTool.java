@@ -14,12 +14,15 @@ import com.planb.global.client.kor2Service.handler.Kor2ServiceHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
+import java.util.random.RandomGenerator;
 
 @Slf4j
 @Component
@@ -83,6 +86,18 @@ public class TourismTool {
     private final KakaoMapServiceHandler kakaoMapServiceHandler;
     private final NutritionService nutritionService;
     private final NutritionEvaluationCollector nutritionEvaluationCollector;
+
+    // 관광지 후보 무작위 추출용, 실험 실행기의 고정 seed 주입 지점
+    private RandomGenerator attractionCandidateRandom = new Random();
+
+    /**
+     * 관광지 후보 추출 난수 생성기 교체
+     */
+    @Autowired(required = false)
+    public void attractionCandidateRandom(RandomGenerator attractionCandidateRandom) {
+
+        this.attractionCandidateRandom = attractionCandidateRandom;
+    }
 
     @Tool(description = """
             여행 요청 지역의 실제 관광지 후보를 조회합니다.
@@ -227,7 +242,10 @@ public class TourismTool {
 
         List<Kor2KeywordSearchResponse.Item> candidates = new ArrayList<>(filtered);
 
-        Collections.shuffle(candidates);
+        Collections.shuffle(
+                candidates,
+                attractionCandidateRandom
+        );
 
         List<Kor2KeywordSearchResponse.Item> selected = candidates
                 .stream()
