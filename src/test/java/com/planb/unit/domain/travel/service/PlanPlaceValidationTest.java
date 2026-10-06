@@ -1560,6 +1560,16 @@ class PlanPlaceValidationTest {
                         any(),
                         any());
 
+        // 재선택 호출 1회의 생성 흐름 stage 기록
+        assertEquals(
+                1L,
+                meterRegistry
+                        .get("planb.travel.plan.stage")
+                        .tag("flow", "create")
+                        .tag("stage", "reselect")
+                        .timer()
+                        .count());
+
         verify(kakao)
                 .getRoute(
                 "동백섬",

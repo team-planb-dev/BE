@@ -4,6 +4,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.planb.ai.client.AiCorrectionTracker;
 import com.planb.ai.client.OpenAiClient;
 import com.planb.ai.context.PlaceCandidateContext;
 import com.planb.ai.dto.response.PlaceWithRouteResult;
@@ -443,6 +444,8 @@ class OpenAiClientTest {
                 )
                 : List.of();
 
+        AiCorrectionTracker.start();
+
         TestDto result = openAiClient.call(
                 prompt,
                 outputConverter,
@@ -456,6 +459,9 @@ class OpenAiClientTest {
                 times(2)
         )
                 .convert(any());
+
+        // correction 재시도는 요청 단위 correction 발생으로 기록
+        assertTrue(AiCorrectionTracker.finish());
     }
 
     @Test
@@ -636,6 +642,8 @@ class OpenAiClientTest {
 
         Function<TestDto, List<String>> validation = dto -> List.of();
 
+        AiCorrectionTracker.start();
+
         assertEquals(
                 valid,
                 openAiClient.call(
@@ -650,6 +658,9 @@ class OpenAiClientTest {
                 times(1)
         )
                 .convert(any());
+
+        // 빈 응답 재시도는 correction이 아니므로 미기록
+        assertFalse(AiCorrectionTracker.finish());
     }
 
     @Test

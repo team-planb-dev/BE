@@ -457,6 +457,17 @@ class PlanServiceTest {
                         "129.16",
                         "35.16"
                 );
+
+        // Java 이동시간 보정만 있고 AI correction 호출이 없으면 corrected=false
+        assertEquals(
+                1L,
+                meterRegistry
+                        .get("planb.travel.ai.orchestration")
+                        .tag("outcome", "success")
+                        .tag("corrected", "false")
+                        .timer()
+                        .count()
+        );
     }
 
     @Test
