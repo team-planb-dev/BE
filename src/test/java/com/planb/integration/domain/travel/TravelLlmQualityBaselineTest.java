@@ -9,15 +9,22 @@ import com.planb.domain.health.entity.constant.MedicationBasis;
 import com.planb.domain.health.entity.constant.RelatedMeal;
 import com.planb.domain.health.entity.constant.WalkType;
 import com.planb.domain.travel.dto.request.CreateTravelRequest;
+import com.planb.domain.travel.dto.request.EditPlanRequest;
 import com.planb.domain.travel.entity.constant.DateType;
 import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.domain.travel.entity.constant.TravelStyle;
 import com.planb.domain.travel.entity.constant.TravelTheme;
+import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
+import com.planb.global.client.kor2Service.handler.Kor2ServiceHandler;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.MediaType;
 import tools.jackson.databind.JsonNode;
 
@@ -29,7 +36,10 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -47,7 +57,66 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
 
     private static final String ADD_WITH_RECOMMEND_URL = "/api/v1/travel/add-with-recommend";
     private static final String ADD_COMPANION_URL = "/api/v1/health/add-traveler";
+    private static final String EDIT_PREVIEW_URL = "/api/v1/travel/edit-plan/preview";
     private static final int REPEATS = 3;
+
+    // 실행 전후 태그별 차이를 기록할 meter
+    private static final List<String> METERS = List.of(
+            "gen_ai.client.operation",
+            "gen_ai.client.token.usage",
+            "spring.ai.tool",
+            "planb.travel.plan.stage",
+            "planb.travel.ai.orchestration",
+            "planb.ai.retry"
+    );
+
+    // 케이스 공통 알레르기(새우) 추정용 키워드, 오탐(해물·짬뽕)과 누락(동의어) 양방향 오차 존재
+    private static final List<String> ALLERGEN_KEYWORDS = List.of(
+            "새우",
+            "대하",
+            "쉬림프",
+            "감바스",
+            "해물",
+            "짬뽕",
+            "해천"
+    );
+
+    // 케이스별 첫 성공 생성에만 실행하는 고정 편집 요청 (관찰용)
+    private static final List<String> EDIT_REQUESTS = List.of(
+            "2일차 점심 메뉴를 다른 것으로 바꿔줘",
+            "2일차 관광지를 전부 다른 곳으로 바꿔줘"
+    );
+
+    private static final Set<String> EDITED_CASES = new HashSet<>();
+
+    @Autowired
+    private MeterRegistry meterRegistry;
+
+    @Autowired
+    private LlmCallRecorder llmCallRecorder;
+
+    @Autowired
+    private Random attractionCandidateRandom;
+
+    @Autowired
+    private Kor2ServiceHandler kor2ServiceHandler;
+
+    // 실험 전용 bean: 호출별 LLM 기록, 관광지 후보 고정 seed
+    @TestConfiguration
+    static class ExperimentConfig {
+
+        @Bean
+        LlmCallRecorder llmCallRecorder() {
+
+            return new LlmCallRecorder();
+        }
+
+        @Bean
+        Random attractionCandidateRandom() {
+
+            return new Random();
+        }
+    }
 
     private static final Path OUTPUT_DIR = Path.of("build", "llm-quality-baseline");
     private static final String RUN_ID = Instant
@@ -225,6 +294,15 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
                 healthIds
         );
 
+        long seed = CASES.indexOf(goldenCase) * 100L + repeat;
+        attractionCandidateRandom.setSeed(seed);
+        llmCallRecorder.reset();
+
+        MeterSnapshot before = MeterSnapshot.take(
+                meterRegistry,
+                METERS
+        );
+
         long started = System.nanoTime();
 
         String body = mockMvc
@@ -242,6 +320,15 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
                 .getContentAsString();
 
         long durationMs = (System.nanoTime() - started) / 1_000_000;
+
+        // 측정 구간 종료 후 계측값 확정, 이후 품질 계수와 편집은 측정 시간 밖
+        Map<String, Map<String, Map<String, Double>>> meterDelta = MeterSnapshot
+                .take(
+                        meterRegistry,
+                        METERS
+                )
+                .deltaSince(before);
+        List<LlmCallRecorder.LlmCall> llmCalls = llmCallRecorder.calls();
 
         String rawFile = goldenCase.id() + "-" + repeat + ".json";
         write(
@@ -262,10 +349,20 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
                                 startDate,
                                 durationMs,
                                 body,
-                                rawFile
+                                rawFile,
+                                seed,
+                                meterDelta,
+                                llmCalls
                         )
                 ) + System.lineSeparator(),
                 true
+        );
+
+        runEdits(
+                goldenCase,
+                repeat,
+                login.accessToken(),
+                body
         );
     }
 
@@ -278,7 +375,28 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
             String failure,
             int restaurantCount,
             int nutritionFilledCount,
-            String rawFile
+            String rawFile,
+            long seed,
+            PlanQualityCounts quality,
+            int menuSourceChecked,
+            int menuSourceMatched,
+            List<LlmCallRecorder.LlmCall> llmCalls,
+            Map<String, Map<String, Map<String, Double>>> meterDelta
+    ) {
+    }
+
+    private record EditResult(
+            String runId,
+            String caseId,
+            int repeat,
+            String editRequest,
+            String outcome,
+            long durationMs,
+            String failure,
+            boolean unsearchedCandidateFailure,
+            int day1ChangedSlots,
+            int changeCount,
+            int llmCallCount
     ) {
     }
 
@@ -289,7 +407,10 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
             LocalDate startDate,
             long durationMs,
             String body,
-            String rawFile
+            String rawFile,
+            long seed,
+            Map<String, Map<String, Map<String, Double>>> meterDelta,
+            List<LlmCallRecorder.LlmCall> llmCalls
     ) {
 
         JsonNode root = objectMapper.readTree(body);
@@ -308,7 +429,13 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
                             .toString()),
                     0,
                     0,
-                    rawFile
+                    rawFile,
+                    seed,
+                    null,
+                    0,
+                    0,
+                    llmCalls,
+                    meterDelta
             );
         }
 
@@ -350,6 +477,8 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
             }
         }
 
+        int[] menuSource = checkMenuSource(plan);
+
         return new RunResult(
                 RUN_ID,
                 goldenCase.id(),
@@ -359,8 +488,237 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
                 failure,
                 restaurants,
                 nutritionFilled,
-                rawFile
+                rawFile,
+                seed,
+                PlanQualityCounts.count(
+                        plan,
+                        goldenCase.plannedPlace(),
+                        ALLERGEN_KEYWORDS
+                ),
+                menuSource[0],
+                menuSource[1],
+                llmCalls,
+                meterDelta
         );
+    }
+
+    // TourAPI 음식점 슬롯의 메뉴가 상세 메뉴에 있는지 재조회, [확인 수, 일치 수]
+    private int[] checkMenuSource(JsonNode plan) {
+
+        int checked = 0;
+        int matched = 0;
+
+        for (JsonNode day : plan.path("planDays")) {
+            for (JsonNode slot : day.path("schedules")) {
+                String candidateId = slot
+                        .path("candidateId")
+                        .asText("");
+                JsonNode detail = slot.path("restaurantDetail");
+
+                if (!candidateId.startsWith("tour:") || detail.isMissingNode() || detail.isNull()) {
+                    continue;
+                }
+
+                Kor2RestaurantIntroResponse intro = kor2ServiceHandler
+                        .getRestaurantDetail(candidateId.substring("tour:".length()))
+                        .block();
+
+                Kor2RestaurantIntroResponse.Item item = firstItem(intro);
+
+                checked++;
+
+                if (item != null && PlanQualityCounts.menuMatches(
+                        detail
+                                .path("menuName")
+                                .asText(null),
+                        item.firstmenu(),
+                        item.treatmenu()
+                )) {
+                    matched++;
+                }
+            }
+        }
+
+        return new int[]{
+                checked,
+                matched
+        };
+    }
+
+    private Kor2RestaurantIntroResponse.Item firstItem(Kor2RestaurantIntroResponse intro) {
+
+        try {
+            List<Kor2RestaurantIntroResponse.Item> items = intro
+                    .response()
+                    .body()
+                    .items()
+                    .item();
+
+            return items == null || items.isEmpty()
+                    ? null
+                    : items.getFirst();
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    // 케이스별 첫 성공 생성 결과로 고정 편집 미리보기 2종 실행
+    private void runEdits(
+            GoldenCase goldenCase,
+            int repeat,
+            String accessToken,
+            String createdBody
+    ) throws Exception {
+
+        JsonNode created = objectMapper.readTree(createdBody);
+
+        if (!created
+                .path("success")
+                .asBoolean() || EDITED_CASES.contains(goldenCase.id())) {
+            return;
+        }
+
+        EDITED_CASES.add(goldenCase.id());
+
+        long travelId = created
+                .path("data")
+                .path("travelId")
+                .asLong();
+
+        for (String editRequest : EDIT_REQUESTS) {
+            llmCallRecorder.reset();
+
+            long started = System.nanoTime();
+
+            String body = mockMvc
+                    .perform(
+                            post(EDIT_PREVIEW_URL)
+                                    .header(
+                                            "Authorization",
+                                            accessToken
+                                    )
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(new EditPlanRequest(
+                                            travelId,
+                                            editRequest
+                                    )))
+                    )
+                    .andReturn()
+                    .getResponse()
+                    .getContentAsString();
+
+            long durationMs = (System.nanoTime() - started) / 1_000_000;
+
+            write(
+                    OUTPUT_DIR.resolve("edits-" + RUN_ID + ".jsonl"),
+                    objectMapper.writeValueAsString(editResult(
+                            goldenCase,
+                            repeat,
+                            editRequest,
+                            durationMs,
+                            body,
+                            llmCallRecorder
+                                    .calls()
+                                    .size()
+                    )) + System.lineSeparator(),
+                    true
+            );
+        }
+    }
+
+    private EditResult editResult(
+            GoldenCase goldenCase,
+            int repeat,
+            String editRequest,
+            long durationMs,
+            String body,
+            int llmCallCount
+    ) {
+
+        JsonNode root = objectMapper.readTree(body);
+
+        if (!root
+                .path("success")
+                .asBoolean()) {
+            String failure = summarize(root
+                    .path("error")
+                    .toString());
+
+            return new EditResult(
+                    RUN_ID,
+                    goldenCase.id(),
+                    repeat,
+                    editRequest,
+                    "API_FAILURE",
+                    durationMs,
+                    failure,
+                    failure != null && failure.contains("검색하지 않은"),
+                    0,
+                    0,
+                    llmCallCount
+            );
+        }
+
+        JsonNode data = root.path("data");
+
+        return new EditResult(
+                RUN_ID,
+                goldenCase.id(),
+                repeat,
+                editRequest,
+                "SUCCESS",
+                durationMs,
+                null,
+                false,
+                changedSlots(
+                        data
+                                .path("before")
+                                .path("planDays")
+                                .path(0),
+                        data
+                                .path("after")
+                                .path("planDays")
+                                .path(0)
+                ),
+                data
+                        .path("after")
+                        .path("changes")
+                        .size(),
+                llmCallCount
+        );
+    }
+
+    // 요청 대상이 아닌 1일차의 장소 변경 수, 위치별 장소명 비교와 길이 차이 합산
+    private int changedSlots(
+            JsonNode before,
+            JsonNode after
+    ) {
+
+        List<String> beforeNames = new ArrayList<>();
+        List<String> afterNames = new ArrayList<>();
+
+        before
+                .path("schedules")
+                .forEach(slot -> beforeNames.add(slot
+                        .path("locationName")
+                        .asText("")));
+        after
+                .path("schedules")
+                .forEach(slot -> afterNames.add(slot
+                        .path("locationName")
+                        .asText("")));
+
+        int changed = Math.abs(beforeNames.size() - afterNames.size());
+
+        for (int index = 0; index < Math.min(beforeNames.size(), afterNames.size()); index++) {
+            if (!beforeNames
+                    .get(index)
+                    .equals(afterNames.get(index))) {
+                changed++;
+            }
+        }
+
+        return changed;
     }
 
     // 계획 원문을 제외한 실패 사유 첫 줄만 기록
