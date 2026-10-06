@@ -24,7 +24,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Import(VirtualThreadHttpIntegrationTest.RequestThreadProbe.class)
-@TestPropertySource(properties = "SPRING_THREADS_VIRTUAL_ENABLED=true")
+// 실행 환경의 SPRING_THREADS_VIRTUAL_ENABLED가 표준 속성에 직접 연결되므로 함께 고정
+@TestPropertySource(properties = {
+        "SPRING_THREADS_VIRTUAL_ENABLED=true",
+        "spring.threads.virtual.enabled=true"
+})
 class VirtualThreadHttpIntegrationTest extends IntegrationTest {
 
     @LocalServerPort

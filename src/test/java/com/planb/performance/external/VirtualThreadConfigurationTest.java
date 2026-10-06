@@ -2,11 +2,13 @@ package com.planb.performance.external;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
 import org.springframework.boot.env.YamlPropertySourceLoader;
-import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.MutablePropertySources;
 import org.springframework.core.env.PropertySource;
-import org.springframework.core.env.PropertySourcesPropertyResolver;
+import org.springframework.core.env.StandardEnvironment;
+import org.springframework.core.env.SystemEnvironmentPropertySource;
 import org.springframework.core.io.ClassPathResource;
 
 import java.io.IOException;
@@ -26,42 +28,84 @@ class VirtualThreadConfigurationTest {
     @DisplayName("기본 platform thread와 keep-alive 비활성")
     void defaultsToPlatformThreads() throws IOException {
 
-        PropertySourcesPropertyResolver resolver = resolver(Map.of());
+        Binder binder = binder(Map.of());
 
-        assertThat(resolver.getProperty(VIRTUAL_THREADS_ENABLED))
-                .isEqualTo("false");
-        assertThat(resolver.getProperty(KEEP_ALIVE))
-                .isEqualTo("false");
+        assertThat(bind(binder, VIRTUAL_THREADS_ENABLED))
+                .isFalse();
+        assertThat(bind(binder, KEEP_ALIVE))
+                .isFalse();
     }
 
     @Test
     @DisplayName("가상 스레드 토글의 keep-alive 동시 활성")
     void toggleEnablesVirtualThreadsAndKeepAlive() throws IOException {
 
-        PropertySourcesPropertyResolver resolver = resolver(Map.of(
+        Binder binder = binder(Map.of(
                 "SPRING_THREADS_VIRTUAL_ENABLED",
                 "true"
         ));
 
-        assertThat(resolver.getProperty(VIRTUAL_THREADS_ENABLED))
-                .isEqualTo("true");
-        assertThat(resolver.getProperty(KEEP_ALIVE))
-                .isEqualTo("true");
+        assertThat(bind(binder, VIRTUAL_THREADS_ENABLED))
+                .isTrue();
+        assertThat(bind(binder, KEEP_ALIVE))
+                .isTrue();
     }
 
-    private PropertySourcesPropertyResolver resolver(
-            Map<String, Object> environment
-    ) throws IOException {
+    @Test
+    @DisplayName("별도 keep-alive 환경변수는 토글보다 우선")
+    void separateKeepAliveVariableOverridesToggle() throws IOException {
 
-        MutablePropertySources sources = new MutablePropertySources();
+        // OS 환경변수가 application.yml보다 우선. 하이픈 제거·구분자 표기 모두 같은 속성에 연결
+        for (String keepAliveVariable : new String[] {
+                "SPRING_MAIN_KEEPALIVE",
+                "SPRING_MAIN_KEEP_ALIVE"
+        }) {
 
-        sources.addFirst(new MapPropertySource(
-                "environment",
-                environment
-        ));
+            Binder binder = binder(Map.of(
+                    "SPRING_THREADS_VIRTUAL_ENABLED",
+                    "true",
+                    keepAliveVariable,
+                    "false"
+            ));
+
+            assertThat(bind(binder, VIRTUAL_THREADS_ENABLED))
+                    .isTrue();
+            assertThat(bind(binder, KEEP_ALIVE))
+                    .as(keepAliveVariable)
+                    .isFalse();
+        }
+    }
+
+    // Spring Boot와 같은 우선순위: OS 환경변수 → application.yml
+    private Binder binder(Map<String, Object> environmentVariables) throws IOException {
+
+        StandardEnvironment environment = new StandardEnvironment();
+
+        MutablePropertySources sources = environment.getPropertySources();
+
+        sources.remove(StandardEnvironment.SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME);
+        sources.replace(
+                StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME,
+                new SystemEnvironmentPropertySource(
+                        StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME,
+                        environmentVariables
+                )
+        );
         sources.addLast(yaml("application.yml"));
 
-        return new PropertySourcesPropertyResolver(sources);
+        ConfigurationPropertySources.attach(environment);
+
+        return Binder.get(environment);
+    }
+
+    private boolean bind(
+            Binder binder,
+            String name
+    ) {
+
+        return binder
+                .bind(name, Boolean.class)
+                .get();
     }
 
     private PropertySource<?> yaml(String name) throws IOException {
