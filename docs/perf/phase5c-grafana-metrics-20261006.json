@@ -1,0 +1,400 @@
+{
+  "conditions": {
+    "source_head": "6d23bcd140102642bc88cfa72c9ef5ca6da5803f",
+    "before": "same uncommitted stage metrics with Claude nutrition patch reversed",
+    "after": "same uncommitted stage metrics with Claude nutrition patch applied",
+    "user_count": 200,
+    "rate_per_second": 3,
+    "duration_seconds": 60,
+    "openai_stub_delay_ms": 3000,
+    "food_nutrition_stub_delay_ms": 4000,
+    "companion_lunch": true,
+    "virtual_threads": true
+  },
+  "runs": [
+    {
+      "testid": "phase5c-before-3rps-r1-20261006",
+      "start_ms": 1791266440000,
+      "end_ms": 1791266588000,
+      "grafana_url": "http://localhost:3000/d/travel-load?var-testid=phase5c-before-3rps-r1-20261006&from=1791266440000&to=1791266588000",
+      "plan_duration_p95_seconds": 14.17,
+      "plan_success_percent": 100.0,
+      "plan_success_count": 181,
+      "plan_count": 181,
+      "failed_checks": 0,
+      "stages": {
+        "ai_response": {
+          "success": {
+            "count": 181.0,
+            "sum": 1092.0808898750001
+          }
+        },
+        "finish_plan": {
+          "success": {
+            "count": 181.0,
+            "sum": 1452.062303703
+          }
+        },
+        "health_snapshot": {
+          "success": {
+            "count": 181.0,
+            "sum": 2.91435458
+          }
+        },
+        "nutrition_enrichment": {
+          "success": {
+            "count": 181.0,
+            "sum": 1450.582394747
+          }
+        },
+        "nutrition_lookup": {
+          "success": {
+            "count": 362.0,
+            "sum": 1450.557853295
+          }
+        },
+        "persistence": {
+          "success": {
+            "count": 181.0,
+            "sum": 6.756174249
+          }
+        },
+        "place_validation": {
+          "success": {
+            "count": 181.0,
+            "sum": 1.234874208
+          }
+        }
+      },
+      "nutrition_enrichment_average_seconds": 8.014267374292817,
+      "nutrition_evaluations": {
+        "not_evaluable": 362.0
+      },
+      "hikari_pending_max": 0.0,
+      "hikari_pending_positive_samples": 0,
+      "hikari_timeout_delta": 0.0,
+      "http_client_count_delta": 2715.0,
+      "okhttp_count_delta": 362.0
+    },
+    {
+      "testid": "phase5c-before-3rps-r2-20261006",
+      "start_ms": 1791266597000,
+      "end_ms": 1791266744000,
+      "grafana_url": "http://localhost:3000/d/travel-load?var-testid=phase5c-before-3rps-r2-20261006&from=1791266597000&to=1791266744000",
+      "plan_duration_p95_seconds": 14.21,
+      "plan_success_percent": 100.0,
+      "plan_success_count": 180,
+      "plan_count": 180,
+      "failed_checks": 0,
+      "stages": {
+        "ai_response": {
+          "success": {
+            "count": 180.0,
+            "sum": 1085.5167288399998
+          }
+        },
+        "finish_plan": {
+          "success": {
+            "count": 180.0,
+            "sum": 1443.5922320400002
+          }
+        },
+        "health_snapshot": {
+          "success": {
+            "count": 180.0,
+            "sum": 2.9513187149999998
+          }
+        },
+        "nutrition_enrichment": {
+          "success": {
+            "count": 180.0,
+            "sum": 1442.148294457
+          }
+        },
+        "nutrition_lookup": {
+          "success": {
+            "count": 360.0,
+            "sum": 1442.1248586660001
+          }
+        },
+        "persistence": {
+          "success": {
+            "count": 180.0,
+            "sum": 7.713327621
+          }
+        },
+        "place_validation": {
+          "success": {
+            "count": 180.0,
+            "sum": 1.3887304990000002
+          }
+        }
+      },
+      "nutrition_enrichment_average_seconds": 8.011934969205555,
+      "nutrition_evaluations": {
+        "not_evaluable": 360.0
+      },
+      "hikari_pending_max": 0.0,
+      "hikari_pending_positive_samples": 0,
+      "hikari_timeout_delta": 0.0,
+      "http_client_count_delta": 2700.0,
+      "okhttp_count_delta": 360.0
+    },
+    {
+      "testid": "phase5c-before-3rps-r3-20261006",
+      "start_ms": 1791266747000,
+      "end_ms": 1791266893000,
+      "grafana_url": "http://localhost:3000/d/travel-load?var-testid=phase5c-before-3rps-r3-20261006&from=1791266747000&to=1791266893000",
+      "plan_duration_p95_seconds": 14.15,
+      "plan_success_percent": 100.0,
+      "plan_success_count": 180,
+      "plan_count": 180,
+      "failed_checks": 0,
+      "stages": {
+        "ai_response": {
+          "success": {
+            "count": 180.0,
+            "sum": 1084.2501175480002
+          }
+        },
+        "finish_plan": {
+          "success": {
+            "count": 180.0,
+            "sum": 1442.5453382949995
+          }
+        },
+        "health_snapshot": {
+          "success": {
+            "count": 180.0,
+            "sum": 2.547459504
+          }
+        },
+        "nutrition_enrichment": {
+          "success": {
+            "count": 180.0,
+            "sum": 1441.5737950839998
+          }
+        },
+        "nutrition_lookup": {
+          "success": {
+            "count": 360.0,
+            "sum": 1441.551376717
+          }
+        },
+        "persistence": {
+          "success": {
+            "count": 180.0,
+            "sum": 6.470984672
+          }
+        },
+        "place_validation": {
+          "success": {
+            "count": 180.0,
+            "sum": 0.9106350889999999
+          }
+        }
+      },
+      "nutrition_enrichment_average_seconds": 8.008743306022222,
+      "nutrition_evaluations": {
+        "not_evaluable": 360.0
+      },
+      "hikari_pending_max": 0.0,
+      "hikari_pending_positive_samples": 0,
+      "hikari_timeout_delta": 0.0,
+      "http_client_count_delta": 2700.0,
+      "okhttp_count_delta": 360.0
+    },
+    {
+      "testid": "phase5c-after-3rps-r1-20261006",
+      "start_ms": 1791267105000,
+      "end_ms": 1791267252000,
+      "grafana_url": "http://localhost:3000/d/travel-load?var-testid=phase5c-after-3rps-r1-20261006&from=1791267105000&to=1791267252000",
+      "plan_duration_p95_seconds": 10.14,
+      "plan_success_percent": 100.0,
+      "plan_success_count": 180,
+      "plan_count": 180,
+      "failed_checks": 0,
+      "stages": {
+        "ai_response": {
+          "success": {
+            "count": 180.0,
+            "sum": 1084.190644839
+          }
+        },
+        "finish_plan": {
+          "success": {
+            "count": 180.0,
+            "sum": 721.871086042
+          }
+        },
+        "health_snapshot": {
+          "success": {
+            "count": 180.0,
+            "sum": 2.685260419
+          }
+        },
+        "nutrition_enrichment": {
+          "success": {
+            "count": 180.0,
+            "sum": 720.820454573
+          }
+        },
+        "nutrition_lookup": {
+          "success": {
+            "count": 360.0,
+            "sum": 1441.50759034
+          }
+        },
+        "persistence": {
+          "success": {
+            "count": 180.0,
+            "sum": 6.687525174
+          }
+        },
+        "place_validation": {
+          "success": {
+            "count": 180.0,
+            "sum": 0.8775905850000001
+          }
+        }
+      },
+      "nutrition_enrichment_average_seconds": 4.004558080961111,
+      "nutrition_evaluations": {
+        "not_evaluable": 360.0
+      },
+      "hikari_pending_max": 0.0,
+      "hikari_pending_positive_samples": 0,
+      "hikari_timeout_delta": 0.0,
+      "http_client_count_delta": 2700.0,
+      "okhttp_count_delta": 360.0
+    },
+    {
+      "testid": "phase5c-after-3rps-r2-20261006",
+      "start_ms": 1791267260000,
+      "end_ms": 1791267403000,
+      "grafana_url": "http://localhost:3000/d/travel-load?var-testid=phase5c-after-3rps-r2-20261006&from=1791267260000&to=1791267403000",
+      "plan_duration_p95_seconds": 10.1,
+      "plan_success_percent": 100.0,
+      "plan_success_count": 181,
+      "plan_count": 181,
+      "failed_checks": 0,
+      "stages": {
+        "ai_response": {
+          "success": {
+            "count": 181.0,
+            "sum": 1089.706150002
+          }
+        },
+        "finish_plan": {
+          "success": {
+            "count": 181.0,
+            "sum": 725.3295915900001
+          }
+        },
+        "health_snapshot": {
+          "success": {
+            "count": 181.0,
+            "sum": 2.391643539
+          }
+        },
+        "nutrition_enrichment": {
+          "success": {
+            "count": 181.0,
+            "sum": 724.63732011
+          }
+        },
+        "nutrition_lookup": {
+          "success": {
+            "count": 362.0,
+            "sum": 1449.1697332600002
+          }
+        },
+        "persistence": {
+          "success": {
+            "count": 181.0,
+            "sum": 6.081110453999999
+          }
+        },
+        "place_validation": {
+          "success": {
+            "count": 181.0,
+            "sum": 0.6699940839999999
+          }
+        }
+      },
+      "nutrition_enrichment_average_seconds": 4.003521105580111,
+      "nutrition_evaluations": {
+        "not_evaluable": 362.0
+      },
+      "hikari_pending_max": 0.0,
+      "hikari_pending_positive_samples": 0,
+      "hikari_timeout_delta": 0.0,
+      "http_client_count_delta": 2715.0,
+      "okhttp_count_delta": 362.0
+    },
+    {
+      "testid": "phase5c-after-3rps-r3-20261006",
+      "start_ms": 1791267405000,
+      "end_ms": 1791267547000,
+      "grafana_url": "http://localhost:3000/d/travel-load?var-testid=phase5c-after-3rps-r3-20261006&from=1791267405000&to=1791267547000",
+      "plan_duration_p95_seconds": 10.13,
+      "plan_success_percent": 100.0,
+      "plan_success_count": 181,
+      "plan_count": 181,
+      "failed_checks": 0,
+      "stages": {
+        "ai_response": {
+          "success": {
+            "count": 181.0,
+            "sum": 1090.5053712520003
+          }
+        },
+        "finish_plan": {
+          "success": {
+            "count": 181.0,
+            "sum": 725.7946267959999
+          }
+        },
+        "health_snapshot": {
+          "success": {
+            "count": 181.0,
+            "sum": 2.7012105
+          }
+        },
+        "nutrition_enrichment": {
+          "success": {
+            "count": 181.0,
+            "sum": 725.0818758380001
+          }
+        },
+        "nutrition_lookup": {
+          "success": {
+            "count": 362.0,
+            "sum": 1450.0111567459999
+          }
+        },
+        "persistence": {
+          "success": {
+            "count": 181.0,
+            "sum": 6.1555373310000014
+          }
+        },
+        "place_validation": {
+          "success": {
+            "count": 181.0,
+            "sum": 0.7275642099999999
+          }
+        }
+      },
+      "nutrition_enrichment_average_seconds": 4.005977214574586,
+      "nutrition_evaluations": {
+        "not_evaluable": 362.0
+      },
+      "hikari_pending_max": 0.0,
+      "hikari_pending_positive_samples": 0,
+      "hikari_timeout_delta": 0.0,
+      "http_client_count_delta": 2715.0,
+      "okhttp_count_delta": 362.0
+    }
+  ]
+}

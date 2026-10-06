@@ -1,0 +1,92 @@
+{
+  "date": "2026-10-05",
+  "method": "FoodNtrCpntHandler.searchFoodNutrition via actual external service",
+  "sequential_ms": [
+    {
+      "menu": "비빔밥",
+      "elapsed_ms": 8180.2,
+      "cold_start_candidate": true,
+      "api_code": "00"
+    },
+    {
+      "menu": "불고기",
+      "elapsed_ms": 4045.4,
+      "api_code": "00"
+    },
+    {
+      "menu": "비빔밥",
+      "elapsed_ms": 4054.0,
+      "api_code": "00"
+    }
+  ],
+  "concurrent_pairs": [
+    {
+      "pair_elapsed_ms": 4071.4,
+      "results": [
+        {
+          "menu": "비빔밥",
+          "elapsed_ms": 4062.0,
+          "api_code": "00"
+        },
+        {
+          "menu": "불고기",
+          "elapsed_ms": 4034.7,
+          "api_code": "00"
+        }
+      ]
+    },
+    {
+      "pair_elapsed_ms": 4156.9,
+      "results": [
+        {
+          "menu": "비빔밥",
+          "elapsed_ms": 4151.4,
+          "api_code": "00",
+          "filtered_matches": 3
+        },
+        {
+          "menu": "불고기",
+          "elapsed_ms": 4147.2,
+          "api_code": "00",
+          "filtered_matches": 0
+        }
+      ]
+    }
+  ],
+  "local_full_request_fixture": {
+    "openai_delay_ms_per_call": 3000,
+    "nutrition_delay_ms_per_call": 4000,
+    "repetitions": [
+      {
+        "repetition": 1,
+        "request_ms": 14871.2,
+        "orchestration_ms": 14706.3,
+        "nutrition_enrichment_ms": 8053.6,
+        "nutrition_lookup_sum_ms": 8052.5,
+        "lookup_count": 2
+      },
+      {
+        "repetition": 2,
+        "request_ms": 14187.7,
+        "orchestration_ms": 14107.5,
+        "nutrition_enrichment_ms": 8024.6,
+        "nutrition_lookup_sum_ms": 8024.3,
+        "lookup_count": 2
+      },
+      {
+        "repetition": 3,
+        "request_ms": 14193.3,
+        "orchestration_ms": 14119.4,
+        "nutrition_enrichment_ms": 8024.9,
+        "nutrition_lookup_sum_ms": 8024.8,
+        "lookup_count": 2
+      }
+    ]
+  },
+  "limitations": [
+    "Only two single concurrent pairs tested; vendor sustained request rate and concurrency caps unknown.",
+    "Actual calls time raw handler and parsing, not full application request.",
+    "Local full-request fixture uses deterministic 4s nutrition and 3s per OpenAI call.",
+    "First sequential call may include client or connection initialization."
+  ]
+}
