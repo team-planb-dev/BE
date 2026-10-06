@@ -1,0 +1,139 @@
+{
+  "experiment": "Phase 5C meal-inclusive local stub request timing",
+  "date": "2026-10-04",
+  "samples": [
+    {
+      "openai_delay_ms_per_call": 0,
+      "nutrition_delay_ms_per_call": 0,
+      "repetition": 1,
+      "request_ms": 663.9,
+      "orchestration_ms": 541.9,
+      "nutrition_enrichment_ms": 12.9,
+      "nutrition_lookup_sum_ms": 11.3,
+      "nutrition_lookup_count": 2,
+      "food_http_request_count": 2
+    },
+    {
+      "openai_delay_ms_per_call": 0,
+      "nutrition_delay_ms_per_call": 0,
+      "repetition": 2,
+      "request_ms": 105.3,
+      "orchestration_ms": 48.3,
+      "nutrition_enrichment_ms": 3.6,
+      "nutrition_lookup_sum_ms": 3.6,
+      "nutrition_lookup_count": 2,
+      "food_http_request_count": 2
+    },
+    {
+      "openai_delay_ms_per_call": 0,
+      "nutrition_delay_ms_per_call": 0,
+      "repetition": 3,
+      "request_ms": 91.8,
+      "orchestration_ms": 39.4,
+      "nutrition_enrichment_ms": 2.8,
+      "nutrition_lookup_sum_ms": 2.8,
+      "nutrition_lookup_count": 2,
+      "food_http_request_count": 2
+    },
+    {
+      "openai_delay_ms_per_call": 0,
+      "nutrition_delay_ms_per_call": 250,
+      "repetition": 1,
+      "request_ms": 1241.3,
+      "orchestration_ms": 1106.4,
+      "nutrition_enrichment_ms": 554.5,
+      "nutrition_lookup_sum_ms": 553.3,
+      "nutrition_lookup_count": 2,
+      "food_http_request_count": 2
+    },
+    {
+      "openai_delay_ms_per_call": 0,
+      "nutrition_delay_ms_per_call": 250,
+      "repetition": 2,
+      "request_ms": 646.8,
+      "orchestration_ms": 585.4,
+      "nutrition_enrichment_ms": 538.9,
+      "nutrition_lookup_sum_ms": 538.6,
+      "nutrition_lookup_count": 2,
+      "food_http_request_count": 2
+    },
+    {
+      "openai_delay_ms_per_call": 0,
+      "nutrition_delay_ms_per_call": 250,
+      "repetition": 3,
+      "request_ms": 617.3,
+      "orchestration_ms": 561.4,
+      "nutrition_enrichment_ms": 524.8,
+      "nutrition_lookup_sum_ms": 524.7,
+      "nutrition_lookup_count": 2,
+      "food_http_request_count": 2
+    },
+    {
+      "openai_delay_ms_per_call": 3000,
+      "nutrition_delay_ms_per_call": 0,
+      "repetition": 1,
+      "request_ms": 6766.5,
+      "orchestration_ms": 6629.5,
+      "nutrition_enrichment_ms": 13.9,
+      "nutrition_lookup_sum_ms": 13.1,
+      "nutrition_lookup_count": 2,
+      "food_http_request_count": 2
+    },
+    {
+      "openai_delay_ms_per_call": 3000,
+      "nutrition_delay_ms_per_call": 0,
+      "repetition": 2,
+      "request_ms": 6142.0,
+      "orchestration_ms": 6091.1,
+      "nutrition_enrichment_ms": 3.0,
+      "nutrition_lookup_sum_ms": 3.0,
+      "nutrition_lookup_count": 2,
+      "food_http_request_count": 2
+    },
+    {
+      "openai_delay_ms_per_call": 3000,
+      "nutrition_delay_ms_per_call": 0,
+      "repetition": 3,
+      "request_ms": 6155.9,
+      "orchestration_ms": 6101.3,
+      "nutrition_enrichment_ms": 4.0,
+      "nutrition_lookup_sum_ms": 4.0,
+      "nutrition_lookup_count": 2,
+      "food_http_request_count": 2
+    },
+    {
+      "openai_delay_ms_per_call": 3000,
+      "nutrition_delay_ms_per_call": 250,
+      "repetition": 1,
+      "request_ms": 7329.6,
+      "orchestration_ms": 7185.6,
+      "nutrition_enrichment_ms": 559.1,
+      "nutrition_lookup_sum_ms": 558.0,
+      "nutrition_lookup_count": 2,
+      "food_http_request_count": 2
+    },
+    {
+      "openai_delay_ms_per_call": 3000,
+      "nutrition_delay_ms_per_call": 250,
+      "repetition": 2,
+      "request_ms": 6699.3,
+      "orchestration_ms": 6633.8,
+      "nutrition_enrichment_ms": 535.8,
+      "nutrition_lookup_sum_ms": 535.7,
+      "nutrition_lookup_count": 2,
+      "food_http_request_count": 2
+    },
+    {
+      "openai_delay_ms_per_call": 3000,
+      "nutrition_delay_ms_per_call": 250,
+      "repetition": 3,
+      "request_ms": 6696.8,
+      "orchestration_ms": 6610.5,
+      "nutrition_enrichment_ms": 525.4,
+      "nutrition_lookup_sum_ms": 525.3,
+      "nutrition_lookup_count": 2,
+      "food_http_request_count": 2
+    }
+  ],
+  "note": "Per-condition repetition 1 is cold-start; repetitions 2-3 are exploratory steady samples. Values are not p95 or production API latency."
+}

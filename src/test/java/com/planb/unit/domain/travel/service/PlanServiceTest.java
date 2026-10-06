@@ -38,13 +38,24 @@ import com.planb.domain.travel.service.NutritionService;
 import com.planb.domain.travel.service.ScheduleNormalizer;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.global.config.exception.domain.BaseException;
+import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -271,6 +282,30 @@ class PlanServiceTest {
 
         verify(travelRecommendHandler, never())
                 .reselectPlace(any(), any());
+
+        for (String stage : List.of(
+                "ai_response",
+                "place_validation",
+                "finish_plan",
+                "nutrition_enrichment"
+        )) {
+            assertEquals(
+                    1L,
+                    meterRegistry
+                            .get("planb.travel.plan.stage")
+                            .tag("flow", "create")
+                            .tag("stage", stage)
+                            .tag("outcome", "success")
+                            .timer()
+                            .count()
+            );
+        }
+
+        assertTrue(meterRegistry
+                .find("planb.travel.plan.stage")
+                .tag("flow", "create")
+                .tag("stage", "nutrition_lookup")
+                .timer() == null);
 
         assertEquals(
                 1L,
@@ -613,6 +648,23 @@ class PlanServiceTest {
                 "PLAN.EXCEPTION.INVALID_AI_PLACE",
                 exception.getErrorCode()
         );
+
+        assertEquals(
+                1L,
+                meterRegistry
+                        .get("planb.travel.plan.stage")
+                        .tag("flow", "create")
+                        .tag("stage", "place_validation")
+                        .tag("outcome", "failure")
+                        .timer()
+                        .count()
+        );
+
+        assertTrue(meterRegistry
+                .find("planb.travel.plan.stage")
+                .tag("flow", "create")
+                .tag("stage", "finish_plan")
+                .timer() == null);
 
         assertEquals(
                 1L,
@@ -1721,6 +1773,391 @@ class PlanServiceTest {
                         "중복 메뉴",
                         List.of()
                 );
+
+        assertEquals(
+                1L,
+                meterRegistry
+                        .get("planb.travel.plan.stage")
+                        .tag("flow", "create")
+                        .tag("stage", "nutrition_lookup")
+                        .tag("outcome", "success")
+                        .timer()
+                        .count()
+        );
+    }
+
+    @Test
+    @DisplayName("서로 다른 누락 메뉴별 영양 조회 횟수")
+    void makePlanByAiRecordsEachDistinctMissingMenu() {
+
+        TravelPlanContext context = travelPlanContext();
+
+        CreatePlanAiResponse response = new CreatePlanAiResponse(
+                List.of(
+                        planDay(
+                                1,
+                                List.of(
+                                        restaurant("첫 메뉴"),
+                                        restaurant("둘째 메뉴")
+                                )
+                        )
+                )
+        );
+
+        when(travelRecommendHandler.createPlanByAi(
+                eq(context),
+                any(PlaceCandidateContext.class)
+        ))
+                .thenReturn(response);
+
+        planService.makePlanByAi(context);
+
+        verify(nutritionService)
+                .evaluateFoodNutrition("첫 메뉴", List.of());
+        verify(nutritionService)
+                .evaluateFoodNutrition("둘째 메뉴", List.of());
+
+        assertEquals(
+                2L,
+                meterRegistry
+                        .get("planb.travel.plan.stage")
+                        .tag("flow", "create")
+                        .tag("stage", "nutrition_lookup")
+                        .tag("outcome", "success")
+                        .timer()
+                        .count()
+        );
+    }
+
+    @Test
+    @DisplayName("누락 메뉴 영양 조회 최대 2건 동시 진행")
+    void makePlanByAiLooksUpMissingMenusTwoAtATime() {
+
+        TravelPlanContext context = travelPlanContext();
+
+        when(travelRecommendHandler.createPlanByAi(
+                eq(context),
+                any(PlaceCandidateContext.class)
+        ))
+                .thenReturn(new CreatePlanAiResponse(
+                        List.of(
+                                planDay(
+                                        1,
+                                        List.of(
+                                                restaurant("첫 메뉴"),
+                                                restaurant("둘째 메뉴"),
+                                                restaurant("셋째 메뉴")
+                                        )
+                                )
+                        )
+                ));
+
+        AtomicInteger inFlight = new AtomicInteger();
+        AtomicInteger maxInFlight = new AtomicInteger();
+
+        when(nutritionService.evaluateFoodNutrition(anyString(), anyList()))
+                .thenAnswer(invocation -> Mono
+                        .defer(() -> {
+
+                            maxInFlight.accumulateAndGet(
+                                    inFlight.incrementAndGet(),
+                                    Math::max
+                            );
+
+                            return Mono
+                                    .delay(Duration.ofMillis(100))
+                                    .map(ignored -> available(1.0));
+                        })
+                        // 완료 신호 전달 전 감소. doFinally는 다음 구독 뒤 실행될 수 있음
+                        .doOnTerminate(inFlight::decrementAndGet));
+
+        planService.makePlanByAi(context);
+
+        assertEquals(2, maxInFlight.get());
+
+        verify(nutritionService, times(3))
+                .evaluateFoodNutrition(anyString(), anyList());
+    }
+
+    @Test
+    @DisplayName("늦게 끝난 앞 메뉴도 자기 영양값 유지")
+    void makePlanByAiKeepsEachMenuValueWhenLaterMenuFinishesFirst() {
+
+        TravelPlanContext context = travelPlanContext();
+
+        givenMenus(context, "느린 메뉴", "빠른 메뉴");
+
+        when(nutritionService.evaluateFoodNutrition("느린 메뉴", List.of()))
+                .thenReturn(Mono
+                        .delay(Duration.ofMillis(150))
+                        .map(ignored -> available(11.0)));
+
+        when(nutritionService.evaluateFoodNutrition("빠른 메뉴", List.of()))
+                .thenReturn(Mono
+                        .delay(Duration.ofMillis(10))
+                        .map(ignored -> available(22.0)));
+
+        CreatePlanAiResponse result = planService.makePlanByAi(context);
+
+        assertEquals(
+                Map.of(
+                        "느린 메뉴", 11.0,
+                        "빠른 메뉴", 22.0
+                ),
+                carbohydrateByMenu(result)
+        );
+    }
+
+    @Test
+    @DisplayName("조회 불가 메뉴가 다른 메뉴의 영양값을 가리지 않음")
+    void makePlanByAiKeepsOtherMenuWhenOneMenuIsUnavailable() {
+
+        TravelPlanContext context = travelPlanContext();
+
+        givenMenus(context, "실패 메뉴", "정상 메뉴");
+
+        // NutritionService가 HTTP 오류·timeout·미매칭을 조회 불가로 바꾼 결과
+        when(nutritionService.evaluateFoodNutrition("실패 메뉴", List.of()))
+                .thenReturn(Mono
+                        .delay(Duration.ofMillis(100))
+                        .map(ignored -> new NutritionEvaluationResult(
+                                List.of(),
+                                NutritionEvaluationStatus.UNAVAILABLE,
+                                List.of(),
+                                null,
+                                null,
+                                null
+                        )));
+
+        when(nutritionService.evaluateFoodNutrition("정상 메뉴", List.of()))
+                .thenReturn(Mono.just(available(33.0)));
+
+        CreatePlanAiResponse result = planService.makePlanByAi(context);
+
+        Map<String, Double> carbohydrates = carbohydrateByMenu(result);
+
+        assertNull(carbohydrates.get("실패 메뉴"));
+        assertEquals(33.0, carbohydrates.get("정상 메뉴"));
+    }
+
+    @Test
+    @DisplayName("빈 조회 결과 메뉴는 평가 없이 다른 메뉴만 반영")
+    void makePlanByAiSkipsEmptyLookupAndKeepsOtherMenu() {
+
+        TravelPlanContext context = travelPlanContext();
+
+        givenMenus(context, "빈 메뉴", "정상 메뉴");
+
+        when(nutritionService.evaluateFoodNutrition("빈 메뉴", List.of()))
+                .thenReturn(Mono.empty());
+
+        when(nutritionService.evaluateFoodNutrition("정상 메뉴", List.of()))
+                .thenReturn(Mono.just(available(44.0)));
+
+        CreatePlanAiResponse result = planService.makePlanByAi(context);
+
+        Map<String, Double> carbohydrates = carbohydrateByMenu(result);
+
+        assertNull(carbohydrates.get("빈 메뉴"));
+        assertEquals(44.0, carbohydrates.get("정상 메뉴"));
+
+        assertEquals(
+                2L,
+                meterRegistry
+                        .get("planb.travel.plan.stage")
+                        .tag("flow", "create")
+                        .tag("stage", "nutrition_lookup")
+                        .tag("outcome", "success")
+                        .timer()
+                        .count()
+        );
+    }
+
+    @Test
+    @DisplayName("조회 예외는 기존처럼 일정 생성 실패로 전파")
+    void makePlanByAiPropagatesLookupError() {
+
+        TravelPlanContext context = travelPlanContext();
+
+        givenMenus(context, "느린 정상 메뉴", "예외 메뉴");
+
+        when(nutritionService.evaluateFoodNutrition("느린 정상 메뉴", List.of()))
+                .thenReturn(Mono
+                        .delay(Duration.ofSeconds(5))
+                        .map(ignored -> available(55.0)));
+
+        when(nutritionService.evaluateFoodNutrition("예외 메뉴", List.of()))
+                .thenReturn(Mono.error(new IllegalStateException("lookup failed")));
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> planService.makePlanByAi(context)
+        );
+
+        assertEquals(1L, lookupCount("failure"));
+        assertEquals(1L, lookupCount("cancelled"));
+    }
+
+    @Test
+    @DisplayName("조회 호출 자체의 예외도 영양 조회 실패로 기록")
+    void makePlanByAiRecordsLookupFailureWhenLookupThrows() {
+
+        TravelPlanContext context = travelPlanContext();
+
+        givenMenus(context, "예외 메뉴");
+
+        when(nutritionService.evaluateFoodNutrition("예외 메뉴", List.of()))
+                .thenThrow(new IllegalStateException("lookup failed"));
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> planService.makePlanByAi(context)
+        );
+
+        assertEquals(1L, lookupCount("failure"));
+    }
+
+    private long lookupCount(String outcome) {
+
+        Timer timer = meterRegistry
+                .find("planb.travel.plan.stage")
+                .tag("flow", "create")
+                .tag("stage", "nutrition_lookup")
+                .tag("outcome", outcome)
+                .timer();
+
+        return timer == null ? 0L : timer.count();
+    }
+
+    @Test
+    @DisplayName("영양 조회 단계 시간은 구독부터 메뉴별 완료까지")
+    void makePlanByAiTimesEachLookupFromSubscriptionToCompletion() {
+
+        TravelPlanContext context = travelPlanContext();
+
+        givenMenus(context, "지연 메뉴");
+
+        when(nutritionService.evaluateFoodNutrition("지연 메뉴", List.of()))
+                .thenReturn(Mono
+                        .delay(Duration.ofMillis(120))
+                        .map(ignored -> available(1.0)));
+
+        planService.makePlanByAi(context);
+
+        double lookupMillis = meterRegistry
+                .get("planb.travel.plan.stage")
+                .tag("flow", "create")
+                .tag("stage", "nutrition_lookup")
+                .tag("outcome", "success")
+                .timer()
+                .totalTime(TimeUnit.MILLISECONDS);
+
+        assertTrue(lookupMillis >= 100.0);
+    }
+
+    @Test
+    @DisplayName("동시에 처리한 두 일정 생성 요청의 영양값 혼합 없음")
+    void makePlanByAiKeepsNutritionPerRequestUnderConcurrentRequests() throws Exception {
+
+        TravelPlanContext firstContext = travelPlanContext();
+        TravelPlanContext secondContext = travelPlanContext(
+                Transportation.CAR,
+                List.of()
+        );
+
+        givenMenus(firstContext, "첫 요청 A", "첫 요청 B");
+        givenMenus(secondContext, "둘째 요청 A", "둘째 요청 B");
+
+        Map<String, Double> values = Map.of(
+                "첫 요청 A", 1.0,
+                "첫 요청 B", 2.0,
+                "둘째 요청 A", 3.0,
+                "둘째 요청 B", 4.0
+        );
+
+        when(nutritionService.evaluateFoodNutrition(anyString(), anyList()))
+                .thenAnswer(invocation -> Mono
+                        .delay(Duration.ofMillis(50))
+                        .map(ignored -> available(
+                                values.get(invocation.<String>getArgument(0))
+                        )));
+
+        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+
+            Future<CreatePlanAiResponse> first =
+                    executor.submit(() -> planService.makePlanByAi(firstContext));
+            Future<CreatePlanAiResponse> second =
+                    executor.submit(() -> planService.makePlanByAi(secondContext));
+
+            assertEquals(
+                    Map.of(
+                            "첫 요청 A", 1.0,
+                            "첫 요청 B", 2.0
+                    ),
+                    carbohydrateByMenu(first.get())
+            );
+            assertEquals(
+                    Map.of(
+                            "둘째 요청 A", 3.0,
+                            "둘째 요청 B", 4.0
+                    ),
+                    carbohydrateByMenu(second.get())
+            );
+        }
+    }
+
+    private void givenMenus(
+            TravelPlanContext context,
+            String... menuNames
+    ) {
+
+        when(travelRecommendHandler.createPlanByAi(
+                eq(context),
+                any(PlaceCandidateContext.class)
+        ))
+                .thenReturn(new CreatePlanAiResponse(
+                        List.of(
+                                planDay(
+                                        1,
+                                        Arrays
+                                                .stream(menuNames)
+                                                .map(this::restaurant)
+                                                .toList()
+                                )
+                        )
+                ));
+    }
+
+    private Map<String, Double> carbohydrateByMenu(CreatePlanAiResponse response) {
+
+        Map<String, Double> carbohydrates = new HashMap<>();
+
+        response
+                .planDays()
+                .stream()
+                .flatMap(day -> day
+                        .schedules()
+                        .stream())
+                .map(CreatePlanAiResponse.PlanScheduleDetail::restaurantDetail)
+                .filter(Objects::nonNull)
+                .forEach(detail -> carbohydrates.put(
+                        detail.menuName(),
+                        detail.carbohydrate()
+                ));
+
+        return carbohydrates;
+    }
+
+    private NutritionEvaluationResult available(double carbohydrate) {
+
+        return new NutritionEvaluationResult(
+                List.of(),
+                NutritionEvaluationStatus.AVAILABLE,
+                List.of(),
+                carbohydrate,
+                100.0,
+                1.0
+        );
     }
 
     @Test
