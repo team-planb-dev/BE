@@ -1,0 +1,29 @@
+    checks_total.......: 6483    43.288924/s
+    checks_succeeded...: 100.00% 6483 out of 6483
+    checks_failed......: 0.00%   0 out of 6483
+
+    ✓ 일정 생성 HTTP 200
+    ✓ 일정 생성 success=true
+    ✓ 이틀 일정과 관광지 필드
+
+    CUSTOM
+    plan_duration..................: avg=6.06s min=6.03s  med=6.04s max=7.42s p(90)=6.06s p(95)=6.12s p(99)=6.72s
+    plan_success...................: 100.00% 2161 out of 2161
+
+    HTTP
+    http_req_duration..............: avg=3.5s  min=5.68ms med=6.03s max=7.42s p(90)=6.05s p(95)=6.06s p(99)=6.33s
+      { expected_response:true }...: avg=3.5s  min=5.68ms med=6.03s max=7.42s p(90)=6.05s p(95)=6.06s p(99)=6.33s
+    http_req_failed................: 0.00%   0 out of 3762
+    http_reqs......................: 3762    25.119995/s
+
+    EXECUTION
+    iteration_duration.............: avg=6.06s min=6.03s  med=6.04s max=7.43s p(90)=6.06s p(95)=6.13s p(99)=6.73s
+    iterations.....................: 2161    14.429641/s
+    vus............................: 29      min=0            max=262
+    vus_max........................: 300     min=300          max=300
+
+    NETWORK
+    data_received..................: 6.8 MB  45 kB/s
+    data_sent......................: 3.0 MB  20 kB/s
+
+k6 종료 코드=0

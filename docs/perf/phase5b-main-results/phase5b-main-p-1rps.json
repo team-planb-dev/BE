@@ -1,0 +1,27 @@
+{
+  "testid": "phase5b-main-p-1rps-20261004",
+  "git_sha": "403b084405c1587028d82e7a655fdf3b0864d480",
+  "grafana_url": "http://localhost:3000/d/travel-load?var-testid=phase5b-main-p-1rps-20261004&from=1791093127000&to=1791093225000",
+  "window": {
+    "start": 1791093139.0,
+    "end": 1791093225.0
+  },
+  "k6": {
+    "plan_duration": "avg=6.14s min=6.09s   med=6.13s max=6.73s p(90)=6.16s p(95)=6.17s p(99)=6.42s",
+    "plan_success": "100.00% 61 out of 61",
+    "http_req_failed": "0.00%   0 out of 66",
+    "iterations": "61      0.916448/s",
+    "dropped_iterations": null
+  },
+  "prometheus": {
+    "in_flight_max": 6.0,
+    "tomcat_busy_max": 6.0,
+    "hikari_active_max": 0.0,
+    "hikari_pending_max": 0.0,
+    "hikari_pending_positive_samples": 0,
+    "hikari_acquire_max_seconds": 0.01,
+    "process_cpu_max": 0.02999927046763025,
+    "jvm_threads_max": 63.0,
+    "hikari_timeout_delta": 0.0
+  }
+}
