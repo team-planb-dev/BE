@@ -36,6 +36,7 @@ import com.planb.domain.travel.repository.PlanRepository;
 import com.planb.domain.travel.service.PlanService;
 import com.planb.domain.travel.service.NutritionService;
 import com.planb.domain.travel.service.ScheduleNormalizer;
+import com.planb.domain.travel.service.TravelMinutesResolver;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.global.config.exception.domain.BaseException;
 import io.micrometer.core.instrument.Timer;
@@ -119,7 +120,10 @@ class PlanServiceTest {
                 new PlanEditValidator(),
                 new ScheduleNormalizer(planPlaceResolver),
                 travelRecommendHandler,
-                kakaoMapServiceHandler,
+                new TravelMinutesResolver(
+                        kakaoMapServiceHandler,
+                        4
+                ),
                 nutritionEvaluationCollector,
                 nutritionService,
                 new MissingSlotCompleter(mock(com.planb.ai.mcp.TourismTool.class)),
@@ -1632,7 +1636,10 @@ class PlanServiceTest {
                         new PlanEditValidator(),
                         new ScheduleNormalizer(planPlaceResolver),
                         travelRecommendHandler,
-                        kakaoMapServiceHandler,
+                        new TravelMinutesResolver(
+                                kakaoMapServiceHandler,
+                                4
+                        ),
                         nutritionEvaluationCollector,
                         nutritionService,
                         missingSlotCompleter,

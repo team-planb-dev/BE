@@ -29,6 +29,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class MissingSlotCompleterTest {
@@ -200,6 +202,129 @@ class MissingSlotCompleterTest {
 
         assertThat(usedNames)
                 .containsExactly("불국사");
+    }
+
+    @Test
+    @DisplayName("같은 요청 후보 컨텍스트 안에서 음식점 상세는 한 번만 조회")
+    void fetchesRestaurantDetailOncePerCandidate() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(restaurantItem(
+                        "9",
+                        "교리김밥",
+                        "129.21",
+                        "35.83"
+                ));
+
+        CreatePlanAiResponse response = response(
+                attraction("첨성대", LocalTime.of(9, 0)),
+                attraction("대릉원", LocalTime.of(11, 0)),
+                attraction("동궁과 월지", LocalTime.of(13, 0))
+        );
+
+        missingSlotCompleter.complete(
+                response,
+                List.of(healthContext()),
+                candidates,
+                Set.of(),
+                Set.of()
+        );
+
+        missingSlotCompleter.complete(
+                response,
+                List.of(healthContext()),
+                candidates,
+                Set.of(),
+                Set.of()
+        );
+
+        verify(
+                tourismTool,
+                times(1)
+        )
+                .getRestaurantDetail("9");
+    }
+
+    @Test
+    @DisplayName("고정한 지정 장소가 응답에 없으면 그날 첫 관광지를 지정 장소로 교체")
+    void replacesFirstAttractionWithPinnedPlannedPlace() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.pin(attractionItem(
+                        "100",
+                        "불국사",
+                        "129.33",
+                        "35.79"
+                ));
+
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
+                response(
+                        attraction("첨성대", LocalTime.of(9, 0)),
+                        attraction("대릉원", LocalTime.of(11, 0)),
+                        attraction("동궁과 월지", LocalTime.of(13, 0))
+                ),
+                List.of(healthContext()),
+                candidates,
+                Set.of(),
+                Set.of()
+        );
+
+        List<CreatePlanAiResponse.PlanScheduleDetail> schedules = schedules(filled);
+
+        assertThat(schedules.getFirst())
+                .satisfies(slot -> {
+                    assertThat(slot.courseType())
+                            .isEqualTo(CourseType.MUST_HAVE);
+
+                    assertThat(slot.locationName())
+                            .isEqualTo("불국사");
+
+                    assertThat(slot.candidateId())
+                            .isEqualTo("tour:100");
+
+                    assertThat(slot.startTime())
+                            .isEqualTo(LocalTime.of(9, 0));
+
+                    assertThat(slot.travelMinutes())
+                            .isNull();
+                });
+
+        assertThat(schedules)
+                .filteredOn(slot -> slot.courseType() == CourseType.ATTRACTION
+                        || slot.courseType() == CourseType.MUST_HAVE)
+                .hasSize(3);
+    }
+
+    @Test
+    @DisplayName("고정한 지정 장소가 이미 응답에 있으면 교체하지 않음")
+    void keepsPlanWhenPinnedPlannedPlaceIsUsed() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.pin(attractionItem(
+                        "100",
+                        "첨성대",
+                        "129.22",
+                        "35.83"
+                ));
+
+        CreatePlanAiResponse response = response(
+                attraction("첨성대", LocalTime.of(9, 0)),
+                attraction("대릉원", LocalTime.of(11, 0)),
+                attraction("동궁과 월지", LocalTime.of(13, 0))
+        );
+
+        assertThat(schedules(missingSlotCompleter.complete(
+                response,
+                List.of(healthContext()),
+                candidates,
+                Set.of(),
+                Set.of()
+        )))
+                .extracting(CreatePlanAiResponse.PlanScheduleDetail::courseType)
+                .doesNotContain(CourseType.MUST_HAVE);
     }
 
     @Test

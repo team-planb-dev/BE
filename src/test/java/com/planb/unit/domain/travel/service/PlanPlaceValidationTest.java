@@ -34,6 +34,7 @@ import com.planb.domain.travel.repository.PlanRepository;
 import com.planb.domain.travel.service.PlanService;
 import com.planb.domain.travel.service.NutritionService;
 import com.planb.domain.travel.service.ScheduleNormalizer;
+import com.planb.domain.travel.service.TravelMinutesResolver;
 import com.planb.global.client.kakaoMapService.dto.response.KakaoPlaceSearchResponse;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
@@ -79,7 +80,10 @@ class PlanPlaceValidationTest {
             new PlanEditValidator(),
             scheduleNormalizer,
             handler,
-            kakao,
+            new TravelMinutesResolver(
+                    kakao,
+                    4
+            ),
             nutrition,
             nutritionService,
             new MissingSlotCompleter(tourismTool),
@@ -3166,8 +3170,8 @@ class PlanPlaceValidationTest {
     }
 
     @Test
-    @DisplayName("두 번째 식사 보정의 경로 조회 실패 시 이동시간 누락 거부")
-    void rejectsMissingTravelMinutesAfterSecondMealCompletion() {
+    @DisplayName("두 번째 식사 보정의 경로 조회 실패 구간이 500m 이하이면 도보 추정으로 채움")
+    void estimatesNearbyTravelMinutesAfterSecondMealCompletion() {
 
         TravelHealthContext health = healthWithMeal(
                 ScheduleType.LUNCH,
@@ -3176,26 +3180,19 @@ class PlanPlaceValidationTest {
 
         stubTwoAttractionPlan(13);
 
+        // 첫 보정의 상세 조회 일시 실패는 메모이즈하지 않고 두 번째 보정에서 재시도
         when(tourismTool.getRestaurantDetail("2784321"))
                 .thenThrow(new RuntimeException("temporary failure"))
                 .thenReturn(intro("밀면"));
 
-        BaseException exception = assertThrows(
-                BaseException.class,
-                () -> service.makePlanByAi(
-                        new TravelPlanContext(
-                                travel.createTravelRequest(),
-                                List.of(health)
-                        )
-                )
+        // 경로 조회는 기본 실패 응답, fixture 장소는 모두 500m 이내
+        PlanScheduleDetail lunch = makePlanAndFind(
+                health,
+                "개금밀면"
         );
 
-        assertTrue(
-                exception
-                        .getMessage()
-                        .contains("이동시간 누락"),
-                exception.getMessage()
-        );
+        assertNotNull(lunch.travelMinutes());
+        assertTrue(lunch.travelMinutes() >= 1);
     }
 
     @Test

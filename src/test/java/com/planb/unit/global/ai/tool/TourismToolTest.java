@@ -10,6 +10,7 @@ import com.planb.ai.mcp.NutritionEvaluationCollector;
 import com.planb.ai.mcp.TourismTool;
 import com.planb.domain.health.entity.constant.DiseaseType;
 import com.planb.domain.travel.dto.nutrition.NutritionEvaluationResult;
+import com.planb.domain.travel.dto.request.CreateTravelRequest;
 import com.planb.domain.travel.entity.constant.NutritionEvaluationStatus;
 import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.domain.travel.service.NutritionService;
@@ -227,6 +228,183 @@ class TourismToolTest {
                 .item();
 
         assertEquals(first, second);
+    }
+
+    @Test
+    @DisplayName("지정 장소는 제목 정규화 완전 일치·관광지 유형·시도 일치 항목만 고정 후보로 선택")
+    void findsPlannedPlaceByTitleAndProvince() {
+
+        Kor2KeywordSearchResponse.Item exact = plannedItem(
+                "126508",
+                "해동용궁사",
+                "12",
+                "부산광역시 기장군 기장읍 용궁길 86"
+        );
+
+        when(kor2ServiceHandler.searchKeywordOnly("해동 용궁사"))
+                .thenReturn(Mono.just(response(List.of(
+                        plannedItem(
+                                "1",
+                                "해동용궁사 주차장",
+                                "12",
+                                "부산광역시 기장군"
+                        ),
+                        plannedItem(
+                                "2",
+                                "해동용궁사",
+                                "39",
+                                "부산광역시 기장군"
+                        ),
+                        plannedItem(
+                                "3",
+                                "해동용궁사",
+                                "12",
+                                "경상남도 양산시"
+                        ),
+                        exact
+                ))));
+
+        assertEquals(
+                List.of(exact),
+                tourismTool.findPlannedPlaces(
+                        List.of(new CreateTravelRequest.PlannedPlaceDetail(
+                                "해동 용궁사",
+                                "부산 해운대구"
+                        )),
+                        "부산",
+                        "해운대구"
+                )
+        );
+    }
+
+    @Test
+    @DisplayName("TourAPI 제목의 시군 접두어와 괄호 설명을 걷어낸 지정 장소 일치")
+    void findsPlannedPlaceWithRegionPrefixAndBrackets() {
+
+        // 2026-10-07 TourAPI searchKeyword2 실제 제목 형식
+        Kor2KeywordSearchResponse.Item gyeongpodae = plannedItem(
+                "125435",
+                "강릉 경포대",
+                "12",
+                "강원특별자치도 강릉시 경포로 365"
+        );
+        Kor2KeywordSearchResponse.Item bulguksa = plannedItem(
+                "126208",
+                "경주 불국사 [유네스코 세계유산]",
+                "12",
+                "경상북도 경주시 불국로 385 (진현동)"
+        );
+
+        when(kor2ServiceHandler.searchKeywordOnly("경포대"))
+                .thenReturn(Mono.just(response(List.of(
+                        gyeongpodae,
+                        plannedItem(
+                                "2",
+                                "금릉경포대",
+                                "12",
+                                "전남광주통합특별시 강진군 성전면 월남리"
+                        )
+                ))));
+
+        when(kor2ServiceHandler.searchKeywordOnly("불국사"))
+                .thenReturn(Mono.just(response(List.of(
+                        bulguksa,
+                        plannedItem(
+                                "3",
+                                "불국사(서울)",
+                                "12",
+                                "서울특별시 강남구 광평로10길 30-71"
+                        )
+                ))));
+
+        assertEquals(
+                List.of(gyeongpodae),
+                tourismTool.findPlannedPlaces(
+                        List.of(new CreateTravelRequest.PlannedPlaceDetail(
+                                "경포대",
+                                null
+                        )),
+                        "강원특별자치도",
+                        "강릉시"
+                )
+        );
+
+        assertEquals(
+                List.of(bulguksa),
+                tourismTool.findPlannedPlaces(
+                        List.of(new CreateTravelRequest.PlannedPlaceDetail(
+                                "불국사",
+                                null
+                        )),
+                        "경상북도",
+                        "경주시"
+                )
+        );
+    }
+
+    @Test
+    @DisplayName("지정 장소 검색 결과가 없거나 실패하면 고정하지 않음")
+    void skipsPlannedPlaceWithoutMatch() {
+
+        when(kor2ServiceHandler.searchKeywordOnly("경포대"))
+                .thenReturn(Mono.just(response(List.of(plannedItem(
+                        "10",
+                        "경포해수욕장",
+                        "12",
+                        "강원특별자치도 강릉시"
+                )))));
+
+        when(kor2ServiceHandler.searchKeywordOnly("없는장소"))
+                .thenReturn(Mono.error(new IllegalStateException("검색 실패")));
+
+        assertEquals(
+                List.of(),
+                tourismTool.findPlannedPlaces(
+                        List.of(
+                                new CreateTravelRequest.PlannedPlaceDetail(
+                                        "경포대",
+                                        null
+                                ),
+                                new CreateTravelRequest.PlannedPlaceDetail(
+                                        "없는장소",
+                                        null
+                                )
+                        ),
+                        "강원특별자치도",
+                        "강릉시"
+                )
+        );
+    }
+
+    private Kor2KeywordSearchResponse.Item plannedItem(
+            String contentId,
+            String title,
+            String contentTypeId,
+            String address
+    ) {
+
+        return new Kor2KeywordSearchResponse.Item(
+                address,
+                "",
+                null,
+                contentId,
+                contentTypeId,
+                null,
+                null,
+                null,
+                null,
+                "129.22",
+                "35.18",
+                null,
+                null,
+                null,
+                title,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
     }
 
     @Test
