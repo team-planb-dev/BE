@@ -271,7 +271,73 @@ class TourismToolTest {
                                 "해동 용궁사",
                                 "부산 해운대구"
                         )),
-                        "부산"
+                        "부산",
+                        "해운대구"
+                )
+        );
+    }
+
+    @Test
+    @DisplayName("TourAPI 제목의 시군 접두어와 괄호 설명을 걷어낸 지정 장소 일치")
+    void findsPlannedPlaceWithRegionPrefixAndBrackets() {
+
+        // 2026-10-07 TourAPI searchKeyword2 실제 제목 형식
+        Kor2KeywordSearchResponse.Item gyeongpodae = plannedItem(
+                "125435",
+                "강릉 경포대",
+                "12",
+                "강원특별자치도 강릉시 경포로 365"
+        );
+        Kor2KeywordSearchResponse.Item bulguksa = plannedItem(
+                "126208",
+                "경주 불국사 [유네스코 세계유산]",
+                "12",
+                "경상북도 경주시 불국로 385 (진현동)"
+        );
+
+        when(kor2ServiceHandler.searchKeywordOnly("경포대"))
+                .thenReturn(Mono.just(response(List.of(
+                        gyeongpodae,
+                        plannedItem(
+                                "2",
+                                "금릉경포대",
+                                "12",
+                                "전남광주통합특별시 강진군 성전면 월남리"
+                        )
+                ))));
+
+        when(kor2ServiceHandler.searchKeywordOnly("불국사"))
+                .thenReturn(Mono.just(response(List.of(
+                        bulguksa,
+                        plannedItem(
+                                "3",
+                                "불국사(서울)",
+                                "12",
+                                "서울특별시 강남구 광평로10길 30-71"
+                        )
+                ))));
+
+        assertEquals(
+                List.of(gyeongpodae),
+                tourismTool.findPlannedPlaces(
+                        List.of(new CreateTravelRequest.PlannedPlaceDetail(
+                                "경포대",
+                                null
+                        )),
+                        "강원특별자치도",
+                        "강릉시"
+                )
+        );
+
+        assertEquals(
+                List.of(bulguksa),
+                tourismTool.findPlannedPlaces(
+                        List.of(new CreateTravelRequest.PlannedPlaceDetail(
+                                "불국사",
+                                null
+                        )),
+                        "경상북도",
+                        "경주시"
                 )
         );
     }
@@ -304,7 +370,8 @@ class TourismToolTest {
                                         null
                                 )
                         ),
-                        "강원특별자치도"
+                        "강원특별자치도",
+                        "강릉시"
                 )
         );
     }

@@ -96,7 +96,10 @@ public class TravelRecommendHandler {
                         .plannedPlaces(),
                 travelPlanContext
                         .createTravelRequest()
-                        .locationDo()
+                        .locationDo(),
+                travelPlanContext
+                        .createTravelRequest()
+                        .locationSigungu()
         );
 
         CreatePlanAiResponse response = openAiClient

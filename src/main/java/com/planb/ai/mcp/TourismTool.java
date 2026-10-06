@@ -101,14 +101,24 @@ public class TourismTool {
             "도"
     );
 
+    // 지정 장소 제목 앞 지역 접두어 비교에서 제거할 시·군·구 접미사
+    private static final List<String> SIGUNGU_SUFFIXES = List.of(
+            "시",
+            "군",
+            "구"
+    );
+
     /**
      * 사용자 지정 장소의 TourAPI 관광지 항목 조회 (Tool 아님, 생성 시작 시 Java가 호출)
-     * 제목 공백 정규화 완전 일치, 관광지 유형(12), 시·도 일치 항목만 선택
+     * 관광지 유형(12), 시·도 일치 항목 중 제목 일치 항목 선택
+     * 제목은 괄호 설명 제거·공백 정규화 후 완전 일치를 우선하고,
+     * 없으면 여행 시·군 이름 접두어("강릉 경포대")만 붙은 제목 허용
      * 검색 실패·불일치 장소는 고정하지 않고 기존 흐름 유지
      */
     public List<Kor2KeywordSearchResponse.Item> findPlannedPlaces(
             List<CreateTravelRequest.PlannedPlaceDetail> plannedPlaces,
-            String locationDo
+            String locationDo,
+            String locationSigungu
     ) {
 
         if (plannedPlaces == null || plannedPlaces.isEmpty()) {
@@ -116,6 +126,7 @@ public class TourismTool {
         }
 
         String province = province(locationDo);
+        String sigungu = sigungu(locationSigungu);
 
         return plannedPlaces
                 .stream()
@@ -124,7 +135,8 @@ public class TourismTool {
                 .filter(name -> name != null && !name.isBlank())
                 .map(name -> findPlannedPlace(
                         name,
-                        province
+                        province,
+                        sigungu
                 ))
                 .filter(Objects::nonNull)
                 .toList();
@@ -132,7 +144,8 @@ public class TourismTool {
 
     private Kor2KeywordSearchResponse.Item findPlannedPlace(
             String name,
-            String province
+            String province,
+            String sigungu
     ) {
 
         Kor2KeywordSearchResponse response;
@@ -168,9 +181,9 @@ public class TourismTool {
             return null;
         }
 
-        String normalizedName = compact(name);
+        String normalizedName = title(name);
 
-        return response
+        List<Kor2KeywordSearchResponse.Item> candidates = response
                 .response()
                 .body()
                 .items()
@@ -178,10 +191,44 @@ public class TourismTool {
                 .stream()
                 .filter(Objects::nonNull)
                 .filter(item -> "12".equals(item.contenttypeid()))
-                .filter(item -> compact(item.title()).equals(normalizedName))
                 .filter(item -> province.isEmpty() || province.equals(province(firstToken(item.addr1()))))
+                .toList();
+
+        return candidates
+                .stream()
+                .filter(item -> title(item.title()).equals(normalizedName))
                 .findFirst()
-                .orElse(null);
+                .orElseGet(() -> sigungu.isEmpty()
+                        ? null
+                        : candidates
+                                .stream()
+                                .filter(item -> title(item.title()).equals(sigungu + normalizedName))
+                                .findFirst()
+                                .orElse(null));
+    }
+
+    // 괄호 설명("[유네스코 세계유산]", "(서울)") 제거 후 공백 정규화
+    private static String title(String value) {
+
+        return value == null
+                ? ""
+                : compact(value.replaceAll("[\\[(（].*?[\\])）]", ""));
+    }
+
+    private static String sigungu(String value) {
+
+        String compacted = compact(value);
+
+        for (String suffix : SIGUNGU_SUFFIXES) {
+            if (compacted.length() > suffix.length() + 1 && compacted.endsWith(suffix)) {
+                return compacted.substring(
+                        0,
+                        compacted.length() - suffix.length()
+                );
+            }
+        }
+
+        return compacted;
     }
 
     private static String province(String value) {
