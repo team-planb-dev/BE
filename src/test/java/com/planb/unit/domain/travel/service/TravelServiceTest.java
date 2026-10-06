@@ -45,12 +45,14 @@ import com.planb.query.health.service.HealthQueryService;
 import com.planb.query.user.service.UserQueryService;
 import com.planb.domain.user.entity.User;
 import com.planb.domain.user.repository.UserRepository;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
@@ -117,6 +119,9 @@ class TravelServiceTest {
     @Mock
     private RestaurantDetailService restaurantDetailService;
 
+    @Spy
+    private SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+
     @InjectMocks
     private TravelService travelService;
 
@@ -174,6 +179,17 @@ class TravelServiceTest {
         assertEquals("동의 동행인", contexts
                         .getFirst()
                         .travelerName());
+
+        assertEquals(
+                1L,
+                meterRegistry
+                        .get("planb.travel.plan.stage")
+                        .tag("flow", "create")
+                        .tag("stage", "health_snapshot")
+                        .tag("outcome", "success")
+                        .timer()
+                        .count()
+        );
     }
 
     @Test
@@ -220,6 +236,17 @@ class TravelServiceTest {
         );
         verify(travelRepository, never())
                 .save(any());
+
+        assertEquals(
+                1L,
+                meterRegistry
+                        .get("planb.travel.plan.stage")
+                        .tag("flow", "create")
+                        .tag("stage", "persistence")
+                        .tag("outcome", "failure")
+                        .timer()
+                        .count()
+        );
     }
 
     @Test

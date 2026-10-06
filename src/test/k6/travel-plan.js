@@ -9,6 +9,7 @@ const START_DATE = __ENV.STUB_PLAN_START_DATE || '2030-01-01';
 const SCENARIO = __ENV.SCENARIO || 'smoke';
 // 1이면 기존처럼 모든 VU가 계정 하나를 공유한다. 2 이상이면 요청마다 계정을 돌아가며 사용한다.
 const USER_COUNT = Number(__ENV.USER_COUNT || 1);
+const COMPANION_LUNCH = __ENV.COMPANION_LUNCH === 'true';
 
 if (!['smoke', 'plan-throughput'].includes(SCENARIO)) {
     throw new Error(`지원하지 않는 시나리오입니다: ${SCENARIO}`);
@@ -137,11 +138,11 @@ function createUser(suffix) {
                 walkType: 'MINIMAL',
             },
             mealInfo: {
-                applied: false,
+                applied: COMPANION_LUNCH,
                 breakfastApplied: false,
                 breakfastTime: null,
-                lunchApplied: false,
-                lunchTime: null,
+                lunchApplied: COMPANION_LUNCH,
+                lunchTime: COMPANION_LUNCH ? '12:00' : null,
                 dinnerApplied: false,
                 dinnerTime: null,
             },

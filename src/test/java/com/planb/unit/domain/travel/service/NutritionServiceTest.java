@@ -537,6 +537,31 @@ class NutritionServiceTest {
                 .verifyComplete();
     }
 
+    @Test
+    @DisplayName("응답 없는 조회는 15초 뒤 조회 불가로 반환")
+    void evaluateFoodNutritionTimesOutAfterFifteenSeconds() {
+
+        when(foodNtrCpntHandler.getFoodNutrition(
+                any(FoodNtrCpntSearchRequest.class)
+        ))
+                .thenReturn(Mono.never());
+
+        StepVerifier
+                .withVirtualTime(() ->
+                        nutritionService.evaluateFoodNutrition(
+                                "비빔밥",
+                                List.of(DiseaseType.DIABETES)
+                        )
+                )
+                .thenAwait(Duration.ofSeconds(14))
+                .expectNoEvent(Duration.ofMillis(999))
+                .thenAwait(Duration.ofSeconds(1))
+                .expectNextMatches(result ->
+                        result.status() == NutritionEvaluationStatus.UNAVAILABLE
+                )
+                .verifyComplete();
+    }
+
     private FoodNtrCpntResponse.Item createItem(
             String foodName,
             String carbohydrate,

@@ -68,3 +68,8 @@ springdoc:
   packages-to-scan: com.planb
   default-consumes-media-type: application/json
   default-produces-media-type: application/json
+
+planb:
+  travel:
+    nutrition:
+      lookup-concurrency: ${NUTRITION_LOOKUP_CONCURRENCY:1}
