@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import java.util.stream.IntStream;
 
@@ -179,6 +180,53 @@ class TourismToolTest {
                         "서울",
                         "종로구"
                 );
+    }
+
+    @Test
+    @DisplayName("같은 seed의 난수 생성기를 주입하면 같은 관광지 후보 순서를 반환")
+    void selectsSameAttractionCandidatesWithSameSeed() {
+
+        List<Kor2KeywordSearchResponse.Item> source = IntStream
+                .range(0, 50)
+                .mapToObj(index ->
+                        attraction(String.valueOf(index))
+                )
+                .toList();
+
+        when(
+                kor2ServiceHandler
+                        .searchAttractions(
+                                "서울",
+                                "종로구"
+                        )
+        )
+                .thenReturn(Mono.just(response(source)));
+
+        tourismTool.attractionCandidateRandom(new Random(7L));
+
+        List<Kor2KeywordSearchResponse.Item> first = tourismTool
+                .searchAttractionsByRegion(
+                        "서울",
+                        "종로구"
+                )
+                .response()
+                .body()
+                .items()
+                .item();
+
+        tourismTool.attractionCandidateRandom(new Random(7L));
+
+        List<Kor2KeywordSearchResponse.Item> second = tourismTool
+                .searchAttractionsByRegion(
+                        "서울",
+                        "종로구"
+                )
+                .response()
+                .body()
+                .items()
+                .item();
+
+        assertEquals(first, second);
     }
 
     @Test
