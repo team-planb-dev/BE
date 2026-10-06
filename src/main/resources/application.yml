@@ -9,6 +9,11 @@ server:
   forward-headers-strategy: framework
 
 spring:
+  threads:
+    virtual:
+      enabled: ${SPRING_THREADS_VIRTUAL_ENABLED:false}
+  main:
+    keep-alive: ${SPRING_THREADS_VIRTUAL_ENABLED:false}
   application:
     name: default-setting # 애플리케이션 기본 이름
   http:
