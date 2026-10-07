@@ -38,7 +38,27 @@ public record PlanQualityCounts(
             List<String> allergenKeywords
     ) {
 
-        String planned = normalize(plannedPlace);
+        return count(
+                plan,
+                plannedPlace,
+                null,
+                allergenKeywords
+        );
+    }
+
+    /**
+     * 지정 장소 포함은 운영 고정 규칙과 같은 기준으로 계수
+     * 괄호 설명 제거·공백 정규화 후 완전 일치, 또는 여행 시군 이름 접두어("강릉 경포대")만 붙은 이름
+     */
+    public static PlanQualityCounts count(
+            JsonNode plan,
+            String plannedPlace,
+            String locationSigungu,
+            List<String> allergenKeywords
+    ) {
+
+        String planned = title(plannedPlace);
+        String prefixed = sigungu(locationSigungu) + planned;
 
         boolean plannedPlaceIncluded = false;
         int mustHaveSlots = 0;
@@ -62,7 +82,8 @@ public record PlanQualityCounts(
                         .asText();
                 String locationName = text(slot.path("locationName"));
 
-                if (locationName != null && normalize(locationName).equals(planned)) {
+                if (locationName != null && (title(locationName).equals(planned)
+                        || title(locationName).equals(prefixed))) {
                     plannedPlaceIncluded = true;
                 }
 
@@ -219,6 +240,31 @@ public record PlanQualityCounts(
                 .isBlank()
                 ? null
                 : node.asText();
+    }
+
+    // 괄호 설명("[유네스코 세계유산]", "(서울)") 제거 후 공백 정규화
+    private static String title(String value) {
+
+        return value == null
+                ? ""
+                : normalize(value.replaceAll("[\\[(（].*?[\\])）]", ""));
+    }
+
+    // 시·군·구 접미사를 뗀 여행 지역명, 두 글자 이름("중구")은 그대로
+    private static String sigungu(String value) {
+
+        String compacted = normalize(value);
+
+        for (String suffix : List.of("시", "군", "구")) {
+            if (compacted.length() > suffix.length() + 1 && compacted.endsWith(suffix)) {
+                return compacted.substring(
+                        0,
+                        compacted.length() - suffix.length()
+                );
+            }
+        }
+
+        return compacted;
     }
 
     private static String normalize(String value) {
