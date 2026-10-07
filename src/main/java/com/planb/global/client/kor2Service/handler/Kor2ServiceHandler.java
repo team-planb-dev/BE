@@ -5,15 +5,16 @@ import com.planb.global.client.kor2Service.Kor2ServiceClient;
 import com.planb.global.client.kor2Service.dto.response.Kor2AreaCodeResponse;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
 import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
-import lombok.RequiredArgsConstructor;
+import com.planb.global.client.kor2Service.Kor2ResponseCache;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.Set;
 
 @Component
-@RequiredArgsConstructor
 public class Kor2ServiceHandler {
 
     private static final Set<String> METROPOLITAN_AREAS = Set.of(
@@ -27,10 +28,116 @@ public class Kor2ServiceHandler {
             "세종특별자치시"
     );
 
+    // 지역 목록·키워드 검색은 하루, 음식점 메뉴 상세는 일주일 보존
+    private static final Duration SEARCH_TTL = Duration.ofDays(1);
+
+    private static final Duration DETAIL_TTL = Duration.ofDays(7);
+
     private final Kor2ServiceClient kor2ServiceClient;
 
+    private final Kor2ResponseCache kor2ResponseCache;
+
+    // 캐시 없는 생성 (단위 테스트·수동 생성용)
+    public Kor2ServiceHandler(Kor2ServiceClient kor2ServiceClient) {
+
+        this(
+                kor2ServiceClient,
+                Kor2ResponseCache.disabled()
+        );
+    }
+
+    @Autowired
+    public Kor2ServiceHandler(
+            Kor2ServiceClient kor2ServiceClient,
+            Kor2ResponseCache kor2ResponseCache
+    ) {
+
+        this.kor2ServiceClient = kor2ServiceClient;
+        this.kor2ResponseCache = kor2ResponseCache;
+    }
+
+    // Ko2Service API : 키워드만으로 관광정보 검색 (캐시 우선)
+    public Mono<Kor2KeywordSearchResponse> searchKeywordOnly(String keyword) {
+
+        return kor2ResponseCache.cached(
+                "searchKeyword2",
+                keyword,
+                SEARCH_TTL,
+                Kor2KeywordSearchResponse.class,
+                () -> fetchKeywordOnly(keyword)
+        );
+    }
+
+    // Ko2Service API : 지역 관광지 후보 (캐시 우선)
+    public Mono<Kor2KeywordSearchResponse> searchAttractions(
+            String locationDo,
+            String locationSigungu
+    ) {
+
+        return kor2ResponseCache.cached(
+                "attractions",
+                locationDo + ":" + locationSigungu,
+                SEARCH_TTL,
+                Kor2KeywordSearchResponse.class,
+                () -> fetchAttractions(
+                        locationDo,
+                        locationSigungu
+                )
+        );
+    }
+
+    // Ko2Service API : 지역 음식점 키워드 검색 (캐시 우선)
+    public Mono<Kor2KeywordSearchResponse> searchRestaurants(
+            String keyword,
+            String locationDo,
+            String locationSigungu
+    ) {
+
+        return kor2ResponseCache.cached(
+                "restaurants",
+                keyword + ":" + locationDo + ":" + locationSigungu,
+                SEARCH_TTL,
+                Kor2KeywordSearchResponse.class,
+                () -> fetchRestaurants(
+                        keyword,
+                        locationDo,
+                        locationSigungu
+                )
+        );
+    }
+
+    // Ko2Service API : 지역 음식점 후보 (캐시 우선)
+    public Mono<Kor2KeywordSearchResponse> searchRestaurantCandidates(
+            String locationDo,
+            String locationSigungu
+    ) {
+
+        return kor2ResponseCache.cached(
+                "restaurantCandidates",
+                locationDo + ":" + locationSigungu,
+                SEARCH_TTL,
+                Kor2KeywordSearchResponse.class,
+                () -> fetchRestaurantCandidates(
+                        locationDo,
+                        locationSigungu
+                )
+        );
+    }
+
+    // Ko2Service API : 음식점 상세정보 (캐시 우선)
+    public Mono<Kor2RestaurantIntroResponse> getRestaurantDetail(String contentId) {
+
+        return kor2ResponseCache.cached(
+                "detailIntro2",
+                contentId,
+                DETAIL_TTL,
+                Kor2RestaurantIntroResponse.class,
+                () -> fetchRestaurantDetail(contentId)
+        );
+    }
+
     // Ko2Service API : 키워드만으로 관광정보 검색
-    public Mono<Kor2KeywordSearchResponse> searchKeywordOnly(
+    private Mono<Kor2KeywordSearchResponse> fetchKeywordOnly(
             String keyword
     ) {
 
@@ -75,7 +182,7 @@ public class Kor2ServiceHandler {
 
 
     // Ko2Service API : 광역 지역은 시/도, 도 지역은 시/군 기준 관광지 후보 조회
-    public Mono<Kor2KeywordSearchResponse> searchAttractions(
+    private Mono<Kor2KeywordSearchResponse> fetchAttractions(
             String locationDo,
             String locationSigungu
     ) {
@@ -115,7 +222,7 @@ public class Kor2ServiceHandler {
 
 
     // Ko2Service API : 광역 지역은 시/도, 도 지역은 시/군 기준 음식점 키워드 검색
-    public Mono<Kor2KeywordSearchResponse> searchRestaurants(
+    private Mono<Kor2KeywordSearchResponse> fetchRestaurants(
             String keyword,
             String locationDo,
             String locationSigungu
@@ -156,7 +263,7 @@ public class Kor2ServiceHandler {
 
 
     // Ko2Service API : 광역 지역은 시/도, 도 지역은 시/군 기준 음식점 후보 조회
-    public Mono<Kor2KeywordSearchResponse> searchRestaurantCandidates(
+    private Mono<Kor2KeywordSearchResponse> fetchRestaurantCandidates(
             String locationDo,
             String locationSigungu
     ) {
@@ -421,7 +528,7 @@ public class Kor2ServiceHandler {
 
 
     // Ko2Service API : 음식점 상세정보 조회
-    public Mono<Kor2RestaurantIntroResponse> getRestaurantDetail(
+    private Mono<Kor2RestaurantIntroResponse> fetchRestaurantDetail(
             String contentId
     ) {
 
