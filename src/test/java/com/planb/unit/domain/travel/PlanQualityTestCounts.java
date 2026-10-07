@@ -95,6 +95,40 @@ class PlanQualityTestCounts {
     }
 
     @Test
+    @DisplayName("TourAPI 제목의 여행 시군 접두어와 괄호 설명을 걷어낸 지정 장소 포함 계수")
+    void plannedPlaceAcceptsTourApiTitleFormat() {
+
+        // 2026-10-07 R0 재측정 raw 응답의 실제 장소명 형식
+        JsonNode plan = MAPPER.readTree("""
+                {"planDays": [
+                  {"dayNumber": 1, "schedules": [
+                    {"courseType": "ATTRACTION", "locationName": "경주 불국사 [유네스코 세계유산]",
+                     "candidateId": "tour:126166", "travelMinutes": 20, "tags": []}
+                  ]}
+                ]}
+                """);
+
+        assertTrue(PlanQualityCounts
+                .count(
+                        plan,
+                        "불국사",
+                        "경주시",
+                        List.of()
+                )
+                .plannedPlaceIncluded());
+
+        // 다른 시군 접두어는 같은 이름이어도 미포함
+        assertFalse(PlanQualityCounts
+                .count(
+                        plan,
+                        "불국사",
+                        "강릉시",
+                        List.of()
+                )
+                .plannedPlaceIncluded());
+    }
+
+    @Test
     @DisplayName("메뉴명은 공백·괄호·구분자 정규화 후 상세 메뉴 항목에 포함되면 출처 일치")
     void menuMatchesNormalizedDetailMenu() {
 

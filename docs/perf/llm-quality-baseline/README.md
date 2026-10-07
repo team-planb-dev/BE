@@ -66,8 +66,10 @@ git diff --stat 3cb20f1 HEAD -- src/main build.gradle
 거치지 않는다.
 
 ```bash
-./gradlew externalTest --tests "com.planb.integration.domain.travel.TravelLlmQualityBaselineTest"
+./gradlew externalTest --rerun --tests "com.planb.integration.domain.travel.TravelLlmQualityBaselineTest"
 ```
+
+- `--rerun`: 코드 변경 없이 다시 측정할 때 Gradle이 `externalTest`를 UP-TO-DATE로 건너뛰는 것 방지
 
 - 계획 생성 12회를 실제로 호출한다. 유료이며 사용자가 실행한다
 - `OPENAI_API_KEY`가 없으면 12회 모두 건너뛴다(skipped). 키 없이 돌리면 앱은 기동되지만
