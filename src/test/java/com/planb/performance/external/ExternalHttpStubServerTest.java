@@ -29,6 +29,7 @@ import com.planb.performance.external.ExternalHttpStubServer.Api;
 import com.planb.performance.external.ExternalHttpStubServer.RecordedRequest;
 import com.planb.performance.external.ExternalHttpStubServer.Scenario;
 import com.planb.performance.external.ExternalHttpStubServer.Settings;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -456,7 +457,8 @@ class ExternalHttpStubServerTest {
                         new Kor2ServiceProperties(
                                 stub.baseUrl(Api.KOR2),
                                 "loadtest"
-                        )
+                        ),
+                        new SimpleMeterRegistry()
                 )
         );
 

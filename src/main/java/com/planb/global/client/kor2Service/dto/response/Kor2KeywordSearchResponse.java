@@ -1,5 +1,6 @@
 package com.planb.global.client.kor2Service.dto.response;
 
+import com.planb.global.client.kor2Service.Kor2Result;
 import com.planb.global.constant.serializer.external.Kor2KeywordSearchItemsDeserializer;
 import tools.jackson.databind.annotation.JsonDeserialize;
 
@@ -7,7 +8,17 @@ import java.util.List;
 
 public record Kor2KeywordSearchResponse(
         Response response
-) {
+) implements Kor2Result {
+
+    @Override
+    public String resultCode() {
+
+        return response == null || response.header() == null
+                ? null
+                : response
+                        .header()
+                        .resultCode();
+    }
 
     public record Response(
             Header header,
