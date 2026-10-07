@@ -2,6 +2,7 @@ package com.planb.unit.domain.travel.service;
 
 import com.planb.domain.health.entity.constant.DiseaseType;
 import com.planb.domain.travel.entity.constant.NutritionEvaluationStatus;
+import com.planb.domain.travel.repository.FoodNutritionCacheRepository;
 import com.planb.domain.travel.service.NutritionService;
 import com.planb.global.client.foodNtrCpnt.dto.request.FoodNtrCpntSearchRequest;
 import com.planb.global.client.foodNtrCpnt.dto.response.FoodNtrCpntResponse;
@@ -18,10 +19,15 @@ import reactor.test.StepVerifier;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,6 +37,9 @@ class NutritionServiceTest {
 
     @Mock
     private FoodNtrCpntHandler foodNtrCpntHandler;
+
+    @Mock
+    private FoodNutritionCacheRepository foodNutritionCacheRepository;
 
     private NutritionService nutritionService;
 
@@ -42,8 +51,175 @@ class NutritionServiceTest {
         meterRegistry = new SimpleMeterRegistry();
         nutritionService = new NutritionService(
                 foodNtrCpntHandler,
+                foodNutritionCacheRepository,
                 meterRegistry
         );
+    }
+
+    @Test
+    @DisplayName("캐시에 있는 메뉴명은 식약처 API 없이 평가")
+    void usesCachedLookupWithoutApiCall() {
+
+        when(foodNutritionCacheRepository.find("비빔밥"))
+                .thenReturn(Optional.of(List.of(createItem(
+                        "비빔밥",
+                        "50.0",
+                        "8.0",
+                        "6.0",
+                        "600.0",
+                        "3.0",
+                        "0.5",
+                        "70.0"
+                ))));
+
+        StepVerifier
+                .create(nutritionService.evaluateFoodNutrition(
+                        "비빔밥",
+                        List.of(DiseaseType.DIABETES)
+                ))
+                .expectNextMatches(result -> result.carbohydrate() == 50.0)
+                .verifyComplete();
+
+        verify(foodNtrCpntHandler, never())
+                .getFoodNutrition(any(FoodNtrCpntSearchRequest.class));
+
+        assertEquals(
+                1.0,
+                cacheCount("hit")
+        );
+    }
+
+    @Test
+    @DisplayName("캐시에 없으면 API 결과를 30일, 빈 결과를 1일 저장")
+    void savesApiResultWithTtlByEmptiness() {
+
+        FoodNtrCpntResponse.Item item = createItem(
+                "비빔밥",
+                "50.0",
+                "8.0",
+                "6.0",
+                "600.0",
+                "3.0",
+                "0.5",
+                "70.0"
+        );
+
+        when(foodNtrCpntHandler.getFoodNutrition(any(FoodNtrCpntSearchRequest.class)))
+                .thenReturn(
+                        Mono.just(List.of(item)),
+                        Mono.just(List.of())
+                );
+
+        StepVerifier
+                .create(nutritionService.evaluateFoodNutrition(
+                        "비빔밥",
+                        List.of(DiseaseType.DIABETES)
+                ))
+                .expectNextCount(1)
+                .verifyComplete();
+
+        StepVerifier
+                .create(nutritionService.evaluateFoodNutrition(
+                        "없는메뉴",
+                        List.of(DiseaseType.DIABETES)
+                ))
+                .expectNextCount(1)
+                .verifyComplete();
+
+        verify(foodNutritionCacheRepository)
+                .save(
+                        "비빔밥",
+                        List.of(item),
+                        Duration.ofDays(30)
+                );
+
+        verify(foodNutritionCacheRepository)
+                .save(
+                        "없는메뉴",
+                        List.of(),
+                        Duration.ofDays(1)
+                );
+
+        assertEquals(
+                2.0,
+                cacheCount("miss")
+        );
+    }
+
+    @Test
+    @DisplayName("API 조회 실패는 캐시에 저장하지 않음")
+    void doesNotCacheApiFailure() {
+
+        when(foodNtrCpntHandler.getFoodNutrition(any(FoodNtrCpntSearchRequest.class)))
+                .thenReturn(Mono.error(new RuntimeException("504 Gateway Timeout")));
+
+        StepVerifier
+                .create(nutritionService.evaluateFoodNutrition(
+                        "비빔밥",
+                        List.of(DiseaseType.DIABETES)
+                ))
+                .expectNextMatches(result -> result.status() == NutritionEvaluationStatus.UNAVAILABLE)
+                .verifyComplete();
+
+        verify(foodNutritionCacheRepository, never())
+                .save(
+                        anyString(),
+                        any(),
+                        any()
+                );
+    }
+
+    @Test
+    @DisplayName("Redis 조회·저장 실패 시 API 결과로 평가하고 일정 생성 흐름 유지")
+    void fallsBackToApiWhenRedisFails() {
+
+        when(foodNutritionCacheRepository.find("비빔밥"))
+                .thenThrow(new IllegalStateException("redis down"));
+
+        doThrow(new IllegalStateException("redis down"))
+                .when(foodNutritionCacheRepository)
+                .save(
+                        eq("비빔밥"),
+                        any(),
+                        any()
+                );
+
+        when(foodNtrCpntHandler.getFoodNutrition(any(FoodNtrCpntSearchRequest.class)))
+                .thenReturn(Mono.just(List.of(createItem(
+                        "비빔밥",
+                        "50.0",
+                        "8.0",
+                        "6.0",
+                        "600.0",
+                        "3.0",
+                        "0.5",
+                        "70.0"
+                ))));
+
+        StepVerifier
+                .create(nutritionService.evaluateFoodNutrition(
+                        "비빔밥",
+                        List.of(DiseaseType.DIABETES)
+                ))
+                .expectNextMatches(result -> result.carbohydrate() == 50.0)
+                .verifyComplete();
+
+        assertEquals(
+                2.0,
+                cacheCount("error")
+        );
+    }
+
+    private double cacheCount(String result) {
+
+        var counter = meterRegistry
+                .find("planb.travel.nutrition.cache")
+                .tag("result", result)
+                .counter();
+
+        return counter == null
+                ? 0
+                : counter.count();
     }
 
     @Test
