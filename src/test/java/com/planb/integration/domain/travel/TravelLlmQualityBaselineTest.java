@@ -67,7 +67,8 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
             "spring.ai.tool",
             "planb.travel.plan.stage",
             "planb.travel.ai.orchestration",
-            "planb.ai.retry"
+            "planb.ai.retry",
+            "planb.travel.nutrition.cache"
     );
 
     // 케이스 공통 알레르기(새우) 추정용 키워드, 오탐(해물·짬뽕)과 누락(동의어) 양방향 오차 존재

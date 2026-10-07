@@ -3,6 +3,7 @@ package com.planb.domain.travel.service;
 import com.planb.domain.health.entity.constant.DiseaseType;
 import com.planb.domain.travel.dto.nutrition.NutritionEvaluationResult;
 import com.planb.domain.travel.entity.constant.NutritionEvaluationStatus;
+import com.planb.domain.travel.repository.FoodNutritionCacheRepository;
 import com.planb.global.client.foodNtrCpnt.dto.request.FoodNtrCpntSearchRequest;
 import com.planb.global.client.foodNtrCpnt.dto.response.FoodNtrCpntResponse;
 import com.planb.global.client.foodNtrCpnt.handler.FoodNtrCpntHandler;
@@ -12,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 import java.util.List;
@@ -29,7 +31,14 @@ public class NutritionService {
     private static final Duration LOOKUP_TIMEOUT =
             Duration.ofSeconds(15);
 
+    // 영양 조회 결과 보존 기간, 빈 결과는 메뉴명 표기 차이 가능성으로 짧게 유지
+    private static final Duration FOUND_TTL = Duration.ofDays(30);
+
+    private static final Duration EMPTY_TTL = Duration.ofDays(1);
+
     private final FoodNtrCpntHandler foodNtrCpntHandler;
+
+    private final FoodNutritionCacheRepository foodNutritionCacheRepository;
 
     private final MeterRegistry meterRegistry;
 
@@ -113,15 +122,80 @@ public class NutritionService {
                 .increment();
     }
 
-    // 조회 건별 시간 상한과 재조회 독립 예산
-    // 느린 첫 조회에 따른 재조회 예산 소진 방지
+    // 캐시 우선 조회, 미적중 시 식약처 API 조회 후 저장
+    // 조회 건별 시간 상한과 재조회 독립 예산, 느린 첫 조회에 따른 재조회 예산 소진 방지
     private Mono<List<FoodNtrCpntResponse.Item>> lookup(String name) {
 
-        return foodNtrCpntHandler
+        String key = name.strip();
+
+        return cached(key).switchIfEmpty(Mono.defer(() -> foodNtrCpntHandler
                 .getFoodNutrition(
                         FoodNtrCpntSearchRequest.of(name)
                 )
-                .timeout(LOOKUP_TIMEOUT);
+                .timeout(LOOKUP_TIMEOUT)
+                .flatMap(items -> store(
+                        key,
+                        items
+                ).thenReturn(items))));
+    }
+
+    // Redis 조회는 blocking이라 boundedElastic에서 실행, 실패 시 미적중으로 처리
+    private Mono<List<FoodNtrCpntResponse.Item>> cached(String key) {
+
+        return Mono
+                .fromCallable(() -> foodNutritionCacheRepository.find(key))
+                .subscribeOn(Schedulers.boundedElastic())
+                .flatMap(found -> {
+                    recordCache(found.isPresent() ? "hit" : "miss");
+
+                    return Mono.justOrEmpty(found);
+                })
+                .onErrorResume(failure -> {
+                    log.warn(
+                            "영양정보 캐시 조회 실패 - name: {}, 원인: {}",
+                            key,
+                            failure.toString()
+                    );
+                    recordCache("error");
+
+                    return Mono.empty();
+                });
+    }
+
+    // API 응답 스레드를 막지 않도록 boundedElastic에서 저장, 실패해도 조회 결과는 그대로 사용
+    private Mono<Void> store(
+            String key,
+            List<FoodNtrCpntResponse.Item> items
+    ) {
+
+        return Mono
+                .<Void>fromRunnable(() -> foodNutritionCacheRepository.save(
+                        key,
+                        items,
+                        items.isEmpty()
+                                ? EMPTY_TTL
+                                : FOUND_TTL
+                ))
+                .subscribeOn(Schedulers.boundedElastic())
+                .onErrorResume(failure -> {
+                    log.warn(
+                            "영양정보 캐시 저장 실패 - name: {}, 원인: {}",
+                            key,
+                            failure.toString()
+                    );
+                    recordCache("error");
+
+                    return Mono.empty();
+                });
+    }
+
+    private void recordCache(String result) {
+
+        Counter
+                .builder("planb.travel.nutrition.cache")
+                .tag("result", result)
+                .register(meterRegistry)
+                .increment();
     }
 
     // 표준 품목명 누락·중복 시 재조회 제외
