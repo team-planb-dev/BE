@@ -493,6 +493,7 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
                 PlanQualityCounts.count(
                         plan,
                         goldenCase.plannedPlace(),
+                        goldenCase.locationSigungu(),
                         ALLERGEN_KEYWORDS
                 ),
                 menuSource[0],
