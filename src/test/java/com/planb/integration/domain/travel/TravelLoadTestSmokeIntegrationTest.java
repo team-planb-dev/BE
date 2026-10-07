@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -31,6 +32,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -87,6 +89,9 @@ class TravelLoadTestSmokeIntegrationTest extends TravelApiTestSupport {
 
     @Autowired
     private LlmCallRecorder llmCallRecorder;
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     // 유료 기준선 실행 전 계측 경로 사전 확인용 호출별 기록기
     @TestConfiguration
@@ -298,6 +303,15 @@ class TravelLoadTestSmokeIntegrationTest extends TravelApiTestSupport {
                 .isFalse();
     }
 
+    private void clearNutritionCache() {
+
+        Set<String> keys = stringRedisTemplate.keys("nutrition:food:*");
+
+        if (keys != null && !keys.isEmpty()) {
+            stringRedisTemplate.delete(keys);
+        }
+    }
+
     // 태그와 무관한 meter 전체 기록 횟수
     private long meterCount(String name) {
 
@@ -314,6 +328,9 @@ class TravelLoadTestSmokeIntegrationTest extends TravelApiTestSupport {
     void measuresDelayedNutritionLookupsInTravelCreation(
             RepetitionInfo repetitionInfo
     ) throws Exception {
+
+        // 지연 영양 조회 경로 측정용, 이전 회차가 남긴 메뉴명 캐시 제거
+        clearNutritionCache();
 
         long lookupBefore = stageCount("nutrition_lookup");
         double lookupNanosBefore = stageNanos("nutrition_lookup");
