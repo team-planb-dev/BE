@@ -8,12 +8,14 @@ import com.planb.ai.context.PlanEditContext;
 import com.planb.ai.context.TravelHealthContext;
 import com.planb.ai.context.TravelPlanContext;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
+import com.planb.ai.dto.response.CreatePlanSelection;
 import com.planb.ai.dto.response.CreatePlanAiResponse.PlanScheduleDetail;
 import com.planb.ai.dto.response.EditPlanAiResponse;
 import com.planb.ai.dto.response.PlaceReselectResponse;
 import com.planb.ai.dto.response.PlaceWithRouteResult;
 import com.planb.ai.dto.response.RebuildPlanDayResponse;
 import com.planb.ai.handler.TravelRecommendHandler;
+import com.planb.ai.handler.PlanGenerationSelectionMapper;
 import com.planb.ai.mcp.TourismTool;
 import com.planb.ai.prompt.AiPrompt;
 import com.planb.ai.prompt.PlaceReselectPrompt;
@@ -59,6 +61,65 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class TravelRecommendHandlerContractTest {
 
+    @Test
+    @DisplayName("생성 선택 응답의 candidateId를 검증된 장소 정보로 변환")
+    void createsPlanFromCandidateSelection() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+        candidates.record(restaurantItem("456", "춘천식당"));
+
+        CreatePlanSelection selection = new CreatePlanSelection(List.of(
+                new CreatePlanSelection.PlanDaySelection(
+                        1,
+                        LocalDate.of(2030, 1, 1),
+                        List.of(new CreatePlanSelection.ScheduleSelection(
+                                ScheduleType.LUNCH,
+                                CourseType.RESTAURANT,
+                                LocalTime.of(12, 0),
+                                LocalTime.of(13, 0),
+                                60,
+                                Set.of(),
+                                new CreatePlanSelection.RestaurantSelection(
+                                        "막국수",
+                                        "막국수"
+                                ),
+                                "tour:456"
+                        ))
+                )
+        ));
+
+        when(tourismTool.findPlannedPlaces(
+                any(),
+                eq("서울"),
+                eq("종로구")
+        )).thenReturn(List.of());
+
+        doReturn(selection)
+                .when(openAiClient)
+                .call(
+                        any(AiPrompt.class),
+                        eq(createPlanSelectionConverter),
+                        any(Function.class),
+                        any(Object[].class)
+                );
+
+        CreatePlanAiResponse result = handler()
+                .createPlanByAi(
+                        travelPlanContext(WalkType.ACTIVE),
+                        candidates
+                );
+
+        PlanScheduleDetail slot = result
+                .planDays()
+                .getFirst()
+                .schedules()
+                .getFirst();
+
+        assertThat(slot.locationName()).isEqualTo("춘천식당");
+        assertThat(slot.candidateId()).isEqualTo("tour:456");
+        assertThat(slot.restaurantDetail().menuName()).isEqualTo("막국수");
+    }
+
     @Mock
     private OpenAiClient openAiClient;
 
@@ -66,7 +127,7 @@ class TravelRecommendHandlerContractTest {
     private ObjectMapper objectMapper;
 
     @Mock
-    private BeanOutputConverter<CreatePlanAiResponse> createPlanAiResponseConverter;
+    private BeanOutputConverter<CreatePlanSelection> createPlanSelectionConverter;
 
     @Mock
     private BeanOutputConverter<EditPlanAiResponse> editPlanAiResponseConverter;
@@ -101,20 +162,20 @@ class TravelRecommendHandlerContractTest {
         );
 
         @SuppressWarnings("unchecked")
-        ArgumentCaptor<Function<CreatePlanAiResponse, List<String>>> validation =
+        ArgumentCaptor<Function<CreatePlanSelection, List<String>>> validation =
                 ArgumentCaptor.forClass(Function.class);
 
         verify(openAiClient)
                 .call(
                         any(AiPrompt.class),
-                        eq(createPlanAiResponseConverter),
+                        eq(createPlanSelectionConverter),
                         validation.capture(),
                         any(Object[].class)
                 );
 
         List<String> failures = validation
                 .getValue()
-                .apply(planWithAttractions(1, 0));
+                .apply(selectionWithAttractions(1, 0));
 
         assertNotNull(failures);
         assertTrue(failures
@@ -140,7 +201,7 @@ class TravelRecommendHandlerContractTest {
 
         List<String> combinedFailures = validation
                 .getValue()
-                .apply(planWithAttractions(
+                .apply(selectionWithAttractions(
                         1,
                         0,
                         3
@@ -160,7 +221,7 @@ class TravelRecommendHandlerContractTest {
                 failure.contains("day2].schedules: 관광지 3개 필요 / 실제 0개")));
         assertTrue(validation
                         .getValue()
-                        .apply(planWithAttractions(3, 3))
+                        .apply(selectionWithAttractions(3, 3))
                         .isEmpty());
     }
 
@@ -176,7 +237,7 @@ class TravelRecommendHandlerContractTest {
 
         assertTrue(
                 capturedPlanValidation()
-                        .apply(planWithAttractions(3, 3))
+                        .apply(selectionWithAttractions(3, 3))
                         .isEmpty()
         );
     }
@@ -229,16 +290,16 @@ class TravelRecommendHandlerContractTest {
                 });
     }
 
-    private Function<CreatePlanAiResponse, List<String>> capturedPlanValidation() {
+    private Function<CreatePlanSelection, List<String>> capturedPlanValidation() {
 
         @SuppressWarnings("unchecked")
-        ArgumentCaptor<Function<CreatePlanAiResponse, List<String>>> validation =
+        ArgumentCaptor<Function<CreatePlanSelection, List<String>>> validation =
                 ArgumentCaptor.forClass(Function.class);
 
         verify(openAiClient)
                 .call(
                         any(AiPrompt.class),
-                        eq(createPlanAiResponseConverter),
+                        eq(createPlanSelectionConverter),
                         validation.capture(),
                         any(Object[].class)
                 );
@@ -479,10 +540,11 @@ class TravelRecommendHandlerContractTest {
         return new TravelRecommendHandler(
                 openAiClient,
                 objectMapper,
-                createPlanAiResponseConverter,
+                createPlanSelectionConverter,
                 editPlanAiResponseConverter,
                 rebuildPlanDayResponseConverter,
-                tourismTool
+                tourismTool,
+                new PlanGenerationSelectionMapper()
         );
     }
 
@@ -614,6 +676,34 @@ class TravelRecommendHandlerContractTest {
                         )
                         .toList()
         );
+    }
+
+    private CreatePlanSelection selectionWithAttractions(int... counts) {
+
+        CreatePlanAiResponse response = planWithAttractions(counts);
+
+        return new CreatePlanSelection(response
+                .planDays()
+                .stream()
+                .map(day -> new CreatePlanSelection.PlanDaySelection(
+                        day.dayNumber(),
+                        day.date(),
+                        day
+                                .schedules()
+                                .stream()
+                                .map(slot -> new CreatePlanSelection.ScheduleSelection(
+                                        slot.scheduleType(),
+                                        slot.courseType(),
+                                        slot.startTime(),
+                                        slot.endTime(),
+                                        slot.stayMinutes(),
+                                        slot.tags(),
+                                        null,
+                                        slot.candidateId()
+                                ))
+                                .toList()
+                ))
+                .toList());
     }
 
     private List<PlanScheduleDetail> attractions(

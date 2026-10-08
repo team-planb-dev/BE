@@ -1,6 +1,8 @@
 package com.planb.unit.global.ai.prompt;
 
 import com.planb.ai.context.PlanEditContext;
+import com.planb.ai.context.TravelHealthContext;
+import com.planb.ai.context.TravelPlanContext;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
 import com.planb.ai.dto.response.RebuildPlanDayResponse;
 import com.planb.ai.prompt.EditPlanPrompt;
@@ -8,6 +10,7 @@ import com.planb.ai.prompt.RebuildPlanDayPrompt;
 import com.planb.ai.prompt.TravelPlanPrompt;
 import com.planb.domain.travel.dto.response.GetAiPlanResponse;
 import com.planb.domain.travel.helper.PlanEditValidator;
+import com.planb.domain.health.entity.constant.WalkType;
 import com.planb.global.config.ai.AiOutputConverterConfig;
 import com.planb.global.config.app.AppConfig;
 import org.junit.jupiter.api.DisplayName;
@@ -23,6 +26,59 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 class PlanDayRebuildContractTest {
+
+    @Test
+    @DisplayName("생성 Prompt의 관광지 개수는 Java 정책의 걷기 수준을 반영")
+    void generationPromptUsesJavaTouristPlaceCountPolicy() {
+
+        TravelHealthContext minimal = new TravelHealthContext(
+                "여행자",
+                List.of(),
+                WalkType.MINIMAL,
+                null,
+                List.of(),
+                List.of()
+        );
+
+        TravelHealthContext active = new TravelHealthContext(
+                "여행자",
+                List.of(),
+                WalkType.ACTIVE,
+                null,
+                List.of(),
+                List.of()
+        );
+
+        String minimalPrompt = new TravelPlanPrompt(
+                new TravelPlanContext(null, List.of(minimal)),
+                null
+        ).system();
+
+        String activePrompt = new TravelPlanPrompt(
+                new TravelPlanContext(null, List.of(active)),
+                null
+        ).system();
+
+        assertTrue(minimalPrompt.contains("Java 정책 기준 2개"));
+        assertTrue(activePrompt.contains("Java 정책 기준 3개"));
+    }
+
+    @Test
+    @DisplayName("생성 Prompt는 후보 선택만 출력하고 장소 사실값은 Java에 위임")
+    void generationPromptReturnsCandidateSelectionOnly() {
+
+        String prompt = new TravelPlanPrompt(
+                null,
+                null
+        ).system();
+
+        assertTrue(prompt.contains("CreatePlanSelection"));
+        assertTrue(prompt.contains("candidateId"));
+        assertFalse(prompt.contains("CreatePlanAiResponse"));
+        assertFalse(prompt.contains("locationName, location, imageUrl"));
+        assertFalse(prompt.contains("medication 필드는 null로 반환"));
+        assertFalse(prompt.contains("restaurantDetail.longitude"));
+    }
 
     private final LocalDate date = LocalDate.of(
             2026,
