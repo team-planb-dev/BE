@@ -574,6 +574,10 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
             String createdBody
     ) throws Exception {
 
+        if (Boolean.parseBoolean(System.getenv("P2_GENERATION_ONLY"))) {
+            return;
+        }
+
         JsonNode created = objectMapper.readTree(createdBody);
 
         if (!created
