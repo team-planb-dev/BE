@@ -9,6 +9,7 @@ import com.planb.domain.travel.policy.TouristPlaceCountPolicy;
 import com.planb.ai.context.TravelPlanContext;
 import com.planb.ai.dto.request.MakeFoodRecommendCallRequest;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
+import com.planb.ai.dto.response.CreatePlanSelection;
 import com.planb.ai.dto.response.EditPlanAiResponse;
 import com.planb.ai.dto.response.PlaceReselectResponse;
 import com.planb.ai.dto.response.RebuildPlanDayResponse;
@@ -53,7 +54,7 @@ public class TravelRecommendHandler {
      */
     private final ObjectMapper objectMapper;
 
-    private final BeanOutputConverter<CreatePlanAiResponse> createPlanAiResponseConverter;
+    private final BeanOutputConverter<CreatePlanSelection> createPlanSelectionConverter;
 
     private final BeanOutputConverter<EditPlanAiResponse> editPlanAiResponseConverter;
     private final BeanOutputConverter<RebuildPlanDayResponse> rebuildPlanDayResponseConverter;
@@ -62,6 +63,8 @@ public class TravelRecommendHandler {
     Tool
      */
     private final TourismTool tourismTool;
+
+    private final PlanGenerationSelectionMapper selectionMapper;
 
     // 지역에 따른 음식 추천 받기
     public MakeRecommendFoodResponse makeRecommendFood
@@ -102,17 +105,26 @@ public class TravelRecommendHandler {
                         .locationSigungu()
         );
 
-        CreatePlanAiResponse response = openAiClient
+        Function<CreatePlanAiResponse, List<String>> validation = validatePlan(
+                travelPlanContext,
+                candidates
+        );
+
+        Function<CreatePlanSelection, List<String>> selectionValidation = response -> validation.apply(
+                selectionMapper.toResponse(
+                        response,
+                        candidates
+                )
+        );
+
+        CreatePlanSelection selection = openAiClient
                 .call(
                         new VerifiedPlacePrompt(new TravelPlanPrompt(
                                 travelPlanContext,
                                 objectMapper
                         )),
-                        createPlanAiResponseConverter,
-                        validatePlan(
-                                travelPlanContext,
-                                candidates
-                        ),
+                        createPlanSelectionConverter,
+                        selectionValidation,
                         new PlanTourismTool(
                                 tourismTool,
                                 candidates,
@@ -125,7 +137,10 @@ public class TravelRecommendHandler {
 
         // PlanService 검증 직전의 관광지 개수·빈 슬롯 단일 보정
         // 생성·편집·재구성의 공통 보정 지점
-        return response;
+        return selectionMapper.toResponse(
+                selection,
+                candidates
+        );
     }
 
     // AI로 기존 일정을 자연어 수정 요청에 맞춰 부분 수정
