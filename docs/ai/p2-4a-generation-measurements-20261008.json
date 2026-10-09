@@ -1,0 +1,43 @@
+{
+  "phase": "P2-4A",
+  "runId": "2026-10-08T05-45-48.083415Z",
+  "executionCommit": "84444b51de31a5de0b6cbfbbb81e4afc47d8a6aa",
+  "executedAt": "2026-10-08",
+  "analyzedAt": "2026-10-09",
+  "generationRuns": 12,
+  "editRuns": 0,
+  "pass": 12,
+  "plannedPlaceIncluded": 12,
+  "crossDayDuplicatePlaces": 0,
+  "allergenKeywordHits": 0,
+  "menuSourceMatched": 72,
+  "menuSourceChecked": 72,
+  "restaurantSlots": 72,
+  "nutritionFilled": 36,
+  "cafeRestSlots": 11,
+  "attractionTags": 72,
+  "totalTravelMinutesMedian": 300,
+  "durationMsMedian": 19986.0,
+  "durationMsMin": 13083,
+  "durationMsMax": 57475,
+  "caseDurationMsMedian": {
+    "C1-seoul-single-disease": 21739,
+    "C2-busan-two-companions": 15170,
+    "C3-gangneung-combined-diseases": 20022,
+    "C4-gyeongju-two-companions-combined": 19950
+  },
+  "repeatDurationMsMedian": {
+    "1": 49958.5,
+    "2": 17322.0,
+    "3": 15070.0
+  },
+  "llmCalls": 61,
+  "inputOutputTokensMedian": 47916.5,
+  "correctionCount": 0,
+  "limitations": [
+    "12 generated plans; small non-deterministic sample",
+    "No paid edit regression run in this phase",
+    "HIGH menu ratio and opening-hours mismatches not measured",
+    "Not a load or production latency measurement"
+  ]
+}
