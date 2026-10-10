@@ -11,6 +11,7 @@ import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.domain.travel.service.NutritionService;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
+import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
 import com.planb.global.client.kor2Service.handler.Kor2ServiceHandler;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -508,6 +510,38 @@ class PlanTourismToolTest {
                 "35.834921"
         );
     }
+    @Test
+    @DisplayName("상세 Tool의 candidateId 복원과 메뉴 원본 기록")
+    void recordsMenuSourceWithoutChangingToolResponse() {
+
+        TourismTool tourismTool = mock(TourismTool.class);
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+        Kor2KeywordSearchResponse.Item item = mock(Kor2KeywordSearchResponse.Item.class);
+        when(item.contentid()).thenReturn("9");
+        when(item.contenttypeid()).thenReturn("39");
+        candidates.record(item);
+        Kor2RestaurantIntroResponse response = new Kor2RestaurantIntroResponse(
+                new Kor2RestaurantIntroResponse.Response(
+                        new Kor2RestaurantIntroResponse.Header("0000", "OK"),
+                        new Kor2RestaurantIntroResponse.Body(
+                                new Kor2RestaurantIntroResponse.Items(List.of(
+                                        new Kor2RestaurantIntroResponse.Item("9", "39", "닭갈비", "막국수")
+                                )),
+                                1,
+                                1,
+                                1
+                        )
+                )
+        );
+        when(tourismTool.getRestaurantDetail("9")).thenReturn(response);
+        PlanTourismTool tool = new PlanTourismTool(tourismTool, candidates);
+
+        assertSame(response, tool.getRestaurantDetail("tour:9"));
+        assertNull(candidates.restaurantMenuFailure("tour:9", "막국수"));
+        assertSame(response, tool.getRestaurantDetail("9"));
+        verify(tourismTool, times(2)).getRestaurantDetail("9");
+    }
+
     private Kor2KeywordSearchResponse response(
             Kor2KeywordSearchResponse.Item item
     ) {
