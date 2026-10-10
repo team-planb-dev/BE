@@ -4,6 +4,7 @@ import com.planb.ai.context.PlaceCandidateContext;
 import com.planb.ai.context.PlaceCandidateContext.Candidate;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
 import com.planb.ai.dto.response.CreatePlanSelection;
+import com.planb.domain.travel.entity.constant.CourseType;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -19,6 +20,8 @@ public class PlanGenerationSelectionMapper {
         if (selection == null || selection.planDays() == null) {
             return null;
         }
+
+        candidates.clearStandardFoodNames();
 
         List<CreatePlanAiResponse.PlanDayDetail> days = selection
                 .planDays()
@@ -61,6 +64,14 @@ public class PlanGenerationSelectionMapper {
         }
 
         Candidate candidate = candidates.find(slot.candidateId());
+        if (candidate != null && slot.restaurantDetail() != null
+                && (slot.courseType() == CourseType.RESTAURANT || slot.courseType() == CourseType.LOCAL_FOOD)) {
+            candidates.recordStandardFoodName(
+                    slot.candidateId(),
+                    slot.restaurantDetail().menuName(),
+                    slot.restaurantDetail().standardFoodName()
+            );
+        }
 
         return new CreatePlanAiResponse.PlanScheduleDetail(
                 slot.scheduleType(),
@@ -77,14 +88,15 @@ public class PlanGenerationSelectionMapper {
                 null,
                 slot.tags(),
                 null,
-                toRestaurant(slot.restaurantDetail(), candidate),
+                toRestaurant(slot.restaurantDetail(), candidate, candidates),
                 slot.candidateId()
         );
     }
 
     private CreatePlanAiResponse.RestaurantDetail toRestaurant(
             CreatePlanSelection.RestaurantSelection restaurant,
-            Candidate candidate
+            Candidate candidate,
+            PlaceCandidateContext candidates
     ) {
 
         if (restaurant == null) {
@@ -96,7 +108,11 @@ public class PlanGenerationSelectionMapper {
                 null,
                 null,
                 null,
-                null,
+                candidates.generationRestaurants() == null || candidate == null
+                        ? null
+                        : candidates
+                                .generationRestaurants()
+                                .openingHours(candidate.candidateId()),
                 candidate == null ? null : candidate.address(),
                 candidate == null ? null : candidate.longitude(),
                 candidate == null ? null : candidate.latitude(),

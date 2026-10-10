@@ -1574,9 +1574,10 @@ class PlanServiceTest {
         assertFalse(tags.contains(RecommendationTag.LOCAL_FOOD));
     }
 
-    @Test
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
     @DisplayName("누락 식사 보정 후 영양정보 평가")
-    void makePlanByAiEvaluatesNutritionForCompletedMeal() {
+    void makePlanByAiEvaluatesNutritionForCompletedMeal(boolean hasStandardName) {
 
         TravelHealthContext healthContext =
                 new TravelHealthContext(
@@ -1653,7 +1654,15 @@ class PlanServiceTest {
                                 any(PlaceCandidateContext.class)
                         )
         )
-                .thenReturn(initialResponse);
+                .thenAnswer(invocation -> {
+                    if (hasStandardName) {
+                        PlaceCandidateContext candidates = invocation.getArgument(1);
+                        candidates.recordStandardFoodName(null, "계약 점심", "점심");
+                        candidates.recordStandardFoodName("tour:discarded", "계약 점심", "폐기된 음식");
+                        candidates.recordStandardFoodName(null, "계약 점심", "중복 슬롯 음식");
+                    }
+                    return initialResponse;
+                });
 
         when(
                 missingSlotCompleter
@@ -1669,25 +1678,22 @@ class PlanServiceTest {
         )
                 .thenReturn(completedResponse);
 
-        when(
-                nutritionService
-                        .evaluateFoodNutrition(
-                                "계약 점심",
-                                List.of(DiseaseType.DIABETES)
-                        )
-        )
-                .thenReturn(
-                Mono.just(
-                        new NutritionEvaluationResult(
-                                List.of(DiseaseType.DIABETES),
-                                NutritionEvaluationStatus.AVAILABLE,
-                                List.of(),
-                                18.5,
-                                239.0,
-                                6.49
-                        )
-                )
-        );
+        Mono<NutritionEvaluationResult> evaluation = Mono.just(new NutritionEvaluationResult(
+                List.of(DiseaseType.DIABETES),
+                NutritionEvaluationStatus.AVAILABLE,
+                List.of(),
+                18.5,
+                239.0,
+                6.49
+        ));
+
+        if (hasStandardName) {
+            when(nutritionService.evaluateFoodNutrition("계약 점심", "점심", List.of(DiseaseType.DIABETES)))
+                    .thenReturn(evaluation);
+        } else {
+            when(nutritionService.evaluateFoodNutrition("계약 점심", List.of(DiseaseType.DIABETES)))
+                    .thenReturn(evaluation);
+        }
 
         CreatePlanAiResponse result =
                 service.makePlanByAi(context);
@@ -1707,11 +1713,11 @@ class PlanServiceTest {
         assertEquals(239.0, restaurantDetail.sodium());
         assertEquals(6.49, restaurantDetail.fat());
 
-        verify(nutritionService)
-                .evaluateFoodNutrition(
-                        "계약 점심",
-                        List.of(DiseaseType.DIABETES)
-                );
+        if (hasStandardName) {
+            verify(nutritionService).evaluateFoodNutrition("계약 점심", "점심", List.of(DiseaseType.DIABETES));
+        } else {
+            verify(nutritionService).evaluateFoodNutrition("계약 점심", List.of(DiseaseType.DIABETES));
+        }
     }
 
     @Test

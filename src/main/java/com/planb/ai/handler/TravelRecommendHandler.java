@@ -18,6 +18,7 @@ import com.planb.ai.prompt.PlanEditScopePrompt;
 import com.planb.ai.prompt.PlaceReselectPrompt;
 import com.planb.ai.prompt.RebuildPlanDayPrompt;
 import com.planb.ai.mcp.PlanTourismTool;
+import com.planb.ai.mcp.GenerationTourismTool;
 import com.planb.ai.mcp.TourismTool;
 import com.planb.ai.prompt.EditPlanPrompt;
 import com.planb.ai.prompt.FoodRecommendPrompt;
@@ -110,25 +111,28 @@ public class TravelRecommendHandler {
                 candidates
         );
 
-        Function<CreatePlanSelection, List<String>> selectionValidation = response -> validation.apply(
-                selectionMapper.toResponse(
-                        response,
-                        candidates
-                )
-        );
+        Function<CreatePlanSelection, List<String>> selectionValidation = response -> {
+            CreatePlanAiResponse mapped = selectionMapper.toResponse(response, candidates);
+            List<String> failures = new ArrayList<>(validation.apply(mapped));
+            failures.addAll(candidates
+                    .generationRestaurants()
+                    .violations(mapped));
+            return failures;
+        };
 
         CreatePlanSelection selection = openAiClient
                 .call(
-                        new VerifiedPlacePrompt(new TravelPlanPrompt(
+                        new TravelPlanPrompt(
                                 travelPlanContext,
                                 objectMapper
-                        )),
+                        ),
                         createPlanSelectionConverter,
                         selectionValidation,
-                        new PlanTourismTool(
+                        new GenerationTourismTool(
                                 tourismTool,
                                 candidates,
-                                plannedPlaces
+                                plannedPlaces,
+                                travelPlanContext
                         )
                 );
 
@@ -188,6 +192,13 @@ public class TravelRecommendHandler {
             TravelPlanContext context,
             PlaceCandidateContext candidates
     ) {
+
+        if (candidates.generationRestaurants() != null) {
+            candidates
+                    .generationRestaurants()
+                    .collectRegional();
+            return;
+        }
 
         new PlanTourismTool(
                 tourismTool,

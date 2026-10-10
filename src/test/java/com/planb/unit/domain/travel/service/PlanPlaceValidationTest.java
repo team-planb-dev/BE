@@ -42,6 +42,8 @@ import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroRespo
 import com.planb.global.config.exception.domain.BaseException;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.DisplayName;
 import reactor.core.publisher.Mono;
 
@@ -169,6 +171,94 @@ class PlanPlaceValidationTest {
                 .thenReturn(
                         new PlanEditScope(List
                                 .of()));
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void generationReselectionUsesPreparedMenuAndSourceHoursInFinalResponse(boolean legacyEvaluation) {
+
+        var details = new Kor2RestaurantIntroResponse(new Kor2RestaurantIntroResponse.Response(
+                null,
+                new Kor2RestaurantIntroResponse.Body(new Kor2RestaurantIntroResponse.Items(List.of(
+                        new Kor2RestaurantIntroResponse.Item("2784321", "39", "밀면", null, "11:00~13:00")
+                )), 1, 1, 1)
+        ));
+        when(tourismTool.getRestaurantDetail("2784321")).thenReturn(details);
+        PlanScheduleDetail meal = new PlanScheduleDetail(
+                ScheduleType.LUNCH,
+                CourseType.LOCAL_FOOD,
+                LocalTime.NOON,
+                LocalTime.of(13, 0),
+                "개금밀면",
+                "부산",
+                "129.1",
+                "35.1",
+                null,
+                null,
+                60,
+                10,
+                Set.of(),
+                null,
+                new CreatePlanAiResponse.RestaurantDetail("밀면", null, null, null, "24 hours", null, null, null, null),
+                "tour:2784321"
+        );
+        var response = new CreatePlanAiResponse(List.of(new PlanDayDetail(1, date, List.of(
+                slot("tour:1", "해운대", 9),
+                slot("tour:3", "이기대", 10),
+                meal,
+                slot("tour:4", "오죽헌", 15)
+        ))));
+        when(handler.createPlanByAi(any(), any())).thenAnswer(invocation -> {
+            PlaceCandidateContext candidates = invocation.getArgument(1);
+            candidates.record(tour("1", "12", "해운대"));
+            candidates.record(tour("3", "12", "이기대"));
+            candidates.record(tour("4", "12", "오죽헌"));
+            candidates.generationRestaurants(new com.planb.ai.handler.GenerationRestaurantCandidates(tourismTool, candidates));
+            return response;
+        });
+        when(handler.reselectPlace(any(), any())).thenAnswer(invocation -> {
+            PlaceCandidateContext retry = invocation.getArgument(1);
+            retry.record(tour("2784321", "39", "개금밀면"));
+            if (legacyEvaluation) {
+                nutrition.record(
+                        "밀면",
+                        new NutritionEvaluationResult(
+                                List.of(),
+                                NutritionEvaluationStatus.AVAILABLE,
+                                List.of(),
+                                999.0,
+                                999.0,
+                                999.0
+                        )
+                );
+            }
+            return meal;
+        });
+        when(nutritionService.evaluateFoodNutrition("밀면", List.of()))
+                .thenReturn(Mono.just(new NutritionEvaluationResult(
+                        List.of(),
+                        NutritionEvaluationStatus.AVAILABLE,
+                        List.of(),
+                        42.0,
+                        100.0,
+                        3.0
+                )));
+
+        CreatePlanAiResponse result = service.makePlanByAi(travel);
+        var finalMeal = result
+                .planDays()
+                .getFirst()
+                .schedules()
+                .stream()
+                .filter(slot -> slot.courseType() == CourseType.LOCAL_FOOD)
+                .findFirst()
+                .orElseThrow();
+        assertEquals("밀면", finalMeal.restaurantDetail().menuName());
+        assertEquals("11:00~13:00", finalMeal.restaurantDetail().openTime());
+        assertEquals(42.0, finalMeal.restaurantDetail().carbohydrate());
+        verify(nutritionService).evaluateFoodNutrition("밀면", List.of());
+        verify(handler).reselectPlace(any(), any());
+        verify(tourismTool).getRestaurantDetail("2784321");
     }
 
     @Test

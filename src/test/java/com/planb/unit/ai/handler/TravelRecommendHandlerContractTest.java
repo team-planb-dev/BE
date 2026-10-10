@@ -120,6 +120,24 @@ class TravelRecommendHandlerContractTest {
         assertThat(slot.restaurantDetail().menuName()).isEqualTo("막국수");
     }
 
+    @Test
+    void registersGenerationSearchToolsWithoutDeterministicTools() {
+
+        handler().createPlanByAi(travelPlanContext(WalkType.ACTIVE));
+        ArgumentCaptor<Object[]> tools = ArgumentCaptor.forClass(Object[].class);
+        verify(openAiClient).call(
+                any(AiPrompt.class),
+                eq(createPlanSelectionConverter),
+                any(Function.class),
+                tools.capture()
+        );
+        assertThat(java.util.Arrays
+                .stream(org.springframework.ai.support.ToolCallbacks.from(tools.getValue()))
+                .map(callback -> callback.getToolDefinition().name())
+                .toList())
+                .containsExactlyInAnyOrder("searchAttractionsByRegion", "searchRestaurantsByLocation", "findPlaceWithRoute");
+    }
+
     @Mock
     private OpenAiClient openAiClient;
 
