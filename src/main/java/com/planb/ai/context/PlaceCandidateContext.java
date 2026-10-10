@@ -30,6 +30,52 @@ public class PlaceCandidateContext {
     // 음식점 후보 ID별 대표 메뉴, 요청 안 상세 재조회 방지
     private final Map<String, Optional<String>> representativeMenus = new ConcurrentHashMap<>();
 
+    private boolean prefetched;
+
+    private boolean regionalRestaurantsCollected;
+
+    public boolean isPrefetched() {
+
+        return prefetched;
+    }
+
+    public boolean isRegionalRestaurantsCollected() {
+
+        return regionalRestaurantsCollected;
+    }
+
+    public void markPrefetched(boolean regionalRestaurantsCollected) {
+
+        prefetched = true;
+        this.regionalRestaurantsCollected = regionalRestaurantsCollected;
+    }
+
+    public void markRegionalRestaurantsCollected() {
+
+        regionalRestaurantsCollected = true;
+    }
+
+    public List<Candidate> allCandidates() {
+
+        return candidates
+                .values()
+                .stream()
+                .sorted(Comparator.comparing(Candidate::candidateId))
+                .toList();
+    }
+
+    public void copyFrom(PlaceCandidateContext source) {
+
+        candidates.clear();
+        pinnedIds.clear();
+        representativeMenus.clear();
+        candidates.putAll(source.candidates);
+        pinnedIds.addAll(source.pinnedIds);
+        representativeMenus.putAll(source.representativeMenus);
+        prefetched = source.prefetched;
+        regionalRestaurantsCollected = source.regionalRestaurantsCollected;
+    }
+
     // TourAPI 요청용 contentId 복원, 접두사가 없으면 원본 유지
     public static String contentId(String candidateId) {
 
@@ -141,6 +187,8 @@ public class PlaceCandidateContext {
 
         candidates.clear();
         pinnedIds.clear();
+        prefetched = false;
+        regionalRestaurantsCollected = false;
     }
 
     /**

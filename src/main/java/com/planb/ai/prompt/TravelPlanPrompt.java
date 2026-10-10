@@ -3,14 +3,27 @@ package com.planb.ai.prompt;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.planb.ai.context.TravelPlanContext;
+import com.planb.ai.context.PlaceCandidateContext.Candidate;
+
 import com.planb.domain.travel.policy.TouristPlaceCountPolicy;
 import com.planb.global.config.exception.AiFailure;
 import com.planb.global.config.exception.domain.AiOrchestrationException;
 
+import java.util.List;
+
 public record TravelPlanPrompt(
         TravelPlanContext travelPlanContext,
-        ObjectMapper objectMapper
+        ObjectMapper objectMapper,
+        List<Candidate> prefetchedCandidates
 ) implements AiPrompt {
+
+    public TravelPlanPrompt(
+            TravelPlanContext context,
+            ObjectMapper objectMapper
+    ) {
+
+        this(context, objectMapper, List.of());
+    }
 
     @Override
     public String system() {
@@ -21,8 +34,8 @@ public record TravelPlanPrompt(
 
         return """
                 당신은 여행 조건과 여행자별 건강 정보를 바탕으로 여행 일정을 구성하는 AI입니다.
-                user 메시지는 CreateTravelRequest와 List<TravelHealthContext>의 JSON입니다.
-                실제 장소·음식점·메뉴·이동정보는 Tool 결과로만 확인합니다.
+                user 메시지는 travelPlanContext(여행 요청·건강 조건)와 prefetchedCandidates의 JSON입니다.
+                실제 장소·음식점은 prefetchedCandidates와 Tool 결과로, 메뉴·이동정보는 Tool 결과로 확인합니다.
                 Tool 결과에 없는 사실을 추측하거나 다른 후보의 사실과 섞지 않습니다.
 
                 [최종 응답 계약]
@@ -31,9 +44,9 @@ public record TravelPlanPrompt(
                 - 최상위 필드는 planDays입니다. 각 날짜는 dayNumber, date, schedules를 포함합니다.
                 - 각 슬롯은 scheduleType, courseType, startTime, endTime, stayMinutes,
                   tags, restaurantDetail, candidateId만 포함합니다.
-                - candidateId를 Tool 결과 그대로 반환합니다. 후보가 없는 비장소 슬롯만 null입니다.
+                - candidateId를 선조회 또는 Tool 결과 그대로 반환합니다. 후보가 없는 비장소 슬롯만 null입니다.
                 - 장소 이름·주소·좌표·이미지, 음식점 주소·좌표·이미지는 응답에 포함하지 않습니다.
-                  Java가 candidateId로 Tool 후보 원본에서 채웁니다.
+                  Java가 candidateId로 후보 원본에서 채웁니다.
                 - MEDICATION 슬롯을 생성하지 않습니다. 복약 시간과 일정은 Java가 계산합니다.
                 - tags는 값이 없더라도 []로 반환합니다. restaurantDetail은 RESTAURANT와
                   LOCAL_FOOD 슬롯에만 넣고, 다른 슬롯에서는 null입니다.
@@ -74,16 +87,12 @@ public record TravelPlanPrompt(
 
                 [3. 관광지 및 음식점 검색]
 
-                - 관광지 구성 전에 searchAttractionsByRegion(locationDo, locationSigungu)을 호출합니다.
-                  반환된 후보 중 plannedPlaces를 우선 선택하고 나머지는 테마·동선에 맞춰 선택합니다.
-                  지역 코드 계산과 후보 추출은 Java가 수행합니다.
-                - 음식 후보마다 searchRestaurantsByLocation(keyword, locationDo, locationSigungu)을
-                  호출합니다. keyword는 음식명만 사용하고 지역명이나 '맛집'을 덧붙이지 않습니다.
-                  localFoods, recommendFoods 순으로 사용하고 부족하면 새 음식 후보를 제안할 수 있습니다.
-                - RESTAURANT와 LOCAL_FOOD는 contentTypeId=39 음식점 후보만 사용합니다.
-                  ATTRACTION에는 contentTypeId=39 결과를 사용하지 않습니다.
-                - 음식점 결과가 없으면 keyword를 한 번 바꿔 최대 1회 재검색합니다.
-                  실패해도 음식점 상호나 candidateId를 지어내지 않습니다.
+                - 관광지와 음식점 후보는 Java가 여행 지역에서 선조회해 prefetchedCandidates로 제공합니다.
+                  관광지는 contentTypeId=12, 음식점은 contentTypeId=39인 후보만 사용합니다.
+                  searchAttractionsByRegion와 searchRestaurantsByLocation은 등록되어 있지 않으며 호출하지 않습니다.
+                - 음식점 keyword와 지역 후보 보충은 Java가 수행합니다. 새 음식 keyword를 만들어 검색하지 않습니다.
+                  후보가 부족하면 필수 슬롯은 Java 보정 대상으로 남기고 후보 ID를 만들지 않습니다.
+                - 선조회 관광지에서 plannedPlaces를 우선 선택하고 나머지는 테마와 동선에 맞춰 선택합니다.
                 - plannedPlaces가 관광지 후보에 없으면 입력 장소명으로
                   findPlaceWithRoute(keyword, previousLocation, transportation, excludeNames, courseType)를
                   호출합니다. 찾지 못하면 keyword 변경 후 최대 1회 재시도합니다.
@@ -98,8 +107,8 @@ public record TravelPlanPrompt(
                 - 각 RESTAURANT·LOCAL_FOOD 후보에 getRestaurantDetail(contentId)를 호출합니다.
                   contentId는 검색 후보의 candidateId에서 복원한 원본 ID를 사용합니다.
                   firstmenu를 우선하고 없으면 treatmenu에서 실제 메뉴를 확인합니다.
-                  메뉴가 없으면 다른 후보를 검색합니다.
-                - searchRestaurantsByLocation → 후보 선택 → getRestaurantDetail → 실제 메뉴 확인
+                  메뉴가 없으면 다른 선조회 후보를 확인합니다.
+                - 선조회 음식점 후보 선택 → getRestaurantDetail → 실제 메뉴 확인
                   → evaluateFoodNutrition(실제 메뉴, 표준 품목명, 전체 diseaseTypes) 순서를 지킵니다.
                 - evaluateFoodNutrition의 standardFoodName에는 조회 가능한 기본 음식명을 전달합니다.
                   예: "검은콩 장칼국수" → "칼국수", "한우광양불고기" → "불고기".
@@ -131,8 +140,8 @@ public record TravelPlanPrompt(
 
                 [6. 최종 점검]
 
-                - 모든 날짜와 필수 지정 장소를 확인합니다. Tool로 검증되지 않은 후보는 넣지 않습니다.
-                - 장소 슬롯마다 정확히 하나의 Tool 후보 candidateId를 사용합니다.
+                - 모든 날짜와 필수 지정 장소를 확인합니다. 선조회 또는 Tool로 검증되지 않은 후보는 넣지 않습니다.
+                - 장소 슬롯마다 정확히 하나의 선조회 또는 Tool 후보 candidateId를 사용합니다.
                   서로 다른 후보의 장소·메뉴·영양 결과를 섞지 않습니다.
                 - 여행 전체의 관광지·카페·실제 메뉴 중복을 다시 확인합니다.
                 - tags에는 CourseType에 허용되고 근거가 있는 값만 포함합니다.
@@ -145,9 +154,10 @@ public record TravelPlanPrompt(
                   CARBOHYDRATE_REFERENCE, SODIUM_REFERENCE, SATURATED_FAT_REFERENCE,
                   ALLERGY_CHECK는 Java가 부여하므로 직접 포함하지 않아도 됩니다.
                 - 확인 실패 슬롯은 위 Tool 범위 안에서 대체를 시도합니다.
-                  Tool을 호출하지 않은 채 placeholder로 채우지 않습니다.
+                  선조회 및 Tool 결과에 없는 placeholder로 채우지 않습니다.
                 - 결과는 문법적으로 완전한 JSON 객체 하나로 반환합니다.
-                """.formatted(touristPlaceCount);
+                """
+                .formatted(touristPlaceCount);
     }
 
     @Override
@@ -155,7 +165,10 @@ public record TravelPlanPrompt(
 
         try {
             return objectMapper
-                    .writeValueAsString(travelPlanContext);
+                    .writeValueAsString(new GenerationInput(
+                            travelPlanContext,
+                            prefetchedCandidates
+                    ));
         } catch (JsonProcessingException e) {
             throw new AiOrchestrationException(
                     AiFailure.CONTEXT_SERIALIZATION_FAILED,
@@ -163,4 +176,11 @@ public record TravelPlanPrompt(
             );
         }
     }
+
+    private record GenerationInput(
+            TravelPlanContext travelPlanContext,
+            List<Candidate> prefetchedCandidates
+    ) {
+    }
+
 }

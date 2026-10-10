@@ -295,13 +295,34 @@ class OpenAiClientTest {
         );
     }
 
-    @Test
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
     @DisplayName("correction 재시도 시 이전 응답이 선택한 검색 후보 유지")
-    void correctionRetryKeepsCandidatesFromPreviousAttempt() {
+    void correctionRetryKeepsCandidatesFromPreviousAttempt(boolean prefetched) {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();
 
-        PlanTourismTool tool = new PlanTourismTool(mock(TourismTool.class), candidates);
+        candidates.record(new PlaceWithRouteResult(
+                true,
+                "기존 카페",
+                "부산",
+                "129.1",
+                "35.1",
+                null,
+                "kakao:seed",
+                "CE7",
+                "카페"
+        ));
+
+        Object tool = prefetched
+                ? new com.planb.ai.mcp.PrefetchedPlanTourismTool(
+                        mock(TourismTool.class),
+                        candidates
+                )
+                : new PlanTourismTool(
+                        mock(TourismTool.class),
+                        candidates
+                );
 
         TestDto invalid = new TestDto(null);
 
@@ -335,6 +356,12 @@ class OpenAiClientTest {
                 outputConverter.convert("raw-1")
         )
                 .thenAnswer(invocation -> {
+            if (prefetched) {
+                assertNotNull(candidates.find("kakao:seed"));
+            } else {
+                assertNull(candidates.find("kakao:seed"));
+            }
+
             candidates.record(new PlaceWithRouteResult(
                             true,
                             "카페",
