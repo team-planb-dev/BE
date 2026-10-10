@@ -975,9 +975,15 @@
     "minor_feedback_addressed": true
   },
   "actual_api_validation": {
-    "status": "not_run_pending_separate_approval",
-    "planned_generation_runs": 12,
-    "paid_runs_this_stage": 0
+    "status": "completed_quality_gates_unmet",
+    "generation_runs": 12,
+    "edit_runs": 0,
+    "pass": 10,
+    "api_rejections": 2,
+    "allergen_keyword_proxy_hits": 1,
+    "junit": "12 observer tests completed; not 12 successful generations",
+    "result": "p2-selection-contract-actual-quality-20261011.json",
+    "additional_paid_runs": 0
   },
   "claims": {
     "menu_source_contract_verified": true,
@@ -989,5 +995,16 @@
     "unadopted_B_C_included": false,
     "delivery": "dev only; no main sync"
   },
-  "evidence_kind": "test result summary; no raw external response, token, or credential"
+  "evidence_kind": "test result summary; no raw external response, token, or credential",
+  "quality_report_review_loop": {
+    "rounds": 2,
+    "scores": [
+      9.5,
+      9.5
+    ],
+    "required_score": 9,
+    "critical": 0,
+    "important": 0,
+    "minor_addressed": "Define savedRuns as user-confirmed responses, not DB persistence; all34 Grafana values checked"
+  }
 }
