@@ -51,6 +51,28 @@ class MissingSlotCompleterTest {
     }
 
     @Test
+    void completesMealFromPreparedSafeMenuWithoutRepeatedDetailLookup() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+        var prepared = new com.planb.ai.handler.GenerationRestaurantCandidates(tourismTool, candidates);
+        candidates.generationRestaurants(prepared);
+        prepared.prepare(candidates.record(restaurantItem("9", "교리김밥", "129.21", "35.83")));
+
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
+                response(attraction("첨성대", LocalTime.of(9, 0))),
+                List.of(healthContext()),
+                candidates,
+                Set.of(),
+                Set.of()
+        );
+        assertThat(schedules(filled))
+                .filteredOn(slot -> slot.courseType() == CourseType.RESTAURANT)
+                .extracting(slot -> slot.restaurantDetail().menuName())
+                .containsExactly("대표메뉴");
+        verify(tourismTool, times(1)).getRestaurantDetail("9");
+    }
+
+    @Test
     @DisplayName("부족한 관광 슬롯을 후보로 채움")
     void fillsMissingTouristPlaces() {
 

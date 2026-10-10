@@ -10,6 +10,8 @@ import com.planb.domain.travel.entity.constant.ScheduleType;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -127,4 +129,72 @@ class PlanGenerationSelectionTestMapping {
         assertThat(slot.imageUrl()).isEqualTo("https://example.test/place.jpg");
         assertThat(slot.thumbNailImageUrl()).isEqualTo("https://example.test/thumb.jpg");
     }
+    @ParameterizedTest
+    @EnumSource(value = CourseType.class, names = {"ATTRACTION", "RESTAURANT"})
+    @DisplayName("폐기 슬롯의 표준명과 최종 식사 표준명의 분리")
+    void bindsStandardNameToSelectedPlaceAndMenu(CourseType discardedType) {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+        candidates.record(new PlaceCandidateContext.Candidate(
+                "tour:meal",
+                "39",
+                null,
+                null,
+                "확정 식당",
+                "춘천시 중앙로",
+                "127.7",
+                "37.8",
+                null,
+                null
+        ));
+        candidates.record(new PlaceCandidateContext.Candidate(
+                "tour:discarded",
+                discardedType == CourseType.ATTRACTION ? "12" : "39",
+                null,
+                null,
+                "폐기 장소",
+                "춘천시 중앙로",
+                "127.7",
+                "37.8",
+                null,
+                null
+        ));
+        CreatePlanSelection selection = new CreatePlanSelection(
+                List.of(new CreatePlanSelection.PlanDaySelection(
+                        1,
+                        LocalDate.of(2030, 1, 1),
+                        List.of(
+                                mealSelection("tour:meal", CourseType.RESTAURANT, "국수"),
+                                mealSelection("tour:discarded", discardedType, "다른 음식"),
+                                mealSelection("tour:meal", CourseType.RESTAURANT, "중복 음식")
+                        )
+                ))
+        );
+
+        new PlanGenerationSelectionMapper().toResponse(selection, candidates);
+
+        assertThat(candidates.standardFoodName("tour:meal", "막국수"))
+                .isEqualTo("국수");
+        assertThat(candidates.standardFoodName("tour:discarded", "막국수"))
+                .isEqualTo(discardedType == CourseType.ATTRACTION ? null : "다른 음식");
+    }
+
+    private CreatePlanSelection.ScheduleSelection mealSelection(
+            String candidateId,
+            CourseType courseType,
+            String standardFoodName
+    ) {
+
+        return new CreatePlanSelection.ScheduleSelection(
+                ScheduleType.LUNCH,
+                courseType,
+                LocalTime.NOON,
+                LocalTime.of(13, 0),
+                60,
+                Set.of(),
+                new CreatePlanSelection.RestaurantSelection("막국수", standardFoodName),
+                candidateId
+        );
+    }
+
 }
