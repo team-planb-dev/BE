@@ -1,0 +1,63 @@
+{
+  "phase": "P2-4B",
+  "issue": 172,
+  "base_commit": "2a99375f1316b2652bf6965e61e2f21a4665afde",
+  "candidate_state": "uncommitted branch 172; independent implementation review 8/10",
+  "condition": {
+    "arrival_rate_per_second": 3,
+    "duration_seconds": 60,
+    "preallocated_vus": 40,
+    "max_vus": 40,
+    "users": 6,
+    "companion_lunch": true,
+    "openai_fixed_delay_ms": 3000,
+    "nutrition_cold_miss_delay_ms": 4000,
+    "virtual_threads": true,
+    "cache": "isolated database and Redis reset before each run; cold to warm within run",
+    "fixture": "unchanged attraction search plus empty selection; two model HTTP calls, no removed deterministic tool calls"
+  },
+  "adoption_gate": "real API 12 runs complete; primary quality and latency gates failed; no merge",
+  "before": {
+    "grafana_url": "http://localhost:3000/d/travel-load?var-testid=p24b-before-main-3rps-20261010&from=1791607731000&to=1791607809000",
+    "start_epoch_seconds": 1791607731.0,
+    "end_epoch_seconds": 1791607809.0,
+    "successful_plans": 180,
+    "attempted_plans": 180,
+    "success_rate": 1.0,
+    "median_seconds": 6.116924065499999,
+    "p95_seconds": 10.1371217216,
+    "mean_seconds": 6.458439754605556,
+    "openai_http_count": 360.0,
+    "webclient_http_count": 1306.0,
+    "max_observed_hikari_pending": 0.0,
+    "hikari_timeout_increase": 0.0,
+    "dropped_iterations": 0,
+    "k6_exit": 0,
+    "openai_calls_per_success": 2.0,
+    "webclient_calls_per_success": 7.2555555555555555
+  },
+  "after": {
+    "grafana_url": "http://localhost:3000/d/travel-load?var-testid=p24b-after-main-3rps-20261010&from=1791607858000&to=1791607937000",
+    "start_epoch_seconds": 1791607858.0,
+    "end_epoch_seconds": 1791607937.0,
+    "successful_plans": 181,
+    "attempted_plans": 181,
+    "success_rate": 1.0,
+    "median_seconds": 6.119255127000001,
+    "p95_seconds": 10.144618713,
+    "mean_seconds": 6.462416391624312,
+    "openai_http_count": 362.0,
+    "webclient_http_count": 1333.0,
+    "max_observed_hikari_pending": 0.0,
+    "hikari_timeout_increase": 0.0,
+    "dropped_iterations": 0,
+    "k6_exit": 0,
+    "openai_calls_per_success": 2.0,
+    "webclient_calls_per_success": 7.3646408839779
+  },
+  "change_percent": {
+    "median_seconds": 0.03810839361484408,
+    "p95_seconds": 0.07395581907658766,
+    "webclient_calls_per_success": 1.503473132926647
+  }
+}
