@@ -108,7 +108,11 @@ public class PlanPlaceResolver {
                 restaurant.carbohydrate(),
                 restaurant.sodium(),
                 restaurant.fat(),
-                restaurant.openTime(),
+                candidates.generationRestaurants() == null
+                        ? restaurant.openTime()
+                        : candidates
+                                .generationRestaurants()
+                                .openingHours(candidate.candidateId()),
                 candidate.address(),
                 candidate.longitude(),
                 candidate.latitude(),

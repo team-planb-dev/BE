@@ -1,6 +1,7 @@
 package com.planb.ai.client;
 
 import com.planb.ai.mcp.PlanTourismTool;
+import com.planb.ai.mcp.GenerationTourismTool;
 import com.planb.ai.prompt.AiPrompt;
 import com.planb.global.config.exception.AiFailure;
 import com.planb.global.config.exception.domain.AiOrchestrationException;
@@ -435,6 +436,8 @@ public class OpenAiClient {
         for (Object tool : tools) {
             if (tool instanceof PlanTourismTool planTool) {
                 planTool.resetCandidates();
+            } else if (tool instanceof GenerationTourismTool generationTool) {
+                generationTool.resetCandidates();
             }
         }
     }

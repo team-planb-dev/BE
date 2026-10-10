@@ -50,7 +50,18 @@ public record Kor2RestaurantIntroResponse(
             String contentid,
             String contenttypeid,
             String firstmenu,
-            String treatmenu
+            String treatmenu,
+            String opentimefood
     ) {
+
+        public Item(
+                String contentid,
+                String contenttypeid,
+                String firstmenu,
+                String treatmenu
+        ) {
+
+            this(contentid, contenttypeid, firstmenu, treatmenu, null);
+        }
     }
 }

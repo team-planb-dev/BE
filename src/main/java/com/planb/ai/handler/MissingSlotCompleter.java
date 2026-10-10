@@ -623,7 +623,8 @@ public class MissingSlotCompleter {
                     candidate,
                     candidates,
                     usedNames,
-                    usedMenus
+                    usedMenus,
+                    mealType
             );
 
             if (selection == null) {
@@ -641,7 +642,9 @@ public class MissingSlotCompleter {
                             null,
                             null,
                             null,
-                            null,
+                            candidates.generationRestaurants() == null
+                                    ? null
+                                    : candidates.generationRestaurants().openingHours(candidate.candidateId()),
                             selection
                                     .candidate()
                                     .address(),
@@ -666,11 +669,17 @@ public class MissingSlotCompleter {
             PlaceCandidateContext.Candidate candidate,
             PlaceCandidateContext candidates,
             Set<String> usedNames,
-            Set<String> usedMenus
+            Set<String> usedMenus,
+            ScheduleType mealType
     ) {
 
         if (usedNames.contains(normalized(candidate.name()))) {
             return null;
+        }
+
+        if (candidates.generationRestaurants() != null) {
+            String menuName = candidates.generationRestaurants().menu(candidate.candidateId(), mealType, usedMenus);
+            return menuName == null ? null : new MealCandidateSelection(candidate, menuName);
         }
 
         String menuName;

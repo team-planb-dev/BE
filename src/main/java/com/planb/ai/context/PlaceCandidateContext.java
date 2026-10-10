@@ -1,6 +1,7 @@
 package com.planb.ai.context;
 
 import com.planb.ai.dto.response.PlaceWithRouteResult;
+import com.planb.ai.handler.GenerationRestaurantCandidates;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
 
 import java.util.Comparator;
@@ -14,6 +15,25 @@ import java.util.function.Supplier;
 
 public class PlaceCandidateContext {
 
+    private GenerationRestaurantCandidates generationRestaurants;
+
+    public void generationRestaurants(GenerationRestaurantCandidates restaurants) {
+
+        this.generationRestaurants = restaurants;
+    }
+
+    public GenerationRestaurantCandidates generationRestaurants() {
+
+        return generationRestaurants;
+    }
+
+    public void record(Candidate candidate) {
+
+        if (candidate != null) {
+            candidates.put(candidate.candidateId(), candidate);
+        }
+    }
+
     // TourAPI 후보의 candidateId 접두사와 외부 API용 contentId 구분
     private static final String TOUR_PREFIX = "tour:";
 
@@ -21,6 +41,8 @@ public class PlaceCandidateContext {
     private static final String ATTRACTION_CONTENT_TYPE_ID = "12";
 
     private static final String RESTAURANT_CONTENT_TYPE_ID = "39";
+
+    private final Map<MealSelection, String> standardFoodNames = new ConcurrentHashMap<>();
 
     private final Map<String, Candidate> candidates = new ConcurrentHashMap<>();
 
@@ -108,6 +130,39 @@ public class PlaceCandidateContext {
                 .toList();
     }
 
+    public void recordStandardFoodName(
+            String candidateId,
+            String menuName,
+            String standardFoodName
+    ) {
+
+        if (menuName != null && !menuName.isBlank() && standardFoodName != null && !standardFoodName.isBlank()) {
+            standardFoodNames.putIfAbsent(
+                    new MealSelection(candidateId, menuName),
+                    standardFoodName.strip()
+            );
+        }
+    }
+
+    public String standardFoodName(
+            String candidateId,
+            String menuName
+    ) {
+
+        return standardFoodNames.get(new MealSelection(candidateId, menuName));
+    }
+
+    private record MealSelection(
+            String candidateId,
+            String menuName
+    ) {
+    }
+
+    public void clearStandardFoodNames() {
+
+        standardFoodNames.clear();
+    }
+
     public Candidate find(String id) {
 
         return id == null ? null : candidates.get(id);
@@ -141,6 +196,8 @@ public class PlaceCandidateContext {
 
         candidates.clear();
         pinnedIds.clear();
+        standardFoodNames.clear();
+        representativeMenus.clear();
     }
 
     /**

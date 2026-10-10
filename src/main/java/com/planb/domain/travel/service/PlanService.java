@@ -808,7 +808,39 @@ public class PlanService {
                         .getPlusDays() + 1
         );
 
+        if (currentPlan == null && candidates.generationRestaurants() != null) {
+            var restaurants = candidates.generationRestaurants();
+            List<String> violations = restaurants.violations(mealFixed);
+            if (!violations.isEmpty()) {
+                throw invalidPlace(violations.toString());
+            }
+            mealFixed
+                    .planDays()
+                    .stream()
+                    .flatMap(day -> day
+                            .schedules()
+                            .stream())
+                    .filter(slot -> slot.courseType() == CourseType.RESTAURANT || slot.courseType() == CourseType.LOCAL_FOOD)
+                    .forEach(slot -> meterRegistry
+                            .counter(
+                                    "planb.travel.restaurant.hours",
+                                    "outcome",
+                                    restaurants.hoursOutcome(
+                                            slot.candidateId(),
+                                            slot.scheduleType(),
+                                            slot.startTime()
+                                    )
+                            )
+                            .increment());
+        }
+
         String flow = currentPlan == null ? "create" : "edit";
+
+        // 생성 재선택 Tool의 임의 영양 입력 제외와 확정 메뉴·건강 snapshot 재평가
+        List<NutritionEvaluationCollector.FoodNutritionEvaluation> sourceEvaluations =
+                currentPlan == null && candidates.generationRestaurants() != null
+                        ? List.of()
+                        : evaluations;
 
         List<NutritionEvaluationCollector.FoodNutritionEvaluation> finalEvaluations =
                 recordStage(
@@ -817,8 +849,9 @@ public class PlanService {
                         () -> enrichMissingNutritionEvaluations(
                                 mealFixed,
                                 context.healthContexts(),
-                                evaluations,
-                                flow
+                                sourceEvaluations,
+                                flow,
+                                candidates
                         )
                 );
 
@@ -842,7 +875,8 @@ public class PlanService {
             CreatePlanAiResponse response,
             List<TravelHealthContext> healthContexts,
             List<NutritionEvaluationCollector.FoodNutritionEvaluation> evaluations,
-            String flow
+            String flow,
+            PlaceCandidateContext candidates
     ) {
 
         List<NutritionEvaluationCollector.FoodNutritionEvaluation> enriched =
@@ -868,28 +902,40 @@ public class PlanService {
                 .toList();
 
         // 조회 전 중복 제거로 메뉴 목록 확정
-        List<String> missingMenus = response
+        List<CreatePlanAiResponse.PlanScheduleDetail> missingMeals = response
                 .planDays()
                 .stream()
                 .flatMap(planDay -> planDay
                         .schedules()
                         .stream())
-                .map(CreatePlanAiResponse.PlanScheduleDetail::restaurantDetail)
-                .filter(Objects::nonNull)
-                .map(CreatePlanAiResponse.RestaurantDetail::menuName)
-                .filter(menuName -> !isBlank(menuName))
-                .filter(evaluatedMenus::add)
+                .filter(slot -> slot.restaurantDetail() != null)
+                .filter(slot -> !isBlank(slot
+                        .restaurantDetail()
+                        .menuName()))
+                .filter(slot -> evaluatedMenus.add(slot
+                        .restaurantDetail()
+                        .menuName()))
                 .toList();
 
         // 동시 조회 결과의 기존 메뉴 순서 보존
         enriched.addAll(Flux
-                .fromIterable(missingMenus)
+                .fromIterable(missingMeals)
                 .flatMapSequential(
-                        menuName -> lookupNutrition(
-                                menuName,
-                                diseaseTypes,
-                                flow
-                        ),
+                        slot -> {
+                            String menuName = slot
+                                    .restaurantDetail()
+                                    .menuName();
+
+                            return lookupNutrition(
+                                    menuName,
+                                    diseaseTypes,
+                                    flow,
+                                    candidates.standardFoodName(
+                                            slot.candidateId(),
+                                            menuName
+                                    )
+                            );
+                        },
                         nutritionLookupConcurrency
                 )
                 .collectList()
@@ -902,7 +948,8 @@ public class PlanService {
     private Mono<NutritionEvaluationCollector.FoodNutritionEvaluation> lookupNutrition(
             String menuName,
             List<DiseaseType> diseaseTypes,
-            String flow
+            String flow,
+            String standardFoodName
     ) {
 
         return Mono.defer(() -> {
@@ -914,9 +961,16 @@ public class PlanService {
 
             // 조회 호출의 동기 예외 기록
             return Mono
-                    .defer(() -> nutritionService
-                            .evaluateFoodNutrition(
+                    .defer(() -> standardFoodName == null
+                            ? nutritionService
+                                    .evaluateFoodNutrition(
                                     menuName,
+                                    diseaseTypes
+                            )
+                            : nutritionService
+                                    .evaluateFoodNutrition(
+                                    menuName,
+                                    standardFoodName,
                                     diseaseTypes
                             ))
                     .map(result -> new NutritionEvaluationCollector.FoodNutritionEvaluation(
@@ -1309,7 +1363,8 @@ public class PlanService {
                         existing,
                         context,
                         usedPlaces,
-                        usedMenus
+                        usedMenus,
+                        candidates
                 );
 
                 boolean changed = !Objects.equals(slot.locationName(), resolved.locationName())
@@ -1468,7 +1523,8 @@ public class PlanService {
             GetAiPlanResponse existing,
             TravelPlanContext context,
             Set<String> usedPlaces,
-            Set<String> usedMenus
+            Set<String> usedMenus,
+            PlaceCandidateContext candidates
     ) {
 
         if (validation.valid()) {
@@ -1510,6 +1566,31 @@ public class PlanService {
             );
 
             if (result.valid()) {
+                var restaurants = candidates.generationRestaurants();
+                if (existing == null && restaurants != null
+                        && (result.schedule().courseType() == CourseType.RESTAURANT
+                        || result.schedule().courseType() == CourseType.LOCAL_FOOD)) {
+                    CreatePlanAiResponse.PlanScheduleDetail recovered = result.schedule();
+                    restaurants.prepare(retryCandidates.find(recovered.candidateId()));
+                    if (!restaurants.accepts(
+                            recovered.candidateId(),
+                            recovered.restaurantDetail().menuName(),
+                            recovered.scheduleType()
+                    )) {
+                        result = Validation.failure("restaurantDetail: 재선택 메뉴 원본 불일치");
+                        continue;
+                    }
+                    retryCandidates.generationRestaurants(restaurants);
+                    result = planPlaceResolver.validate(
+                            recovered,
+                            retryCandidates,
+                            usedPlaces,
+                            usedMenus
+                    );
+                }
+                candidates.record(retryCandidates.find(result
+                        .schedule()
+                        .candidateId()));
                 return result.schedule();
             }
         }
