@@ -261,11 +261,11 @@ class TravelLoadTestSmokeIntegrationTest extends TravelApiTestSupport {
 
         assertThat(OPENAI_STUB
                 .requests())
-                .hasSize(openAiBefore + 2);
+                .hasSize(openAiBefore + 1);
         assertThat(OPENAI_STUB
                 .requests()
-                .get(openAiBefore + 1))
-                .contains("tour:900001");
+                .get(openAiBefore))
+                .contains("prefetchedCandidates", "tour:900001");
 
         assertThat(EXTERNAL_STUB
                 .requests(ExternalHttpStubServer.Api.KOR2))
@@ -284,18 +284,18 @@ class TravelLoadTestSmokeIntegrationTest extends TravelApiTestSupport {
         assertThat(stageCount("nutrition_enrichment"))
                 .isEqualTo(nutritionBefore + 1);
 
-        // Part 2 기준선 계측 사전 확인: 모델 호출 2회(tool 요청 1회 + 최종 응답)와 tool 실행 기록
+        // 선조회 후보 입력과 검색 Tool 없는 최종 응답 계측
         assertThat(meterCount("gen_ai.client.operation"))
-                .isEqualTo(modelCallsBefore + 2);
+                .isEqualTo(modelCallsBefore + 1);
         assertThat(meterCount("spring.ai.tool"))
-                .isGreaterThan(toolCallsBefore);
+                .isEqualTo(toolCallsBefore);
         assertThat(llmCallRecorder.calls())
-                .hasSize(2);
+                .hasSize(1);
         assertThat(llmCallRecorder
                 .calls()
                 .getFirst()
                 .hasToolCalls())
-                .isTrue();
+                .isFalse();
         assertThat(llmCallRecorder
                 .calls()
                 .getLast()

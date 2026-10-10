@@ -163,11 +163,9 @@ class PlanDayRebuildContractTest {
                         null
                 ).system();
 
-        assertTrue(createPrompt.contains("searchAttractionsByRegion(locationDo, locationSigungu)"));
-        assertTrue(createPrompt.contains(
-                "searchRestaurantsByLocation(keyword, locationDo, locationSigungu)"
-        ));
-        assertTrue(createPrompt.contains("candidateId를 Tool 결과 그대로 반환"));
+        assertTrue(createPrompt.contains("prefetchedCandidates"));
+        assertTrue(createPrompt.contains("등록되어 있지 않으며 호출하지 않습니다"));
+        assertTrue(createPrompt.contains("candidateId를 선조회 또는 Tool 결과 그대로 반환"));
         assertFalse(createPrompt.contains(
                 "searchTourismByLocation(keyword, locationDo, locationSigungu, contentTypeId=12)"
         ));

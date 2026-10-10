@@ -259,7 +259,7 @@ class OpenAiProtocolStubTest {
                     .mapToObj(index -> (Callable<HttpResponse<String>>) () -> request(
                             loadTestStub,
                             index % 2 == 0
-                                    ? "{\"messages\":[{\"role\":\"user\",\"content\":\"plan\"}]}"
+                                    ? "{\"tools\":[{\"function\":{\"name\":\"searchAttractionsByRegion\"}}],\"messages\":[{\"role\":\"user\",\"content\":\"plan\"}]}"
                                     : "{\"messages\":[{\"role\":\"tool\",\"tool_call_id\":\"call_attractions_1\",\"content\":\"[]\"}]}"
                     ))
                     .toList();
@@ -299,6 +299,36 @@ class OpenAiProtocolStubTest {
                             .contains(startDate.toString()));
                 }
             }
+        }
+    }
+
+    @Test
+    @DisplayName("선조회 일정 생성에서 미등록 검색 Tool 호출 제외")
+    void returnsPlanWhenSearchToolIsNotRegistered() throws Exception {
+
+        LocalDate startDate = LocalDate.of(2030, 1, 1);
+
+        try (OpenAiChatCompletionStub travelStub = OpenAiChatCompletionStub.startTravelPlan(
+                0,
+                startDate,
+                startDate.plusDays(1)
+        )) {
+            HttpResponse<String> response = request(
+                    travelStub,
+                    """
+                            {"tools":[{"function":{"name":"getRestaurantDetail"}}],
+                             "messages":[{"role":"user","content":"searchAttractionsByRegion는 호출하지 않음"}]}
+                            """
+            );
+
+            JsonNode message = JSON_MAPPER
+                    .readTree(response.body())
+                    .path("choices")
+                    .get(0)
+                    .path("message");
+
+            assertTrue(message.path("tool_calls").isMissingNode());
+            assertTrue(message.path("content").asText().contains(startDate.toString()));
         }
     }
 

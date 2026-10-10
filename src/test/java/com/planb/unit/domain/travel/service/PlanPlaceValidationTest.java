@@ -1661,9 +1661,10 @@ class PlanPlaceValidationTest {
                         .get(1));
     }
 
-    @Test
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
     @DisplayName("재선택에서 이전 시도의 후보 재사용 거부")
-    void retryCannotReuseCandidateFromEarlierAttempt() {
+    void retryCannotReuseCandidateFromEarlierAttempt(boolean prefetched) {
 
         stubCreate(
                 new CreatePlanAiResponse(
@@ -1679,7 +1680,7 @@ class PlanPlaceValidationTest {
                                                                         "개금밀면",
                                                                         9
                                                                 ))
-                                        ))));
+                                        ))), prefetched);
 
         List<PlaceCandidateContext> contexts = new ArrayList<>();
 
@@ -1695,6 +1696,10 @@ class PlanPlaceValidationTest {
 
                             contexts
                                     .add(candidates);
+
+                            if (prefetched) {
+                                assertNotNull(candidates.find("kakao:seed"));
+                            }
 
                             if (contexts
                                     .size() == 1) {
@@ -2876,6 +2881,11 @@ class PlanPlaceValidationTest {
 
     private void stubCreate(CreatePlanAiResponse response) {
 
+        stubCreate(response, false);
+    }
+
+    private void stubCreate(CreatePlanAiResponse response, boolean prefetched) {
+
         when(
                 handler
                         .createPlanByAi(
@@ -2886,6 +2896,22 @@ class PlanPlaceValidationTest {
                             recordCandidates(
                                     invocation
                                             .getArgument(1));
+
+                            if (prefetched) {
+                                PlaceCandidateContext candidates = invocation.getArgument(1);
+                                candidates.markPrefetched(false);
+                                candidates.record(new com.planb.ai.dto.response.PlaceWithRouteResult(
+                                        true,
+                                        "최초 카페",
+                                        "부산",
+                                        "129.1",
+                                        "35.1",
+                                        null,
+                                        "kakao:seed",
+                                        "CE7",
+                                        "카페"
+                                ));
+                            }
 
                             return response;
                         });

@@ -2,6 +2,8 @@ package com.planb.unit.ai.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.planb.ai.client.OpenAiClient;
+import com.planb.global.config.exception.AiFailure;
+import com.planb.global.config.exception.domain.AiOrchestrationException;
 import com.planb.ai.context.PlaceCandidateContext;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
 import com.planb.ai.context.PlanEditContext;
@@ -56,6 +58,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -105,7 +109,7 @@ class TravelRecommendHandlerContractTest {
 
         CreatePlanAiResponse result = handler()
                 .createPlanByAi(
-                        travelPlanContext(WalkType.ACTIVE),
+                        mealAppliedContext(),
                         candidates
                 );
 
@@ -118,6 +122,58 @@ class TravelRecommendHandlerContractTest {
         assertThat(slot.locationName()).isEqualTo("춘천식당");
         assertThat(slot.candidateId()).isEqualTo("tour:456");
         assertThat(slot.restaurantDetail().menuName()).isEqualTo("막국수");
+    }
+
+    @Test
+    void doesNotInvokeAiWhenCandidatePrefetchFails() {
+
+        when(tourismTool.findAttractionCandidates(any(), any()))
+                .thenReturn(reactor.core.publisher.Mono.error(new IllegalStateException("외부 조회 실패")));
+
+        assertThatThrownBy(() -> handler()
+                .createPlanByAi(
+                        travelPlanContext(WalkType.ACTIVE),
+                        new PlaceCandidateContext()
+                ))
+                .isInstanceOfSatisfying(
+                        AiOrchestrationException.class,
+                        failure -> assertThat(failure.getFailure()).isEqualTo(AiFailure.UPSTREAM_CALL_FAILED)
+                )
+                .hasCauseInstanceOf(IllegalStateException.class);
+
+        verifyNoInteractions(openAiClient);
+    }
+
+    @Test
+    void generationExposesOnlyPlaceDetailNutritionAndRouteTools() {
+
+        handler()
+                .createPlanByAi(
+                        travelPlanContext(WalkType.ACTIVE),
+                        new PlaceCandidateContext()
+                );
+
+        ArgumentCaptor<Object[]> tools = ArgumentCaptor.forClass(Object[].class);
+        verify(openAiClient)
+                .call(
+                        any(AiPrompt.class),
+                        eq(createPlanSelectionConverter),
+                        any(Function.class),
+                        tools.capture()
+                );
+
+        var names = java.util.Arrays
+                .stream(tools.getValue()[0].getClass().getMethods())
+                .filter(method -> method.isAnnotationPresent(org.springframework.ai.tool.annotation.Tool.class))
+                .map(java.lang.reflect.Method::getName)
+                .toList();
+
+        assertThat(names).containsExactlyInAnyOrder(
+                "findPlaceWithRoute",
+                "getRoute",
+                "getRestaurantDetail",
+                "evaluateFoodNutrition"
+        );
     }
 
     @Mock
@@ -144,9 +200,34 @@ class TravelRecommendHandlerContractTest {
     @BeforeEach
     void originalSlot() {
 
+        var empty = candidateResponse(List.of());
+        var restaurants = candidateResponse(List.of(restaurantItem("456", "춘천식당")));
+
+        lenient()
+                .when(tourismTool.findAttractionCandidates(any(), any()))
+                .thenReturn(reactor.core.publisher.Mono.just(empty));
+        lenient()
+                .when(tourismTool.findRegionalRestaurantCandidates(any(), any()))
+                .thenReturn(reactor.core.publisher.Mono.just(restaurants));
+
         lenient()
                 .when(prompt.slot())
                 .thenReturn(slot());
+    }
+
+    private Kor2KeywordSearchResponse candidateResponse(List<Kor2KeywordSearchResponse.Item> items) {
+
+        return new Kor2KeywordSearchResponse(
+                new Kor2KeywordSearchResponse.Response(
+                        new Kor2KeywordSearchResponse.Header("0000", "OK"),
+                        new Kor2KeywordSearchResponse.Body(
+                                new Kor2KeywordSearchResponse.Items(items),
+                                items.size(),
+                                1,
+                                items.size()
+                        )
+                )
+        );
     }
 
     @Test
@@ -544,7 +625,8 @@ class TravelRecommendHandlerContractTest {
                 editPlanAiResponseConverter,
                 rebuildPlanDayResponseConverter,
                 tourismTool,
-                new PlanGenerationSelectionMapper()
+                new PlanGenerationSelectionMapper(),
+                new com.planb.ai.handler.PlanCandidatePrefetcher(tourismTool)
         );
     }
 

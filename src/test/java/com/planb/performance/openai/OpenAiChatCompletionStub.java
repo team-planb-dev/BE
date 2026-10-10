@@ -2,6 +2,8 @@ package com.planb.performance.openai;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -127,11 +129,33 @@ public final class OpenAiChatCompletionStub implements AutoCloseable {
 
         return new OpenAiChatCompletionStub(
                 port,
-                request -> request.contains("\"tool_call_id\"")
-                        ? plan
-                        : toolCall,
+                request -> usesAttractionSearch(request) && !request.contains("\"tool_call_id\"")
+                        ? toolCall
+                        : plan,
                 responseDelay
         );
+    }
+
+    private static boolean usesAttractionSearch(String request) {
+
+        JsonNode tools = JsonMapper
+                .builder()
+                .build()
+                .readTree(request)
+                .path("tools");
+
+        for (JsonNode tool : tools) {
+            String name = tool
+                    .path("function")
+                    .path("name")
+                    .asText();
+
+            if ("searchAttractionsByRegion".equals(name)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public String baseUrl() {
