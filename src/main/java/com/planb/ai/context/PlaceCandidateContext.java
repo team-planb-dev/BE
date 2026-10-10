@@ -2,15 +2,17 @@ package com.planb.ai.context;
 
 import com.planb.ai.dto.response.PlaceWithRouteResult;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
+import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
 
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 public class PlaceCandidateContext {
 
@@ -27,8 +29,11 @@ public class PlaceCandidateContext {
     // 사용자 지정 장소로 고정한 관광지 후보 ID
     private final Set<String> pinnedIds = ConcurrentHashMap.newKeySet();
 
-    // 음식점 후보 ID별 대표 메뉴, 요청 안 상세 재조회 방지
-    private final Map<String, Optional<String>> representativeMenus = new ConcurrentHashMap<>();
+    // 검색 음식점 ID별 상세 메뉴 원본
+    private final Map<String, List<String>> restaurantMenus = new ConcurrentHashMap<>();
+
+    // 보충 조회의 정상 종료 여부, 메뉴 출처 확인 결과와 별도 보관
+    private final Set<String> completedRestaurantLookups = ConcurrentHashMap.newKeySet();
 
     // TourAPI 요청용 contentId 복원, 접두사가 없으면 원본 유지
     public static String contentId(String candidateId) {
@@ -141,6 +146,8 @@ public class PlaceCandidateContext {
 
         candidates.clear();
         pinnedIds.clear();
+        restaurantMenus.clear();
+        completedRestaurantLookups.clear();
     }
 
     /**
@@ -168,19 +175,102 @@ public class PlaceCandidateContext {
     }
 
     /**
-     * 음식점 대표 메뉴의 요청 범위 메모이즈, 결과 없음도 기록하고 조회 예외는 기록하지 않음
+     * 검색 음식점과 일치하는 상세 메뉴 기록
      */
-    public String representativeMenu(
+    public void recordRestaurantDetail(
             String candidateId,
-            Supplier<String> loader
+            Kor2RestaurantIntroResponse response
     ) {
 
-        return representativeMenus
-                .computeIfAbsent(
-                        candidateId,
-                        id -> Optional.ofNullable(loader.get())
-                )
-                .orElse(null);
+        String id = TOUR_PREFIX + contentId(candidateId);
+        Candidate candidate = find(id);
+
+        if (candidate == null || !RESTAURANT_CONTENT_TYPE_ID.equals(candidate.type())
+                || response == null || response.resultCode() == null
+                || !Set.of("0000", "00").contains(response.resultCode())
+                || response.response().body() == null
+                || response.response().body().items() == null
+                || response.response().body().items().item() == null) {
+            return;
+        }
+
+        List<Kor2RestaurantIntroResponse.Item> details = response
+                .response()
+                .body()
+                .items()
+                .item()
+                .stream()
+                .filter(Objects::nonNull)
+                .filter(item -> contentId(id).equals(item.contentid()))
+                .filter(item -> RESTAURANT_CONTENT_TYPE_ID.equals(item.contenttypeid()))
+                .toList();
+
+        if (details.isEmpty()) {
+            return;
+        }
+
+        List<String> menus = details
+                .stream()
+                .flatMap(item -> Stream.of(item.firstmenu(), item.treatmenu()))
+                .filter(Objects::nonNull)
+                .flatMap(menu -> Arrays.stream(menu.split("[,/;|\\n]|(?i)<br\\s*/?>")))
+                .map(String::strip)
+                .filter(menu -> !menu.isBlank())
+                .distinct()
+                .toList();
+
+        restaurantMenus.put(id, menus);
+    }
+
+    /**
+     * 요청 안 상세 메뉴 조회 및 중복 외부 조회 방지
+     */
+    public List<String> restaurantMenus(
+            String candidateId,
+            Supplier<Kor2RestaurantIntroResponse> loader
+    ) {
+
+        if (!restaurantMenus.containsKey(candidateId) && !completedRestaurantLookups.contains(candidateId)) {
+            recordRestaurantDetail(candidateId, loader.get());
+            completedRestaurantLookups.add(candidateId);
+        }
+
+        return restaurantMenus.getOrDefault(candidateId, List.of());
+    }
+
+    /**
+     * 검색 음식점의 상세 메뉴 선택 검증
+     */
+    public String restaurantMenuFailure(
+            String candidateId,
+            String menuName
+    ) {
+
+        Candidate candidate = find(candidateId);
+
+        if (candidate == null) {
+            return "음식점 후보 미확인: " + candidateId;
+        }
+
+        if (!RESTAURANT_CONTENT_TYPE_ID.equals(candidate.type())) {
+            return "음식점 후보 유형 불일치: " + candidateId;
+        }
+
+        List<String> menus = restaurantMenus.get(candidateId);
+
+        if (menus == null) {
+            return "음식점 상세 메뉴 미확인: " + candidateId + " / getRestaurantDetail 조회 필요";
+        }
+
+        if (menus.isEmpty()) {
+            return "음식점 상세 메뉴 없음: " + candidateId;
+        }
+
+        if (menuName == null || menuName.isBlank() || !menus.contains(menuName.strip())) {
+            return "음식점 메뉴 원본 불일치: " + candidateId + " / 선택 가능 메뉴: " + menus;
+        }
+
+        return null;
     }
 
     private static String text(String value) {

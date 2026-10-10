@@ -1,0 +1,425 @@
+{
+  "checkedAt": "2026-10-10T15:51:15.401251+00:00",
+  "panelQueries": [
+    {
+      "panel": "생성 구조 검사 통과 / 12",
+      "expression": "sum by (phase) (last_over_time(planb_selection_quality_pass[30d]))",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-selection"
+          },
+          "value": [
+            1791647475.371,
+            "10"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "P2-4A"
+          },
+          "value": [
+            1791647475.371,
+            "12"
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "지정 장소 포함 실행 (성공 응답)",
+      "expression": "sum by (phase) (last_over_time(planb_selection_quality_plannedPlaceIncluded[30d]))",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-selection"
+          },
+          "value": [
+            1791647475.374,
+            "10"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "P2-4A"
+          },
+          "value": [
+            1791647475.374,
+            "12"
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "날짜 간 장소 중복",
+      "expression": "sum by (phase) (last_over_time(planb_selection_quality_crossDayDuplicatePlaces[30d]))",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-selection"
+          },
+          "value": [
+            1791647475.375,
+            "0"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "P2-4A"
+          },
+          "value": [
+            1791647475.375,
+            "0"
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "알레르기 키워드 적중 — 성분 확정 아님",
+      "expression": "sum by (phase) (last_over_time(planb_selection_quality_allergenHits[30d]))",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-selection"
+          },
+          "value": [
+            1791647475.377,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "P2-4A"
+          },
+          "value": [
+            1791647475.377,
+            "0"
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "기존 메뉴 출처 proxy 일치율 — 부분 문자열",
+      "expression": "sum by (phase) (last_over_time(planb_selection_quality_menu_matched[30d])) / sum by (phase) (last_over_time(planb_selection_quality_menu_checked[30d]))",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-selection"
+          },
+          "value": [
+            1791647475.378,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "P2-4A"
+          },
+          "value": [
+            1791647475.378,
+            "1"
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "필수 식사 존재 — 첫 아침·마지막 저녁 면제",
+      "expression": "last_over_time(planb_selection_raw_required_meals_present[30d]) / last_over_time(planb_selection_raw_required_meals_expected[30d])",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-selection"
+          },
+          "value": [
+            1791647475.38,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "P2-4A"
+          },
+          "value": [
+            1791647475.38,
+            "1"
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "복약 deterministic 계약 충족일 비율",
+      "expression": "last_over_time(planb_selection_raw_medication_days_matched[30d]) / last_over_time(planb_selection_raw_medication_days_checked[30d])",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-selection"
+          },
+          "value": [
+            1791647475.381,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "P2-4A"
+          },
+          "value": [
+            1791647475.381,
+            "1"
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "필수 식사 등록시각 ±30분 — 관찰 지표",
+      "expression": "last_over_time(planb_selection_raw_required_meals_on_time[30d]) / last_over_time(planb_selection_raw_required_meals_present[30d])",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-selection"
+          },
+          "value": [
+            1791647475.383,
+            "0.925"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "P2-4A"
+          },
+          "value": [
+            1791647475.383,
+            "0.9166666666666666"
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "식사시각 태그 불일치",
+      "expression": "last_over_time(planb_selection_raw_meal_tag_mismatches[30d])",
+      "result": [
+        {
+          "metric": {
+            "__name__": "planb_selection_raw_meal_tag_mismatches",
+            "phase": "#177-selection"
+          },
+          "value": [
+            1791647475.385,
+            "0"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "planb_selection_raw_meal_tag_mismatches",
+            "phase": "P2-4A"
+          },
+          "value": [
+            1791647475.385,
+            "0"
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "필수 필드 오류 슬롯",
+      "expression": "last_over_time(planb_selection_raw_place_field_invalid_slots[30d])",
+      "result": [
+        {
+          "metric": {
+            "__name__": "planb_selection_raw_place_field_invalid_slots",
+            "phase": "#177-selection"
+          },
+          "value": [
+            1791647475.386,
+            "0"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "planb_selection_raw_place_field_invalid_slots",
+            "phase": "P2-4A"
+          },
+          "value": [
+            1791647475.386,
+            "0"
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "영양 채움 proxy — carbohydrate 숫자",
+      "expression": "sum by (phase) (last_over_time(planb_selection_quality_nutritionFilled[30d])) / sum by (phase) (last_over_time(planb_selection_quality_restaurantSlots[30d]))",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-selection"
+          },
+          "value": [
+            1791647475.389,
+            "0.5"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "P2-4A"
+          },
+          "value": [
+            1791647475.389,
+            "0.5"
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "영양 3필드 숫자 — 정확성 검증 아님",
+      "expression": "last_over_time(planb_selection_raw_all_nutrition_fields_filled[30d]) / last_over_time(planb_selection_raw_restaurant_slots[30d])",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-selection"
+          },
+          "value": [
+            1791647475.391,
+            "0.5"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "P2-4A"
+          },
+          "value": [
+            1791647475.391,
+            "0.5"
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "이동시간 누락·음수 슬롯",
+      "expression": "last_over_time(planb_selection_raw_route_invalid_slots[30d])",
+      "result": [
+        {
+          "metric": {
+            "__name__": "planb_selection_raw_route_invalid_slots",
+            "phase": "#177-selection"
+          },
+          "value": [
+            1791647475.393,
+            "0"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "planb_selection_raw_route_invalid_slots",
+            "phase": "P2-4A"
+          },
+          "value": [
+            1791647475.393,
+            "0"
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "candidateId 누락·형식 오류 슬롯",
+      "expression": "last_over_time(planb_selection_raw_identity_invalid_slots[30d])",
+      "result": [
+        {
+          "metric": {
+            "__name__": "planb_selection_raw_identity_invalid_slots",
+            "phase": "#177-selection"
+          },
+          "value": [
+            1791647475.394,
+            "0"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "planb_selection_raw_identity_invalid_slots",
+            "phase": "P2-4A"
+          },
+          "value": [
+            1791647475.394,
+            "0"
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "CAFE_REST 슬롯 수",
+      "expression": "sum by (phase) (last_over_time(planb_selection_quality_cafeRestSlots[30d]))",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-selection"
+          },
+          "value": [
+            1791647475.395,
+            "10"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "P2-4A"
+          },
+          "value": [
+            1791647475.395,
+            "11"
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "성공 응답 시간 중앙값 — 보조",
+      "expression": "quantile by (phase) (0.5,last_over_time(planb_selection_quality_duration_seconds{outcome=\"PASS\"}[30d]))",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-selection"
+          },
+          "value": [
+            1791647475.398,
+            "28.374000000000002"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "P2-4A"
+          },
+          "value": [
+            1791647475.398,
+            "19.985999999999997"
+          ]
+        }
+      ]
+    },
+    {
+      "panel": "전체 생성 시도의 모델 호출 수 — 보조",
+      "expression": "sum by (phase) (last_over_time(planb_selection_quality_llm_calls[30d]))",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-selection"
+          },
+          "value": [
+            1791647475.399,
+            "81"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "P2-4A"
+          },
+          "value": [
+            1791647475.399,
+            "61"
+          ]
+        }
+      ]
+    }
+  ],
+  "count": 17,
+  "allQueriesHaveBothRevisions": true,
+  "allValuesMatchOfflineCounts": true,
+  "verifiedValueCount": 34
+}

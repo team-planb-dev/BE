@@ -1,0 +1,1010 @@
+{
+  "issue": 177,
+  "recorded_at": "2026-10-11T00:29:45+09:00",
+  "baseline_commit": "127e1a2a70e074909d965f3600f5dc17d6b29caa",
+  "verified_code_commit": "3b766cf16e4e4d8ae226a247b50bc71e073057db",
+  "command": "./gradlew clean test",
+  "environment": {
+    "java": "21",
+    "testcontainers_socket_override": "/var/run/docker.sock"
+  },
+  "result": "BUILD SUCCESSFUL",
+  "duration": "3m 43s",
+  "suites": 135,
+  "tests": 885,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "test_suites": [
+    {
+      "name": "com.planb.controller.domain.chat.ChatControllerTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.controller.domain.chat.ChatRoomControllerTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.controller.domain.chat.ChatRoomMemberControllerTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.controller.domain.health.HealthControllerTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.controller.domain.travel.TravelControllerTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.controller.domain.user.UserControllerTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.integration.domain.chat.ChatAiEditPlanIntegrationTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.integration.domain.chat.ChatIntegrationTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.integration.domain.chat.ChatRestIntegrationTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.integration.domain.chat.ChatWebSocketIntegrationTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.integration.domain.health.HealthIntegrationTest",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.integration.domain.travel.TravelLoadTestSmokeIntegrationTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.integration.domain.travel.TravelValidationIntegrationTest",
+      "tests": 27,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.integration.domain.user.UserIntegrationTest",
+      "tests": 28,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.integration.global.ActuatorSecurityIntegrationTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.integration.global.AllowedOriginIntegrationTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.integration.global.PlatformThreadHttpIntegrationTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.integration.global.VirtualThreadHttpIntegrationTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.performance.external.ExternalHttpStubServerTest",
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.performance.external.LoadTestProfileTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.performance.external.VirtualThreadConfigurationTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.performance.observability.LoadTestMetricsProfileTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.performance.observability.NutritionLookupConcurrencyProfileTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.performance.observability.ObservabilityConfigTest",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.performance.observability.ScrapeTokenScriptTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.performance.openai.OpenAiProtocolStubTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.slice.domain.travel.repository.FoodNutritionCacheTestRepository",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.slice.domain.travel.repository.TravelHealthRepositoryTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.slice.global.security.repository.UserAuthCacheRepositoryTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.slice.global.security.repository.UserTokenCacheRepositoryTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.slice.query.chat.repository.ChatMessageQueryRepositoryTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.slice.query.chat.repository.ChatRoomMemberQueryRepositoryTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.slice.query.chat.repository.ChatRoomQueryRepositoryTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.slice.query.health.repository.FoodInfoQueryRepositoryTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.slice.query.health.repository.HealthQueryRepositoryTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.slice.query.health.repository.MedicationInfoQueryRepositoryTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.slice.query.travel.repository.PlanDayQueryRepositoryTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.slice.query.travel.repository.PlanQueryRepositoryTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.slice.query.travel.repository.PlanScheduleQueryRepositoryTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.slice.query.travel.repository.RestaurantDetailQueryRepositoryTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.slice.query.travel.repository.TravelQueryRepositoryTest",
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.slice.query.user.repository.UserQueryRepositoryTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.ai.context.PlaceCandidateContextTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.ai.handler.MissingSlotCompleterTest",
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.ai.handler.PlanGenerationSelectionTestMapping",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.ai.handler.TravelRecommendHandlerContractTest",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.chat.facade.ChatFacadeTest",
+      "tests": 26,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.chat.facade.ChatMessageFacadeTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.chat.helper.ChatAiReplyMessageHelperTest",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.chat.service.ChatMessageServiceTest",
+      "tests": 22,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.chat.service.ChatRoomMemberServiceTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.chat.service.ChatRoomServiceTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.chat.websocket.listener.ChatSessionEventListenerTest",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.chat.websocket.registry.ChatSubscriptionRegistryTest",
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.chat.websocket.resolver.ChatDestinationResolverTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.health.converter.DiseaseTypeConverterTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.health.converter.FoodTypeConverterTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.health.converter.MealTimingConverterTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.health.converter.MedicationBasisConverterTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.health.converter.RelatedMealConverterTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.health.converter.WalkTypeConverterTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.health.facade.HealthFacadeTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.health.service.FoodInfoServiceTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.health.service.HealthServiceTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.health.service.MedicationInfoServiceTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.PlanQualityTestCounts",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.converter.CourseTypeConverterTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.converter.DateTypeConverterTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.converter.RecommendationTagConverterTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.converter.ScheduleTypeConverterTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.converter.TransportationConverterTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.converter.TravelStyleConverterTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.converter.TravelThemeConverterTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.dto.CreateTravelRequestSnapshotTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.entity.constant.RecommendationTagTest",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.facade.TravelFacadeTest",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.helper.NutritionEvaluatorTest",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.helper.PlanPlaceResolverVerifyExistingTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.policy.AttractionTagPolicyTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.policy.MealSlotPolicyTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.policy.NearbyWalkTestEstimate",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.policy.TouristPlaceCountPolicyTest",
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.service.NutritionServiceTest",
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.service.PlanDayServiceTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.service.PlanPlaceValidationTest",
+      "tests": 47,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.service.PlanRestaurantMenuContractTest",
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.service.PlanScheduleServiceTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.service.PlanServiceTest",
+      "tests": 37,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.service.PlannedPlaceServiceTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.service.RestaurantDetailServiceTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.service.ScheduleNormalizerTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.service.TravelMinutesTestResolver",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.service.TravelServiceTest",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.travel.service.TravelTransactionServiceTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.user.entity.AccountRecoveryTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.domain.user.service.UserServiceTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.ai.client.OpenAiClientTest",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.ai.config.AiOutputConverterTestGeneration",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.ai.mcp.NutritionEvaluationCollectorTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.ai.prompt.PlanDayRebuildContractTest",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.ai.tool.PlanTourismToolTest",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.ai.tool.TourismToolTest",
+      "tests": 23,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.client.foodNtrCpnt.FoodNtrCpntHelperTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.client.helper.DataUriBuilderTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.client.kakaoMapService.KakaoMapRouteHelperTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.client.kakaoMapService.KakaoPlaceSearchHelperTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.client.kakaoMobilityService.KakaoMobilityRouteHelperTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.client.kor2Service.Kor2ResponseTestCache",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.client.kor2Service.Kor2ServiceHandlerTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.client.kor2Service.Kor2ServiceTestClient",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.constant.serializer.ai.LenientLocalTimeDeserializerTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.security.facade.RefreshFacadeTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.security.filter.JwtFilterTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.security.filter.JwtLoginFilterTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.security.filter.JwtLogoutFilterTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.security.provider.JwtAuthenticationProviderTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.security.service.RefreshServiceTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.security.util.JwtUtilTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.security.validator.RefreshTokenValidatorTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.utils.app.JsonResponseUtilsTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.utils.web.CookieUtilTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.global.websocket.interceptor.StompChannelInterceptorTest",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.query.chat.service.ChatMessageQueryServiceTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.query.chat.service.ChatRoomMemberQueryServiceTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.query.chat.service.ChatRoomQueryServiceTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.query.health.service.FoodInfoQueryServiceTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.query.health.service.HealthQueryServiceTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.query.health.service.MedicationInfoQueryServiceTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.query.travel.service.PlanDayQueryServiceTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.query.travel.service.PlanQueryServiceTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.query.travel.service.PlanScheduleQueryServiceTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.query.travel.service.RestaurantDetailQueryServiceTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.query.travel.service.TravelQueryServiceTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.query.user.service.UserQueryServiceRecoveryTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.planb.unit.query.user.service.UserQueryServiceTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "review_loop": {
+    "rounds": 3,
+    "scores": [
+      9,
+      9,
+      9
+    ],
+    "minimum_score": 9,
+    "final_critical": 0,
+    "final_important": 0,
+    "minor_feedback_addressed": true
+  },
+  "actual_api_validation": {
+    "status": "completed_quality_gates_unmet",
+    "generation_runs": 12,
+    "edit_runs": 0,
+    "pass": 10,
+    "api_rejections": 2,
+    "allergen_keyword_proxy_hits": 1,
+    "junit": "12 observer tests completed; not 12 successful generations",
+    "result": "p2-selection-contract-actual-quality-20261011.json",
+    "additional_paid_runs": 0
+  },
+  "claims": {
+    "menu_source_contract_verified": true,
+    "model_quality_improvement_verified": false,
+    "production_adoption_verified": false
+  },
+  "scope": {
+    "baseline": "adopted P2-4A",
+    "unadopted_B_C_included": false,
+    "delivery": "dev only; no main sync"
+  },
+  "evidence_kind": "test result summary; no raw external response, token, or credential",
+  "quality_report_review_loop": {
+    "rounds": 2,
+    "scores": [
+      9.5,
+      9.5
+    ],
+    "required_score": 9,
+    "critical": 0,
+    "important": 0,
+    "minor_addressed": "Define savedRuns as user-confirmed responses, not DB persistence; all34 Grafana values checked"
+  }
+}

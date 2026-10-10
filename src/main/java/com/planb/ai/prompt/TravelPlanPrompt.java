@@ -96,8 +96,10 @@ public record TravelPlanPrompt(
                 [4. 음식점 상세 및 영양]
 
                 - 각 RESTAURANT·LOCAL_FOOD 후보에 getRestaurantDetail(contentId)를 호출합니다.
-                  contentId는 검색 후보의 candidateId에서 복원한 원본 ID를 사용합니다.
-                  firstmenu를 우선하고 없으면 treatmenu에서 실제 메뉴를 확인합니다.
+                  contentId에는 검색 후보의 candidateId를 그대로 전달합니다. Java가 원본 ID로 복원합니다.
+                  firstmenu의 대표 메뉴를 우선하고 treatmenu에 나열된 실제 메뉴도 선택할 수 있습니다.
+                  쉼표·슬래시·세미콜론·파이프·줄바꿈·HTML br로 구분된 메뉴 중 하나를 원문 그대로 반환합니다.
+                  standardFoodName은 영양 조회용이며 menuName의 원본을 대신하지 않습니다.
                   메뉴가 없으면 다른 후보를 검색합니다.
                 - searchRestaurantsByLocation → 후보 선택 → getRestaurantDetail → 실제 메뉴 확인
                   → evaluateFoodNutrition(실제 메뉴, 표준 품목명, 전체 diseaseTypes) 순서를 지킵니다.

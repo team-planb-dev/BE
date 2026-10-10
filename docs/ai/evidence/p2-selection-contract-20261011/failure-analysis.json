@@ -1,0 +1,40 @@
+{
+  "confirmed": "C4 repeats 2 and 3 fail in initial ai_response menu validation; no downstream persistence stage recorded",
+  "warnings": [
+    {
+      "timestamp": "2026-10-11T00:42:24.038+09:00",
+      "validation": "planDays[day1].schedules[08:00]: 음식점 메뉴 원본 불일치: tour:623279 / 선택 가능 메뉴: [초당순두부·두부전골, 초당두부, 문어무침, 제육볶음, 통메밀전, 순두부 외]]"
+    },
+    {
+      "timestamp": "2026-10-11T00:43:00.494+09:00",
+      "validation": "planDays[day1].schedules[08:00]: 음식점 메뉴 원본 불일치: tour:623279 / 선택 가능 메뉴: [초당순두부·두부전골, 초당두부, 문어무침, 제육볶음, 통메밀전, 순두부 외]]"
+    },
+    {
+      "timestamp": "2026-10-11T00:45:02.658+09:00",
+      "validation": "planDays[day1].schedules[18:00]: 음식점 메뉴 원본 불일치: tour:2762860 / 선택 가능 메뉴: [교동쌈밥 한정식 (A, B, C)]]"
+    },
+    {
+      "timestamp": "2026-10-11T00:45:24.103+09:00",
+      "validation": "planDays[day1].schedules[18:00]: 음식점 메뉴 원본 불일치: tour:2762860 / 선택 가능 메뉴: [교동쌈밥 한정식 (A, B, C)]]"
+    }
+  ],
+  "unknown": "Rejected selected menu and original firstmenu/treatmenu were not preserved in response raw; exact rejection cause cannot be independently reproduced",
+  "formattingHypothesis": {
+    "syntheticInput": "교동쌈밥 한정식 (A,B,C)",
+    "currentSplit": [
+      "교동쌈밥 한정식 (A",
+      "B",
+      "C)"
+    ],
+    "kind": "offline parser risk example, not a preserved provider response"
+  },
+  "allergenProxy": {
+    "case": "C1-seoul-single-disease",
+    "repeat": 1,
+    "day": 2,
+    "locationName": "가야밀냉면해물칼국수",
+    "menuName": "해물손칼국수",
+    "keyword": "해물",
+    "actualIngredient": "not verified"
+  }
+}
