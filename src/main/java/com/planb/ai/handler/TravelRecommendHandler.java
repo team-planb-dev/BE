@@ -2,6 +2,8 @@ package com.planb.ai.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.planb.ai.client.OpenAiClient;
+import com.planb.global.config.exception.AiFailure;
+import com.planb.global.config.exception.domain.AiOrchestrationException;
 import com.planb.ai.context.PlaceCandidateContext;
 import com.planb.ai.context.PlanEditContext;
 import com.planb.ai.context.TravelHealthContext;
@@ -16,8 +18,11 @@ import com.planb.ai.dto.response.RebuildPlanDayResponse;
 import com.planb.ai.dto.response.PlanEditScope;
 import com.planb.ai.prompt.PlanEditScopePrompt;
 import com.planb.ai.prompt.PlaceReselectPrompt;
+import com.planb.ai.prompt.PrefetchedPlaceReselectPrompt;
+import com.planb.ai.prompt.AiPrompt;
 import com.planb.ai.prompt.RebuildPlanDayPrompt;
 import com.planb.ai.mcp.PlanTourismTool;
+import com.planb.ai.mcp.PrefetchedPlanTourismTool;
 import com.planb.ai.mcp.TourismTool;
 import com.planb.ai.prompt.EditPlanPrompt;
 import com.planb.ai.prompt.FoodRecommendPrompt;
@@ -66,6 +71,8 @@ public class TravelRecommendHandler {
 
     private final PlanGenerationSelectionMapper selectionMapper;
 
+    private final PlanCandidatePrefetcher candidatePrefetcher;
+
     // 지역에 따른 음식 추천 받기
     public MakeRecommendFoodResponse makeRecommendFood
     (MakeFoodRecommendCallRequest request) {
@@ -92,18 +99,16 @@ public class TravelRecommendHandler {
             PlaceCandidateContext candidates
     ) {
 
-        // 지정 장소를 무작위 관광지 후보와 별도로 고정 (모델 계약 불변, tool 결과 내용만 보강)
-        List<Kor2KeywordSearchResponse.Item> plannedPlaces = tourismTool.findPlannedPlaces(
-                travelPlanContext
-                        .createTravelRequest()
-                        .plannedPlaces(),
-                travelPlanContext
-                        .createTravelRequest()
-                        .locationDo(),
-                travelPlanContext
-                        .createTravelRequest()
-                        .locationSigungu()
-        );
+        candidatePrefetcher
+                .prepare(travelPlanContext)
+                .onErrorMap(failure -> failure instanceof AiOrchestrationException
+                        ? failure
+                        : new AiOrchestrationException(
+                                AiFailure.UPSTREAM_CALL_FAILED,
+                                failure
+                        ))
+                .block()
+                .restore(candidates);
 
         Function<CreatePlanAiResponse, List<String>> validation = validatePlan(
                 travelPlanContext,
@@ -119,24 +124,22 @@ public class TravelRecommendHandler {
 
         CreatePlanSelection selection = openAiClient
                 .call(
-                        new VerifiedPlacePrompt(new TravelPlanPrompt(
-                                travelPlanContext,
-                                objectMapper
-                        )),
+                        new VerifiedPlacePrompt(
+                                new TravelPlanPrompt(
+                                        travelPlanContext,
+                                        objectMapper,
+                                        candidates.allCandidates()
+                                ),
+                                true
+                        ),
                         createPlanSelectionConverter,
                         selectionValidation,
-                        new PlanTourismTool(
+                        new PrefetchedPlanTourismTool(
                                 tourismTool,
-                                candidates,
-                                plannedPlaces
+                                candidates
                         )
                 );
 
-        // 재시도 초기화나 모델의 관광지 검색 생략과 무관하게 후속 보충 단계에 고정 후보 전달
-        plannedPlaces.forEach(candidates::pin);
-
-        // PlanService 검증 직전의 관광지 개수·빈 슬롯 단일 보정
-        // 생성·편집·재구성의 공통 보정 지점
         return selectionMapper.toResponse(
                 selection,
                 candidates
@@ -189,6 +192,10 @@ public class TravelRecommendHandler {
             PlaceCandidateContext candidates
     ) {
 
+        if (candidates.isRegionalRestaurantsCollected()) {
+            return;
+        }
+
         new PlanTourismTool(
                 tourismTool,
                 candidates
@@ -200,6 +207,7 @@ public class TravelRecommendHandler {
                         .createTravelRequest()
                         .locationSigungu()
         );
+        candidates.markRegionalRestaurantsCollected();
     }
 
     // 지정 날짜 하나의 새 후보 검색 및 재구성
@@ -234,14 +242,30 @@ public class TravelRecommendHandler {
             PlaceCandidateContext candidates
     ) {
 
+        boolean prefetched = candidates.isPrefetched();
+        AiPrompt request = prefetched
+                ? new PrefetchedPlaceReselectPrompt(
+                        prompt,
+                        objectMapper,
+                        candidates.allCandidates()
+                )
+                : prompt;
+        Object tool = prefetched
+                ? new PrefetchedPlanTourismTool(
+                        tourismTool,
+                        candidates
+                )
+                : new PlanTourismTool(
+                        tourismTool,
+                        candidates
+                );
+
         PlaceReselectResponse response = openAiClient
                 .call(
-                new VerifiedPlacePrompt(prompt),
-                new BeanOutputConverter<>(PlaceReselectResponse.class),
-                new PlanTourismTool(
-                                tourismTool,
-                                candidates)
-        );
+                        new VerifiedPlacePrompt(request, prefetched),
+                        new BeanOutputConverter<>(PlaceReselectResponse.class),
+                        tool
+                );
 
         if (response == null) {
             return null;

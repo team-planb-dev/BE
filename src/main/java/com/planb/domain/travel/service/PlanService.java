@@ -1257,6 +1257,9 @@ public class PlanService {
                 context.healthContexts()
         );
 
+        PlaceCandidateContext reselectionSeed = new PlaceCandidateContext();
+        reselectionSeed.copyFrom(candidates);
+
         List<Validation> validations = new ArrayList<>();
 
         for (CreatePlanAiResponse.PlanDayDetail day : response.planDays()) {
@@ -1309,7 +1312,8 @@ public class PlanService {
                         existing,
                         context,
                         usedPlaces,
-                        usedMenus
+                        usedMenus,
+                        reselectionSeed
                 );
 
                 boolean changed = !Objects.equals(slot.locationName(), resolved.locationName())
@@ -1468,7 +1472,8 @@ public class PlanService {
             GetAiPlanResponse existing,
             TravelPlanContext context,
             Set<String> usedPlaces,
-            Set<String> usedMenus
+            Set<String> usedMenus,
+            PlaceCandidateContext reselectionSeed
     ) {
 
         if (validation.valid()) {
@@ -1483,6 +1488,10 @@ public class PlanService {
 
         for (int attempt = 0; attempt < 2; attempt++) {
             PlaceCandidateContext retryCandidates = new PlaceCandidateContext();
+
+            if (existing == null && reselectionSeed.isPrefetched()) {
+                retryCandidates.copyFrom(reselectionSeed);
+            }
 
             String reason = result.reason();
 

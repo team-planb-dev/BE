@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -292,6 +293,18 @@ public class TourismTool {
                 locationSigungu
         );
 
+        return findAttractionCandidates(
+                locationDo,
+                locationSigungu
+        )
+                .block();
+    }
+
+    public Mono<Kor2KeywordSearchResponse> findAttractionCandidates(
+            String locationDo,
+            String locationSigungu
+    ) {
+
         return kor2ServiceHandler
                 .searchAttractions(
                         locationDo,
@@ -303,8 +316,7 @@ public class TourismTool {
                                 "[AI TOOL] 지역 관광지 후보 조회 응답 - 후보 {}건",
                                 itemCount(response)
                         )
-                )
-                .block();
+                );
     }
 
     @Tool(description = """
@@ -326,6 +338,20 @@ public class TourismTool {
                 locationSigungu
         );
 
+        return findRestaurantCandidates(
+                keyword,
+                locationDo,
+                locationSigungu
+        )
+                .block();
+    }
+
+    public Mono<Kor2KeywordSearchResponse> findRestaurantCandidates(
+            String keyword,
+            String locationDo,
+            String locationSigungu
+    ) {
+
         return kor2ServiceHandler
                 .searchRestaurants(
                         keyword,
@@ -337,8 +363,7 @@ public class TourismTool {
                                 "[AI TOOL] 지역 음식점 검색 응답 - 후보 {}건",
                                 itemCount(response)
                         )
-                )
-                .block();
+                );
     }
 
     /**
@@ -355,6 +380,18 @@ public class TourismTool {
                 locationSigungu
         );
 
+        return findRegionalRestaurantCandidates(
+                locationDo,
+                locationSigungu
+        )
+                .block();
+    }
+
+    public Mono<Kor2KeywordSearchResponse> findRegionalRestaurantCandidates(
+            String locationDo,
+            String locationSigungu
+    ) {
+
         return kor2ServiceHandler
                 .searchRestaurantCandidates(
                         locationDo,
@@ -365,8 +402,7 @@ public class TourismTool {
                                 "[AI TOOL] 지역 음식점 후보 조회 응답 - 후보 {}건",
                                 itemCount(response)
                         )
-                )
-                .block();
+                );
     }
 
     // 외부 응답 원문 대신 후보 수만 기록
