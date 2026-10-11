@@ -3,8 +3,9 @@ package com.planb.ai.context;
 import com.planb.ai.dto.response.PlaceWithRouteResult;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
 import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
+import tools.jackson.databind.json.JsonMapper;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class PlaceCandidateContext {
@@ -23,6 +26,12 @@ public class PlaceCandidateContext {
     private static final String ATTRACTION_CONTENT_TYPE_ID = "12";
 
     private static final String RESTAURANT_CONTENT_TYPE_ID = "39";
+
+    private static final Pattern MENU_BOUNDARIES = Pattern.compile("[()]|[,/;|\\r\\n]|(?i:<br\\s*/?>)");
+
+    private static final JsonMapper MENU_MAPPER = JsonMapper
+            .builder()
+            .build();
 
     private final Map<String, Candidate> candidates = new ConcurrentHashMap<>();
 
@@ -213,13 +222,51 @@ public class PlaceCandidateContext {
                 .stream()
                 .flatMap(item -> Stream.of(item.firstmenu(), item.treatmenu()))
                 .filter(Objects::nonNull)
-                .flatMap(menu -> Arrays.stream(menu.split("[,/;|\\n]|(?i)<br\\s*/?>")))
+                .flatMap(menu -> splitRestaurantMenus(menu)
+                        .stream())
                 .map(String::strip)
                 .filter(menu -> !menu.isBlank())
                 .distinct()
                 .toList();
 
         restaurantMenus.put(id, menus);
+    }
+
+    /**
+     * 괄호 내부 표현을 보존한 최상위 메뉴 분리
+     */
+    private List<String> splitRestaurantMenus(String source) {
+
+        List<String> menus = new ArrayList<>();
+        Matcher boundaries = MENU_BOUNDARIES.matcher(source);
+        int depth = 0;
+        int start = 0;
+
+        while (boundaries.find()) {
+            String token = boundaries.group();
+
+            if ("(".equals(token)) {
+                depth++;
+            } else if (")".equals(token)) {
+                if (depth == 0) {
+                    return List.of();
+                }
+
+                depth--;
+            } else if (depth == 0) {
+                menus.add(source.substring(start, boundaries.start()));
+                start = boundaries.end();
+            }
+        }
+
+        // 짝이 없는 괄호의 메뉴 경계 미확정
+        if (depth != 0) {
+            return List.of();
+        }
+
+        menus.add(source.substring(start));
+
+        return menus;
     }
 
     /**
@@ -267,7 +314,10 @@ public class PlaceCandidateContext {
         }
 
         if (menuName == null || menuName.isBlank() || !menus.contains(menuName.strip())) {
-            return "음식점 메뉴 원본 불일치: " + candidateId + " / 선택 가능 메뉴: " + menus;
+            return "음식점 메뉴 원본 불일치: " + candidateId
+                    + " / 선택 메뉴(JSON): " + MENU_MAPPER.writeValueAsString(menuName)
+                    + " / 선택 가능 메뉴(JSON 배열): " + MENU_MAPPER.writeValueAsString(menus)
+                    + " / 배열의 문자열 하나를 괄호 내부 표현까지 그대로 선택";
         }
 
         return null;

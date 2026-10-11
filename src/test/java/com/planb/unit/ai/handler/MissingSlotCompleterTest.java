@@ -992,6 +992,68 @@ class MissingSlotCompleterTest {
         verify(tourismTool, never()).getRestaurantDetail(anyString());
     }
 
+    @Test
+    @DisplayName("자동 식사 보정의 괄호 메뉴 원문과 기존 관광 슬롯 보존")
+    void fillsMealWithWholeParenthesizedMenu() {
+
+        String menu = "교동쌈밥 한정식 (A, B, C)";
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+        candidates.record(restaurantItem("9", "교동쌈밥", "129.21", "35.83"));
+        candidates.recordRestaurantDetail("tour:9", intro(menu));
+        CreatePlanAiResponse.PlanScheduleDetail original = attraction("첨성대", LocalTime.of(9, 0));
+
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
+                response(original),
+                List.of(healthContext()),
+                candidates,
+                Set.of(),
+                Set.of()
+        );
+
+        assertThat(schedules(filled))
+                .contains(original)
+                .filteredOn(slot -> slot.scheduleType() == ScheduleType.LUNCH)
+                .singleElement()
+                .satisfies(slot -> {
+                    assertThat(slot.candidateId())
+                            .isEqualTo("tour:9");
+                    assertThat(slot
+                            .restaurantDetail()
+                            .menuName())
+                            .isEqualTo(menu);
+                    assertThat(candidates.restaurantMenuFailure(
+                            slot.candidateId(),
+                            slot
+                                    .restaurantDetail()
+                                    .menuName()
+                    ))
+                            .isNull();
+                });
+        verify(tourismTool, never()).getRestaurantDetail(anyString());
+    }
+
+    @Test
+    @DisplayName("이미 사용한 괄호 메뉴의 내부 조각으로 식사 보충 금지")
+    void doesNotFillMealWithFragmentOfUsedMenu() {
+
+        String menu = "교동쌈밥 한정식 (A, B, C)";
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+        candidates.record(restaurantItem("9", "교동쌈밥", "129.21", "35.83"));
+        candidates.recordRestaurantDetail("tour:9", intro(menu));
+
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
+                response(attraction("첨성대", LocalTime.of(9, 0))),
+                List.of(healthContext()),
+                candidates,
+                Set.of(),
+                Set.of(menu)
+        );
+
+        assertThat(schedules(filled))
+                .noneMatch(slot -> slot.scheduleType() == ScheduleType.LUNCH);
+        verify(tourismTool, never()).getRestaurantDetail(anyString());
+    }
+
     private Kor2RestaurantIntroResponse intro(String firstMenu) {
 
         return intro("9", firstMenu);

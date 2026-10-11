@@ -32,6 +32,8 @@ import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroRespo
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -61,9 +63,10 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class TravelRecommendHandlerContractTest {
 
-    @Test
+    @ParameterizedTest
+    @ValueSource(strings = {"막국수", "교동쌈밥 한정식 (A, B, C)"})
     @DisplayName("생성 선택 응답의 candidateId를 검증된 장소 정보로 변환")
-    void createsPlanFromCandidateSelection() {
+    void createsPlanFromCandidateSelection(String selectedMenu) {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();
         candidates.record(restaurantItem("456", "춘천식당"));
@@ -73,7 +76,12 @@ class TravelRecommendHandlerContractTest {
                         new Kor2RestaurantIntroResponse.Header("0000", "OK"),
                         new Kor2RestaurantIntroResponse.Body(
                                 new Kor2RestaurantIntroResponse.Items(List.of(
-                                        new Kor2RestaurantIntroResponse.Item("456", "39", "닭갈비", "막국수")
+                                        new Kor2RestaurantIntroResponse.Item(
+                                                "456",
+                                                "39",
+                                                "교동쌈밥 한정식 (A, B, C)",
+                                                "막국수"
+                                        )
                                 )),
                                 1,
                                 1,
@@ -94,7 +102,7 @@ class TravelRecommendHandlerContractTest {
                                 60,
                                 Set.of(),
                                 new CreatePlanSelection.RestaurantSelection(
-                                        "막국수",
+                                        selectedMenu,
                                         "막국수"
                                 ),
                                 "tour:456"
@@ -131,7 +139,7 @@ class TravelRecommendHandlerContractTest {
 
         assertThat(slot.locationName()).isEqualTo("춘천식당");
         assertThat(slot.candidateId()).isEqualTo("tour:456");
-        assertThat(slot.restaurantDetail().menuName()).isEqualTo("막국수");
+        assertThat(slot.restaurantDetail().menuName()).isEqualTo(selectedMenu);
         assertThat(capturedPlanValidation().apply(selection))
                 .noneMatch(failure -> failure.contains("음식점"));
     }

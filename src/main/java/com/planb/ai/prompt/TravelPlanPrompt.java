@@ -98,7 +98,9 @@ public record TravelPlanPrompt(
                 - 각 RESTAURANT·LOCAL_FOOD 후보에 getRestaurantDetail(contentId)를 호출합니다.
                   contentId에는 검색 후보의 candidateId를 그대로 전달합니다. Java가 원본 ID로 복원합니다.
                   firstmenu의 대표 메뉴를 우선하고 treatmenu에 나열된 실제 메뉴도 선택할 수 있습니다.
-                  쉼표·슬래시·세미콜론·파이프·줄바꿈·HTML br로 구분된 메뉴 중 하나를 원문 그대로 반환합니다.
+                  괄호 밖의 쉼표·슬래시·세미콜론·파이프·줄바꿈·HTML br로 구분된 메뉴 중 하나를 원문 그대로 반환합니다.
+                  괄호 내부 표현은 구분자를 포함해 보존하고, 괄호 짝이 맞지 않는 필드는 사용하지 않습니다.
+                  교정 요청에 선택 가능 메뉴 JSON 배열이 있으면 문자열 요소 하나를 그대로 선택합니다.
                   standardFoodName은 영양 조회용이며 menuName의 원본을 대신하지 않습니다.
                   메뉴가 없으면 다른 후보를 검색합니다.
                 - searchRestaurantsByLocation → 후보 선택 → getRestaurantDetail → 실제 메뉴 확인

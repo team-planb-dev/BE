@@ -13,6 +13,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalTime;
 import java.util.List;
@@ -24,6 +27,50 @@ import static org.assertj.core.api.Assertions.assertThat;
 class PlanRestaurantMenuContractTest {
 
     private final PlanPlaceResolver resolver = new PlanPlaceResolver();
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"B", "\"잘못된 메뉴\"\\경로\n다음 줄"})
+    @DisplayName("메뉴 교정 사유의 선택값과 허용 목록을 JSON으로 구분")
+    void describesCorrectionWithJsonMenuArray(String selectedMenu) {
+
+        PlaceCandidateContext candidates = candidates();
+        candidates.recordRestaurantDetail("tour:9", detail(
+                "9",
+                "0000",
+                "교동쌈밥 한정식 (A, B, C)",
+                "\"특선\" 쌈밥, 된장찌개"
+        ));
+
+        String failure = candidates.restaurantMenuFailure("tour:9", selectedMenu);
+        JsonMapper mapper = JsonMapper
+                .builder()
+                .build();
+
+        String selectedValue = failure
+                .split("선택 메뉴\\(JSON\\): ", 2)[1]
+                .split(" / 선택 가능 메뉴", 2)[0];
+
+        assertThat(mapper.readValue(selectedValue, String.class))
+                .isEqualTo(selectedMenu);
+
+        String allowedMenus = failure
+                .split("선택 가능 메뉴\\(JSON 배열\\): ", 2)[1]
+                .split(" / 배열의 문자열", 2)[0];
+
+        assertThat(JsonMapper
+                .builder()
+                .build()
+                .readTree(allowedMenus))
+                .isEqualTo(JsonMapper
+                        .builder()
+                        .build()
+                        .valueToTree(List.of(
+                                "교동쌈밥 한정식 (A, B, C)",
+                                "\"특선\" 쌈밥",
+                                "된장찌개"
+                        )));
+    }
 
     @Test
     @DisplayName("선택 식당 원본에 없는 메뉴의 저장 전 검증 거부")
@@ -96,6 +143,31 @@ class PlanRestaurantMenuContractTest {
 
         return Stream.of(
                 Arguments.of(
+                        "교동쌈밥 한정식 (A, B, C)",
+                        "",
+                        "교동쌈밥 한정식 (A, B, C)"
+                ),
+                Arguments.of(
+                        "한정식 (쌈밥 (A, B), 국/반찬;후식|차), 막국수",
+                        "",
+                        "한정식 (쌈밥 (A, B), 국/반찬;후식|차)"
+                ),
+                Arguments.of(
+                        "한정식 (쌈밥 (A, B), 국/반찬;후식|차), 막국수",
+                        "",
+                        "막국수"
+                ),
+                Arguments.of(
+                        "정식 (밥\n국<BR />반찬), 칼국수",
+                        "",
+                        "정식 (밥\n국<BR />반찬)"
+                ),
+                Arguments.of(
+                        "  정식 (밥, 국)  \r\n막국수;;|/",
+                        "정식 (밥, 국), 막국수",
+                        " 정식 (밥, 국) "
+                ),
+                Arguments.of(
                         "닭갈비",
                         "막국수",
                         "닭갈비"
@@ -126,6 +198,124 @@ class PlanRestaurantMenuContractTest {
                         "백반"
                 )
         );
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidCompoundMenus")
+    @DisplayName("괄호 내부 조각과 잘린 메뉴·최상위 메뉴 목록의 선택 거부")
+    void rejectsMenuFragments(
+            String firstMenu,
+            String selectedMenu
+    ) {
+
+        PlaceCandidateContext candidates = candidates();
+        candidates.recordRestaurantDetail("tour:9", detail(
+                "9",
+                "0000",
+                firstMenu,
+                ""
+        ));
+
+        assertThat(resolver
+                .validate(
+                        meal(selectedMenu),
+                        candidates,
+                        Set.of(),
+                        Set.of()
+                )
+                .valid())
+                .isFalse();
+    }
+
+    private static Stream<Arguments> invalidCompoundMenus() {
+
+        return Stream.of(
+                Arguments.of(
+                        "교동쌈밥 한정식 (A, B, C)",
+                        "교동쌈밥 한정식 (A"
+                ),
+                Arguments.of(
+                        "교동쌈밥 한정식 (A, B, C)",
+                        "B"
+                ),
+                Arguments.of(
+                        "교동쌈밥 한정식 (A, B, C)",
+                        "C)"
+                ),
+                Arguments.of(
+                        "한정식 (A, B), 막국수",
+                        "한정식 (A, B), 막국수"
+                ),
+                Arguments.of(
+                        "한정식 (A, B",
+                        "한정식 (A"
+                ),
+                Arguments.of(
+                        "한정식 (A, B",
+                        "한정식 (A, B"
+                ),
+                Arguments.of(
+                        "한정식 A), 막국수",
+                        "막국수"
+                )
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("partiallyMalformedDetails")
+    @DisplayName("불균형 괄호 필드 제외 후 다른 정상 필드의 메뉴 유지")
+    void retainsValidMenusAfterMalformedField(
+            String firstMenu,
+            String treatmentMenu,
+            List<String> expectedMenus
+    ) {
+
+        PlaceCandidateContext candidates = candidates();
+        candidates.recordRestaurantDetail("tour:9", detail(
+                "9",
+                "0000",
+                firstMenu,
+                treatmentMenu
+        ));
+
+        assertThat(candidates.restaurantMenus("tour:9", () -> {
+            throw new AssertionError("상세 중복 조회");
+        }))
+                .containsExactlyElementsOf(expectedMenus);
+    }
+
+    private static Stream<Arguments> partiallyMalformedDetails() {
+
+        return Stream.of(
+                Arguments.of(
+                        "한정식 (A, B",
+                        "막국수, 칼국수",
+                        List.of("막국수", "칼국수")
+                ),
+                Arguments.of(
+                        "정식 (밥, 국)",
+                        "막국수, 정식 A)",
+                        List.of("정식 (밥, 국)")
+                )
+        );
+    }
+
+    @Test
+    @DisplayName("공백·빈 메뉴 제거와 대표·판매 메뉴 중복 제거")
+    void keepsOnlyDistinctNonBlankMenus() {
+
+        PlaceCandidateContext candidates = candidates();
+        candidates.recordRestaurantDetail("tour:9", detail(
+                "9",
+                "0000",
+                " /;|\r\n<br> 정식 (밥, 국) ",
+                "정식 (밥, 국), 막국수,, "
+        ));
+
+        assertThat(candidates.restaurantMenus("tour:9", () -> {
+            throw new AssertionError("상세 중복 조회");
+        }))
+                .containsExactly("정식 (밥, 국)", "막국수");
     }
 
     @ParameterizedTest

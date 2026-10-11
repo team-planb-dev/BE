@@ -283,7 +283,9 @@ public class PlanTourismTool {
     }
 
     // candidateId 접두사의 Tool 내부 제거
-    @Tool(description = "TourAPI 음식점 상세 조회. 후보의 candidateId를 그대로 전달. firstmenu·treatmenu에 나열된 실제 메뉴 중 하나만 선택")
+    @Tool(description = "TourAPI 음식점 상세 조회. 후보의 candidateId를 그대로 전달. "
+            + "firstmenu·treatmenu의 실제 메뉴 하나만 선택. 괄호 내부 표현 보존, "
+            + "괄호 밖 구분자만 메뉴 분리, 괄호 짝이 맞지 않는 필드 제외")
     public Kor2RestaurantIntroResponse getRestaurantDetail(String contentId) {
 
         Kor2RestaurantIntroResponse response = tourismTool.getRestaurantDetail(
