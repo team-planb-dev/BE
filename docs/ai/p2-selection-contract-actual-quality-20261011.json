@@ -1340,7 +1340,7 @@
   "measurementDefinitions": {
     "PASS": "existing API+assertPlan structure check; not full travel quality",
     "menuSourceMatched": "legacy normalized bidirectional substring check on separately queried first detail row; not strict identity/source proof",
-    "strictMenuContract": "enforced by implementation for TourAPI type39 before persistence; response raw alone lacks original details for independent strict recount",
+    "strictMenuContract": "Implementation enforces exact match to its derived menu list; follow-up confirmed parenthesized-comma parser defect, so exact match alone does not establish a valid complete source menu",
     "nutritionFilled": "carbohydrate numeric; not nutritional fact correctness",
     "allergenHits": "menu or restaurant-name keywords; not ingredient safety proof"
   },
@@ -1349,7 +1349,8 @@
     "No actual edit runs or additional paid batches",
     "HIGH risk menu ratio and current opening hours not measured",
     "Time and token usage are supplementary; no latency adoption gate",
-    "Grafana imports observed JSONL data; no k6 load or live application scrape"
+    "Grafana imports observed JSONL data; no k6 load or live application scrape",
+    "Follow-up: C4 repeat1 successful response includes truncated menu; legacy source proxy misses this defect. Exact rejected C4 repeat2/3 slot menu not captured."
   ],
   "adoptionDecision": {
     "status": "not_adopted_this_batch",
@@ -1361,5 +1362,14 @@
     "additionalPaidRuns": 0,
     "devMerge": false,
     "mainSync": false
+  },
+  "postBatchMenuParserRemediation": {
+    "status": "remeasured: 11/12, Gyeongju 3/3; primary gates pass, travel watch exceeded",
+    "evidence": "p2-selection-contract-verification.json#menu_parser_remediation",
+    "newOpenAiCalls": 0,
+    "newTourApiCalls": 0,
+    "historicalBatchCountsPreserved": true,
+    "remeasurement": "p2-selection-menu-postfix-actual-quality-20261011.json",
+    "historicalAfterCountsUnchanged": true
   }
 }

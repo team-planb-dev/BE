@@ -1,0 +1,109 @@
+{
+  "kind": "offline real Java validator reproduction with freshly fetched source; not replay of rejected LLM response",
+  "sourceDetail": "current-gyeongju-detail.json",
+  "originalMenu": "교동쌈밥 한정식 (A, B, C)",
+  "actualAllowedElements": [
+    "교동쌈밥 한정식 (A",
+    "B",
+    "C)"
+  ],
+  "expected": "Preserve parenthesized qualifiers as part of source menu; do not accept truncated fragments as standalone meals",
+  "reproductionRuns": [
+    {
+      "exitCode": 1,
+      "stdout": "Atomic source menu: 교동쌈밥 한정식 (A, B, C)\nAllowed list length: 3\nAllowed[0]: 교동쌈밥 한정식 (A\nAllowed[1]: B\nAllowed[2]: C)\nWhole source result: 음식점 메뉴 원본 불일치: tour:2762860 / 선택 가능 메뉴: [교동쌈밥 한정식 (A, B, C)]\nFragment B result: null\n",
+      "assertion": "Original compound menu rejected by the real validator"
+    },
+    {
+      "exitCode": 1,
+      "stdout": "Atomic source menu: 교동쌈밥 한정식 (A, B, C)\nAllowed list length: 3\nAllowed[0]: 교동쌈밥 한정식 (A\nAllowed[1]: B\nAllowed[2]: C)\nWhole source result: 음식점 메뉴 원본 불일치: tour:2762860 / 선택 가능 메뉴: [교동쌈밥 한정식 (A, B, C)]\nFragment B result: null\n",
+      "assertion": "Original compound menu rejected by the real validator"
+    },
+    {
+      "exitCode": 1,
+      "stdout": "Atomic source menu: 교동쌈밥 한정식 (A, B, C)\nAllowed list length: 3\nAllowed[0]: 교동쌈밥 한정식 (A\nAllowed[1]: B\nAllowed[2]: C)\nWhole source result: 음식점 메뉴 원본 불일치: tour:2762860 / 선택 가능 메뉴: [교동쌈밥 한정식 (A, B, C)]\nFragment B result: null\n",
+      "assertion": "Original compound menu rejected by the real validator"
+    }
+  ],
+  "historicalToolAndErrorEvents": [
+    {
+      "timestamp": "2026-10-11T00:44:08.549+09:00",
+      "event": "[AI TOOL] 영양정보 평가 호출 - foodName: 교동쌈밥 한정식 (A, B, C), standardFoodName: 쌈밥, diseaseTypes: [DIABETES, DYSLIPIDEMIA, HIGH_BLOOD_PRESSURE]"
+    },
+    {
+      "timestamp": "2026-10-11T00:44:34.496+09:00",
+      "event": "영양성분 조회 실패 - menuName: 교동쌈밥 한정식 (A"
+    },
+    {
+      "timestamp": "2026-10-11T00:44:45.804+09:00",
+      "event": "[AI TOOL] 영양정보 평가 호출 - foodName: 교동쌈밥 한정식 (A, B, C), standardFoodName: 쌈밥, diseaseTypes: [DIABETES, DYSLIPIDEMIA, HIGH_BLOOD_PRESSURE]"
+    },
+    {
+      "timestamp": "2026-10-11T00:45:10.920+09:00",
+      "event": "Class : AiOrchestrationException, Code : RESPONSE_REPEATED_INVALID, Message : AI가 동일한 무효 응답을 반복했습니다. [planDays[day1].schedules[18:00]: 음식점 메뉴 원본 불일치: tour:2762860 / 선택 가능 메뉴: [교동쌈밥 한정식 (A, B, C)]]"
+    },
+    {
+      "timestamp": "2026-10-11T00:45:19.444+09:00",
+      "event": "[AI TOOL] 영양정보 평가 호출 - foodName: 교동쌈밥 한정식 (A, B, C), standardFoodName: 쌈밥, diseaseTypes: [DIABETES, DYSLIPIDEMIA, HIGH_BLOOD_PRESSURE]"
+    },
+    {
+      "timestamp": "2026-10-11T00:45:29.057+09:00",
+      "event": "[AI TOOL] 영양정보 평가 호출 - foodName: 교동쌈밥 한정식 (A, B, C), standardFoodName: 쌈밥, diseaseTypes: [DIABETES, DYSLIPIDEMIA, HIGH_BLOOD_PRESSURE]"
+    },
+    {
+      "timestamp": "2026-10-11T00:45:32.887+09:00",
+      "event": "Class : AiOrchestrationException, Code : RESPONSE_REPEATED_INVALID, Message : AI가 동일한 무효 응답을 반복했습니다. [planDays[day1].schedules[18:00]: 음식점 메뉴 원본 불일치: tour:2762860 / 선택 가능 메뉴: [교동쌈밥 한정식 (A, B, C)]]"
+    }
+  ],
+  "historicalSuccessfulResponse": [
+    {
+      "day": 2,
+      "scheduleType": "BREAKFAST",
+      "candidateId": "tour:2762860",
+      "menuName": "교동쌈밥 한정식 (A"
+    }
+  ],
+  "uncertainty": "Rejected final structured slot menu was not captured; Tool foodName does not independently prove the returned slot value",
+  "originalMenuUtf8Sha256": "bef872d32d176dcaa276fe31c2014e2d1d047e60c89a909b24100f2aeeda84c3",
+  "sourceDetailFileSha256": "add38779f7be0b94f5e9af913d21b9effe14b1e695474407ff241080c7645856",
+  "hashDefinitions": {
+    "originalMenuUtf8Sha256": "SHA-256 of originalMenu UTF-8 bytes only",
+    "sourceDetailFileSha256": "SHA-256 of current-gyeongju-detail.json file bytes"
+  },
+  "remediationReproduction": {
+    "codeState": "uncommitted #177 menu parser fix",
+    "sourceDetail": "same preserved source as original RED; no new external call",
+    "runs": [
+      {
+        "exitCode": 0,
+        "stdout": "Atomic source menu: 교동쌈밥 한정식 (A, B, C)\nAllowed list length: 1\nAllowed[0]: 교동쌈밥 한정식 (A, B, C)\nWhole source result: null\nFragment B result: 음식점 메뉴 원본 불일치: tour:2762860 / 선택 메뉴(JSON): \"B\" / 선택 가능 메뉴(JSON 배열): [\"교동쌈밥 한정식 (A, B, C)\"] / 배열의 문자열 하나를 괄호 내부 표현까지 그대로 선택\n",
+        "assertions": [
+          "one intact menu",
+          "whole source accepted",
+          "fragment B rejected"
+        ]
+      },
+      {
+        "exitCode": 0,
+        "stdout": "Atomic source menu: 교동쌈밥 한정식 (A, B, C)\nAllowed list length: 1\nAllowed[0]: 교동쌈밥 한정식 (A, B, C)\nWhole source result: null\nFragment B result: 음식점 메뉴 원본 불일치: tour:2762860 / 선택 메뉴(JSON): \"B\" / 선택 가능 메뉴(JSON 배열): [\"교동쌈밥 한정식 (A, B, C)\"] / 배열의 문자열 하나를 괄호 내부 표현까지 그대로 선택\n",
+        "assertions": [
+          "one intact menu",
+          "whole source accepted",
+          "fragment B rejected"
+        ]
+      },
+      {
+        "exitCode": 0,
+        "stdout": "Atomic source menu: 교동쌈밥 한정식 (A, B, C)\nAllowed list length: 1\nAllowed[0]: 교동쌈밥 한정식 (A, B, C)\nWhole source result: null\nFragment B result: 음식점 메뉴 원본 불일치: tour:2762860 / 선택 메뉴(JSON): \"B\" / 선택 가능 메뉴(JSON 배열): [\"교동쌈밥 한정식 (A, B, C)\"] / 배열의 문자열 하나를 괄호 내부 표현까지 그대로 선택\n",
+        "assertions": [
+          "one intact menu",
+          "whole source accepted",
+          "fragment B rejected"
+        ]
+      }
+    ],
+    "originalRedRunsRetained": true,
+    "newOpenAiCalls": 0,
+    "newTourApiCalls": 0
+  }
+}

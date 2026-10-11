@@ -1,0 +1,46 @@
+{
+  "issue": 177,
+  "purpose": "post-fix actual generation remeasurement",
+  "startedAt": "2026-10-11T03:03:16.171321+00:00",
+  "headCommit": "b4ef736bb6d81c8cff72203a829e38a849dffc49",
+  "uncommittedImplementation": true,
+  "sourceSha256": {
+    "src/main/java/com/planb/ai/context/PlaceCandidateContext.java": "fc80bdc7262db27da8cfa8367e42be8068d59aca69df2a3cc287b1ae33fa7a60",
+    "src/main/java/com/planb/ai/prompt/TravelPlanPrompt.java": "4685e177df90ccbc40f9e42ddacf6a5df893c8bc55ad8dee02a2b5b87aa01625",
+    "src/main/java/com/planb/ai/prompt/PlaceReselectPrompt.java": "a2724bd1ef49040471a53ff5a6d87c290f5eefcabf00122cde35909f27391080",
+    "src/main/java/com/planb/ai/mcp/PlanTourismTool.java": "9d4dddfeedc1601042697099a85af16b7e4f1177817edefb1beb185a54a1571b",
+    "src/test/java/com/planb/integration/domain/travel/TravelLlmQualityBaselineTest.java": "367a9bad873c0c37cbf4b6527dda195a052a112363cf0d73fc862f118792c2d4"
+  },
+  "model": "gpt-5.6-terra",
+  "reasoning": "none",
+  "virtualThreads": true,
+  "approvedGenerationAttempts": 12,
+  "approvedEditAttempts": 0,
+  "generationOnly": true,
+  "approval": "User explicitly requested actual remeasurement; one 12-run batch, no automatic retry",
+  "cachePolicy": "fresh Testcontainers Redis, first same-case repeat cold, later reuse",
+  "secrets": "not recorded",
+  "baselineRunId": "2026-10-10T15-38-24.056735Z",
+  "completedAt": "2026-10-11T03:10:06.855567+00:00",
+  "processExitCode": 0,
+  "resultPath": "build/llm-quality-baseline/results-2026-10-11T03-03-33.798400Z.jsonl",
+  "runId": "2026-10-11T03-03-33.798400Z",
+  "recordedGenerationAttempts": 12,
+  "observedOutcomes": {
+    "API_FAILURE": 1,
+    "PASS": 11
+  },
+  "sourceUnchangedDuringRun": true,
+  "junit": {
+    "tests": 12,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "qualityGates": {
+    "passCountAtLeastR0MinusOne": true,
+    "allergenKeywordProxyZero": true,
+    "crossDayDuplicatePlacesZero": true,
+    "plannedPlaceAtLeastR0MinusOne": true
+  }
+}

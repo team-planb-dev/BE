@@ -36,5 +36,23 @@
     "menuName": "해물손칼국수",
     "keyword": "해물",
     "actualIngredient": "not verified"
+  },
+  "followupDiagnosis": {
+    "status": "confirmed parser defect; historical C4 false rejection strongly supported, exact rejected final slot unavailable",
+    "source": "current-gyeongju-detail.json",
+    "reproduction": "gyeongju-menu-reproduction.json",
+    "openAiCalls": 0,
+    "tourApiDetailCalls": 1,
+    "productionCodeChanges": false,
+    "additionalFinding": "C4 repeat1 successful response contains truncated menu 교동쌈밥 한정식 (A"
+  },
+  "postBatchMenuParserRemediation": {
+    "status": "post-fix batch completed; historical failure records preserved",
+    "evidence": "p2-selection-contract-verification.json#menu_parser_remediation",
+    "newOpenAiCalls": 0,
+    "newTourApiCalls": 0,
+    "historicalBatchCountsPreserved": true,
+    "remeasurement": "p2-selection-menu-postfix-actual-quality-20261011.json",
+    "gyeongjuPostFixPass": 3
   }
 }

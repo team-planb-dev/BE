@@ -1,0 +1,130 @@
+{
+  "recordedAt": "2026-10-11",
+  "issue": 177,
+  "observation": {
+    "caseId": "C3-gangneung-combined-diseases",
+    "repeat": 2,
+    "errorCode": "PLAN.EXCEPTION.INVALID_AI_PLACE",
+    "candidateId": "kakao:8654759",
+    "sourceType": "AT4",
+    "sourceCategory": "여행 > 관광,명소 > 호수",
+    "requestedCourseType": "PARK_WALK",
+    "policy": "PlanPlaceResolver.allowed requires 공원 category for PARK_WALK",
+    "scope": "Analyzed existing place-type selection/recovery limitation; not a proved parser regression and not fixed in this reassessment",
+    "actualFailureRecords": [
+      "{\"errorCode\":\"PLAN.EXCEPTION.INVALID_AI_PLACE\",\"message\":\"일정 장소 검증 실패: day=1, time=10:45, 장소 유형 불일치: kakao:8654759 원본 유형=AT4, 상세 분류=여행 > 관광,명소 > 호수, 요청 유형=PARK_WALK\"}"
+    ],
+    "diagnosticEvidence": "evidence/p2-selection-menu-postfix-20261011T030316Z/place-type-diagnosis.json"
+  },
+  "paidApiCalls": 0,
+  "productionCodeChangesDuringDiagnosis": 0,
+  "feedbackLoop": {
+    "source": "PlaceTypeRepro.java",
+    "seams": [
+      "PlaceCandidateContext.record",
+      "PlanPlaceResolver.validate",
+      "PlanPlaceResolver.select"
+    ],
+    "execution": "JDK 21 javac/java against existing main runtime classpath; no external network or mocks",
+    "symptomReplayMode": "expect-success returns exit 1 and exact observed mismatch",
+    "contractProbeMode": "default returns exit 0 for four contract assertions",
+    "notAnImplementationRedGreenClaim": true,
+    "candidateNameAddressCoordinates": "synthetic fixture; ID and classification from observed error"
+  },
+  "probes": [
+    {
+      "input": "kakao AT4, category 호수, slot PARK_WALK",
+      "result": "rejected"
+    },
+    {
+      "input": "same kakao AT4 호수, slot ATTRACTION",
+      "result": "accepted"
+    },
+    {
+      "input": "original PARK_WALK plus ATTRACTION lake reselection",
+      "result": "original type retained; rejected"
+    },
+    {
+      "input": "original PARK_WALK plus kakao AT4 공원 reselection",
+      "result": "original type retained; accepted"
+    }
+  ],
+  "confirmed": [
+    "Kakao AT4 denotes a tourism attraction group, not park or walkability proof",
+    "Kakao search path filters group AT4; PARK_WALK and ATTRACTION map to the same coarse group",
+    "VerifiedPlacePrompt already requires verified kakao AT4 park category; Java guard and final prompt are aligned for the observed lake",
+    "The final failed candidate has a non-null lake category; category loss does not explain this observed failure",
+    "The failed actual run records two completed reselect stages; final rejected candidate fails existing park category rule",
+    "Original slot type is preserved during reselection; changing only a lake ID cannot repair a PARK_WALK slot",
+    "Existing TourAPI recording maps categoryName to null and therefore its PARK_WALK branch cannot succeed; separate latent limitation"
+  ],
+  "unconfirmed": [
+    "Exact initial candidate and both individual retry choices are not preserved in the final failure record",
+    "No evidence that the candidate source ran out of eligible parks",
+    "Prompt/source mismatch alone is not proved: the final prompt already includes the strict park requirement",
+    "Walking fallback causes the observed aggregate travelMinutes increase",
+    "This 11/12 batch establishes generalized quality improvement or non-regression"
+  ],
+  "policyDecision": "Retain current park guard and original slot type; no automatic lake-to-park allowance, type conversion, retry increase or guard deletion",
+  "recommendedFutureIntervention": "Align PARK_WALK Tool candidate eligibility with the existing final park contract before selecting an incompatible AT4 result; test no eligible park, actual park, lake, null category and recovery preservation. Not implemented in this diagnosis.",
+  "sourceHashes": {
+    "src/main/java/com/planb/domain/travel/helper/PlanPlaceResolver.java": "02d32d6eaf8504e469f475f4795a79f64780d3b4dc405edd14a09c1a39e49c43",
+    "src/main/java/com/planb/ai/prompt/VerifiedPlacePrompt.java": "4769de606746d995eb5cf30d554fa95b26190b46139419900854b1f88d6df39f",
+    "src/main/java/com/planb/ai/mcp/PlanTourismTool.java": "9d4dddfeedc1601042697099a85af16b7e4f1177817edefb1beb185a54a1571b",
+    "src/main/java/com/planb/ai/handler/TravelRecommendHandler.java": "c04eabcb190cfa6931e6b3a25cf3ef64d14b87e8c520d46d36ecdf8ee1c29c2a",
+    "src/main/java/com/planb/domain/travel/service/PlanService.java": "b42cf785391af5e2ce6b09d9d2aab5ab188879fd47c5af4e152c1cf9fb212861"
+  },
+  "baselineDiffScope": "Compared P2-4A 127e1a2; current changes in resolver/handler are meal validation. VerifiedPlacePrompt unchanged; place-type mapping, allowed PARK_WALK rule, type preservation and two-retry bound unchanged. This does not exclude stochastic indirect effects of changed prompts.",
+  "baselineMethodComparisons": [
+    {
+      "file": "src/main/java/com/planb/domain/travel/helper/PlanPlaceResolver.java",
+      "symbol": "private boolean allowed(",
+      "unchangedAgainstP2_4A": true,
+      "baselineSha256": "656f6a6929755a9a811875c0f1eb8b115b6f77dfde5ba27e752cc1273374854f",
+      "currentSha256": "656f6a6929755a9a811875c0f1eb8b115b6f77dfde5ba27e752cc1273374854f",
+      "regionStartMarker": "    private boolean allowed(",
+      "regionEndMarkerExclusive": "    // 그룹 코드",
+      "hashBoundaryRule": "UTF-8 source slice from start marker inclusive to first following end marker exclusive, preserving whitespace and blank lines"
+    },
+    {
+      "file": "src/main/java/com/planb/domain/travel/helper/PlanPlaceResolver.java",
+      "symbol": "public PlanScheduleDetail select(",
+      "unchangedAgainstP2_4A": true,
+      "baselineSha256": "68e64dfbc2a58c0bfa9309964f6e6944768fc2cb5ed67484b403f409199ce7b6",
+      "currentSha256": "68e64dfbc2a58c0bfa9309964f6e6944768fc2cb5ed67484b403f409199ce7b6",
+      "regionStartMarker": "    public PlanScheduleDetail select(",
+      "regionEndMarkerExclusive": "    // 값 변경",
+      "hashBoundaryRule": "UTF-8 source slice from start marker inclusive to first following end marker exclusive, preserving whitespace and blank lines"
+    },
+    {
+      "file": "src/main/java/com/planb/ai/handler/TravelRecommendHandler.java",
+      "symbol": "public CreatePlanAiResponse.PlanScheduleDetail reselectPlace(",
+      "unchangedAgainstP2_4A": true,
+      "baselineSha256": "c2a25adf2cba5f88f28ac0bc0f0c02a80cc582c7b520b17914266d64e8bdeb31",
+      "currentSha256": "c2a25adf2cba5f88f28ac0bc0f0c02a80cc582c7b520b17914266d64e8bdeb31",
+      "regionStartMarker": "    public CreatePlanAiResponse.PlanScheduleDetail reselectPlace(",
+      "regionEndMarkerExclusive": "    // 날짜",
+      "hashBoundaryRule": "UTF-8 source slice from start marker inclusive to first following end marker exclusive, preserving whitespace and blank lines"
+    },
+    {
+      "file": "src/main/java/com/planb/ai/mcp/PlanTourismTool.java",
+      "symbol": "public PlaceWithRouteResult findPlaceWithRoute(",
+      "unchangedAgainstP2_4A": true,
+      "baselineSha256": "9b849e05aadadc8bbc57586b6f31d7c2bc6f344b74721724cd1430417812c57b",
+      "currentSha256": "9b849e05aadadc8bbc57586b6f31d7c2bc6f344b74721724cd1430417812c57b",
+      "regionStartMarker": "    public PlaceWithRouteResult findPlaceWithRoute(",
+      "regionEndMarkerExclusive": "    @Tool(description",
+      "hashBoundaryRule": "UTF-8 source slice from start marker inclusive to first following end marker exclusive, preserving whitespace and blank lines"
+    },
+    {
+      "file": "src/main/java/com/planb/domain/travel/service/PlanService.java",
+      "symbol": "private CreatePlanAiResponse.PlanScheduleDetail recoverPlace(",
+      "unchangedAgainstP2_4A": true,
+      "baselineSha256": "6c12bee1aeee59a0989d8a39be154a2c2e539b49b9c184fa7eacf578fe359493",
+      "currentSha256": "6c12bee1aeee59a0989d8a39be154a2c2e539b49b9c184fa7eacf578fe359493",
+      "regionStartMarker": "    private CreatePlanAiResponse.PlanScheduleDetail recoverPlace(",
+      "regionEndMarkerExclusive": "    // 동일 날짜",
+      "hashBoundaryRule": "UTF-8 source slice from start marker inclusive to first following end marker exclusive, preserving whitespace and blank lines"
+    }
+  ]
+}

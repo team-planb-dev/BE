@@ -1,0 +1,58 @@
+{
+  "before": {
+    "asciiUnbalancedMenuCount": 1,
+    "gyeongjuTargetSlotCount": 1,
+    "gyeongjuTargetIntactCount": 0,
+    "observations": [
+      {
+        "caseId": "C4-gyeongju-two-companions-combined",
+        "repeat": 1,
+        "dayNumber": 2,
+        "scheduleType": "BREAKFAST",
+        "candidateId": "tour:2762860",
+        "menuName": "교동쌈밥 한정식 (A",
+        "balancedAsciiParentheses": false,
+        "matchesRetrievedGyeongjuSource": false
+      }
+    ],
+    "sourceCaveat": "Target source was retrieved independently before remeasurement; not an independent same-request detail trace"
+  },
+  "after": {
+    "asciiUnbalancedMenuCount": 0,
+    "gyeongjuTargetSlotCount": 3,
+    "gyeongjuTargetIntactCount": 3,
+    "observations": [
+      {
+        "caseId": "C4-gyeongju-two-companions-combined",
+        "repeat": 1,
+        "dayNumber": 2,
+        "scheduleType": "BREAKFAST",
+        "candidateId": "tour:2762860",
+        "menuName": "교동쌈밥 한정식 (A, B, C)",
+        "balancedAsciiParentheses": true,
+        "matchesRetrievedGyeongjuSource": true
+      },
+      {
+        "caseId": "C4-gyeongju-two-companions-combined",
+        "repeat": 2,
+        "dayNumber": 1,
+        "scheduleType": "BREAKFAST",
+        "candidateId": "tour:2762860",
+        "menuName": "교동쌈밥 한정식 (A, B, C)",
+        "balancedAsciiParentheses": true,
+        "matchesRetrievedGyeongjuSource": true
+      },
+      {
+        "caseId": "C4-gyeongju-two-companions-combined",
+        "repeat": 3,
+        "dayNumber": 2,
+        "scheduleType": "BREAKFAST",
+        "candidateId": "tour:2762860",
+        "menuName": "교동쌈밥 한정식 (A, B, C)",
+        "balancedAsciiParentheses": true,
+        "matchesRetrievedGyeongjuSource": true
+      }
+    ],
+    "sourceCaveat": "Target source was retrieved independently before remeasurement; not an independent same-request detail trace"
+  }
+}

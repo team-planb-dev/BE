@@ -986,9 +986,10 @@
     "additional_paid_runs": 0
   },
   "claims": {
-    "menu_source_contract_verified": true,
+    "menu_source_contract_verified": false,
     "model_quality_improvement_verified": false,
-    "production_adoption_verified": false
+    "production_adoption_verified": false,
+    "menu_source_contract_scope": "Existing regression fixtures pass, but parenthesized-comma parsing defect rejects full source and permits truncated fragments; full source quality not verified"
   },
   "scope": {
     "baseline": "adopted P2-4A",
@@ -1006,5 +1007,216 @@
     "critical": 0,
     "important": 0,
     "minor_addressed": "Define savedRuns as user-confirmed responses, not DB persistence; all34 Grafana values checked"
-  }
+  },
+  "followup_diagnosis": {
+    "confirmed": "compound menu parser defect",
+    "historicalC4FalseRejection": "strongly supported, final rejected menu unavailable",
+    "openAiCalls": 0,
+    "tourApiDetailCalls": 1,
+    "reproductionRuns": 3,
+    "productionCodeChanges": false,
+    "review_loop": {
+      "rounds": 2,
+      "scores": [
+        9.2,
+        9
+      ],
+      "required_score": 9,
+      "critical": 0,
+      "important": 0,
+      "minor_addressed": [
+        "Avoid labeling historical C4 rejection as confirmed false rejection",
+        "Name menu-value and source-file hashes separately"
+      ]
+    }
+  },
+  "menu_parser_remediation": {
+    "recordedAt": "2026-10-11T05:52:09.703426+09:00",
+    "codeState": "uncommitted on issue177 branch; not merged",
+    "policy": [
+      "balanced nested ASCII parentheses preserved including all internal delimiters",
+      "only top-level comma slash semicolon pipe CR LF HTML br split",
+      "entire malformed field excluded while valid other field retained",
+      "strip blank filtering distinct exact source match maintained",
+      "selected value JSON and same allowed-list JSON array delivered in correction",
+      "generation/reselection prompt and Tool descriptions aligned"
+    ],
+    "fullSuite": {
+      "command": "TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock ./gradlew test --console=plain",
+      "status": "BUILD SUCCESSFUL",
+      "duration": "3m 41s",
+      "suites": 135,
+      "tests": 904,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "phase": "before three optional review test cases added; production behavior unchanged in review"
+    },
+    "focusedAfterReview": {
+      "command": "./gradlew test --tests PlanRestaurantMenuContractTest --tests MissingSlotCompleterTest --tests TravelRecommendHandlerContractTest --tests OpenAiClientTest --tests PlanTourismToolTest",
+      "status": "BUILD SUCCESSFUL",
+      "suites": 5,
+      "tests": 92,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "includesThreeOptionalReviewCases": true
+    },
+    "originalHarness": {
+      "greenRuns": 3,
+      "redRunsRetained": 3,
+      "evidence": "evidence/p2-selection-contract-20261011/gyeongju-menu-reproduction.json"
+    },
+    "tddRedEvidence": [
+      {
+        "command": "./gradlew test --tests 'com.planb.unit.domain.travel.service.PlanRestaurantMenuContractTest.acceptsOnlyListedMenu'",
+        "tests": 7,
+        "failures": 1,
+        "symptom": "whole parenthesized Gyeongju source rejected"
+      },
+      {
+        "command": "./gradlew test --tests 'com.planb.unit.domain.travel.service.PlanRestaurantMenuContractTest.describesCorrectionWithJsonMenuArray'",
+        "tests": 1,
+        "failures": 1,
+        "symptom": "correction selected value and list not JSON encoded"
+      }
+    ],
+    "reviewLoop": {
+      "rounds": 2,
+      "scores": [
+        9.4,
+        9.3
+      ],
+      "required": 9,
+      "critical": 0,
+      "important": 0,
+      "minorAddressed": [
+        "optional malformed-field and escaped/null selected JSON cases",
+        "new test staircase formatting"
+      ]
+    },
+    "fileSha256": {
+      "src/main/java/com/planb/ai/context/PlaceCandidateContext.java": "fc80bdc7262db27da8cfa8367e42be8068d59aca69df2a3cc287b1ae33fa7a60",
+      "src/main/java/com/planb/ai/mcp/PlanTourismTool.java": "9d4dddfeedc1601042697099a85af16b7e4f1177817edefb1beb185a54a1571b",
+      "src/main/java/com/planb/ai/prompt/TravelPlanPrompt.java": "4685e177df90ccbc40f9e42ddacf6a5df893c8bc55ad8dee02a2b5b87aa01625",
+      "src/main/java/com/planb/ai/prompt/PlaceReselectPrompt.java": "a2724bd1ef49040471a53ff5a6d87c290f5eefcabf00122cde35909f27391080",
+      "src/test/java/com/planb/unit/domain/travel/service/PlanRestaurantMenuContractTest.java": "92c71e4fdecbdea1916b0a44d928cbe460f47ccde65069e841aa85eec6a9313b",
+      "src/test/java/com/planb/unit/ai/handler/MissingSlotCompleterTest.java": "cb3302d2906a09e2afaeae29e51937ae9d864f3de692f29f98e1e2aaa3ce643e",
+      "src/test/java/com/planb/unit/ai/handler/TravelRecommendHandlerContractTest.java": "141a97d3cfc84eb0852a910616c8bc2a8313229134e4ec6d60503df052c432b9",
+      "src/test/java/com/planb/unit/global/ai/client/OpenAiClientTest.java": "fe3f21402934b2f16bd532d30bca07fecf2f7fd10b69f96de79650d31909dff7"
+    },
+    "additionalOpenAiCalls": 0,
+    "additionalTourApiCalls": 0,
+    "actualQualityAfterFix": "not measured; historical 10/12 unchanged",
+    "limitations": [
+      "rejected final historical slots unavailable",
+      "no ingredient/allergen safety proof",
+      "fullwidth brackets quote grammar new delimiters out of scope",
+      "malformed field can exclude otherwise valid menus conservatively"
+    ],
+    "devMerge": false,
+    "mainSync": false,
+    "post_fix_actual_api_result": "p2-selection-menu-postfix-actual-quality-20261011.json"
+  },
+  "post_fix_actual_api_validation": {
+    "status": "completed_primary_gates_pass_adoption_scope_reassessed",
+    "generation_runs": 12,
+    "edit_runs": 0,
+    "pass": 11,
+    "gyeongju_pass": 3,
+    "gyeongju_attempts": 3,
+    "ascii_unbalanced_menu_count": 0,
+    "allergen_keyword_proxy_hits": 0,
+    "quality_result": "p2-selection-menu-postfix-actual-quality-20261011.json",
+    "manifest": "docs/ai/evidence/p2-selection-menu-postfix-20261011T030316Z/actual-api-run-manifest.json",
+    "unmet_watch_metrics": [
+      "travelMinutesMedianIncreaseWithin20percent"
+    ],
+    "junit": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "additional_paid_batches": 0,
+    "dev_merged": false,
+    "main_synced": false,
+    "review_loop": {
+      "scope": "Actual API remeasurement aggregation, interpretation and Grafana evidence",
+      "qualityGate": 9,
+      "rounds": [
+        {
+          "round": 1,
+          "score": 9.4,
+          "critical": 0,
+          "important": 0,
+          "minor": 0
+        },
+        {
+          "round": 2,
+          "score": 9.5,
+          "critical": 0,
+          "important": 0,
+          "minor": 0
+        }
+      ],
+      "reviewerChangedFiles": false,
+      "additionalApiCalls": 0,
+      "notReviewed": "No real ingredient safety, opening hours or actual edit API validation"
+    }
+  },
+  "place_type_diagnosis_and_adoption_reassessment": {
+    "status": "eligible_for_dev_with_recorded_limitations",
+    "evidence": "evidence/p2-selection-menu-postfix-20261011T030316Z/place-type-diagnosis.json",
+    "production_changes": 0,
+    "additional_paid_api_calls": 0,
+    "scope_override": "User excluded itinerary travelMinutes from the mandatory #177 adoption gate; measurement remains exceeded",
+    "pending_limitations": [
+      "C3r2 place-type choice recovery failure",
+      "HIGH and opening hours not measured",
+      "actual edit API not measured"
+    ],
+    "dev_merged": false,
+    "main_synced": false,
+    "review_loop": {
+      "scope": "Place-type failure diagnosis and per-issue adoption reassessment",
+      "qualityGate": 9,
+      "rounds": [
+        {
+          "round": 1,
+          "score": 9.2,
+          "critical": 0,
+          "important": 0,
+          "minor": 1,
+          "finding": "Reproducer argument layout; corrected and rerun"
+        },
+        {
+          "round": 2,
+          "score": 9.3,
+          "critical": 0,
+          "important": 0,
+          "minor": 1,
+          "finding": "Final archive reproducer synchronization; addressed by final byte equality check"
+        }
+      ],
+      "additionalPaidApiCalls": 0,
+      "productionChanges": 0,
+      "notReviewed": "No new actual generation/edit batch, ingredient safety, opening-hours or travel walking causality validation"
+    }
+  },
+  "dev_delivery_preparation": {
+    "recorded_at": "2026-10-11",
+    "implementation_commit": "fd028ec7f3c62284e4d24371962f2b6c7b03d1d9",
+    "actual_measurement_provenance": "12 actual generations were measured on b4ef736 plus uncommitted parser changes. Current committed source/test files match all 8 recorded SHA256 values; no fresh paid batch claimed.",
+    "same_source_hashes_verified": 8,
+    "build_command": "./gradlew build -x test --console=plain",
+    "build_result": "BUILD SUCCESSFUL in 4s",
+    "unit_and_integration_proof": "Existing full suite 904 tests before three optional review cases; subsequent focused 92 includes those cases. Results overlap and must not be added.",
+    "final_head_gate": "GitHub Actions CI build on final pushed PR head must pass before merging",
+    "pr": "https://github.com/team-planb-dev/BE/pull/178",
+    "target": "dev",
+    "main_sync_authorized": false,
+    "followup_stage_2_started": false
+  },
+  "delivery_state_recording": "Historical validation snapshots; false dev/main flags record evidence capture time. Current delivery status is PR #178 and the untracked master plan."
 }
