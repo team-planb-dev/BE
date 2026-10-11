@@ -1,0 +1,16 @@
+{
+  "retrievedAt": "2026-10-10T16:04:19.034356+00:00",
+  "requestCount": 1,
+  "endpoint": "KorService2/detailIntro2",
+  "httpStatus": 200,
+  "resultCode": "0000",
+  "sourceKind": "fresh detail lookup, not historical failure trace",
+  "items": [
+    {
+      "contentid": "2762860",
+      "contenttypeid": "39",
+      "firstmenu": "교동쌈밥 한정식 (A, B, C)",
+      "treatmenu": ""
+    }
+  ]
+}

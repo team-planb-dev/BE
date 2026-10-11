@@ -654,6 +654,8 @@ class PlanPlaceValidationTest {
                                 "개금밀면"
                         ));
 
+        candidates.recordRestaurantDetail("tour:2784321", intro("2784321", "밀면"));
+
         CreatePlanAiResponse.RestaurantDetail menu = new CreatePlanAiResponse.RestaurantDetail(
                 "밀면",
                 null,
@@ -1391,6 +1393,7 @@ class PlanPlaceValidationTest {
                                             "39",
                                             "교동쌈밥"
                                     ));
+                            candidates.recordRestaurantDetail("tour:2762860", intro("2762860", "쌈밥"));
 
                             candidates
                                     .record(new PlaceWithRouteResult(
@@ -2884,8 +2887,15 @@ class PlanPlaceValidationTest {
                 .thenAnswer(
                         invocation -> {
                             recordCandidates(
-                                    invocation
-                                            .getArgument(1));
+                                    invocation.getArgument(1),
+                                    response
+                                            .planDays()
+                                            .stream()
+                                            .flatMap(day -> day
+                                                    .schedules()
+                                                    .stream())
+                                            .anyMatch(slot -> slot.restaurantDetail() != null)
+                            );
 
                             return response;
                         });
@@ -2997,7 +3007,7 @@ class PlanPlaceValidationTest {
         stubTwoAttractionPlan(13);
 
         when(tourismTool.getRestaurantDetail("2784321"))
-                .thenReturn(intro("밀면"));
+                .thenReturn(intro("2784321", "밀면"));
 
         stubRouteMinutes(
                 "개금밀면",
@@ -3025,7 +3035,7 @@ class PlanPlaceValidationTest {
         stubTwoAttractionPlan(11);
 
         when(tourismTool.getRestaurantDetail("2784321"))
-                .thenReturn(intro("밀면"));
+                .thenReturn(intro("2784321", "밀면"));
 
         stubRouteMinutes(
                 "개금밀면",
@@ -3127,15 +3137,15 @@ class PlanPlaceValidationTest {
                 });
 
         when(tourismTool.getRestaurantDetail(anyString()))
-                .thenReturn(intro("밀면"));
+                .thenAnswer(invocation -> intro(invocation.getArgument(0), "밀면"));
 
         // 아침 보정용 점심과 다른 대표메뉴 후보
         // 중복 메뉴 후보의 보정 제외
         when(tourismTool.getRestaurantDetail("2784322"))
-                .thenReturn(intro("아침메뉴"));
+                .thenReturn(intro("2784322", "아침메뉴"));
 
         when(tourismTool.getRestaurantDetail("2784323"))
-                .thenReturn(intro("저녁메뉴"));
+                .thenReturn(intro("2784323", "저녁메뉴"));
 
         when(kakao.getRoute(
                         anyString(),
@@ -3183,7 +3193,7 @@ class PlanPlaceValidationTest {
         // 첫 보정의 상세 조회 일시 실패는 메모이즈하지 않고 두 번째 보정에서 재시도
         when(tourismTool.getRestaurantDetail("2784321"))
                 .thenThrow(new RuntimeException("temporary failure"))
-                .thenReturn(intro("밀면"));
+                .thenAnswer(invocation -> intro(invocation.getArgument(0), "밀면"));
 
         // 경로 조회는 기본 실패 응답, fixture 장소는 모두 500m 이내
         PlanScheduleDetail lunch = makePlanAndFind(
@@ -3372,7 +3382,7 @@ class PlanPlaceValidationTest {
                 });
 
         when(tourismTool.getRestaurantDetail(anyString()))
-                .thenReturn(intro("밀면"));
+                .thenAnswer(invocation -> intro(invocation.getArgument(0), "밀면"));
 
         when(kakao.getRoute(
                         anyString(),
@@ -3430,7 +3440,7 @@ class PlanPlaceValidationTest {
                 .collectRestaurantCandidates(any(), any());
 
         when(tourismTool.getRestaurantDetail("9999"))
-                .thenReturn(intro("보정메뉴"));
+                .thenReturn(intro("9999", "보정메뉴"));
 
         when(kakao.getRoute(
                         anyString(),
@@ -3711,7 +3721,7 @@ class PlanPlaceValidationTest {
 
         when(handler.editPlanByAi(any(), any()))
                 .thenAnswer(invocation -> {
-                    recordCandidates(invocation.getArgument(1));
+                    recordCandidates(invocation.getArgument(1), false);
 
                     return new EditPlanAiResponse(
                             "부산",
@@ -4314,7 +4324,10 @@ class PlanPlaceValidationTest {
     }
 
     // 하루 관광지 개수 규칙만 걸리도록 식사시각을 일정 시간대 밖에 둔 동행인
-    private Kor2RestaurantIntroResponse intro(String firstMenu) {
+    private Kor2RestaurantIntroResponse intro(
+            String contentId,
+            String firstMenu
+    ) {
 
         return new Kor2RestaurantIntroResponse(
                 new Kor2RestaurantIntroResponse.Response(
@@ -4323,7 +4336,7 @@ class PlanPlaceValidationTest {
                                 new Kor2RestaurantIntroResponse.Items(
                                         List.of(
                                                 new Kor2RestaurantIntroResponse.Item(
-                                                        "9",
+                                                        contentId,
                                                         "39",
                                                         firstMenu,
                                                         firstMenu
@@ -4365,6 +4378,14 @@ class PlanPlaceValidationTest {
 
     private void recordCandidates(PlaceCandidateContext candidates) {
 
+        recordCandidates(candidates, true);
+    }
+
+    private void recordCandidates(
+            PlaceCandidateContext candidates,
+            boolean detailQueried
+    ) {
+
         candidates
                 .record(
                         tour(
@@ -4388,6 +4409,10 @@ class PlanPlaceValidationTest {
                                 "39",
                                 "개금밀면"
                         ));
+
+        if (detailQueried) {
+            candidates.recordRestaurantDetail("tour:2784321", intro("2784321", "밀면"));
+        }
 
         candidates
                 .record(
@@ -4473,6 +4498,7 @@ class PlanPlaceValidationTest {
                         "39",
                         "개금밀면"
                 ));
+        candidates.recordRestaurantDetail("tour:2", intro("2", "밀면"));
 
         PlanScheduleDetail mismatched = new PlanScheduleDetail(
                 ScheduleType.ACTIVITY,

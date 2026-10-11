@@ -103,8 +103,21 @@ public class PlanPlaceResolver {
             return Validation.failure("음식점 메뉴 누락 또는 중복");
         }
 
+        if (isMeal(slot.courseType()) && candidate.candidateId().startsWith("tour:")) {
+            String menuFailure = candidates.restaurantMenuFailure(
+                    candidate.candidateId(),
+                    restaurant.menuName()
+            );
+
+            if (menuFailure != null) {
+                return Validation.failure(menuFailure);
+            }
+        }
+
         RestaurantDetail canonicalRestaurant = !isMeal(slot.courseType()) ? null : new RestaurantDetail(
-                restaurant.menuName(),
+                restaurant
+                        .menuName()
+                        .strip(),
                 restaurant.carbohydrate(),
                 restaurant.sodium(),
                 restaurant.fat(),

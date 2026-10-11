@@ -12,7 +12,6 @@ import com.planb.domain.travel.entity.constant.ScheduleType;
 import com.planb.domain.travel.policy.AttractionTagPolicy;
 import com.planb.domain.travel.policy.MealSlotPolicy;
 import com.planb.domain.travel.policy.TouristPlaceCountPolicy;
-import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -673,13 +672,14 @@ public class MissingSlotCompleter {
             return null;
         }
 
-        String menuName;
+        List<String> menus;
 
-        // 조회 성공 결과만 요청 범위 메모이즈, 일시 실패는 다음 보정에서 재시도
         try {
-            menuName = candidates.representativeMenu(
+            menus = candidates.restaurantMenus(
                     candidate.candidateId(),
-                    () -> representativeMenu(candidate)
+                    () -> tourismTool.getRestaurantDetail(
+                            PlaceCandidateContext.contentId(candidate.candidateId())
+                    )
             );
         } catch (RuntimeException failure) {
             log.info(
@@ -691,47 +691,13 @@ public class MissingSlotCompleter {
             return null;
         }
 
-        if (menuName == null || usedMenus.contains(normalized(menuName))) {
-            return null;
-        }
-
-        return new MealCandidateSelection(candidate, menuName);
-    }
-
-    private String representativeMenu(PlaceCandidateContext.Candidate candidate) {
-
-        Kor2RestaurantIntroResponse intro = tourismTool.getRestaurantDetail(
-                PlaceCandidateContext.contentId(candidate.candidateId())
-        );
-
-        if (intro == null
-                || intro.response() == null
-                || intro
-                        .response()
-                        .body() == null
-                || intro
-                        .response()
-                        .body()
-                        .items() == null
-                || intro
-                        .response()
-                        .body()
-                        .items()
-                        .item() == null) {
-            return null;
-        }
-
-        return intro
-                .response()
-                .body()
-                .items()
-                .item()
+        String menuName = menus
                 .stream()
-                .filter(Objects::nonNull)
-                .map(Kor2RestaurantIntroResponse.Item::firstmenu)
-                .filter(menu -> menu != null && !menu.isBlank())
+                .filter(menu -> !usedMenus.contains(normalized(menu)))
                 .findFirst()
                 .orElse(null);
+
+        return menuName == null ? null : new MealCandidateSelection(candidate, menuName);
     }
 
     /**

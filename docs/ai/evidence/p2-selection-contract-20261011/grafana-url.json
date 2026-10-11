@@ -1,0 +1,6 @@
+{
+  "url": "http://localhost:3000/d/p2-selection-quality/cf9a80f?from=2026-10-08T05%3A45%3A00Z&to=2026-10-10T15%3A51%3A37.069726%2B00%3A00&timezone=browser&orgId=1",
+  "uid": "p2-selection-quality",
+  "dataKind": "imported actual API observation; not live scrape or k6",
+  "retention": "dedicated local Prometheus 30d; permanent OpenMetrics and dashboard JSON retained"
+}

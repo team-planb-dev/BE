@@ -1,0 +1,196 @@
+# TYPE planb_selection_quality_allergenHits gauge
+planb_selection_quality_allergenHits{phase="#177-menu-fix",case="C1",repeat="1",outcome="PASS"} 0 1791687813.7984
+planb_selection_quality_allergenHits{phase="#177-menu-fix",case="C1",repeat="2",outcome="PASS"} 0 1791687813.7984
+planb_selection_quality_allergenHits{phase="#177-menu-fix",case="C1",repeat="3",outcome="PASS"} 0 1791687813.7984
+planb_selection_quality_allergenHits{phase="#177-menu-fix",case="C2",repeat="1",outcome="PASS"} 0 1791687813.7984
+planb_selection_quality_allergenHits{phase="#177-menu-fix",case="C2",repeat="2",outcome="PASS"} 0 1791687813.7984
+planb_selection_quality_allergenHits{phase="#177-menu-fix",case="C2",repeat="3",outcome="PASS"} 0 1791687813.7984
+planb_selection_quality_allergenHits{phase="#177-menu-fix",case="C3",repeat="1",outcome="PASS"} 0 1791687813.7984
+planb_selection_quality_allergenHits{phase="#177-menu-fix",case="C3",repeat="3",outcome="PASS"} 0 1791687813.7984
+planb_selection_quality_allergenHits{phase="#177-menu-fix",case="C4",repeat="1",outcome="PASS"} 0 1791687813.7984
+planb_selection_quality_allergenHits{phase="#177-menu-fix",case="C4",repeat="2",outcome="PASS"} 0 1791687813.7984
+planb_selection_quality_allergenHits{phase="#177-menu-fix",case="C4",repeat="3",outcome="PASS"} 0 1791687813.7984
+# TYPE planb_selection_quality_attractionTags gauge
+planb_selection_quality_attractionTags{phase="#177-menu-fix",case="C1",repeat="1",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_attractionTags{phase="#177-menu-fix",case="C1",repeat="2",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_attractionTags{phase="#177-menu-fix",case="C1",repeat="3",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_attractionTags{phase="#177-menu-fix",case="C2",repeat="1",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_attractionTags{phase="#177-menu-fix",case="C2",repeat="2",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_attractionTags{phase="#177-menu-fix",case="C2",repeat="3",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_attractionTags{phase="#177-menu-fix",case="C3",repeat="1",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_attractionTags{phase="#177-menu-fix",case="C3",repeat="3",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_attractionTags{phase="#177-menu-fix",case="C4",repeat="1",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_attractionTags{phase="#177-menu-fix",case="C4",repeat="2",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_attractionTags{phase="#177-menu-fix",case="C4",repeat="3",outcome="PASS"} 7 1791687813.7984
+# TYPE planb_selection_quality_cafeRestSlots gauge
+planb_selection_quality_cafeRestSlots{phase="#177-menu-fix",case="C1",repeat="1",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_cafeRestSlots{phase="#177-menu-fix",case="C1",repeat="2",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_cafeRestSlots{phase="#177-menu-fix",case="C1",repeat="3",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_cafeRestSlots{phase="#177-menu-fix",case="C2",repeat="1",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_cafeRestSlots{phase="#177-menu-fix",case="C2",repeat="2",outcome="PASS"} 2 1791687813.7984
+planb_selection_quality_cafeRestSlots{phase="#177-menu-fix",case="C2",repeat="3",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_cafeRestSlots{phase="#177-menu-fix",case="C3",repeat="1",outcome="PASS"} 2 1791687813.7984
+planb_selection_quality_cafeRestSlots{phase="#177-menu-fix",case="C3",repeat="3",outcome="PASS"} 2 1791687813.7984
+planb_selection_quality_cafeRestSlots{phase="#177-menu-fix",case="C4",repeat="1",outcome="PASS"} 0 1791687813.7984
+planb_selection_quality_cafeRestSlots{phase="#177-menu-fix",case="C4",repeat="2",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_cafeRestSlots{phase="#177-menu-fix",case="C4",repeat="3",outcome="PASS"} 0 1791687813.7984
+# TYPE planb_selection_quality_crossDayDuplicatePlaces gauge
+planb_selection_quality_crossDayDuplicatePlaces{phase="#177-menu-fix",case="C1",repeat="1",outcome="PASS"} 0 1791687813.7984
+planb_selection_quality_crossDayDuplicatePlaces{phase="#177-menu-fix",case="C1",repeat="2",outcome="PASS"} 0 1791687813.7984
+planb_selection_quality_crossDayDuplicatePlaces{phase="#177-menu-fix",case="C1",repeat="3",outcome="PASS"} 0 1791687813.7984
+planb_selection_quality_crossDayDuplicatePlaces{phase="#177-menu-fix",case="C2",repeat="1",outcome="PASS"} 0 1791687813.7984
+planb_selection_quality_crossDayDuplicatePlaces{phase="#177-menu-fix",case="C2",repeat="2",outcome="PASS"} 0 1791687813.7984
+planb_selection_quality_crossDayDuplicatePlaces{phase="#177-menu-fix",case="C2",repeat="3",outcome="PASS"} 0 1791687813.7984
+planb_selection_quality_crossDayDuplicatePlaces{phase="#177-menu-fix",case="C3",repeat="1",outcome="PASS"} 0 1791687813.7984
+planb_selection_quality_crossDayDuplicatePlaces{phase="#177-menu-fix",case="C3",repeat="3",outcome="PASS"} 0 1791687813.7984
+planb_selection_quality_crossDayDuplicatePlaces{phase="#177-menu-fix",case="C4",repeat="1",outcome="PASS"} 0 1791687813.7984
+planb_selection_quality_crossDayDuplicatePlaces{phase="#177-menu-fix",case="C4",repeat="2",outcome="PASS"} 0 1791687813.7984
+planb_selection_quality_crossDayDuplicatePlaces{phase="#177-menu-fix",case="C4",repeat="3",outcome="PASS"} 0 1791687813.7984
+# TYPE planb_selection_quality_duration_seconds gauge
+planb_selection_quality_duration_seconds{phase="#177-menu-fix",case="C1",repeat="1",outcome="PASS"} 59.936 1791687813.7984
+planb_selection_quality_duration_seconds{phase="#177-menu-fix",case="C1",repeat="2",outcome="PASS"} 34.725 1791687813.7984
+planb_selection_quality_duration_seconds{phase="#177-menu-fix",case="C1",repeat="3",outcome="PASS"} 19.827 1791687813.7984
+planb_selection_quality_duration_seconds{phase="#177-menu-fix",case="C2",repeat="1",outcome="PASS"} 36.784 1791687813.7984
+planb_selection_quality_duration_seconds{phase="#177-menu-fix",case="C2",repeat="2",outcome="PASS"} 13.093 1791687813.7984
+planb_selection_quality_duration_seconds{phase="#177-menu-fix",case="C2",repeat="3",outcome="PASS"} 14.903 1791687813.7984
+planb_selection_quality_duration_seconds{phase="#177-menu-fix",case="C3",repeat="1",outcome="PASS"} 62.033 1791687813.7984
+planb_selection_quality_duration_seconds{phase="#177-menu-fix",case="C3",repeat="2",outcome="API_FAILURE"} 33.039 1791687813.7984
+planb_selection_quality_duration_seconds{phase="#177-menu-fix",case="C3",repeat="3",outcome="PASS"} 20.399 1791687813.7984
+planb_selection_quality_duration_seconds{phase="#177-menu-fix",case="C4",repeat="1",outcome="PASS"} 47.409 1791687813.7984
+planb_selection_quality_duration_seconds{phase="#177-menu-fix",case="C4",repeat="2",outcome="PASS"} 16.224 1791687813.7984
+planb_selection_quality_duration_seconds{phase="#177-menu-fix",case="C4",repeat="3",outcome="PASS"} 13.264 1791687813.7984
+# TYPE planb_selection_quality_llm_calls gauge
+planb_selection_quality_llm_calls{phase="#177-menu-fix",case="C1",repeat="1",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_llm_calls{phase="#177-menu-fix",case="C1",repeat="2",outcome="PASS"} 13 1791687813.7984
+planb_selection_quality_llm_calls{phase="#177-menu-fix",case="C1",repeat="3",outcome="PASS"} 4 1791687813.7984
+planb_selection_quality_llm_calls{phase="#177-menu-fix",case="C2",repeat="1",outcome="PASS"} 5 1791687813.7984
+planb_selection_quality_llm_calls{phase="#177-menu-fix",case="C2",repeat="2",outcome="PASS"} 4 1791687813.7984
+planb_selection_quality_llm_calls{phase="#177-menu-fix",case="C2",repeat="3",outcome="PASS"} 5 1791687813.7984
+planb_selection_quality_llm_calls{phase="#177-menu-fix",case="C3",repeat="1",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_llm_calls{phase="#177-menu-fix",case="C3",repeat="2",outcome="API_FAILURE"} 10 1791687813.7984
+planb_selection_quality_llm_calls{phase="#177-menu-fix",case="C3",repeat="3",outcome="PASS"} 5 1791687813.7984
+planb_selection_quality_llm_calls{phase="#177-menu-fix",case="C4",repeat="1",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_llm_calls{phase="#177-menu-fix",case="C4",repeat="2",outcome="PASS"} 4 1791687813.7984
+planb_selection_quality_llm_calls{phase="#177-menu-fix",case="C4",repeat="3",outcome="PASS"} 5 1791687813.7984
+# TYPE planb_selection_quality_menu_checked gauge
+planb_selection_quality_menu_checked{phase="#177-menu-fix",case="C1",repeat="1",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_menu_checked{phase="#177-menu-fix",case="C1",repeat="2",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_menu_checked{phase="#177-menu-fix",case="C1",repeat="3",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_menu_checked{phase="#177-menu-fix",case="C2",repeat="1",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_menu_checked{phase="#177-menu-fix",case="C2",repeat="2",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_menu_checked{phase="#177-menu-fix",case="C2",repeat="3",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_menu_checked{phase="#177-menu-fix",case="C3",repeat="1",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_menu_checked{phase="#177-menu-fix",case="C3",repeat="2",outcome="API_FAILURE"} 0 1791687813.7984
+planb_selection_quality_menu_checked{phase="#177-menu-fix",case="C3",repeat="3",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_menu_checked{phase="#177-menu-fix",case="C4",repeat="1",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_menu_checked{phase="#177-menu-fix",case="C4",repeat="2",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_menu_checked{phase="#177-menu-fix",case="C4",repeat="3",outcome="PASS"} 6 1791687813.7984
+# TYPE planb_selection_quality_menu_matched gauge
+planb_selection_quality_menu_matched{phase="#177-menu-fix",case="C1",repeat="1",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_menu_matched{phase="#177-menu-fix",case="C1",repeat="2",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_menu_matched{phase="#177-menu-fix",case="C1",repeat="3",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_menu_matched{phase="#177-menu-fix",case="C2",repeat="1",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_menu_matched{phase="#177-menu-fix",case="C2",repeat="2",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_menu_matched{phase="#177-menu-fix",case="C2",repeat="3",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_menu_matched{phase="#177-menu-fix",case="C3",repeat="1",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_menu_matched{phase="#177-menu-fix",case="C3",repeat="2",outcome="API_FAILURE"} 0 1791687813.7984
+planb_selection_quality_menu_matched{phase="#177-menu-fix",case="C3",repeat="3",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_menu_matched{phase="#177-menu-fix",case="C4",repeat="1",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_menu_matched{phase="#177-menu-fix",case="C4",repeat="2",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_menu_matched{phase="#177-menu-fix",case="C4",repeat="3",outcome="PASS"} 6 1791687813.7984
+# TYPE planb_selection_quality_mustHaveSlots gauge
+planb_selection_quality_mustHaveSlots{phase="#177-menu-fix",case="C1",repeat="1",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_mustHaveSlots{phase="#177-menu-fix",case="C1",repeat="2",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_mustHaveSlots{phase="#177-menu-fix",case="C1",repeat="3",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_mustHaveSlots{phase="#177-menu-fix",case="C2",repeat="1",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_mustHaveSlots{phase="#177-menu-fix",case="C2",repeat="2",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_mustHaveSlots{phase="#177-menu-fix",case="C2",repeat="3",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_mustHaveSlots{phase="#177-menu-fix",case="C3",repeat="1",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_mustHaveSlots{phase="#177-menu-fix",case="C3",repeat="3",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_mustHaveSlots{phase="#177-menu-fix",case="C4",repeat="1",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_mustHaveSlots{phase="#177-menu-fix",case="C4",repeat="2",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_mustHaveSlots{phase="#177-menu-fix",case="C4",repeat="3",outcome="PASS"} 1 1791687813.7984
+# TYPE planb_selection_quality_nutritionFilled gauge
+planb_selection_quality_nutritionFilled{phase="#177-menu-fix",case="C1",repeat="1",outcome="PASS"} 4 1791687813.7984
+planb_selection_quality_nutritionFilled{phase="#177-menu-fix",case="C1",repeat="2",outcome="PASS"} 3 1791687813.7984
+planb_selection_quality_nutritionFilled{phase="#177-menu-fix",case="C1",repeat="3",outcome="PASS"} 4 1791687813.7984
+planb_selection_quality_nutritionFilled{phase="#177-menu-fix",case="C2",repeat="1",outcome="PASS"} 2 1791687813.7984
+planb_selection_quality_nutritionFilled{phase="#177-menu-fix",case="C2",repeat="2",outcome="PASS"} 2 1791687813.7984
+planb_selection_quality_nutritionFilled{phase="#177-menu-fix",case="C2",repeat="3",outcome="PASS"} 2 1791687813.7984
+planb_selection_quality_nutritionFilled{phase="#177-menu-fix",case="C3",repeat="1",outcome="PASS"} 2 1791687813.7984
+planb_selection_quality_nutritionFilled{phase="#177-menu-fix",case="C3",repeat="3",outcome="PASS"} 3 1791687813.7984
+planb_selection_quality_nutritionFilled{phase="#177-menu-fix",case="C4",repeat="1",outcome="PASS"} 2 1791687813.7984
+planb_selection_quality_nutritionFilled{phase="#177-menu-fix",case="C4",repeat="2",outcome="PASS"} 3 1791687813.7984
+planb_selection_quality_nutritionFilled{phase="#177-menu-fix",case="C4",repeat="3",outcome="PASS"} 3 1791687813.7984
+# TYPE planb_selection_quality_pass gauge
+planb_selection_quality_pass{phase="#177-menu-fix",case="C1",repeat="1",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_pass{phase="#177-menu-fix",case="C1",repeat="2",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_pass{phase="#177-menu-fix",case="C1",repeat="3",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_pass{phase="#177-menu-fix",case="C2",repeat="1",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_pass{phase="#177-menu-fix",case="C2",repeat="2",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_pass{phase="#177-menu-fix",case="C2",repeat="3",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_pass{phase="#177-menu-fix",case="C3",repeat="1",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_pass{phase="#177-menu-fix",case="C3",repeat="2",outcome="API_FAILURE"} 0 1791687813.7984
+planb_selection_quality_pass{phase="#177-menu-fix",case="C3",repeat="3",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_pass{phase="#177-menu-fix",case="C4",repeat="1",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_pass{phase="#177-menu-fix",case="C4",repeat="2",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_pass{phase="#177-menu-fix",case="C4",repeat="3",outcome="PASS"} 1 1791687813.7984
+# TYPE planb_selection_quality_plannedPlaceIncluded gauge
+planb_selection_quality_plannedPlaceIncluded{phase="#177-menu-fix",case="C1",repeat="1",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_plannedPlaceIncluded{phase="#177-menu-fix",case="C1",repeat="2",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_plannedPlaceIncluded{phase="#177-menu-fix",case="C1",repeat="3",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_plannedPlaceIncluded{phase="#177-menu-fix",case="C2",repeat="1",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_plannedPlaceIncluded{phase="#177-menu-fix",case="C2",repeat="2",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_plannedPlaceIncluded{phase="#177-menu-fix",case="C2",repeat="3",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_plannedPlaceIncluded{phase="#177-menu-fix",case="C3",repeat="1",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_plannedPlaceIncluded{phase="#177-menu-fix",case="C3",repeat="3",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_plannedPlaceIncluded{phase="#177-menu-fix",case="C4",repeat="1",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_plannedPlaceIncluded{phase="#177-menu-fix",case="C4",repeat="2",outcome="PASS"} 1 1791687813.7984
+planb_selection_quality_plannedPlaceIncluded{phase="#177-menu-fix",case="C4",repeat="3",outcome="PASS"} 1 1791687813.7984
+# TYPE planb_selection_quality_restaurantSlots gauge
+planb_selection_quality_restaurantSlots{phase="#177-menu-fix",case="C1",repeat="1",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_restaurantSlots{phase="#177-menu-fix",case="C1",repeat="2",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_restaurantSlots{phase="#177-menu-fix",case="C1",repeat="3",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_restaurantSlots{phase="#177-menu-fix",case="C2",repeat="1",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_restaurantSlots{phase="#177-menu-fix",case="C2",repeat="2",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_restaurantSlots{phase="#177-menu-fix",case="C2",repeat="3",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_restaurantSlots{phase="#177-menu-fix",case="C3",repeat="1",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_restaurantSlots{phase="#177-menu-fix",case="C3",repeat="3",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_restaurantSlots{phase="#177-menu-fix",case="C4",repeat="1",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_restaurantSlots{phase="#177-menu-fix",case="C4",repeat="2",outcome="PASS"} 6 1791687813.7984
+planb_selection_quality_restaurantSlots{phase="#177-menu-fix",case="C4",repeat="3",outcome="PASS"} 6 1791687813.7984
+# TYPE planb_selection_quality_totalTravelMinutes gauge
+planb_selection_quality_totalTravelMinutes{phase="#177-menu-fix",case="C1",repeat="1",outcome="PASS"} 478 1791687813.7984
+planb_selection_quality_totalTravelMinutes{phase="#177-menu-fix",case="C1",repeat="2",outcome="PASS"} 490 1791687813.7984
+planb_selection_quality_totalTravelMinutes{phase="#177-menu-fix",case="C1",repeat="3",outcome="PASS"} 566 1791687813.7984
+planb_selection_quality_totalTravelMinutes{phase="#177-menu-fix",case="C2",repeat="1",outcome="PASS"} 280 1791687813.7984
+planb_selection_quality_totalTravelMinutes{phase="#177-menu-fix",case="C2",repeat="2",outcome="PASS"} 301 1791687813.7984
+planb_selection_quality_totalTravelMinutes{phase="#177-menu-fix",case="C2",repeat="3",outcome="PASS"} 333 1791687813.7984
+planb_selection_quality_totalTravelMinutes{phase="#177-menu-fix",case="C3",repeat="1",outcome="PASS"} 540 1791687813.7984
+planb_selection_quality_totalTravelMinutes{phase="#177-menu-fix",case="C3",repeat="3",outcome="PASS"} 354 1791687813.7984
+planb_selection_quality_totalTravelMinutes{phase="#177-menu-fix",case="C4",repeat="1",outcome="PASS"} 201 1791687813.7984
+planb_selection_quality_totalTravelMinutes{phase="#177-menu-fix",case="C4",repeat="2",outcome="PASS"} 235 1791687813.7984
+planb_selection_quality_totalTravelMinutes{phase="#177-menu-fix",case="C4",repeat="3",outcome="PASS"} 153 1791687813.7984
+# TYPE planb_selection_raw_all_nutrition_fields_filled gauge
+planb_selection_raw_all_nutrition_fields_filled{phase="#177-menu-fix"} 30 1791687813.7984
+# TYPE planb_selection_raw_identity_invalid_slots gauge
+planb_selection_raw_identity_invalid_slots{phase="#177-menu-fix"} 0 1791687813.7984
+# TYPE planb_selection_raw_meal_tag_mismatches gauge
+planb_selection_raw_meal_tag_mismatches{phase="#177-menu-fix"} 0 1791687813.7984
+# TYPE planb_selection_raw_medication_days_checked gauge
+planb_selection_raw_medication_days_checked{phase="#177-menu-fix"} 22 1791687813.7984
+# TYPE planb_selection_raw_medication_days_matched gauge
+planb_selection_raw_medication_days_matched{phase="#177-menu-fix"} 22 1791687813.7984
+# TYPE planb_selection_raw_place_field_invalid_slots gauge
+planb_selection_raw_place_field_invalid_slots{phase="#177-menu-fix"} 0 1791687813.7984
+# TYPE planb_selection_raw_required_meals_expected gauge
+planb_selection_raw_required_meals_expected{phase="#177-menu-fix"} 44 1791687813.7984
+# TYPE planb_selection_raw_required_meals_on_time gauge
+planb_selection_raw_required_meals_on_time{phase="#177-menu-fix"} 41 1791687813.7984
+# TYPE planb_selection_raw_required_meals_present gauge
+planb_selection_raw_required_meals_present{phase="#177-menu-fix"} 44 1791687813.7984
+# TYPE planb_selection_raw_restaurant_slots gauge
+planb_selection_raw_restaurant_slots{phase="#177-menu-fix"} 66 1791687813.7984
+# TYPE planb_selection_raw_route_invalid_slots gauge
+planb_selection_raw_route_invalid_slots{phase="#177-menu-fix"} 0 1791687813.7984
+# EOF

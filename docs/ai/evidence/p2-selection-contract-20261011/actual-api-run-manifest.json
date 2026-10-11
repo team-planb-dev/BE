@@ -1,0 +1,39 @@
+{
+  "issue": 177,
+  "phase": "P2 selection contract stage 1",
+  "codeCommit": "dc631c942588c377505bb9b74344d45baa7fe2ff",
+  "implementationCommit": "3b766cf",
+  "baselineCommit": "127e1a2a70e074909d965f3600f5dc17d6b29caa",
+  "startedAt": "2026-10-10T15:38:13.429104+00:00",
+  "model": "gpt-5.6-terra",
+  "reasoning": "none",
+  "virtualThreads": true,
+  "generationOnly": true,
+  "approvedGenerationAttempts": 12,
+  "approvedEditAttempts": 0,
+  "approval": "User explicitly approved actual API verification on 2026-10-11; no automatic additional batch",
+  "cachePolicy": "fresh Testcontainers Redis; first same-case repeat cold, later cache reuse",
+  "environmentValues": "secrets not recorded",
+  "sourceSha256": {
+    "src/main/java/com/planb/ai/context/PlaceCandidateContext.java": "27ca6a7e5d673c7ebc54a2a37585b2e71d3f5335881db189692607a8dbb56fae",
+    "src/main/java/com/planb/ai/prompt/TravelPlanPrompt.java": "eba85a3d8f2adcf8a511483c520dfab3f087e15012cf8a2c1c4bc07c9667ff25",
+    "src/test/java/com/planb/integration/domain/travel/TravelLlmQualityBaselineTest.java": "367a9bad873c0c37cbf4b6527dda195a052a112363cf0d73fc862f118792c2d4"
+  },
+  "completedAt": "2026-10-10T15:45:35.890971+00:00",
+  "processExitCode": 0,
+  "recordedGenerationAttempts": 12,
+  "recordedEditAttempts": 0,
+  "runId": "2026-10-10T15-38-24.056735Z",
+  "qualityGates": {
+    "passCountAtLeastR0MinusOne": false,
+    "allergenKeywordProxyZero": false,
+    "crossDayDuplicatePlacesZero": true,
+    "plannedPlaceAtLeastR0MinusOne": false
+  },
+  "junit": {
+    "tests": 12,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  }
+}

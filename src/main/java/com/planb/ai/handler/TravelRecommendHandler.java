@@ -315,8 +315,49 @@ public class TravelRecommendHandler {
                     )
             );
 
+            failures.addAll(restaurantMenuFailures(response, candidates));
+
             return failures;
         };
+    }
+
+    private List<String> restaurantMenuFailures(
+            CreatePlanAiResponse response,
+            PlaceCandidateContext candidates
+    ) {
+
+        List<String> failures = new ArrayList<>();
+
+        for (CreatePlanAiResponse.PlanDayDetail day : response.planDays()) {
+            if (day == null || day.schedules() == null) {
+                continue;
+            }
+
+            for (CreatePlanAiResponse.PlanScheduleDetail slot : day.schedules()) {
+                if (slot == null || slot.courseType() != CourseType.RESTAURANT
+                        && slot.courseType() != CourseType.LOCAL_FOOD) {
+                    continue;
+                }
+
+                PlaceCandidateContext.Candidate candidate = candidates.find(slot.candidateId());
+
+                if (candidate != null && "FD6".equals(candidate.type())) {
+                    continue;
+                }
+
+                String failure = candidates.restaurantMenuFailure(
+                        slot.candidateId(),
+                        slot.restaurantDetail() == null ? null : slot.restaurantDetail().menuName()
+                );
+
+                if (failure != null) {
+                    failures.add("planDays[day" + day.dayNumber() + "].schedules["
+                            + slot.startTime() + "]: " + failure);
+                }
+            }
+        }
+
+        return failures;
     }
 
     /**
