@@ -495,19 +495,13 @@ public class ScheduleNormalizer {
                                 .isBefore(dayEnd(place))
                                 && place
                                         .startTime()
-                                        .isBefore(medicationEnd(medication)))
+                                        .isBefore(dayEnd(medication)))
                         .map(place -> new MedicationPlaceOverlap(
                                 place,
                                 medication.startTime(),
                                 medication.endTime()
                         )))
                 .findFirst();
-    }
-
-    // 자정을 넘긴 복약의 당일 끝까지 구간
-    private LocalTime medicationEnd(CreatePlanAiResponse.PlanScheduleDetail medication) {
-
-        return dayEnd(medication);
     }
 
     // 자정을 넘긴 슬롯의 당일 종료 시각
@@ -596,11 +590,13 @@ public class ScheduleNormalizer {
                         )
                         .toMinutes());
 
+        // 자정을 넘긴 장소 종료의 음수 지연
         if (!delayedStart.isAfter(meal.startTime())) {
             throw invalidPlace("복약 겹침 회피 시 자정 초과");
         }
 
-        if (!mealTimeSatisfied(
+        // 등록 식사시각이 없는 식사의 창 제약 부재
+        if (mealTimeRange(meal.scheduleType(), healthContexts) != null && !mealTimeSatisfied(
                 withScheduleTimes(
                         meal,
                         delayedStart,
@@ -663,6 +659,7 @@ public class ScheduleNormalizer {
                         .equals(medicationStart));
     }
 
+    // 식사 기준의 일정 유형
     private static ScheduleType scheduleType(RelatedMeal relatedMeal) {
 
         return switch (relatedMeal) {
@@ -711,6 +708,7 @@ public class ScheduleNormalizer {
 
         List<CreatePlanAiResponse.PlanScheduleDetail> schedules = normalized.schedules();
         LocalTime previousEnd = LocalTime.MIN;
+        boolean previousMoved = false;
 
         for (int index = 0; index < schedules.size(); index++) {
             CreatePlanAiResponse.PlanScheduleDetail schedule = schedules.get(index);
@@ -726,7 +724,7 @@ public class ScheduleNormalizer {
                             .schedules()
                             .get(index)
                             .startTime())) {
-                throw invalidPlace("복약 겹침 회피 시 식사시간 이탈");
+                throw invalidPlace("복약 겹침 회피 시 장소 앞당김 필요");
             }
 
             boolean moved = !schedule
@@ -736,13 +734,13 @@ public class ScheduleNormalizer {
                             .get(index)
                             .startTime());
 
-            // 이동 장소의 종료 역전 또는 이동시간 제약 위반, 자정 순환 결과
-            if (moved && (schedule
+            // 이동 장소의 종료 역전, 이동 장소 전후의 이동시간 제약 위반, 자정 순환 결과
+            if ((moved && schedule
                     .endTime()
-                    .isBefore(schedule.startTime())
-                    || schedule.travelMinutes() != null && schedule
+                    .isBefore(schedule.startTime()))
+                    || (moved || previousMoved) && schedule.travelMinutes() != null && schedule
                             .startTime()
-                            .isBefore(previousEnd))) {
+                            .isBefore(previousEnd)) {
                 throw invalidPlace("복약 겹침 회피 시 자정 초과");
             }
 
@@ -752,6 +750,7 @@ public class ScheduleNormalizer {
             }
 
             previousEnd = schedule.endTime();
+            previousMoved = moved;
         }
     }
 
@@ -965,14 +964,7 @@ public class ScheduleNormalizer {
             Map<ScheduleType, MealWindow> dayMealTimes
     ) {
 
-        ScheduleType scheduleType =
-                switch (relatedMeal) {
-                    case BREAKFAST -> ScheduleType.BREAKFAST;
-
-                    case LUNCH -> ScheduleType.LUNCH;
-
-                    case DINNER -> ScheduleType.DINNER;
-                };
+        ScheduleType scheduleType = scheduleType(relatedMeal);
 
         TravelHealthContext.MealInfoContext mealInfo =
                 healthContext.mealInfo();

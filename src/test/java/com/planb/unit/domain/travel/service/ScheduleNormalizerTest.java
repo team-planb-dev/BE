@@ -1001,7 +1001,7 @@ class ScheduleNormalizerTest {
 
         assertTrue(failure
                 .getMessage()
-                .contains("식사시간 이탈"));
+                .contains("장소 앞당김 필요"));
     }
 
     @Test
@@ -1042,6 +1042,71 @@ class ScheduleNormalizerTest {
         assertEquals(
                 LocalTime.of(12, 0),
                 medicationStartTime(result)
+        );
+    }
+
+    @Test
+    @DisplayName("같은 식사의 동행인별 다른 식전 간격 중 큰 간격 기준 식사 지연")
+    void delaysMealForLargestBeforeMealInterval() {
+
+        // 관광지 10:20~11:50, 점심 12:00, 식전 30분 11:30·15분 11:45
+        // 지연 20분, 점심 12:20, 복약 11:50·12:05
+        List<TravelHealthContext> companions = List.of(
+                traveler(
+                        "동행인 1",
+                        mealMedication(
+                                "혈당약",
+                                rule(
+                                        RelatedMeal.LUNCH,
+                                        MealTiming.BEFORE_MEAL,
+                                        30
+                                )
+                        )
+                ),
+                traveler(
+                        "동행인 2",
+                        mealMedication(
+                                "위장약",
+                                rule(
+                                        RelatedMeal.LUNCH,
+                                        MealTiming.BEFORE_MEAL,
+                                        15
+                                )
+                        )
+                )
+        );
+
+        CreatePlanAiResponse result = finalized(
+                response(
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(10, 20),
+                                null
+                        ),
+                        restaurant(
+                                "점심 식당",
+                                ScheduleType.LUNCH,
+                                LocalTime.of(12, 0),
+                                10
+                        )
+                ),
+                companions
+        );
+
+        assertEquals(
+                LocalTime.of(12, 20),
+                startTime(result, "점심 식당")
+        );
+
+        assertEquals(
+                List.of(
+                        LocalTime.of(11, 50),
+                        LocalTime.of(12, 5)
+                ),
+                medications(result)
+                        .stream()
+                        .map(CreatePlanAiResponse.PlanScheduleDetail::startTime)
+                        .toList()
         );
     }
 
@@ -1193,6 +1258,108 @@ class ScheduleNormalizerTest {
         assertTrue(failure
                 .getMessage()
                 .contains("자정 초과"));
+    }
+
+    @Test
+    @DisplayName("이동시간 계산이 자정을 넘겨 뒤 장소가 남는 배치의 거부")
+    void rejectsCascadeWithWrappedTravelStart() {
+
+        // 고정 22:00 복약, 관광지 21:00~22:30, 이동 30분 뒤 카페 23:00~00:00
+        // 관광지 22:10~23:40 이동, 카페 최소 시작 00:10 순환으로 23:00 잔존
+        List<TravelHealthContext> independent = List.of(
+                traveler(
+                        "고정 시각 여행자",
+                        independentMedication(
+                                "혈압약",
+                                LocalTime.of(22, 0)
+                        )
+                )
+        );
+
+        CreatePlanAiResponse withTravel = response(
+                attraction(
+                        "야경 명소",
+                        LocalTime.of(21, 0),
+                        null
+                ),
+                slot(
+                        ScheduleType.ACTIVITY,
+                        CourseType.CAFE_REST,
+                        "심야 카페",
+                        LocalTime.of(23, 0),
+                        30,
+                        60
+                )
+        );
+
+        BaseException failure = assertThrows(
+                BaseException.class,
+                () -> scheduleNormalizer.finalizeMedicationSchedules(
+                        withTravel,
+                        independent
+                )
+        );
+
+        assertTrue(failure
+                .getMessage()
+                .contains("자정 초과"));
+    }
+
+    @Test
+    @DisplayName("등록 시각 없는 식사의 식전 복약 지연 허용")
+    void delaysMealWithoutConfiguredTime() {
+
+        // 점심 등록 시각 없음, 실제 점심 12:00 기준 식전 30분 복약
+        List<TravelHealthContext> noLunchTime = List.of(
+                new TravelHealthContext(
+                        "테스트 여행자",
+                        List.of(DiseaseType.DIABETES),
+                        WalkType.ACTIVE,
+                        new TravelHealthContext.MealInfoContext(
+                                LocalTime.of(8, 0),
+                                null,
+                                LocalTime.of(18, 0)
+                        ),
+                        List.of(),
+                        List.of(
+                                mealMedication(
+                                        "혈당약",
+                                        rule(
+                                                RelatedMeal.LUNCH,
+                                                MealTiming.BEFORE_MEAL,
+                                                30
+                                        )
+                                )
+                        )
+                )
+        );
+
+        CreatePlanAiResponse result = finalized(
+                response(
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(10, 30),
+                                null
+                        ),
+                        restaurant(
+                                "점심 식당",
+                                ScheduleType.LUNCH,
+                                LocalTime.of(12, 0),
+                                0
+                        )
+                ),
+                noLunchTime
+        );
+
+        assertEquals(
+                LocalTime.of(12, 30),
+                startTime(result, "점심 식당")
+        );
+
+        assertEquals(
+                LocalTime.of(12, 0),
+                medicationStartTime(result)
+        );
     }
 
     @Test
