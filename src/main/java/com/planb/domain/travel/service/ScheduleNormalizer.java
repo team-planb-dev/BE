@@ -407,7 +407,10 @@ public class ScheduleNormalizer {
                 response
                         .planDays()
                         .stream()
-                        .map(planDay -> finalizeDayMedicationSchedules(planDay, healthContexts))
+                        .map(planDay -> finalizeDayMedicationSchedules(
+                                planDay,
+                                healthContexts
+                        ))
                         .toList();
 
         return new CreatePlanAiResponse(finalizedPlanDays);
@@ -434,8 +437,10 @@ public class ScheduleNormalizer {
         CreatePlanAiResponse.PlanDayDetail current = planDay;
 
         for (int delay = 0; ; delay++) {
-            CreatePlanAiResponse.PlanDayDetail withMedication =
-                    fixDayMedicationSchedules(current, healthContexts);
+            CreatePlanAiResponse.PlanDayDetail withMedication = fixDayMedicationSchedules(
+                    current,
+                    healthContexts
+            );
 
             Optional<MedicationPlaceOverlap> overlap = firstMedicationPlaceOverlap(withMedication);
 
@@ -596,7 +601,12 @@ public class ScheduleNormalizer {
         }
 
         // 등록 식사시각이 없는 식사의 창 제약 부재
-        if (mealTimeRange(meal.scheduleType(), healthContexts) != null && !mealTimeSatisfied(
+        boolean windowed = mealTimeRange(
+                meal.scheduleType(),
+                healthContexts
+        ) != null;
+
+        if (windowed && !mealTimeSatisfied(
                 withScheduleTimes(
                         meal,
                         delayedStart,
@@ -738,9 +748,9 @@ public class ScheduleNormalizer {
             if ((moved && schedule
                     .endTime()
                     .isBefore(schedule.startTime()))
-                    || (moved || previousMoved) && schedule.travelMinutes() != null && schedule
+                    || ((moved || previousMoved) && schedule.travelMinutes() != null && schedule
                             .startTime()
-                            .isBefore(previousEnd)) {
+                            .isBefore(previousEnd))) {
                 throw invalidPlace("복약 겹침 회피 시 자정 초과");
             }
 

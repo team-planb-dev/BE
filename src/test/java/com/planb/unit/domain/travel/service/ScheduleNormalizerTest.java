@@ -1391,13 +1391,22 @@ class ScheduleNormalizerTest {
                 independent
         );
 
-        assertThrows(
+        BaseException failure = assertThrows(
                 BaseException.class,
                 () -> scheduleNormalizer.finalizeMedicationSchedules(
                         normalized,
                         independent
                 )
         );
+
+        assertEquals(
+                PlanEditExceptionEnum.INVALID_AI_PLACE.getCode(),
+                failure.getErrorCode()
+        );
+
+        assertTrue(failure
+                .getMessage()
+                .contains("자정 초과"));
     }
 
     @Test
