@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-12T02:02:32.367Z" hostname="gang-ujuui-MacBookPro.local" time="0.004">
+  <properties/>
+  <testcase name="식사 슬롯 없는 날의 설정 식사시간 기준 식후 복약 배치" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.001"/>
+  <testcase name="이동시간으로 식사시간을 맞출 수 없는 일정의 예외 없는 최선 배치" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="식중 복약의 식사 시간대 유지" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="여러 동행인·복약 규칙별 등록 간격 유지와 같은 시각 병합" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.001"/>
+  <testcase name="복약 일정 생성의 반복 적용 시 동일 결과" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.001"/>
+  <testcase name="장소 시간대 안의 식전 복약의 등록 간격 유지" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="식후 복약의 식사 종료 기준 배치" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="이동시간 반영 시간표 정규화의 반복 적용 시 동일 결과" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="장소 내부 복약 일정 생성의 반복 적용 시 동일 결과" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="장소 시간대 안의 고정 시각 복약 유지" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="간격 0·누락 식후 복약의 식사 종료시각 유지" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="장소 시간대 안의 식후 복약의 등록 간격 유지" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

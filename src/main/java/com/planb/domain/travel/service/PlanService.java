@@ -823,8 +823,8 @@ public class PlanService {
                         )
                 );
 
-        // 식사 슬롯 확정 후 식전·식후 복약 배치
-        CreatePlanAiResponse medicationFixed = scheduleNormalizer.ensureMedicationSchedules(
+        // 식사 슬롯 확정 후 식전·식후 복약 배치와 장소 겹침 해소
+        CreatePlanAiResponse medicationFixed = scheduleNormalizer.finalizeMedicationSchedules(
                 mealFixed,
                 context.healthContexts()
         );
@@ -1370,6 +1370,7 @@ public class PlanService {
                 context.healthContexts()
         );
 
+        // 중간 복약 배치, 장소 겹침 해소는 finishPlan 최종 단계 담당
         response = scheduleNormalizer.ensureMedicationSchedules(
                 response,
                 context.healthContexts()

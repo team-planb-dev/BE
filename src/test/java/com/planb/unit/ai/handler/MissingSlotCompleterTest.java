@@ -809,6 +809,151 @@ class MissingSlotCompleterTest {
                 .isEmpty();
     }
 
+    @Test
+    @DisplayName("앞 날짜에 쓴 식당은 남은 메뉴가 있어도 다음 날 식사로 다시 채우지 않음")
+    void skipsRestaurantUsedOnEarlierDay() {
+
+        lenient()
+                .when(tourismTool.getRestaurantDetail("101"))
+                .thenReturn(intro("101", "칼국수"));
+
+        lenient()
+                .when(tourismTool.getRestaurantDetail("102"))
+                .thenReturn(intro("102", "비빔밥"));
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(restaurantItem(
+                        "101",
+                        "백제삼계탕",
+                        "129.21",
+                        "35.83"
+                ));
+
+        candidates.record(restaurantItem(
+                        "102",
+                        "하니칼국수",
+                        "129.23",
+                        "35.84"
+                ));
+
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
+                twoDays(
+                        List.of(
+                                attraction("첨성대", LocalTime.of(9, 0)),
+                                attraction("대릉원", LocalTime.of(11, 0)),
+                                attraction("동궁과 월지", LocalTime.of(13, 0)),
+                                restaurant(
+                                        "백제삼계탕",
+                                        "삼계탕",
+                                        LocalTime.of(12, 0)
+                                )
+                        ),
+                        List.of(
+                                attraction("불국사", LocalTime.of(9, 0)),
+                                attraction("석굴암", LocalTime.of(11, 0)),
+                                attraction("감은사지", LocalTime.of(13, 0))
+                        )
+                ),
+                List.of(healthContext()),
+                candidates,
+                Set.of(),
+                Set.of()
+        );
+
+        assertThat(daySchedules(filled, 2))
+                .filteredOn(slot -> slot.scheduleType() == ScheduleType.LUNCH)
+                .extracting(CreatePlanAiResponse.PlanScheduleDetail::locationName)
+                .containsExactly("하니칼국수");
+
+        verify(
+                tourismTool,
+                never()
+        )
+                .getRestaurantDetail("101");
+    }
+
+    @Test
+    @DisplayName("보존 날짜에서 예약한 식당은 새 식사 슬롯으로 다시 채우지 않음")
+    void skipsRestaurantReservedByPreservedDay() {
+
+        lenient()
+                .when(tourismTool.getRestaurantDetail("101"))
+                .thenReturn(intro("101", "칼국수"));
+
+        lenient()
+                .when(tourismTool.getRestaurantDetail("102"))
+                .thenReturn(intro("102", "비빔밥"));
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(restaurantItem(
+                        "101",
+                        "백제삼계탕",
+                        "129.21",
+                        "35.83"
+                ));
+
+        candidates.record(restaurantItem(
+                        "102",
+                        "하니칼국수",
+                        "129.23",
+                        "35.84"
+                ));
+
+        // 편집 보존 날짜의 장소명 예약 집합
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
+                response(attraction("첨성대", LocalTime.of(9, 0))),
+                List.of(healthContext()),
+                candidates,
+                Set.of("백제삼계탕"),
+                Set.of()
+        );
+
+        assertThat(schedules(filled))
+                .filteredOn(slot -> slot.scheduleType() == ScheduleType.LUNCH)
+                .extracting(CreatePlanAiResponse.PlanScheduleDetail::locationName)
+                .containsExactly("하니칼국수");
+
+        verify(
+                tourismTool,
+                never()
+        )
+                .getRestaurantDetail("101");
+    }
+
+    @Test
+    @DisplayName("candidateId만 예약된 식당의 재선택, 이름 기준 식별 한계")
+    void reselectsRestaurantReservedOnlyByCandidateId() {
+
+        lenient()
+                .when(tourismTool.getRestaurantDetail("101"))
+                .thenReturn(intro("101", "칼국수"));
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(restaurantItem(
+                        "101",
+                        "백제삼계탕",
+                        "129.21",
+                        "35.83"
+                ));
+
+        // 보충 로직의 이름 기준 비교, candidateId 예약 미반영
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
+                response(attraction("첨성대", LocalTime.of(9, 0))),
+                List.of(healthContext()),
+                candidates,
+                Set.of("tour:101"),
+                Set.of()
+        );
+
+        assertThat(schedules(filled))
+                .filteredOn(slot -> slot.scheduleType() == ScheduleType.LUNCH)
+                .extracting(CreatePlanAiResponse.PlanScheduleDetail::locationName)
+                .containsExactly("백제삼계탕");
+    }
+
     private List<CreatePlanAiResponse.PlanScheduleDetail> daySchedules(
             CreatePlanAiResponse response,
             int dayNumber
