@@ -82,8 +82,7 @@ public class ScheduleNormalizer {
         int movableStartIndex = 0;
 
         for (CreatePlanAiResponse.PlanScheduleDetail schedule : day.schedules()) {
-            if (schedule == null || schedule.startTime() == null || schedule.stayMinutes() == null
-                    || schedule.stayMinutes() <= 0 || !planPlaceResolver.requiresPlace(schedule)) {
+            if (!normalizedPlace(schedule)) {
                 schedules.add(schedule);
 
                 continue;
@@ -420,15 +419,12 @@ public class ScheduleNormalizer {
             List<TravelHealthContext> healthContexts
     ) {
 
+        List<CreatePlanAiResponse.PlanScheduleDetail> schedules = planDay.schedules();
         Set<Integer> satisfiedMealIndexes = new HashSet<>();
 
-        for (int index = 0; index < planDay
-                .schedules()
-                .size(); index++) {
+        for (int index = 0; index < schedules.size(); index++) {
             if (mealTimeSatisfied(
-                    planDay
-                            .schedules()
-                            .get(index),
+                    schedules.get(index),
                     healthContexts
             )) {
                 satisfiedMealIndexes.add(index);
@@ -451,8 +447,10 @@ public class ScheduleNormalizer {
                 throw invalidPlace("복약·장소 시간 겹침");
             }
 
+            CreatePlanAiResponse.PlanDayDetail previous = current;
+
             CreatePlanAiResponse.PlanDayDetail delayed = delayPlace(
-                    current,
+                    previous,
                     overlap.get()
             );
 
@@ -462,6 +460,7 @@ public class ScheduleNormalizer {
             );
 
             validateDelayedDay(
+                    previous,
                     delayed,
                     current,
                     satisfiedMealIndexes,
@@ -492,7 +491,7 @@ public class ScheduleNormalizer {
                         .stream()
                         .filter(place -> medication
                                 .startTime()
-                                .isBefore(place.endTime())
+                                .isBefore(dayEnd(place))
                                 && place
                                         .startTime()
                                         .isBefore(medicationEnd(medication)))
@@ -506,18 +505,27 @@ public class ScheduleNormalizer {
     // 자정을 넘긴 복약의 당일 끝까지 구간
     private LocalTime medicationEnd(CreatePlanAiResponse.PlanScheduleDetail medication) {
 
-        return medication
+        return dayEnd(medication);
+    }
+
+    // 자정을 넘긴 슬롯의 당일 종료 시각
+    private LocalTime dayEnd(CreatePlanAiResponse.PlanScheduleDetail schedule) {
+
+        return schedule
                 .endTime()
-                .isBefore(medication.startTime())
+                .isBefore(schedule.startTime())
                 ? LocalTime.MAX
-                : medication.endTime();
+                : schedule.endTime();
     }
 
     // 시간표 정규화 대상 장소 슬롯
     private boolean normalizedPlace(CreatePlanAiResponse.PlanScheduleDetail schedule) {
 
-        return schedule != null && schedule.startTime() != null && schedule.stayMinutes() != null
-                && schedule.stayMinutes() > 0 && planPlaceResolver.requiresPlace(schedule);
+        return schedule != null
+                && schedule.startTime() != null
+                && schedule.stayMinutes() != null
+                && schedule.stayMinutes() > 0
+                && planPlaceResolver.requiresPlace(schedule);
     }
 
     // 체류시간 유지와 복약 종료 시각 시작 배치
@@ -555,22 +563,20 @@ public class ScheduleNormalizer {
         );
     }
 
-    // 앞당김 없는 재정규화, 기존 충족 식사시간 유지, 자정 미초과 확인
+    // 앞당김 없는 재정규화, 기존 충족 식사시간 유지, 이동 장소의 자정 미초과 확인
     private void validateDelayedDay(
+            CreatePlanAiResponse.PlanDayDetail previous,
             CreatePlanAiResponse.PlanDayDetail delayed,
             CreatePlanAiResponse.PlanDayDetail normalized,
             Set<Integer> satisfiedMealIndexes,
             List<TravelHealthContext> healthContexts
     ) {
 
+        List<CreatePlanAiResponse.PlanScheduleDetail> schedules = normalized.schedules();
         LocalTime previousEnd = LocalTime.MIN;
 
-        for (int index = 0; index < normalized
-                .schedules()
-                .size(); index++) {
-            CreatePlanAiResponse.PlanScheduleDetail schedule = normalized
-                    .schedules()
-                    .get(index);
+        for (int index = 0; index < schedules.size(); index++) {
+            CreatePlanAiResponse.PlanScheduleDetail schedule = schedules.get(index);
 
             if (!normalizedPlace(schedule)) {
                 continue;
@@ -586,13 +592,20 @@ public class ScheduleNormalizer {
                 throw invalidPlace("복약 겹침 회피 시 식사시간 이탈");
             }
 
-            // 종료 역전 또는 이동시간 제약 위반, 자정 순환 결과
-            if (schedule
+            boolean moved = !schedule
+                    .startTime()
+                    .equals(previous
+                            .schedules()
+                            .get(index)
+                            .startTime());
+
+            // 이동 장소의 종료 역전 또는 이동시간 제약 위반, 자정 순환 결과
+            if (moved && (schedule
                     .endTime()
                     .isBefore(schedule.startTime())
                     || schedule.travelMinutes() != null && schedule
                             .startTime()
-                            .isBefore(previousEnd)) {
+                            .isBefore(previousEnd))) {
                 throw invalidPlace("복약 겹침 회피 시 자정 초과");
             }
 
