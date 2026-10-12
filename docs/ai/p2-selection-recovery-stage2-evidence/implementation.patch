@@ -1,0 +1,1591 @@
+diff --git a/src/main/java/com/planb/ai/handler/TravelRecommendHandler.java b/src/main/java/com/planb/ai/handler/TravelRecommendHandler.java
+index fff2664..bc33605 100644
+--- a/src/main/java/com/planb/ai/handler/TravelRecommendHandler.java
++++ b/src/main/java/com/planb/ai/handler/TravelRecommendHandler.java
+@@ -315,51 +315,12 @@ public class TravelRecommendHandler {
+                     )
+             );
+ 
+-            failures.addAll(restaurantMenuFailures(response, candidates));
++            // 메뉴 출처 오류의 최종 슬롯 검증·국소 재선택 위임
+ 
+             return failures;
+         };
+     }
+ 
+-    private List<String> restaurantMenuFailures(
+-            CreatePlanAiResponse response,
+-            PlaceCandidateContext candidates
+-    ) {
+-
+-        List<String> failures = new ArrayList<>();
+-
+-        for (CreatePlanAiResponse.PlanDayDetail day : response.planDays()) {
+-            if (day == null || day.schedules() == null) {
+-                continue;
+-            }
+-
+-            for (CreatePlanAiResponse.PlanScheduleDetail slot : day.schedules()) {
+-                if (slot == null || slot.courseType() != CourseType.RESTAURANT
+-                        && slot.courseType() != CourseType.LOCAL_FOOD) {
+-                    continue;
+-                }
+-
+-                PlaceCandidateContext.Candidate candidate = candidates.find(slot.candidateId());
+-
+-                if (candidate != null && "FD6".equals(candidate.type())) {
+-                    continue;
+-                }
+-
+-                String failure = candidates.restaurantMenuFailure(
+-                        slot.candidateId(),
+-                        slot.restaurantDetail() == null ? null : slot.restaurantDetail().menuName()
+-                );
+-
+-                if (failure != null) {
+-                    failures.add("planDays[day" + day.dayNumber() + "].schedules["
+-                            + slot.startTime() + "]: " + failure);
+-                }
+-            }
+-        }
+-
+-        return failures;
+-    }
+-
+     /**
+      * 미사용 후보로 날짜 순서대로 보충한 뒤에도 남는 관광지 부족분의 교정 사유
+      * 부족 개수(슬롯 단위)와 미사용 후보 수(후보 단위)를 같은 단위로 비교
+diff --git a/src/main/java/com/planb/ai/mcp/PlanTourismTool.java b/src/main/java/com/planb/ai/mcp/PlanTourismTool.java
+index c10315d..dd7f028 100644
+--- a/src/main/java/com/planb/ai/mcp/PlanTourismTool.java
++++ b/src/main/java/com/planb/ai/mcp/PlanTourismTool.java
+@@ -227,16 +227,28 @@ public class PlanTourismTool {
+         // 카카오의 전국 동명 장소 재검색 방지를 위한 확정 좌표 사용
+         PlaceCandidateContext.Candidate previous = candidates.findByName(previousLocation);
+ 
+-        PlaceWithRouteResult result = tourismTool
+-                .findPlaceWithRoute(
+-                        keyword,
+-                        previousLocation,
+-                        transportation,
+-                        excludeNames,
+-                        categoryCode,
+-                        previous == null ? null : previous.longitude(),
+-                        previous == null ? null : previous.latitude()
+-                );
++        PlaceWithRouteResult result = courseType == CourseType.PARK_WALK
++                ? tourismTool
++                        .findPlaceWithRoute(
++                                keyword,
++                                previousLocation,
++                                transportation,
++                                excludeNames,
++                                categoryCode,
++                                previous == null ? null : previous.longitude(),
++                                previous == null ? null : previous.latitude(),
++                                true
++                        )
++                : tourismTool
++                        .findPlaceWithRoute(
++                                keyword,
++                                previousLocation,
++                                transportation,
++                                excludeNames,
++                                categoryCode,
++                                previous == null ? null : previous.longitude(),
++                                previous == null ? null : previous.latitude()
++                        );
+ 
+         candidates.record(result);
+ 
+diff --git a/src/main/java/com/planb/ai/mcp/TourismTool.java b/src/main/java/com/planb/ai/mcp/TourismTool.java
+index 6651890..d71422d 100644
+--- a/src/main/java/com/planb/ai/mcp/TourismTool.java
++++ b/src/main/java/com/planb/ai/mcp/TourismTool.java
+@@ -679,6 +679,29 @@ public class TourismTool {
+             String previousLatitude
+     ) {
+ 
++        return findPlaceWithRoute(
++                keyword,
++                previousLocation,
++                transportation,
++                excludeNames,
++                categoryCode,
++                previousLongitude,
++                previousLatitude,
++                false
++        );
++    }
++
++    public PlaceWithRouteResult findPlaceWithRoute(
++            String keyword,
++            String previousLocation,
++            Transportation transportation,
++            List<String> excludeNames,
++            String categoryCode,
++            String previousLongitude,
++            String previousLatitude,
++            boolean parksOnly
++    ) {
++
+         log.info(
+                 "[AI TOOL] 장소+경로 조회 호출 - keyword: {}, previousLocation: {}, transportation: {}, excludeNames: {}, categoryCode: {}",
+                 keyword,
+@@ -696,7 +719,8 @@ public class TourismTool {
+                         excludeNames,
+                         categoryCode,
+                         previousLongitude,
+-                        previousLatitude
++                        previousLatitude,
++                        parksOnly
+                 )
+                 .block();
+     }
+diff --git a/src/main/java/com/planb/domain/travel/helper/PlanPlaceResolver.java b/src/main/java/com/planb/domain/travel/helper/PlanPlaceResolver.java
+index c6fcda8..6a5b1c9 100644
+--- a/src/main/java/com/planb/domain/travel/helper/PlanPlaceResolver.java
++++ b/src/main/java/com/planb/domain/travel/helper/PlanPlaceResolver.java
+@@ -8,6 +8,7 @@ import com.planb.ai.dto.response.CreatePlanAiResponse.MedicationSchedule;
+ import com.planb.domain.travel.dto.response.GetAiPlanResponse;
+ import com.planb.domain.travel.entity.constant.CourseType;
+ import com.planb.domain.travel.entity.constant.ScheduleType;
++import com.planb.domain.travel.policy.ParkPlacePolicy;
+ import lombok.RequiredArgsConstructor;
+ import org.springframework.stereotype.Component;
+ 
+@@ -402,9 +403,7 @@ public class PlanPlaceResolver {
+                     || !tour && blank(candidate.type()) && verifiedAttractionCategory(candidate.categoryName());
+ 
+             case PARK_WALK -> Objects.equals(candidate.type(), tour ? "12" : "AT4")
+-                    && candidate.categoryName() != null && candidate
+-                            .categoryName()
+-                            .contains("공원");
++                    && ParkPlacePolicy.allows(candidate.type(), candidate.categoryName());
+ 
+             case CAFE_REST -> !tour && "CE7".equals(candidate.type());
+ 
+diff --git a/src/main/java/com/planb/domain/travel/service/PlanService.java b/src/main/java/com/planb/domain/travel/service/PlanService.java
+index 72428e5..cfcd46e 100644
+--- a/src/main/java/com/planb/domain/travel/service/PlanService.java
++++ b/src/main/java/com/planb/domain/travel/service/PlanService.java
+@@ -793,7 +793,8 @@ public class PlanService {
+                 context,
+                 anchor,
+                 candidates,
+-                densityReductionDays
++                densityReductionDays,
++                currentPlan
+         );
+ 
+         validateTravelMinutes(mealFixed);
+@@ -955,7 +956,8 @@ public class PlanService {
+             TravelPlanContext context,
+             RouteAnchor anchor,
+             PlaceCandidateContext candidates,
+-            Set<Integer> densityReductionDays
++            Set<Integer> densityReductionDays,
++            GetAiPlanResponse currentPlan
+     ) {
+ 
+         if (missingMealDays(response, context.healthContexts())
+@@ -963,12 +965,36 @@ public class PlanService {
+             return response;
+         }
+ 
++        Set<String> reservedPlaces = new HashSet<>();
++        Set<String> reservedMenus = new HashSet<>();
++
++        if (currentPlan != null) {
++            Set<Integer> finishedDays = response
++                    .planDays()
++                    .stream()
++                    .map(CreatePlanAiResponse.PlanDayDetail::dayNumber)
++                    .collect(Collectors.toSet());
++
++            // 부분 편집의 보충 대상 밖 보존 날짜 예약
++            for (var day : currentPlan.planDays()) {
++                if (!finishedDays.contains(day.dayNumber())) {
++                    for (var slot : day.schedules()) {
++                        planPlaceResolver.track(
++                                planPlaceResolver.fromExisting(slot),
++                                reservedPlaces,
++                                reservedMenus
++                        );
++                    }
++                }
++            }
++        }
++
+         CreatePlanAiResponse filled = missingSlotCompleter.complete(
+                 response,
+                 context.healthContexts(),
+                 candidates,
+-                new HashSet<>(),
+-                new HashSet<>(),
++                reservedPlaces,
++                reservedMenus,
+                 densityReductionDays,
+                 context
+                         .createTravelRequest()
+@@ -976,7 +1002,7 @@ public class PlanService {
+                         .getPlusDays() + 1
+         );
+ 
+-        return scheduleNormalizer.normalizeScheduleTimes(
++        CreatePlanAiResponse normalized = scheduleNormalizer.normalizeScheduleTimes(
+                 fillMissingTravelMinutes(
+                         filled,
+                         context.createTravelRequest(),
+@@ -984,6 +1010,98 @@ public class PlanService {
+                 ),
+                 context.healthContexts()
+         );
++
++        return validateCompletedMeals(
++                response,
++                normalized,
++                candidates,
++                reservedPlaces,
++                reservedMenus
++        );
++    }
++
++    // 최종 보충 식사의 출처·좌표·중복 검증, 기존 편집 슬롯의 재선택 제외
++    private CreatePlanAiResponse validateCompletedMeals(
++            CreatePlanAiResponse original,
++            CreatePlanAiResponse completed,
++            PlaceCandidateContext candidates,
++            Set<String> reservedPlaces,
++            Set<String> reservedMenus
++    ) {
++
++        Map<MealSlotIdentity, Integer> retainedMeals = new HashMap<>();
++        Set<String> usedPlaces = new HashSet<>(reservedPlaces);
++        Set<String> usedMenus = new HashSet<>(reservedMenus);
++
++        for (var day : original.planDays()) {
++            for (var slot : day.schedules()) {
++                planPlaceResolver.track(slot, usedPlaces, usedMenus);
++
++                if (slot.courseType() == CourseType.RESTAURANT || slot.courseType() == CourseType.LOCAL_FOOD) {
++                    retainedMeals.merge(
++                            new MealSlotIdentity(
++                                    day.dayNumber(),
++                                    slot.scheduleType(),
++                                    slot.candidateId()
++                            ),
++                            1,
++                            Integer::sum
++                    );
++                }
++            }
++        }
++
++        List<CreatePlanAiResponse.PlanDayDetail> days = new ArrayList<>();
++
++        for (var day : completed.planDays()) {
++            List<CreatePlanAiResponse.PlanScheduleDetail> schedules = new ArrayList<>();
++
++            for (var slot : day.schedules()) {
++                if (slot.courseType() == CourseType.RESTAURANT || slot.courseType() == CourseType.LOCAL_FOOD) {
++                    MealSlotIdentity identity = new MealSlotIdentity(
++                            day.dayNumber(),
++                            slot.scheduleType(),
++                            slot.candidateId()
++                    );
++                    int retained = retainedMeals.getOrDefault(identity, 0);
++
++                    if (retained > 0) {
++                        retainedMeals.put(identity, retained - 1);
++                    } else {
++                        Validation validation = planPlaceResolver.validate(
++                                slot,
++                                candidates,
++                                usedPlaces,
++                                usedMenus
++                        );
++
++                        if (!validation.valid()) {
++                            throw invalidPlace(validation.reason());
++                        }
++
++                        slot = validation.schedule();
++                        planPlaceResolver.track(slot, usedPlaces, usedMenus);
++                    }
++                }
++
++                schedules.add(slot);
++            }
++
++            days.add(new CreatePlanAiResponse.PlanDayDetail(
++                    day.dayNumber(),
++                    day.date(),
++                    schedules
++            ));
++        }
++
++        return new CreatePlanAiResponse(days);
++    }
++
++    private record MealSlotIdentity(
++            Integer dayNumber,
++            ScheduleType scheduleType,
++            String candidateId
++    ) {
+     }
+ 
+     /**
+@@ -1527,7 +1645,7 @@ public class PlanService {
+                         + ", " + finalReason));
+     }
+ 
+-    // 동일 날짜·시간·유형의 기존 슬롯만 출처 재검증 후 원본 복원
++    // 동일 날짜·시간·유형의 기존 슬롯만 구조·중복 검증 후 원본 복원
+     private Optional<CreatePlanAiResponse.PlanScheduleDetail> verifiedFallback(
+             GetAiPlanResponse existing,
+             CreatePlanAiResponse.PlanDayDetail day,
+diff --git a/src/main/java/com/planb/global/client/kakaoMapService/handler/KakaoMapServiceHandler.java b/src/main/java/com/planb/global/client/kakaoMapService/handler/KakaoMapServiceHandler.java
+index 4efb428..88d6719 100644
+--- a/src/main/java/com/planb/global/client/kakaoMapService/handler/KakaoMapServiceHandler.java
++++ b/src/main/java/com/planb/global/client/kakaoMapService/handler/KakaoMapServiceHandler.java
+@@ -247,11 +247,37 @@ public class KakaoMapServiceHandler {
+             String previousLatitude
+     ) {
+ 
++        return findPlaceWithRoute(
++                keyword,
++                previousLocation,
++                transportation,
++                excludeNames,
++                categoryCode,
++                previousLongitude,
++                previousLatitude,
++                false
++        );
++    }
++
++    public Mono<PlaceWithRouteResult> findPlaceWithRoute(
++            String keyword,
++            String previousLocation,
++            Transportation transportation,
++            List<String> excludeNames,
++            String categoryCode,
++            String previousLongitude,
++            String previousLatitude,
++            boolean parksOnly
++    ) {
++
+         return searchPlace(keyword)
+                 .map(response -> kakaoPlaceSearchHelper.filterByCategory(
+                         response,
+                         categoryCode
+                 ))
++                .map(response -> parksOnly
++                        ? kakaoPlaceSearchHelper.filterParks(response, excludeNames)
++                        : response)
+                 .filter(kakaoPlaceSearchHelper::hasResult)
+                 .filter(response -> !kakaoPlaceSearchHelper.isExcluded(response, excludeNames))
+                 .flatMap(response ->
+diff --git a/src/main/java/com/planb/global/client/kakaoMapService/helper/KakaoPlaceSearchHelper.java b/src/main/java/com/planb/global/client/kakaoMapService/helper/KakaoPlaceSearchHelper.java
+index d674688..9d90670 100644
+--- a/src/main/java/com/planb/global/client/kakaoMapService/helper/KakaoPlaceSearchHelper.java
++++ b/src/main/java/com/planb/global/client/kakaoMapService/helper/KakaoPlaceSearchHelper.java
+@@ -1,6 +1,7 @@
+ package com.planb.global.client.kakaoMapService.helper;
+ 
+ import com.planb.ai.dto.response.PlaceWithRouteResult;
++import com.planb.domain.travel.policy.ParkPlacePolicy;
+ import com.planb.global.client.kakaoMapService.dto.response.KakaoPlaceSearchResponse;
+ import org.springframework.stereotype.Component;
+ 
+@@ -43,6 +44,30 @@ public class KakaoPlaceSearchHelper {
+         );
+     }
+ 
++    public KakaoPlaceSearchResponse filterParks(
++            KakaoPlaceSearchResponse response,
++            List<String> excludeNames
++    ) {
++
++        List<String> excluded = excludeNames == null ? List.of() : excludeNames;
++
++        return new KakaoPlaceSearchResponse(
++                response.meta(),
++                response
++                        .documents()
++                        .stream()
++                        .filter(place -> ParkPlacePolicy.allows(
++                                place.category_group_code(),
++                                place.category_name()
++                        ))
++                        .filter(place -> excluded
++                                .stream()
++                                .map(this::normalize)
++                                .noneMatch(normalize(place.place_name())::equals))
++                        .toList()
++        );
++    }
++
+     // 검색 결과의 대표 장소명이 이미 사용된 이름 목록(excludeNames)에 포함되는지 확인
+     // LLM이 excludeNames를 정확히 전달하지 않았더라도, 실제 검색 결과를 기준으로 다시 한번 중복 여부를 검증하는 최종 방어선
+     public boolean isExcluded(
+diff --git a/src/test/java/com/planb/unit/ai/handler/TravelRecommendHandlerContractTest.java b/src/test/java/com/planb/unit/ai/handler/TravelRecommendHandlerContractTest.java
+index 01a71ab..57472fe 100644
+--- a/src/test/java/com/planb/unit/ai/handler/TravelRecommendHandlerContractTest.java
++++ b/src/test/java/com/planb/unit/ai/handler/TravelRecommendHandlerContractTest.java
+@@ -315,8 +315,8 @@ class TravelRecommendHandlerContractTest {
+     }
+ 
+     @Test
+-    @DisplayName("초기 생성에서 상세 미조회 메뉴의 교정 사유 반환")
+-    void rejectsGenerationMenuWithoutMatchingSource() {
++    @DisplayName("초기 생성의 메뉴 출처 오류를 최종 슬롯 검증으로 전달")
++    void delegatesGenerationMenuSourceValidationToSlotRecovery() {
+ 
+         PlaceCandidateContext candidates = new PlaceCandidateContext();
+         candidates.record(restaurantItem("456", "춘천식당"));
+@@ -351,8 +351,10 @@ class TravelRecommendHandlerContractTest {
+         handler().createPlanByAi(travelPlanContext(WalkType.ACTIVE), candidates);
+ 
+         assertThat(capturedPlanValidation().apply(selection))
++                .allSatisfy(failure -> assertThat(failure)
++                        .doesNotContain("메뉴"))
+                 .anySatisfy(failure -> assertThat(failure)
+-                        .contains("음식점 상세 메뉴 미확인", "tour:456"));
++                        .contains("여행 일수"));
+     }
+ 
+     @Test
+diff --git a/src/test/java/com/planb/unit/global/ai/tool/PlanTourismToolTest.java b/src/test/java/com/planb/unit/global/ai/tool/PlanTourismToolTest.java
+index 2ca3286..fe6f54b 100644
+--- a/src/test/java/com/planb/unit/global/ai/tool/PlanTourismToolTest.java
++++ b/src/test/java/com/planb/unit/global/ai/tool/PlanTourismToolTest.java
+@@ -10,11 +10,24 @@ import com.planb.domain.travel.entity.constant.CourseType;
+ import com.planb.domain.travel.entity.constant.Transportation;
+ import com.planb.domain.travel.service.NutritionService;
+ import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
++import com.planb.global.client.kakaoMapService.KakaoMapServiceClient;
++import com.planb.global.client.kakaoMapService.dto.response.KakaoPlaceSearchResponse;
++import com.planb.global.client.kakaoMapService.helper.KakaoMapRouteHelper;
++import com.planb.global.client.kakaoMapService.helper.KakaoPlaceSearchHelper;
++import com.planb.global.client.kakaoMapService.helper.KakaoSearchKeywordSanitizer;
++import com.planb.global.client.kakaoMobilityService.KakaoMobilityServiceClient;
++import com.planb.global.client.kakaoMobilityService.helper.KakaoMobilityRouteHelper;
+ import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
+ import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
+ import com.planb.global.client.kor2Service.handler.Kor2ServiceHandler;
+ import org.junit.jupiter.api.DisplayName;
+ import org.junit.jupiter.api.Test;
++import org.junit.jupiter.params.ParameterizedTest;
++import org.junit.jupiter.params.provider.NullAndEmptySource;
++import org.junit.jupiter.params.provider.ValueSource;
++import org.junit.jupiter.params.provider.EnumSource;
++import static org.junit.jupiter.api.Assertions.assertFalse;
++import static org.junit.jupiter.api.Assertions.assertTrue;
+ import reactor.core.publisher.Mono;
+ 
+ import java.util.List;
+@@ -30,6 +43,156 @@ import static org.mockito.Mockito.when;
+ 
+ class PlanTourismToolTest {
+ 
++    @Test
++    @DisplayName("공원 산책 검색에서 앞선 호수 대신 실제 공원 후보 선택")
++    void selectsParkInsteadOfEarlierLake() {
++
++        PlaceCandidateContext candidates = new PlaceCandidateContext();
++        PlanTourismTool tool = searchTool(
++                List.of(
++                        parkSearchDocument("lake", "경포호", "여행 > 관광,명소 > 호수"),
++                        parkSearchDocument("park", "경포공원", "여행 > 관광,명소 > 공원")
++                ),
++                candidates
++        );
++
++        PlaceWithRouteResult result = tool.findPlaceWithRoute(
++                "강릉 경포공원",
++                "",
++                Transportation.CAR,
++                List.of(),
++                CourseType.PARK_WALK
++        );
++
++        assertEquals("kakao:park", result.candidateId());
++        assertNull(candidates.find("kakao:lake"));
++        assertNotNull(candidates.find("kakao:park"));
++    }
++
++    @ParameterizedTest
++    @NullAndEmptySource
++    @ValueSource(strings = {"여행 > 관광,명소 > 호수", "여행 > 관광,명소"})
++    @DisplayName("공원 근거 없는 검색 결과의 선택·후보 등록 제외")
++    void excludesCandidatesWithoutParkEvidence(String category) {
++
++        PlaceCandidateContext candidates = new PlaceCandidateContext();
++        PlanTourismTool tool = searchTool(
++                List.of(parkSearchDocument("unknown", "공원이라는 이름", category)),
++                candidates
++        );
++
++        PlaceWithRouteResult result = tool.findPlaceWithRoute(
++                "강릉 공원",
++                "",
++                Transportation.CAR,
++                List.of(),
++                CourseType.PARK_WALK
++        );
++
++        assertFalse(result.found());
++        assertNull(candidates.find("kakao:unknown"));
++    }
++
++    @ParameterizedTest
++    @EnumSource(value = CourseType.class, names = {"ATTRACTION", "MUST_HAVE"})
++    @DisplayName("일반 관광 슬롯의 호수 후보 자격 유지")
++    void preservesLakeAsOrdinaryAttraction(CourseType type) {
++
++        PlanTourismTool tool = searchTool(
++                List.of(parkSearchDocument("lake", "경포호", "여행 > 관광,명소 > 호수")),
++                new PlaceCandidateContext()
++        );
++
++        PlaceWithRouteResult result = tool.findPlaceWithRoute(
++                "강릉 경포호",
++                "",
++                Transportation.CAR,
++                List.of(),
++                type
++        );
++
++        assertTrue(result.found());
++        assertEquals("kakao:lake", result.candidateId());
++    }
++
++    @Test
++    @DisplayName("앞선 공원이 이미 사용된 경우 다음 미사용 공원 선택")
++    void selectsUnusedPark() {
++
++        PlanTourismTool tool = searchTool(
++                List.of(
++                        parkSearchDocument("used", "사용한 공원", "여행 > 공원"),
++                        parkSearchDocument("new", "새 공원", "여행 > 공원")
++                ),
++                new PlaceCandidateContext()
++        );
++
++        PlaceWithRouteResult result = tool.findPlaceWithRoute(
++                "강릉 공원",
++                "",
++                Transportation.CAR,
++                List.of("사용한 공원"),
++                CourseType.PARK_WALK
++        );
++
++        assertEquals("kakao:new", result.candidateId());
++    }
++
++    private PlanTourismTool searchTool(
++            List<KakaoPlaceSearchResponse.Document> documents,
++            PlaceCandidateContext candidates
++    ) {
++
++        KakaoMapServiceClient client = mock(KakaoMapServiceClient.class);
++        KakaoPlaceSearchResponse response = new KakaoPlaceSearchResponse(null, documents);
++        org.mockito.Mockito
++                .doReturn(Mono.just(response))
++                .when(client)
++                .get(
++                        org.mockito.ArgumentMatchers.any(),
++                        org.mockito.ArgumentMatchers.any(),
++                        org.mockito.ArgumentMatchers.eq(KakaoPlaceSearchResponse.class)
++                );
++
++        KakaoMapServiceHandler kakao = new KakaoMapServiceHandler(
++                client,
++                mock(KakaoMobilityServiceClient.class),
++                new KakaoMapRouteHelper(),
++                new KakaoMobilityRouteHelper(),
++                new KakaoSearchKeywordSanitizer(),
++                new KakaoPlaceSearchHelper()
++        );
++        TourismTool tourism = new TourismTool(
++                mock(Kor2ServiceHandler.class),
++                kakao,
++                mock(NutritionService.class),
++                new NutritionEvaluationCollector()
++        );
++        return new PlanTourismTool(tourism, candidates);
++    }
++
++    private KakaoPlaceSearchResponse.Document parkSearchDocument(
++            String id,
++            String name,
++            String category
++    ) {
++
++        return new KakaoPlaceSearchResponse.Document(
++                id,
++                name,
++                category,
++                "AT4",
++                "관광명소",
++                "",
++                "강릉시",
++                "강릉시",
++                "128.9",
++                "37.8",
++                "",
++                ""
++        );
++    }
++
+     @Test
+     @DisplayName("지역 관광지 후보의 candidateId와 장소 identity 유지")
+     void recordsRegionalAttractionCandidateIdentity() {
+diff --git a/src/test/java/com/planb/unit/global/ai/tool/TourismToolTest.java b/src/test/java/com/planb/unit/global/ai/tool/TourismToolTest.java
+index 019fbed..6b3819d 100644
+--- a/src/test/java/com/planb/unit/global/ai/tool/TourismToolTest.java
++++ b/src/test/java/com/planb/unit/global/ai/tool/TourismToolTest.java
+@@ -1009,7 +1009,8 @@ class TourismToolTest {
+                                 List.of(),
+                                 "CE7",
+                                 "129.2",
+-                                "35.8"
++                                "35.8",
++                                false
+                         )
+         )
+                 .thenReturn(Mono.just(response));
+diff --git a/src/main/java/com/planb/domain/travel/policy/ParkPlacePolicy.java b/src/main/java/com/planb/domain/travel/policy/ParkPlacePolicy.java
+new file mode 100644
+index 0000000..38c9d49
+--- /dev/null
++++ b/src/main/java/com/planb/domain/travel/policy/ParkPlacePolicy.java
+@@ -0,0 +1,19 @@
++package com.planb.domain.travel.policy;
++
++/**
++ * 검색 원본 분류에 따른 공원 산책 후보 자격
++ */
++public final class ParkPlacePolicy {
++
++    private ParkPlacePolicy() {
++    }
++
++    public static boolean allows(
++            String type,
++            String categoryName
++    ) {
++
++        return ("AT4".equals(type) || "12".equals(type))
++                && categoryName != null && categoryName.contains("공원");
++    }
++}
+diff --git a/src/test/java/com/planb/unit/domain/travel/service/PlanSelectionRecoveryContractTest.java b/src/test/java/com/planb/unit/domain/travel/service/PlanSelectionRecoveryContractTest.java
+new file mode 100644
+index 0000000..efb0360
+--- /dev/null
++++ b/src/test/java/com/planb/unit/domain/travel/service/PlanSelectionRecoveryContractTest.java
+@@ -0,0 +1,878 @@
++package com.planb.unit.domain.travel.service;
++
++import com.fasterxml.jackson.databind.ObjectMapper;
++import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
++import com.planb.ai.client.OpenAiClient;
++import com.planb.ai.context.TravelHealthContext;
++import com.planb.ai.context.PlanEditContext;
++import com.planb.ai.context.TravelPlanContext;
++import com.planb.ai.dto.response.CreatePlanAiResponse;
++import com.planb.ai.dto.response.CreatePlanSelection;
++import com.planb.ai.dto.response.EditPlanAiResponse;
++import com.planb.ai.dto.response.RebuildPlanDayResponse;
++import com.planb.ai.handler.MissingSlotCompleter;
++import com.planb.ai.handler.PlanGenerationSelectionMapper;
++import com.planb.ai.handler.TravelRecommendHandler;
++import com.planb.ai.mcp.NutritionEvaluationCollector;
++import com.planb.ai.mcp.TourismTool;
++import com.planb.domain.health.entity.constant.WalkType;
++import com.planb.domain.travel.dto.request.CreateTravelRequest;
++import com.planb.domain.travel.dto.response.GetAiPlanResponse;
++import com.planb.domain.travel.entity.constant.CourseType;
++import com.planb.domain.travel.entity.constant.DateType;
++import com.planb.domain.travel.entity.constant.ScheduleType;
++import com.planb.domain.travel.entity.constant.Transportation;
++import com.planb.domain.travel.entity.constant.TravelStyle;
++import com.planb.domain.travel.entity.constant.TravelTheme;
++import com.planb.domain.travel.helper.PlanEditValidator;
++import com.planb.domain.travel.helper.PlanPlaceResolver;
++import com.planb.domain.travel.repository.FoodNutritionCacheRepository;
++import com.planb.domain.travel.repository.PlanRepository;
++import com.planb.domain.travel.service.NutritionService;
++import com.planb.domain.travel.service.PlanService;
++import com.planb.domain.travel.service.ScheduleNormalizer;
++import com.planb.domain.travel.service.TravelMinutesResolver;
++import com.planb.global.client.foodNtrCpnt.FoodNtrCpntClient;
++import com.planb.global.client.foodNtrCpnt.handler.FoodNtrCpntHandler;
++import com.planb.global.client.foodNtrCpnt.helper.FoodNtrCpntHelper;
++import com.planb.global.client.foodNtrCpnt.properties.FoodNtrCpntProperties;
++import com.planb.global.client.kakaoMapService.KakaoMapServiceClient;
++import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
++import com.planb.global.client.kakaoMapService.helper.KakaoMapRouteHelper;
++import com.planb.global.client.kakaoMapService.helper.KakaoPlaceSearchHelper;
++import com.planb.global.client.kakaoMapService.helper.KakaoSearchKeywordSanitizer;
++import com.planb.global.client.kakaoMapService.properties.KakaoMapServiceProperties;
++import com.planb.global.client.kakaoMobilityService.KakaoMobilityServiceClient;
++import com.planb.global.client.kakaoMobilityService.helper.KakaoMobilityRouteHelper;
++import com.planb.global.client.kakaoMobilityService.properties.KakaoMobilityServiceProperties;
++import com.planb.global.client.kor2Service.Kor2ServiceClient;
++import com.planb.global.client.kor2Service.handler.Kor2ServiceHandler;
++import com.planb.global.client.kor2Service.properties.Kor2ServiceProperties;
++import com.planb.global.config.exception.AiFailure;
++import com.planb.global.config.exception.domain.AiOrchestrationException;
++import com.planb.global.config.exception.domain.BaseException;
++import com.planb.performance.external.ExternalHttpStubServer;
++import com.planb.performance.openai.OpenAiChatCompletionStub;
++import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
++import org.junit.jupiter.api.AfterEach;
++import org.junit.jupiter.api.BeforeEach;
++import org.junit.jupiter.api.DisplayName;
++import org.junit.jupiter.api.Test;
++import org.junit.jupiter.params.ParameterizedTest;
++import org.junit.jupiter.params.provider.CsvSource;
++import org.junit.jupiter.params.provider.ValueSource;
++import org.springframework.ai.chat.client.ChatClient;
++import org.springframework.ai.converter.BeanOutputConverter;
++import org.springframework.ai.openai.OpenAiChatModel;
++import org.springframework.ai.openai.OpenAiChatOptions;
++import org.springframework.http.HttpStatus;
++import org.springframework.web.reactive.function.client.ClientRequest;
++import org.springframework.web.reactive.function.client.ClientResponse;
++import org.springframework.web.reactive.function.client.WebClient;
++import reactor.core.publisher.Mono;
++
++import java.io.IOException;
++import java.io.UncheckedIOException;
++import java.nio.charset.StandardCharsets;
++import java.time.Duration;
++import java.time.LocalDate;
++import java.time.LocalTime;
++import java.util.List;
++import java.util.Map;
++import java.util.Set;
++
++import static org.assertj.core.api.Assertions.assertThat;
++import static org.assertj.core.api.Assertions.assertThatThrownBy;
++import static org.mockito.Mockito.mock;
++
++class PlanSelectionRecoveryContractTest {
++
++    private final ObjectMapper mapper = new ObjectMapper()
++            .registerModule(new JavaTimeModule())
++            .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
++
++    private final LocalDate date = LocalDate.of(2030, 1, 1);
++
++    private OpenAiChatCompletionStub ai;
++    private ExternalHttpStubServer external;
++    private PlanService service;
++    private boolean lateMealScenario;
++    private boolean partialEditScenario;
++    private String invalidLateLatitude;
++    private int lateDetailCalls;
++    private boolean mismatchedLateDetail;
++    private boolean duplicateLateMenu;
++    private boolean wrongLateCategory;
++
++    @BeforeEach
++    void startLocalBoundaries() {
++
++        ai = new OpenAiChatCompletionStub();
++        external = ExternalHttpStubServer.start(0, ExternalHttpStubServer.Settings.normal());
++        SimpleMeterRegistry registry = new SimpleMeterRegistry();
++        NutritionEvaluationCollector collector = new NutritionEvaluationCollector();
++        KakaoMapServiceHandler kakao = new KakaoMapServiceHandler(
++                new KakaoMapServiceClient(
++                        WebClient.builder(),
++                        new KakaoMapServiceProperties(
++                                external.baseUrl(ExternalHttpStubServer.Api.KAKAO_MAP),
++                                "stub"
++                        )
++                ),
++                new KakaoMobilityServiceClient(
++                        WebClient.builder(),
++                        new KakaoMobilityServiceProperties(
++                                external.baseUrl(ExternalHttpStubServer.Api.KAKAO_MOBILITY),
++                                "stub"
++                        )
++                ),
++                new KakaoMapRouteHelper(),
++                new KakaoMobilityRouteHelper(),
++                new KakaoSearchKeywordSanitizer(),
++                new KakaoPlaceSearchHelper()
++        );
++        NutritionService nutrition = new NutritionService(
++                new FoodNtrCpntHandler(
++                        new FoodNtrCpntClient(
++                                WebClient.builder(),
++                                new FoodNtrCpntProperties(
++                                        external.baseUrl(ExternalHttpStubServer.Api.FOOD_NUTRITION),
++                                        "stub"
++                                )
++                        ),
++                        new FoodNtrCpntHelper()
++                ),
++                mock(FoodNutritionCacheRepository.class),
++                registry
++        );
++        TourismTool tourism = new TourismTool(
++                new Kor2ServiceHandler(
++                        new Kor2ServiceClient(
++                                WebClient
++                                        .builder()
++                                        .exchangeFunction(this::kor2Boundary),
++                                new Kor2ServiceProperties(
++                                        external.baseUrl(ExternalHttpStubServer.Api.KOR2),
++                                        "stub"
++                                ),
++                                registry
++                        )
++                ),
++                kakao,
++                nutrition,
++                collector
++        );
++        OpenAiChatModel model = OpenAiChatModel
++                .builder()
++                .options(OpenAiChatOptions
++                        .builder()
++                        .baseUrl(ai.baseUrl())
++                        .apiKey("stub")
++                        .model("planb-stub")
++                        .maxRetries(0)
++                        .timeout(Duration.ofSeconds(5))
++                        .build())
++                .build();
++        TravelRecommendHandler handler = new TravelRecommendHandler(
++                new OpenAiClient(ChatClient.create(model), registry),
++                mapper,
++                new BeanOutputConverter<>(CreatePlanSelection.class),
++                new BeanOutputConverter<>(EditPlanAiResponse.class),
++                new BeanOutputConverter<>(RebuildPlanDayResponse.class),
++                tourism,
++                new PlanGenerationSelectionMapper()
++        );
++        PlanPlaceResolver resolver = new PlanPlaceResolver();
++        service = new PlanService(
++                mock(PlanRepository.class),
++                resolver,
++                new PlanEditValidator(),
++                new ScheduleNormalizer(resolver),
++                handler,
++                new TravelMinutesResolver(kakao, 4),
++                collector,
++                nutrition,
++                new MissingSlotCompleter(tourism),
++                registry
++        );
++    }
++
++    @AfterEach
++    void stopLocalBoundaries() {
++
++        ai.close();
++        external.close();
++    }
++
++    @Test
++    @DisplayName("실제 파이프라인의 등록 점심 보충과 원본 메뉴 확정")
++    void completesMealWithVerifiedSource() throws Exception {
++
++        ai.enqueueFixtures("selection-recovery-tools.json");
++        enqueueSelection(List.of());
++
++        CreatePlanAiResponse response = service.makePlanByAi(context());
++
++        assertThat(response
++                .planDays()
++                .getFirst()
++                .schedules())
++                .filteredOn(slot -> slot.scheduleType() == ScheduleType.LUNCH)
++                .singleElement()
++                .satisfies(slot -> {
++                    assertThat(slot.candidateId())
++                            .isEqualTo("tour:910001");
++                    assertThat(slot
++                            .restaurantDetail()
++                            .menuName())
++                            .isEqualTo("비빔밥");
++                    assertThat(slot.location())
++                            .isEqualTo("스텁시 스텁구 관광로 01");
++                    assertThat(slot.longitude())
++                            .isEqualTo("126.9750");
++                    assertThat(slot.latitude())
++                            .isEqualTo("37.5650");
++                });
++    }
++
++    @ParameterizedTest
++    @ValueSource(strings = {"", "181", "NaN"})
++    @DisplayName("늦게 보충한 아침의 원본 좌표 누락·범위·형식 오류 거부")
++    void rejectsInvalidCoordinatesInLateMealCompletion(String latitude) throws Exception {
++
++        lateMealScenario = true;
++        invalidLateLatitude = latitude;
++        ai.enqueueFixtures("selection-recovery-tools.json");
++        enqueueSelection(List.of(lunch("비빔밥")));
++
++        assertThatThrownBy(() -> service.makePlanByAi(context()))
++                .isInstanceOf(BaseException.class)
++                .hasMessageContaining("좌표");
++        assertThat(lateDetailCalls)
++                .isEqualTo(2);
++    }
++
++    @Test
++    @DisplayName("늦은 식사 보충의 유효한 출처와 정상 점심 보존")
++    void preservesHealthyMealDuringLateCompletion() throws Exception {
++
++        lateMealScenario = true;
++        ai.enqueueFixtures("selection-recovery-tools.json");
++        enqueueSelection(List.of(lunch("비빔밥")));
++
++        CreatePlanAiResponse response = service.makePlanByAi(context());
++
++        assertThat(response
++                .planDays()
++                .getFirst()
++                .schedules())
++                .filteredOn(slot -> slot.scheduleType() == ScheduleType.BREAKFAST)
++                .singleElement()
++                .satisfies(slot -> {
++                    assertThat(slot.candidateId())
++                            .isEqualTo("tour:910002");
++                    assertThat(slot
++                            .restaurantDetail()
++                            .menuName())
++                            .isEqualTo("불고기");
++                    assertThat(slot.latitude())
++                            .isEqualTo("37.5665");
++                });
++        assertThat(response
++                .planDays()
++                .getFirst()
++                .schedules())
++                .filteredOn(slot -> slot.scheduleType() == ScheduleType.LUNCH)
++                .singleElement()
++                .satisfies(slot -> {
++                    assertThat(slot.candidateId())
++                            .isEqualTo("tour:910001");
++                    assertThat(slot
++                            .restaurantDetail()
++                            .menuName())
++                            .isEqualTo("비빔밥");
++                });
++        assertThat(lateDetailCalls)
++                .isEqualTo(2);
++    }
++
++    @Test
++    @DisplayName("초기 메뉴 오류의 슬롯 복구와 뒤쪽 정상 관광지 보존")
++    void recoversOnlyInvalidMenuAndPreservesHealthySelections() throws Exception {
++
++        ai.enqueueFixtures("selection-recovery-tools.json");
++        enqueueSelection(List.of(
++                lunch("출처 없는 메뉴"),
++                attraction("tour:900001", 13),
++                attraction("tour:900002", 14)
++        ));
++        ai.enqueueFixtures("selection-recovery-reselect-tools.json");
++        ai.enqueueFixture(
++                "selection-recovery-content.json",
++                Map.of("content", mapper.writeValueAsString(
++                        "{\"selectedCandidateId\":\"tour:910003\",\"restaurantDetail\":{\"menuName\":\"칼국수\"}}"
++                ))
++        );
++
++        CreatePlanAiResponse response = service.makePlanByAi(context());
++
++        assertThat(response
++                .planDays()
++                .getFirst()
++                .schedules())
++                .filteredOn(slot -> slot.courseType() == CourseType.ATTRACTION)
++                .extracting(CreatePlanAiResponse.PlanScheduleDetail::candidateId)
++                .containsExactly("tour:900001", "tour:900002");
++        assertThat(response
++                .planDays()
++                .getFirst()
++                .schedules())
++                .filteredOn(slot -> slot.scheduleType() == ScheduleType.LUNCH)
++                .singleElement()
++                .satisfies(slot -> {
++                    assertThat(slot.candidateId())
++                            .isEqualTo("tour:910003");
++                    assertThat(slot
++                            .restaurantDetail()
++                            .menuName())
++                            .isEqualTo("칼국수");
++                });
++        assertThat(ai.requests())
++                .hasSize(4);
++    }
++
++    @ParameterizedTest
++    @CsvSource({"tour:910003,출처 없는 메뉴", "tour:unknown,칼국수", "tour:900001,칼국수"})
++    @DisplayName("유효하지 않은 메뉴·후보의 재선택 두 번 이후 생성 거부")
++    void rejectsInvalidReselectionsWithinExistingBudget(
++            String candidateId,
++            String menu
++    ) throws Exception {
++
++        ai.enqueueFixtures("selection-recovery-tools.json");
++        enqueueSelection(List.of(lunch("출처 없는 메뉴")));
++
++        for (int attempt = 0; attempt < 2; attempt++) {
++            ai.enqueueFixtures("selection-recovery-reselect-tools.json");
++            enqueueContent("{\"selectedCandidateId\":\"" + candidateId
++                    + "\",\"restaurantDetail\":{\"menuName\":\"" + menu + "\"}}");
++        }
++
++        assertThatThrownBy(() -> service.makePlanByAi(context()))
++                .isInstanceOf(BaseException.class);
++        assertThat(ai.requests())
++                .hasSize(6);
++    }
++
++    @Test
++    @DisplayName("JSON 해석 실패의 기존 응답 단위 재시도와 실패 계약 유지")
++    void preservesResponseLevelParsingFailure() {
++
++        ai.enqueueFixtures("parse-failure.json", "parse-failure.json");
++
++        assertThatThrownBy(() -> service.makePlanByAi(context()))
++                .isInstanceOf(AiOrchestrationException.class)
++                .satisfies(failure -> assertThat(((AiOrchestrationException) failure).getFailure())
++                        .isEqualTo(AiFailure.RESPONSE_UNPARSABLE));
++        assertThat(ai.requests())
++                .hasSize(2);
++    }
++
++    @ParameterizedTest
++    @ValueSource(strings = {"source", "duplicate", "category"})
++    @DisplayName("출처·메뉴 중복·유형 부적합 후보의 늦은 식사 삽입 제외")
++    void excludesUnusableLateMealCandidate(String cause) throws Exception {
++
++        lateMealScenario = true;
++        mismatchedLateDetail = cause.equals("source");
++        duplicateLateMenu = cause.equals("duplicate");
++        wrongLateCategory = cause.equals("category");
++        ai.enqueueFixtures("selection-recovery-tools.json");
++        enqueueSelection(List.of(lunch("비빔밥")));
++
++        CreatePlanAiResponse response = service.makePlanByAi(context());
++
++        // 당일 첫 아침의 필수 검증 면제, 부적합 후보의 성공 삽입 제외
++        assertThat(response
++                .planDays()
++                .getFirst()
++                .schedules())
++                .noneMatch(slot -> slot.scheduleType() == ScheduleType.BREAKFAST);
++        assertThat(response
++                .planDays()
++                .getFirst()
++                .schedules())
++                .filteredOn(slot -> slot.scheduleType() == ScheduleType.LUNCH)
++                .singleElement()
++                .satisfies(slot -> {
++                    assertThat(slot.candidateId())
++                            .isEqualTo("tour:910001");
++                    assertThat(slot
++                            .restaurantDetail()
++                            .menuName())
++                            .isEqualTo("비빔밥");
++                });
++        if (!wrongLateCategory) {
++            assertThat(lateDetailCalls)
++                .isEqualTo(2);
++        }
++    }
++
++    @Test
++    @DisplayName("부분 편집의 늦은 식사 보충에서 보존 날짜 식당·메뉴 예약 유지")
++    void reservesUntouchedDayMealsDuringPartialEdit() throws Exception {
++
++        partialEditScenario = true;
++        enqueueContent("{\"rebuildDayNumbers\":[1],\"preserveOtherDays\":true,\"densityReductionDayNumbers\":[]}");
++        ai.enqueueFixtures("selection-recovery-tools.json");
++
++        EditPlanAiResponse edited = new EditPlanAiResponse(
++                "수정 일정",
++                List.of(
++                        new CreatePlanAiResponse.PlanDayDetail(
++                                1,
++                                date,
++                                List.of(
++                                        proposedEditSlot(
++                                                ScheduleType.LUNCH,
++                                                "tour:910001",
++                                                "비빔밥",
++                                                12
++                                        ),
++                                        proposedEditSlot(
++                                                ScheduleType.ACTIVITY,
++                                                "tour:900001",
++                                                null,
++                                                13
++                                        ),
++                                        proposedEditSlot(
++                                                ScheduleType.ACTIVITY,
++                                                "tour:900002",
++                                                null,
++                                                14
++                                        )
++                                )
++                        ),
++                        new CreatePlanAiResponse.PlanDayDetail(
++                                2,
++                                date.plusDays(1),
++                                List.of()
++                        ),
++                        new CreatePlanAiResponse.PlanDayDetail(
++                                3,
++                                date.plusDays(2),
++                                List.of()
++                        )
++                ),
++                List.of("1일차 재구성"),
++                true
++        );
++        var tree = mapper.valueToTree(edited);
++        for (var day : tree.path("planDays")) {
++            for (var node : day.path("schedules")) {
++                var slot = (com.fasterxml.jackson.databind.node.ObjectNode) node;
++                slot.put(
++                        "scheduleType",
++                        slot
++                                .path("scheduleType")
++                                .path("code")
++                                .asText()
++                );
++                slot.put(
++                        "courseType",
++                        slot
++                                .path("courseType")
++                                .path("code")
++                                .asText()
++                );
++            }
++        }
++        enqueueContent(mapper.writeValueAsString(tree));
++
++        GetAiPlanResponse current = new GetAiPlanResponse(
++                "기존 일정",
++                TravelStyle.LESS_WALK,
++                TravelTheme.NATURE,
++                List.of(),
++                List.of(),
++                Set.of(),
++                List.of(
++                        new GetAiPlanResponse.PlanDayDetail(
++                                1,
++                                date,
++                                List.of(
++                                        savedSlot(
++                                                ScheduleType.ACTIVITY,
++                                                "옛 관광지",
++                                                null,
++                                                13
++                                        )
++                                )
++                        ),
++                        new GetAiPlanResponse.PlanDayDetail(
++                                2,
++                                date.plusDays(1),
++                                List.of(
++                                        savedSlot(
++                                                ScheduleType.BREAKFAST,
++                                                "둘째 날 아침 식당",
++                                                "아침 메뉴",
++                                                8
++                                        ),
++                                        savedSlot(
++                                                ScheduleType.LUNCH,
++                                                "둘째 날 점심 식당",
++                                                "점심 메뉴",
++                                                12
++                                        ),
++                                        savedSlot(
++                                                ScheduleType.ACTIVITY,
++                                                "둘째 날 관광지 A",
++                                                null,
++                                                13
++                                        ),
++                                        savedSlot(
++                                                ScheduleType.ACTIVITY,
++                                                "둘째 날 관광지 B",
++                                                null,
++                                                14
++                                        )
++                                )
++                        ),
++                        new GetAiPlanResponse.PlanDayDetail(
++                                3,
++                                date.plusDays(2),
++                                List.of(
++                                        savedSlot(
++                                                ScheduleType.BREAKFAST,
++                                                "스텁 음식점 02",
++                                                "불고기",
++                                                8
++                                        ),
++                                        savedSlot(
++                                                ScheduleType.LUNCH,
++                                                "셋째 날 점심 식당",
++                                                "셋째 메뉴",
++                                                12
++                                        )
++                                )
++                        )
++                )
++        );
++        TravelPlanContext generation = context();
++        CreateTravelRequest request = generation.createTravelRequest();
++        PlanEditContext editContext = new PlanEditContext(
++                new CreateTravelRequest(
++                        request.travelName(),
++                        request.locationDo(),
++                        request.locationSigungu(),
++                        date,
++                        DateType.TWO_NIGHTS_THREE_DAYS,
++                        Transportation.CAR,
++                        "서울역",
++                        List.of(),
++                        TravelStyle.LESS_WALK,
++                        TravelTheme.NATURE,
++                        List.of(),
++                        List.of()
++                ),
++                List.of(new TravelHealthContext(
++                        "fixture",
++                        List.of(),
++                        WalkType.MINIMAL,
++                        new TravelHealthContext.MealInfoContext(
++                                LocalTime.of(8, 0),
++                                LocalTime.of(12, 0),
++                                null
++                        ),
++                        List.of(),
++                        List.of()
++                )),
++                current,
++                "1일차만 다른 장소로 재구성"
++        );
++
++        EditPlanAiResponse response = service.makeEditPlanByAi(editContext);
++
++        assertThat(response
++                .planDays()
++                .getFirst()
++                .schedules())
++                .noneMatch(slot -> "스텁 음식점 02".equals(slot.locationName())
++                        || slot.restaurantDetail() != null
++                        && "불고기".equals(slot
++                                .restaurantDetail()
++                                .menuName()));
++        assertThat(response
++                .planDays()
++                .get(2)
++                .schedules())
++                .extracting(CreatePlanAiResponse.PlanScheduleDetail::locationName)
++                .containsExactly("스텁 음식점 02", "셋째 날 점심 식당");
++        assertThat(ai.requests())
++                .hasSize(3);
++    }
++
++    private CreatePlanAiResponse.PlanScheduleDetail proposedEditSlot(
++            ScheduleType type,
++            String candidateId,
++            String menu,
++            int hour
++    ) {
++
++        return new CreatePlanAiResponse.PlanScheduleDetail(
++                type,
++                menu == null ? CourseType.ATTRACTION : CourseType.RESTAURANT,
++                LocalTime.of(hour, 0),
++                LocalTime.of(hour + 1, 0),
++                menu == null
++                        ? "tour:900001".equals(candidateId) ? "스텁 관광지 01" : "스텁 관광지 02"
++                        : "스텁 음식점 01",
++                "AI 주소",
++                null,
++                null,
++                null,
++                null,
++                60,
++                0,
++                Set.of(),
++                null,
++                menu == null ? null : new CreatePlanAiResponse.RestaurantDetail(
++                        menu,
++                        null,
++                        null,
++                        null,
++                        null,
++                        null,
++                        null,
++                        null,
++                        null
++                ),
++                candidateId
++        );
++    }
++
++    private GetAiPlanResponse.PlanScheduleDetail savedSlot(
++            ScheduleType type,
++            String name,
++            String menu,
++            int hour
++    ) {
++
++        return new GetAiPlanResponse.PlanScheduleDetail(
++                type,
++                menu == null ? CourseType.ATTRACTION : CourseType.RESTAURANT,
++                LocalTime.of(hour, 0),
++                LocalTime.of(hour + 1, 0),
++                name,
++                "보존 주소",
++                "127.1",
++                "38.1",
++                null,
++                null,
++                60,
++                0,
++                Set.of(),
++                null,
++                menu == null ? null : new GetAiPlanResponse.RestaurantDetail(
++                        menu,
++                        null,
++                        null,
++                        null,
++                        null,
++                        "보존 주소",
++                        "127.1",
++                        "38.1",
++                        null
++                )
++        );
++    }
++
++    private void enqueueContent(String content) throws Exception {
++
++        ai.enqueueFixture(
++                "selection-recovery-content.json",
++                Map.of("content", mapper.writeValueAsString(content))
++        );
++    }
++
++    private CreatePlanSelection.ScheduleSelection attraction(
++            String candidateId,
++            int hour
++    ) {
++
++        return new CreatePlanSelection.ScheduleSelection(
++                ScheduleType.ACTIVITY,
++                CourseType.ATTRACTION,
++                LocalTime.of(hour, 0),
++                LocalTime.of(hour + 1, 0),
++                60,
++                Set.of(),
++                null,
++                candidateId
++        );
++    }
++
++    private Mono<ClientResponse> kor2Boundary(ClientRequest request) {
++
++        String path = request
++                .url()
++                .getPath();
++        String query = request
++                .url()
++                .getRawQuery();
++        String fixture = switch (path.substring(path.lastIndexOf('/') + 1)) {
++            case "areaCode2" -> query.contains("areaCode=") ? "sigungu-codes.json" : "area-codes.json";
++            case "detailIntro2" -> "detail-intro/" + (query.contains("910003") ? "910003"
++                    : query.contains("910002") ? "910002" : "910001") + ".json";
++            default -> query.contains("contentTypeId=39") ? "restaurants.json" : "attractions.json";
++        };
++
++        if (lateMealScenario && fixture.equals("detail-intro/910002.json") && ++lateDetailCalls == 1) {
++            return Mono.just(ClientResponse
++                    .create(HttpStatus.INTERNAL_SERVER_ERROR)
++                    .body("{\"error\":\"fixture unavailable\"}")
++                    .build());
++        }
++
++        try (var input = getClass().getResourceAsStream("/loadtest/kor2/" + fixture)) {
++
++            String body = new String(
++                    input.readAllBytes(),
++                    StandardCharsets.UTF_8
++            );
++
++            if ((lateMealScenario || partialEditScenario) && fixture.equals("restaurants.json")) {
++                var tree = mapper.readTree(body);
++                var items = (com.fasterxml.jackson.databind.node.ArrayNode) tree
++                        .path("response")
++                        .path("body")
++                        .path("items")
++                        .path("item");
++                while (items.size() > 2) {
++                    items.remove(items.size() - 1);
++                }
++                if (wrongLateCategory) {
++                    ((com.fasterxml.jackson.databind.node.ObjectNode) items.get(1))
++                            .put("contenttypeid", "12");
++                }
++                if (invalidLateLatitude != null) {
++                    ((com.fasterxml.jackson.databind.node.ObjectNode) items.get(1))
++                            .put("mapy", invalidLateLatitude);
++                }
++                body = mapper.writeValueAsString(tree);
++            }
++
++            if (lateMealScenario && fixture.equals("detail-intro/910002.json")) {
++                var tree = mapper.readTree(body);
++                var item = (com.fasterxml.jackson.databind.node.ObjectNode) tree
++                        .path("response")
++                        .path("body")
++                        .path("items")
++                        .path("item")
++                        .get(0);
++                if (mismatchedLateDetail) {
++                    item.put("contentid", "different-restaurant");
++                }
++                if (duplicateLateMenu) {
++                    item.put("firstmenu", "비빔밥");
++                    item.put("treatmenu", "비빔밥");
++                }
++                body = mapper.writeValueAsString(tree);
++            }
++
++            return Mono.just(ClientResponse
++                    .create(HttpStatus.OK)
++                    .header("Content-Type", "application/json")
++                    .body(body)
++                    .build());
++        } catch (IOException failure) {
++            throw new UncheckedIOException(failure);
++        }
++    }
++
++    private CreatePlanSelection.ScheduleSelection lunch(String menu) {
++
++        return new CreatePlanSelection.ScheduleSelection(
++                ScheduleType.LUNCH,
++                CourseType.RESTAURANT,
++                LocalTime.of(12, 0),
++                LocalTime.of(13, 0),
++                60,
++                Set.of(),
++                new CreatePlanSelection.RestaurantSelection(menu, null),
++                "tour:910001"
++        );
++    }
++
++    private void enqueueSelection(List<CreatePlanSelection.ScheduleSelection> schedules) throws Exception {
++
++        CreatePlanSelection selection = new CreatePlanSelection(
++                List.of(new CreatePlanSelection.PlanDaySelection(
++                        1,
++                        date,
++                        schedules
++                ))
++        );
++        var tree = mapper.valueToTree(selection);
++        var slots = tree
++                .path("planDays")
++                .get(0)
++                .path("schedules");
++
++        for (int i = 0; i < schedules.size(); i++) {
++            var slot = (com.fasterxml.jackson.databind.node.ObjectNode) slots.get(i);
++            slot.put(
++                    "scheduleType",
++                    schedules
++                            .get(i)
++                            .scheduleType()
++                            .name()
++            );
++            slot.put(
++                    "courseType",
++                    schedules
++                            .get(i)
++                            .courseType()
++                            .name()
++            );
++        }
++
++        ai.enqueueFixture(
++                "selection-recovery-content.json",
++                Map.of("content", mapper.writeValueAsString(mapper.writeValueAsString(tree)))
++        );
++    }
++
++    private TravelPlanContext context() {
++
++        return new TravelPlanContext(
++                new CreateTravelRequest(
++                        "계약 검증",
++                        "서울",
++                        "종로구",
++                        date,
++                        DateType.DAY_TRIP,
++                        Transportation.CAR,
++                        "서울역",
++                        List.of(),
++                        TravelStyle.LESS_WALK,
++                        TravelTheme.NATURE,
++                        List.of(),
++                        List.of()
++                ),
++                List.of(new TravelHealthContext(
++                        "fixture",
++                        List.of(),
++                        WalkType.MINIMAL,
++                        new TravelHealthContext.MealInfoContext(
++                                lateMealScenario ? LocalTime.of(8, 0) : null,
++                                LocalTime.of(12, 0),
++                                null
++                        ),
++                        List.of(),
++                        List.of()
++                ))
++        );
++    }
++}
+diff --git a/src/test/resources/loadtest/openai/selection-recovery-content.json b/src/test/resources/loadtest/openai/selection-recovery-content.json
+new file mode 100644
+index 0000000..f4b9cae
+--- /dev/null
++++ b/src/test/resources/loadtest/openai/selection-recovery-content.json
+@@ -0,0 +1 @@
++{"id":"chatcmpl-recovery","object":"chat.completion","created":0,"model":"planb-stub","choices":[{"index":0,"finish_reason":"stop","message":{"role":"assistant","content":{{content}}}}]}
+diff --git a/src/test/resources/loadtest/openai/selection-recovery-reselect-tools.json b/src/test/resources/loadtest/openai/selection-recovery-reselect-tools.json
+new file mode 100644
+index 0000000..49546b8
+--- /dev/null
++++ b/src/test/resources/loadtest/openai/selection-recovery-reselect-tools.json
+@@ -0,0 +1 @@
++{"id": "chatcmpl-tools", "object": "chat.completion", "created": 0, "model": "planb-stub", "choices": [{"index": 0, "finish_reason": "tool_calls", "message": {"role": "assistant", "content": null, "tool_calls": [{"id": "call_0", "type": "function", "function": {"name": "searchAttractionsByRegion", "arguments": "{\"locationDo\": \"서울\", \"locationSigungu\": \"종로구\"}"}}, {"id": "call_1", "type": "function", "function": {"name": "searchRestaurantsByLocation", "arguments": "{\"keyword\": \"비빔밥\", \"locationDo\": \"서울\", \"locationSigungu\": \"종로구\"}"}}, {"id": "call_2", "type": "function", "function": {"name": "getRestaurantDetail", "arguments": "{\"contentId\": \"910003\"}"}}]}}]}
+\ No newline at end of file
+diff --git a/src/test/resources/loadtest/openai/selection-recovery-tools.json b/src/test/resources/loadtest/openai/selection-recovery-tools.json
+new file mode 100644
+index 0000000..6d33aa6
+--- /dev/null
++++ b/src/test/resources/loadtest/openai/selection-recovery-tools.json
+@@ -0,0 +1 @@
++{"id": "chatcmpl-tools", "object": "chat.completion", "created": 0, "model": "planb-stub", "choices": [{"index": 0, "finish_reason": "tool_calls", "message": {"role": "assistant", "content": null, "tool_calls": [{"id": "call_0", "type": "function", "function": {"name": "searchAttractionsByRegion", "arguments": "{\"locationDo\": \"서울\", \"locationSigungu\": \"종로구\"}"}}, {"id": "call_1", "type": "function", "function": {"name": "searchRestaurantsByLocation", "arguments": "{\"keyword\": \"비빔밥\", \"locationDo\": \"서울\", \"locationSigungu\": \"종로구\"}"}}, {"id": "call_2", "type": "function", "function": {"name": "getRestaurantDetail", "arguments": "{\"contentId\": \"910001\"}"}}]}}]}
+\ No newline at end of file

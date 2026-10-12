@@ -1,0 +1,6 @@
+{
+  "baselineRunId": "2026-10-11T03-03-33.798400Z",
+  "baselineReport": "p2-selection-menu-postfix-actual-quality-20261011.json",
+  "baselineRawLocation": "/private/tmp/planb-selection-contract-177/build/llm-quality-baseline/raw/2026-10-11T03-03-33.798400Z",
+  "comparisonDefinition": "Same case/repeat/seed; different provider responses and timestamps; not response-identical pairs"
+}

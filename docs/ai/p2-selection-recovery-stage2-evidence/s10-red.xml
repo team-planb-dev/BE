@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest" tests="1" skipped="0" failures="1" errors="0" timestamp="2026-10-11T11:01:46.213Z" hostname="gang-ujuui-MacBookPro.local" time="2.368">
+  <properties/>
+  <testcase name="늦게 보충한 아침의 원본 좌표 누락 거부" classname="com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest" time="2.368">
+    <failure message="java.lang.AssertionError: &#10;Expecting code to raise a throwable." type="java.lang.AssertionError">java.lang.AssertionError: 
+Expecting code to raise a throwable.
+	at com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest.rejectsInvalidCoordinatesInLateMealCompletion(PlanSelectionRecoveryContractTest.java:197)
+</failure>
+  </testcase>
+  <system-out><![CDATA[20:01:48.164 [Test worker] INFO com.planb.ai.mcp.TourismTool -- [AI TOOL] 지역 관광지 후보 조회 호출 - locationDo: 서울, locationSigungu: 종로구
+20:01:48.269 [Test worker] INFO com.planb.ai.mcp.TourismTool -- [AI TOOL] 지역 음식점 검색 호출 - keyword: 비빔밥, locationDo: 서울, locationSigungu: 종로구
+20:01:48.274 [Test worker] INFO com.planb.ai.mcp.TourismTool -- [AI TOOL] 음식점 상세정보 호출 - contentId: 910001
+20:01:48.328 [Test worker] INFO com.planb.ai.handler.MissingSlotCompleter -- [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 관광지 03, startTime: 13:20
+20:01:48.329 [Test worker] INFO com.planb.ai.handler.MissingSlotCompleter -- [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 관광지 02, startTime: 14:40
+20:01:48.332 [Test worker] INFO com.planb.ai.mcp.TourismTool -- [AI TOOL] 음식점 상세정보 호출 - contentId: 910002
+20:01:48.343 [Test worker] WARN com.planb.global.client.kor2Service.Kor2ServiceClient -- [TOURAPI] 비정상 응답 - endpoint: detailIntro2, outcome: http_500
+20:01:48.345 [Test worker] INFO com.planb.ai.handler.MissingSlotCompleter -- [SLOT FILL] 음식점 상세 조회 실패로 후보 제외 - locationName: 스텁 음식점 02, 원인: org.springframework.web.reactive.function.client.WebClientResponseException$InternalServerError: 500 Internal Server Error from UNKNOWN 
+20:01:48.345 [Test worker] INFO com.planb.ai.handler.MissingSlotCompleter -- [SLOT FILL] 식사 슬롯 보정 실패 - scheduleType: BREAKFAST, 검색 음식점 후보 수: 2
+20:01:48.417 [Test worker] ERROR io.netty.resolver.dns.DnsServerAddressStreamProviders -- Unable to load io.netty.resolver.dns.macos.MacOSDnsServerAddressStreamProvider, fallback to system defaults. This may result in incorrect DNS resolutions on MacOS. Check whether you have a dependency on 'io.netty:netty-resolver-dns-native-macos'. Use DEBUG level to see the full stack: java.lang.UnsatisfiedLinkError: failed to load the required native library
+20:01:48.532 [Test worker] INFO com.planb.ai.mcp.TourismTool -- [AI TOOL] 음식점 상세정보 호출 - contentId: 910002
+20:01:48.534 [Test worker] INFO com.planb.ai.handler.MissingSlotCompleter -- [SLOT FILL] 식사 슬롯 보정 - scheduleType: BREAKFAST, locationName: 스텁 음식점 02, startTime: 08:00
+]]></system-out>
+  <system-err><![CDATA[Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (/Users/wooju-kang/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy-agent/1.17.8/f09415827a71be7ed621c7bd02550678f28bc81c/byte-buddy-agent-1.17.8.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+]]></system-err>
+</testsuite>

@@ -1,0 +1,149 @@
+{
+  "date": "2026-10-11",
+  "issue": 179,
+  "branch": "codex/179-refactor-align-travel-park-eligibility-and-failure-local-recovery",
+  "baseCommit": "f236f953f6ca3dd55cbb67f1e20142c0fe4ec280",
+  "baseTree": "8624362e2467e12a80c821ef623e92df367e579e",
+  "state": "local implementation, free regression and actual generation evaluation complete; uncommitted, no PR or merge",
+  "command": "JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-21.jdk/Contents/Home ./gradlew test --console plain",
+  "fullRegression": {
+    "tests": 929,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "fullBeforePartialEditFix": {
+    "tests": 928,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "targetedAfterPartialEditFix": {
+    "tests": 79,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "externalTaggedTests": "excluded by Gradle test task",
+  "liveModelQuality": "measured primary/watch gates pass; full quality and actual park selection improvement NOT_PROVEN",
+  "grafanaLoadTest": "NOT_RUN",
+  "reviews": [
+    {
+      "round": 1,
+      "score": 9.3,
+      "critical": 0,
+      "important": 0,
+      "minor": 1,
+      "action": "formatting addressed"
+    },
+    {
+      "round": 2,
+      "score": 8.7,
+      "critical": 0,
+      "important": 1,
+      "minor": 0,
+      "action": "partial edit cross-day meal reservation reproduced RED and fixed GREEN"
+    },
+    {
+      "round": 3,
+      "score": 9.3,
+      "critical": 0,
+      "important": 0,
+      "minor": 0,
+      "action": "passed"
+    }
+  ],
+  "redGreen": [
+    {
+      "slice": "park eligibility",
+      "red": "first lake returned instead of later park"
+    },
+    {
+      "slice": "late completion",
+      "red": "out-of-range source latitude 181 accepted"
+    },
+    {
+      "slice": "local menu recovery",
+      "red": "whole response correction consumed slot-reselection fixture"
+    },
+    {
+      "slice": "partial edit preservation",
+      "red": "untouched day3 restaurant02/menu duplicated into day1"
+    }
+  ],
+  "semanticLimits": [
+    "AT4 is broad; park evidence depends on provider category_name",
+    "two slot attempts do not bound SDK retries, tool loop or physical HTTP requests",
+    "healthy selection identity retained; derived route/time/tag values can change",
+    "HIGH serving size, opening hours and actual ingredients remain outside validation"
+  ],
+  "codeSha256": {
+    "src/main/java/com/planb/ai/handler/TravelRecommendHandler.java": "a4775537039dcac53d5fd79cb8e777da75dbc67a346e71c2e0a7868ac3166b24",
+    "src/main/java/com/planb/ai/mcp/PlanTourismTool.java": "bb32ec4a36db337fd7abaccb1e3fb82e2cab9aea48445174401448fb7f9750cd",
+    "src/main/java/com/planb/ai/mcp/TourismTool.java": "3badc23c9068d948a18b5bf6fc51b309f0748177f9335ff70a370b857de5a3c1",
+    "src/main/java/com/planb/domain/travel/helper/PlanPlaceResolver.java": "f3481cb1510ce83a83ad78b762ff9e990b7514db1c6a5150d53dc94c2dc3e7bc",
+    "src/main/java/com/planb/domain/travel/policy/ParkPlacePolicy.java": "43b83a1f4889d74ccf2ec885e2a6b8ce75f3c921afe0ab77b76c6642864c1541",
+    "src/main/java/com/planb/domain/travel/service/PlanService.java": "1ed2a4efd11dd52f56e0b0d7f452a38a8c5f5ac8c9f7eb35f7288a31cbb51fe3",
+    "src/main/java/com/planb/global/client/kakaoMapService/handler/KakaoMapServiceHandler.java": "8d2fe6353825bd0925e1e1a897462a2219bf2b38eb644142d4f0390ed616fd69",
+    "src/main/java/com/planb/global/client/kakaoMapService/helper/KakaoPlaceSearchHelper.java": "6971f922a0aef726853a36820110ed95e85a7614846e105bde3c55c93d72743e",
+    "src/test/java/com/planb/unit/ai/handler/TravelRecommendHandlerContractTest.java": "78969aa8a31de30aa37944cdf34c5012c88d7a5e672b61d0abe662237a01b61c",
+    "src/test/java/com/planb/unit/domain/travel/service/PlanSelectionRecoveryContractTest.java": "ee94ff03d10b80449050d7655dcb6082759fff42bdd06a0c8c7a644e5ff36438",
+    "src/test/java/com/planb/unit/global/ai/tool/PlanTourismToolTest.java": "ca43a55ed2ab5f36b2fd4157c5eb6236c9e59b16dde8170b999df44fb18f5b0c",
+    "src/test/java/com/planb/unit/global/ai/tool/TourismToolTest.java": "01b46697ee2ba903ae8b68a1c911067392de14482f6a71d5cbadb9b499cd8ef8",
+    "src/test/resources/loadtest/openai/selection-recovery-content.json": "97a102cc6c3f124d4c03428a5909e88f7aead9aa147c5435498e9558432fc18d",
+    "src/test/resources/loadtest/openai/selection-recovery-reselect-tools.json": "e74fe1f5cce2f54bbcd4c5f50caeae6145fa710c51e5c443fad84f85a636d682",
+    "src/test/resources/loadtest/openai/selection-recovery-tools.json": "1e9dee048baff04af03d9d1b3a55c54693cad7b669184e0313bca6cae010955c"
+  },
+  "patchSha256": "67b1dec1b8d2f2ee3741ec370227138ef7dfc649412e13197cbb032972eb63f4",
+  "qualityGate": {
+    "minimumScore": 9,
+    "minimumIndependentReviews": 2,
+    "completedReviews": 3,
+    "finalScore": 9.3,
+    "critical": 0,
+    "important": 0
+  },
+  "postRegressionFormatting": "argument line-breaks only; compileTestJava passed, no behavior change",
+  "freeValidationLiveProviderCalls": 0,
+  "liveProviderCalls": "performed by one authorized 12-generation batch; total provider count not inferred from generation attempts",
+  "actualApiEvaluation": {
+    "runId": "2026-10-11T11-45-59.495191Z",
+    "generationAttempts": 12,
+    "generationPass": 12,
+    "editAttempts": 0,
+    "summary": "p2-selection-recovery-stage2-actual-quality-20261011.json",
+    "sourceManifest": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/actual-api-run-manifest.json",
+    "allMeasuredPrimaryGatesPassed": true,
+    "primaryQualityGates": {
+      "passCountAtLeastR0MinusOne": true,
+      "allergenKeywordProxyZero": true,
+      "crossDayDuplicatePlacesZero": true,
+      "plannedPlaceAtLeastR0MinusOne": true
+    },
+    "watchMetrics": {
+      "nutritionDropWithin10pp": true,
+      "legacyMenuMatchDropWithin10pp": true,
+      "cafeRestAtLeastHalf": true,
+      "travelMinutesMedianIncreaseWithin20percent": true,
+      "tagsPerAttractionDropWithin30percent": true,
+      "HIGH": "not_measured",
+      "openingHoursMismatch": "not_measured"
+    }
+  },
+  "grafanaObservation": {
+    "uid": "p2-selection-stage2",
+    "url": "http://localhost:3000/d/p2-selection-stage2/5a24d2d?from=2026-10-11T03%3A02%3A33.798400%2B00%3A00&to=2026-10-11T11%3A55%3A56.761723%2B00%3A00&timezone=browser&orgId=1",
+    "dataKind": "imported real API evaluation gauges; not live scrape or k6",
+    "numericPanelsVerified": 23,
+    "previousQualityPanelsUnchanged": 17,
+    "fullQualitySolved": false
+  },
+  "measurementReview": {
+    "finalScore": 9.3,
+    "critical": 0,
+    "important": 0,
+    "minor": 0,
+    "rounds": 3,
+    "evidence": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/measurement-review.json"
+  }
+}

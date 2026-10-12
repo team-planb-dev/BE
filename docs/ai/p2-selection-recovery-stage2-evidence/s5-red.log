@@ -1,0 +1,26 @@
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :compileTestJava
+> Task :processTestResources UP-TO-DATE
+> Task :testClasses
+Java HotSpot(TM) 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :test FAILED
+
+PlanSelectionRecoveryContractTest > 초기 메뉴 오류의 슬롯 복구와 뒤쪽 정상 관광지 보존 FAILED
+    com.planb.global.config.exception.domain.AiOrchestrationException at PlanSelectionRecoveryContractTest.java:249
+
+1 test completed, 1 failed
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':test'.
+> There were failing tests. See the report at: file:///private/tmp/planb-stage2-179/build/reports/tests/test/index.html
+
+* Try:
+> Run with --scan to generate a Build Scan (powered by Develocity).
+
+BUILD FAILED in 4s
+5 actionable tasks: 2 executed, 3 up-to-date

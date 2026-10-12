@@ -1,0 +1,266 @@
+{
+  "comparisonSource": "prior-grafana-query-verification.json",
+  "sourceSha256": "00b346d195efd2b1d6e1a8df10b541072c6b0a30c2070eac844a893e164f44b7",
+  "priorCheckedAt": "2026-10-11T06:45:44.484740+00:00",
+  "currentCheckedAt": "2026-10-11T11:56:14.755265+00:00",
+  "previousPanelCount": 17,
+  "allPreviousPanelValuesUnchanged": true,
+  "entireTSDBCompared": false,
+  "queries": [
+    {
+      "panel": "생성 구조 검사 통과 / 12",
+      "expression": "sum by (phase) (last_over_time(planb_selection_quality_pass[30d]))",
+      "previousValues": {
+        "#177-menu-fix": 11.0,
+        "#177-selection": 10.0,
+        "P2-4A": 12.0
+      },
+      "currentValues": {
+        "#177-menu-fix": 11.0,
+        "#177-selection": 10.0,
+        "P2-4A": 12.0
+      },
+      "preserved": true
+    },
+    {
+      "panel": "지정 장소 포함 실행 (성공 응답)",
+      "expression": "sum by (phase) (last_over_time(planb_selection_quality_plannedPlaceIncluded[30d]))",
+      "previousValues": {
+        "#177-menu-fix": 11.0,
+        "#177-selection": 10.0,
+        "P2-4A": 12.0
+      },
+      "currentValues": {
+        "#177-menu-fix": 11.0,
+        "#177-selection": 10.0,
+        "P2-4A": 12.0
+      },
+      "preserved": true
+    },
+    {
+      "panel": "날짜 간 장소 중복",
+      "expression": "sum by (phase) (last_over_time(planb_selection_quality_crossDayDuplicatePlaces[30d]))",
+      "previousValues": {
+        "#177-menu-fix": 0.0,
+        "#177-selection": 0.0,
+        "P2-4A": 0.0
+      },
+      "currentValues": {
+        "#177-menu-fix": 0.0,
+        "#177-selection": 0.0,
+        "P2-4A": 0.0
+      },
+      "preserved": true
+    },
+    {
+      "panel": "알레르기 키워드 적중 — 성분 확정 아님",
+      "expression": "sum by (phase) (last_over_time(planb_selection_quality_allergenHits[30d]))",
+      "previousValues": {
+        "#177-menu-fix": 0.0,
+        "#177-selection": 1.0,
+        "P2-4A": 0.0
+      },
+      "currentValues": {
+        "#177-menu-fix": 0.0,
+        "#177-selection": 1.0,
+        "P2-4A": 0.0
+      },
+      "preserved": true
+    },
+    {
+      "panel": "기존 메뉴 출처 proxy 일치율 — 부분 문자열",
+      "expression": "sum by (phase) (last_over_time(planb_selection_quality_menu_matched[30d])) / sum by (phase) (last_over_time(planb_selection_quality_menu_checked[30d]))",
+      "previousValues": {
+        "#177-menu-fix": 1.0,
+        "#177-selection": 1.0,
+        "P2-4A": 1.0
+      },
+      "currentValues": {
+        "#177-menu-fix": 1.0,
+        "#177-selection": 1.0,
+        "P2-4A": 1.0
+      },
+      "preserved": true
+    },
+    {
+      "panel": "필수 식사 존재 — 첫 아침·마지막 저녁 면제",
+      "expression": "last_over_time(planb_selection_raw_required_meals_present[30d]) / last_over_time(planb_selection_raw_required_meals_expected[30d])",
+      "previousValues": {
+        "#177-menu-fix": 1.0,
+        "#177-selection": 1.0,
+        "P2-4A": 1.0
+      },
+      "currentValues": {
+        "#177-menu-fix": 1.0,
+        "#177-selection": 1.0,
+        "P2-4A": 1.0
+      },
+      "preserved": true
+    },
+    {
+      "panel": "복약 deterministic 계약 충족일 비율",
+      "expression": "last_over_time(planb_selection_raw_medication_days_matched[30d]) / last_over_time(planb_selection_raw_medication_days_checked[30d])",
+      "previousValues": {
+        "#177-menu-fix": 1.0,
+        "#177-selection": 1.0,
+        "P2-4A": 1.0
+      },
+      "currentValues": {
+        "#177-menu-fix": 1.0,
+        "#177-selection": 1.0,
+        "P2-4A": 1.0
+      },
+      "preserved": true
+    },
+    {
+      "panel": "필수 식사 등록시각 ±30분 — 관찰 지표",
+      "expression": "last_over_time(planb_selection_raw_required_meals_on_time[30d]) / last_over_time(planb_selection_raw_required_meals_present[30d])",
+      "previousValues": {
+        "#177-menu-fix": 0.9318181818181818,
+        "#177-selection": 0.925,
+        "P2-4A": 0.9166666666666666
+      },
+      "currentValues": {
+        "#177-menu-fix": 0.9318181818181818,
+        "#177-selection": 0.925,
+        "P2-4A": 0.9166666666666666
+      },
+      "preserved": true
+    },
+    {
+      "panel": "식사시각 태그 불일치",
+      "expression": "last_over_time(planb_selection_raw_meal_tag_mismatches[30d])",
+      "previousValues": {
+        "#177-menu-fix": 0.0,
+        "#177-selection": 0.0,
+        "P2-4A": 0.0
+      },
+      "currentValues": {
+        "#177-menu-fix": 0.0,
+        "#177-selection": 0.0,
+        "P2-4A": 0.0
+      },
+      "preserved": true
+    },
+    {
+      "panel": "필수 필드 오류 슬롯",
+      "expression": "last_over_time(planb_selection_raw_place_field_invalid_slots[30d])",
+      "previousValues": {
+        "#177-menu-fix": 0.0,
+        "#177-selection": 0.0,
+        "P2-4A": 0.0
+      },
+      "currentValues": {
+        "#177-menu-fix": 0.0,
+        "#177-selection": 0.0,
+        "P2-4A": 0.0
+      },
+      "preserved": true
+    },
+    {
+      "panel": "영양 채움 proxy — carbohydrate 숫자",
+      "expression": "sum by (phase) (last_over_time(planb_selection_quality_nutritionFilled[30d])) / sum by (phase) (last_over_time(planb_selection_quality_restaurantSlots[30d]))",
+      "previousValues": {
+        "#177-menu-fix": 0.45454545454545453,
+        "#177-selection": 0.5,
+        "P2-4A": 0.5
+      },
+      "currentValues": {
+        "#177-menu-fix": 0.45454545454545453,
+        "#177-selection": 0.5,
+        "P2-4A": 0.5
+      },
+      "preserved": true
+    },
+    {
+      "panel": "영양 3필드 숫자 — 정확성 검증 아님",
+      "expression": "last_over_time(planb_selection_raw_all_nutrition_fields_filled[30d]) / last_over_time(planb_selection_raw_restaurant_slots[30d])",
+      "previousValues": {
+        "#177-menu-fix": 0.45454545454545453,
+        "#177-selection": 0.5,
+        "P2-4A": 0.5
+      },
+      "currentValues": {
+        "#177-menu-fix": 0.45454545454545453,
+        "#177-selection": 0.5,
+        "P2-4A": 0.5
+      },
+      "preserved": true
+    },
+    {
+      "panel": "이동시간 누락·음수 슬롯",
+      "expression": "last_over_time(planb_selection_raw_route_invalid_slots[30d])",
+      "previousValues": {
+        "#177-menu-fix": 0.0,
+        "#177-selection": 0.0,
+        "P2-4A": 0.0
+      },
+      "currentValues": {
+        "#177-menu-fix": 0.0,
+        "#177-selection": 0.0,
+        "P2-4A": 0.0
+      },
+      "preserved": true
+    },
+    {
+      "panel": "candidateId 누락·형식 오류 슬롯",
+      "expression": "last_over_time(planb_selection_raw_identity_invalid_slots[30d])",
+      "previousValues": {
+        "#177-menu-fix": 0.0,
+        "#177-selection": 0.0,
+        "P2-4A": 0.0
+      },
+      "currentValues": {
+        "#177-menu-fix": 0.0,
+        "#177-selection": 0.0,
+        "P2-4A": 0.0
+      },
+      "preserved": true
+    },
+    {
+      "panel": "CAFE_REST 슬롯 수",
+      "expression": "sum by (phase) (last_over_time(planb_selection_quality_cafeRestSlots[30d]))",
+      "previousValues": {
+        "#177-menu-fix": 12.0,
+        "#177-selection": 10.0,
+        "P2-4A": 11.0
+      },
+      "currentValues": {
+        "#177-menu-fix": 12.0,
+        "#177-selection": 10.0,
+        "P2-4A": 11.0
+      },
+      "preserved": true
+    },
+    {
+      "panel": "성공 응답 시간 중앙값 — 보조",
+      "expression": "quantile by (phase) (0.5,last_over_time(planb_selection_quality_duration_seconds{outcome=\"PASS\"}[30d]))",
+      "previousValues": {
+        "#177-menu-fix": 20.399,
+        "#177-selection": 28.374000000000002,
+        "P2-4A": 19.985999999999997
+      },
+      "currentValues": {
+        "#177-menu-fix": 20.399,
+        "#177-selection": 28.374000000000002,
+        "P2-4A": 19.985999999999997
+      },
+      "preserved": true
+    },
+    {
+      "panel": "전체 생성 시도의 모델 호출 수 — 보조",
+      "expression": "sum by (phase) (last_over_time(planb_selection_quality_llm_calls[30d]))",
+      "previousValues": {
+        "#177-menu-fix": 73.0,
+        "#177-selection": 81.0,
+        "P2-4A": 61.0
+      },
+      "currentValues": {
+        "#177-menu-fix": 73.0,
+        "#177-selection": 81.0,
+        "P2-4A": 61.0
+      },
+      "preserved": true
+    }
+  ]
+}

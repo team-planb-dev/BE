@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest" tests="1" skipped="0" failures="1" errors="0" timestamp="2026-10-11T11:03:28.876Z" hostname="gang-ujuui-MacBookPro.local" time="2.08">
+  <properties/>
+  <testcase name="초기 메뉴 오류의 슬롯 복구와 뒤쪽 정상 관광지 보존" classname="com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest" time="2.08">
+    <failure message="com.planb.global.config.exception.domain.AiOrchestrationException: AI 구조화 응답 검증에 실패했습니다. [planDays: 일정 응답이 없습니다.]" type="com.planb.global.config.exception.domain.AiOrchestrationException">com.planb.global.config.exception.domain.AiOrchestrationException: AI 구조화 응답 검증에 실패했습니다. [planDays: 일정 응답이 없습니다.]
+	at app//com.planb.ai.client.OpenAiClient.callAndValidate(OpenAiClient.java:307)
+	at app//com.planb.ai.client.OpenAiClient.lambda$call$4(OpenAiClient.java:230)
+	at app//com.planb.ai.client.OpenAiClient.retry(OpenAiClient.java:255)
+	at app//com.planb.ai.client.OpenAiClient.call(OpenAiClient.java:228)
+	at app//com.planb.ai.handler.TravelRecommendHandler.createPlanByAi(TravelRecommendHandler.java:121)
+	at app//com.planb.domain.travel.service.PlanService.lambda$makePlanByAi$0(PlanService.java:177)
+	at app//com.planb.domain.travel.service.PlanService.recordStage(PlanService.java:247)
+	at app//com.planb.domain.travel.service.PlanService.makePlanByAi(PlanService.java:174)
+	at app//com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest.recoversOnlyInvalidMenuAndPreservesHealthySelections(PlanSelectionRecoveryContractTest.java:249)
+</failure>
+  </testcase>
+  <system-out><![CDATA[20:03:30.716 [Test worker] INFO com.planb.ai.mcp.TourismTool -- [AI TOOL] 지역 관광지 후보 조회 호출 - locationDo: 서울, locationSigungu: 종로구
+20:03:30.844 [Test worker] INFO com.planb.ai.mcp.TourismTool -- [AI TOOL] 지역 음식점 검색 호출 - keyword: 비빔밥, locationDo: 서울, locationSigungu: 종로구
+20:03:30.857 [Test worker] INFO com.planb.ai.mcp.TourismTool -- [AI TOOL] 음식점 상세정보 호출 - contentId: 910001
+20:03:30.917 [Test worker] WARN com.planb.ai.client.OpenAiClient -- AI 구조화 응답 검증 실패 (시도 1/2). correction 요청으로 1회 재시도합니다. 사유: [planDays[day1].schedules[12:00]: 음식점 메뉴 원본 불일치: tour:910001 / 선택 메뉴(JSON): "출처 없는 메뉴" / 선택 가능 메뉴(JSON 배열): ["비빔밥","공깃밥"] / 배열의 문자열 하나를 괄호 내부 표현까지 그대로 선택]
+20:03:30.934 [Test worker] INFO com.planb.ai.mcp.TourismTool -- [AI TOOL] 지역 음식점 검색 호출 - keyword: 비빔밥, locationDo: 서울, locationSigungu: 종로구
+20:03:30.937 [Test worker] INFO com.planb.ai.mcp.TourismTool -- [AI TOOL] 음식점 상세정보 호출 - contentId: 910003
+20:03:30.943 [Test worker] WARN com.planb.ai.client.OpenAiClient -- AI 구조화 응답 검증 실패 (시도 2/2). 사유: [planDays: 일정 응답이 없습니다.]
+]]></system-out>
+  <system-err><![CDATA[Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (/Users/wooju-kang/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy-agent/1.17.8/f09415827a71be7ed621c7bd02550678f28bc81c/byte-buddy-agent-1.17.8.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+]]></system-err>
+</testsuite>

@@ -1,0 +1,313 @@
+diff --git a/docs/ai/p2-meal-time-window-diagnosis-result.md b/docs/ai/p2-meal-time-window-diagnosis-result.md
+new file mode 100644
+index 0000000..7b8e729
+--- /dev/null
++++ b/docs/ai/p2-meal-time-window-diagnosis-result.md
+@@ -0,0 +1,229 @@
++# Part 2 식사 시간 창 밖 점심 진단 결과 (Claude → Codex)
++
++작성일: 2026-10-12
++작업 구간: 2026-10-12 00:59 KST 시작, 상한 03:59 KST(3시간), 종료 01:20 KST
++범위: 후속 3단계 "Java 필수 일정 골격 필요성 판단" 중 기존 식사·시간표 정책 진단. P2-5A 날짜별 AI fan-out과 무관
++판정: **정규화 코드 결함 0건. 운영 코드 미수정. 필수 일정 골격 도입 보류 권고**
++
++## 1. 기준 코드
++
++| 항목 | 값 |
++|---|---|
++| 기준 commit | `f236f953f6ca3dd55cbb67f1e20142c0fe4ec280` |
++| 브랜치(원본 트리) | `codex/179-refactor-align-travel-park-eligibility-and-failure-local-recovery` |
++| #179 patch | `/private/tmp/planb-stage2-179/docs/ai/p2-selection-recovery-stage2-evidence/implementation.patch` |
++| patch SHA256 | `67b1dec1b8d2f2ee3741ec370227138ef7dfc649412e13197cbb032972eb63f4` (착수 시 재계산 일치) |
++| 실험 checkout | `/private/tmp/claude-501/-Users-wooju-kang-Desktop-planB/43c006b7-c902-4420-8fd1-03aa8e8f44d8/scratchpad/meal-diag` (`git clone --shared` 후 기준 commit checkout, patch 적용) |
++| patch 적용 파일 | 15개. 원본 트리 15개 파일과 `cmp` 전부 동일 |
++| 전체 `src` 비교 | 원본 트리와 차이는 빌드 산출물 `src/main/generated` Q 클래스뿐 |
++| 적용 직후 snapshot | clone 내부 commit `cea48425ceec6cac1a5c35b0f5add7fb26432134`, tree `a9b45cdfdba079563dfea63a192371a3c146b81f` |
++
++원본 Codex 작업 트리에서는 checkout·reset·stash·commit을 하지 않음. snapshot commit은 실험 clone 안에만 존재함.
++
++## 2. 재계수
++
++정시 기준: 설정 시각과 일정 시작 시각의 차이 ±30분 이내. 정각 시작이나 실제 식사 시각을 뜻하지 않음.
++모든 케이스의 동행인 식사 설정은 아침 08:00·점심 12:00·저녁 18:00로 동일함(`TravelLlmQualityBaselineTest.addCompanion`).
++
++| 구분 | 이전(#177 계약, runId `2026-10-11T03-03-33.798400Z`) | 이후(#179, runId `2026-10-11T11-45-59.495191Z`) |
++|---|---|---|
++| 필수 식사 분모 | 44(성공 11회 × 2일 × 2끼, 실패 1회 제외) | 48(12회 중 성공 12회 × 2일 × 2끼) |
++| 필수 식사 정시 | 41/44 | 42/48 |
++| 창 밖 필수 식사 | 3건, 전부 점심 | 6건, 전부 점심 |
++| 최대 지연 | 235분 | 129분 |
++| 식사 시간 태그 불일치 | 0 | 0 |
++
++- 빈도는 3건에서 6건으로 늘고, 최대 지연은 235분에서 129분으로 줄었음
++- 서로 다른 모델 응답이므로 #179 변경의 직접 원인으로 단정하지 않음
++- 필수 판정에서 면제되는 첫날 아침과 마지막 날 저녁은 분모에서 제외함. 면제 슬롯 중 이후 실행 C3-3 2일차 저녁 20:55(+175분) 1건은 창 밖임(필수 판정 밖, 참고)
++- 재계수 원본: 이전 `/private/tmp/planb-selection-contract-177/build/llm-quality-baseline/raw/2026-10-11T03-03-33.798400Z/`, 이후 `/private/tmp/planb-stage2-179/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/`
++- `/private/tmp/planb-stage2-179/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/supplemental-raw-quality.json`의 `before`·`after` 판정과 일치함
++
++## 3. 호출 순서와 책임
++
++`PlanService.finishPlan` 순서:
++
++1. `fillMissingTravelMinutes`: 이동시간 확정
++2. `validateTravelMinutes`
++3. `ScheduleNormalizer.normalizeScheduleTimes`: 시작·종료 시각 확정
++4. `refillMissingMeals`(`MissingSlotCompleter`): 누락 식사 보충 후 이동시간 재계산·정규화 재실행. 보충된 점심도 최종 시각은 정규화 결과임
++5. `validateTravelMinutes`, `validateMealSlots`: 필수 식사 존재 검증
++6. 영양 enrichment
++7. `ScheduleNormalizer.ensureMedicationSchedules`: 최종 식사 시각 기준 복약 생성
++8. `applyDeterministicTags`: `MEAL_TIME_APPLIED`는 `mealTimeSatisfied` 결과로 부여
++
++`normalizeScheduleTimes`의 식사 규칙:
++
++- 시작 시각은 `직전 장소 종료 + 이동시간`보다 이를 수 없음(물리 제약 우선)
++- 식사는 설정 시각 ±30분 범위 안으로 clamp함. 여러 동행인은 범위의 교집합을 씀
++- 이동 때문에 상한을 넘으면 `tryShiftPreviousPlaces`가 **직전 식사 이후의 장소들만** 같은 분만큼 앞당김
++  - 조건: 첫 장소가 `직전 식사 종료 + 그 장소 이동시간`보다 이르지 않을 것
++  - 상한을 완전히 맞출 수 없으면 아무것도 옮기지 않음(부분 이동 없음)
++- 직전 식사 자체는 옮기지 않음
++- 이동은 직전 식사 뒤 첫 장소의 여유만큼으로 제한된 균일 이동임. 장소 사이 여유는 압축하지 않음
++
++복약은 정규화가 끝난 최종 식사 시각을 기준으로 계산함. 6건 중 4건은 `점심 종료 + 30분`임(예: 서울 2회차 1일차 14:28 종료 → 14:58 복약).
++2건은 `점심 종료 + 30분`이 다음 장소 안에 들어가 `moveOutOfPlaceSlots`가 그 장소 종료로 옮겼음.
++- 서울 3회차 2일차: 점심 종료 13:47, 복약 15:05(점심 종료 후 78분)
++- 부산 3회차 1일차: 점심 종료 13:45, 복약 15:01(점심 종료 후 76분)
++
++## 4. 원인 분류
++
++판정 방법: 각 날짜의 최종 일정에서 복약을 제외하고 `직전 아침 → … → 점심` 연쇄를 다시 계산함.
++- **A:** 아침을 현재 시각에 고정하고 장소 사이 여유를 0으로 압축했을 때의 가장 이른 점심
++- **B:** 아침을 허용 하한 07:30으로 당기고 장소 사이 여유도 0으로 압축했을 때의 가장 이른 점심
++- B는 아침 앞에 다른 장소가 없어 07:30이 항상 도달 가능하다고 가정함(9건 모두 아침이 첫 슬롯)
++- 상한은 12:30. 체류·이동시간·순서는 최종 raw 값을 그대로 씀. 최초 AI 응답이나 복구 전 시각은 raw에 없으므로 추정하지 않음
++
++| 실행 | 점심 | 연쇄(체류, 이동) | A | 여유 | B | 판정 |
++|---|---|---|---|---|---|---|
++| 서울 2회차 1일차 | 13:28 (+88) | 아침(60) → 경복궁(120, 23) → 카페(30, 12) → 점심(60, 58) | 13:03 | 25분 | 12:33 | 순서·이동상 불가능 |
++| 서울 2회차 2일차 | 13:46 (+106) | 아침(60) → 관광지(60, 52) → 관광지(60, 24) → 점심(60, 46) | 13:02 | 44분 | 12:32 | 순서·이동상 불가능(경계: 2분 초과) |
++| 서울 3회차 1일차 | 12:31 (+31) | 아침(60) → 경복궁(120, 37) → 점심(60, 54) | 12:31 | 0분 | 12:01 | 아침을 앞당기면 가능 |
++| 서울 3회차 2일차 | 12:47 (+47) | 아침(60) → 관광지(90, 47) → 관광지(60, 11) → 점심(60, 19) | 12:47 | 0분 | 12:17 | 아침을 앞당기면 가능 |
++| 부산 3회차 1일차 | 12:45 (+45) | 아침(60) → 해동용궁사(80, 38) → 마린시티(70, 24) → 점심(60, 13) | 12:45 | 0분 | 12:15 | 아침을 앞당기면 가능 |
++| 강릉 3회차 2일차 | 14:09 (+129) | 아침(60) → 소금강계곡(120, 84) → 점심(60, 105) | 14:09 | 0분 | 13:39 | 순서·이동상 불가능 |
++
++이전 3건에 같은 방법 적용:
++
++| 실행 | 점심 | A | 여유 | B | 판정 |
++|---|---|---|---|---|---|
++| 서울 3회차 2일차 | 15:55 (+235) | 15:52 | 3분 | 15:22 | 순서·이동상 불가능 |
++| 강릉 1회차 2일차 | 14:46 (+166) | 14:46 | 0분 | 14:16 | 순서·이동상 불가능 |
++| 강릉 3회차 1일차 | 12:56 (+56) | 12:36 | 20분 | 12:06 | 아침을 앞당기면 가능 |
++
++### 4.1 원인별 판정
++
++| 원인 | 이후 6건 | 근거 |
++|---|---|---|
++| 가능한 일정에서 발생한 정규화 결함 | **0** | 현재 계약(직전 식사 고정, 이동·체류·순서 유지)으로는 6건 모두 A가 12:30을 넘음. 정규화는 계약대로 가장 이른 물리 시각에 배치함 |
++| 현재 계약(직전 식사 고정)에서 불가능 | 6 | 6건 모두 A > 12:30 |
++| ㄴ 아침을 허용 범위 안에서 앞당기면 가능 | 3 | B ≤ 12:30. 정규화가 직전 식사를 옮기지 않는 설계 범위 밖 |
++| ㄴ 장소 선택·슬롯 순서 영향(생성 주체 UNKNOWN) | 3 | 아침을 당겨도 불가능. 점심 직전의 원거리 이동(58·46·105분)과 점심 전 배치(카페 12:00~12:30, 관광지 12:00~13:00, 2시간 체류 계곡). AI와 `MissingSlotCompleter` 중 어느 쪽의 선택인지는 구분 불가 |
++| 다수 동행인 설정 충돌 | 0 | 모든 동행인의 설정 시각이 같아 교집합이 축소되지 않음 |
++| 중간 trace 부족으로 UNKNOWN | 6건 전부의 생성 주체 | AI 원응답과 `MissingSlotCompleter` 보충 중 어느 쪽이 점심을 만들었는지 최종 raw로는 구분 불가. 시각 가능성 판정(A·B)에는 영향 없음 |
++
++경계 사례: 서울 2회차 2일차의 B 12:32는 이미 아침 07:30 이동과 여유 0 압축을 모두 가정한 값이며 2분 초과임. 정시화하려면 이동·체류를 2분 줄여야 하므로 금지 범위임. "불가능" 판정은 ±30분 허용 경계에만 의존하고 여유 미압축 규칙과는 무관함.
++
++### 4.2 미수정 근거
++
++1. 정규화는 코드 주석에 명시된 계약(`ScheduleNormalizer.java` 110·137행, "식사시간 충족이 가능한 경우에만 앞 장소 이동", "식사시간보다 이동시간의 물리적 제약 우선")대로 동작함
++2. 아침을 당기면 가능한 3건을 해결하려면 직전 식사를 설정 시각보다 이르게 옮기는 **새 시간표 정책**이 필요함
++   - 그 결과 아침 시각이 사용자가 정한 08:00에서 ±30분 범위 안으로 앞당겨짐
++   - 위임 계약상 새 제품 정책은 자동 채택하지 않으므로 사용자 결정 사항으로 넘김
++3. 나머지 3건은 이동시간 축소, 관광지 삭제, 12:00 강제 덮어쓰기 없이는 정시화할 수 없음. 위임 계약상 금지된 방법임
++4. 필수 식사는 48/48 존재하고 태그 불일치도 0이므로, 골격을 도입할 근거가 이번 관측에 없음
++
++## 5. 결정적 재현 (공개 seam)
++
++- seam: `ScheduleNormalizer.normalizeScheduleTimes(CreatePlanAiResponse, List<TravelHealthContext>)`
++- 테스트: `ScheduleNormalizerTest.keepsPreviousMealWhenTightChainDelaysLunch`
++  - 서울 3회차 1일차와 같은 형태(여유 0분, 상한 1분 초과). 수치는 helper 기본 체류 90분 기준: 아침 08:00, 관광지 이동 30분, 점심 이동 61분
++  - 기대: 아침 08:00과 관광지 10:00 유지, 점심 12:31, `mealTimeSatisfied` false
++- 운영 코드를 고치지 않으므로 RED → GREEN 단계는 없음. 현재 계약을 고정하는 특성 테스트임
++  - 물리 제약을 무시해 시각을 당기는 회귀가 생기면 실패함
++  - 직전 식사 이동 정책을 채택하면 이 테스트의 기대값을 바꾸는 것부터 시작함
++- 기존 `keepsPlanWhenMealTimeCannotBeMet`는 사이 장소가 없는 경우만 다룸. 새 테스트는 사이 장소가 있고 여유가 0인 경우를 다룸
++
++재현 명령:
++
++```bash
++./gradlew test \
++  --tests 'com.planb.unit.domain.travel.service.ScheduleNormalizerTest' \
++  --tests 'com.planb.unit.domain.travel.policy.MealSlotPolicyTest' \
++  --tests 'com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest' \
++  --console=plain
++
++# 인자: 증거 디렉터리(스크립트가 /raw/를 붙임)
++python3 lunch.py \
++  /private/tmp/planb-stage2-179/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z
++
++# 인자: raw 디렉터리 자체(여러 개 가능)
++python3 feasible.py \
++  /private/tmp/planb-selection-contract-177/build/llm-quality-baseline/raw/2026-10-11T03-03-33.798400Z \
++  /private/tmp/planb-stage2-179/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw
++```
++
++`lunch.py`·`feasible.py` 위치: `/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-meal-time-diagnosis-evidence/`
++
++## 6. 테스트 결과
++
++| 실행 | 결과 |
++|---|---|
++| targeted 3개 클래스 | `ScheduleNormalizerTest` 8, `MealSlotPolicyTest` 7, `PlanSelectionRecoveryContractTest` 14. 실패 0 |
++| 전체 `./gradlew test` | 930 tests, 실패 0, 오류 0, 건너뜀 0 |
++| externalTest·유료 호출·Prometheus import | 미실행(위임 범위 밖) |
++
++## 7. 범위 밖 관찰 (미수정)
++
++1. **복약 슬롯 꼬리 겹침과 식후 간격 이탈:** 꼬리 겹침이 이전·이후 배치에 각 1건 있음
++   - 이전: 부산 1회차 2일차, 복약 14:37~14:47과 관광지 14:46 시작
++   - 이후: 서울 2회차 2일차, 복약 15:16~15:26과 관광지 15:22 시작
++   - 원인: `moveOutOfPlaceSlots`는 복약 **시작**이 장소 안에 있을 때만 옮기고, 복약 10분이 다음 장소 시작에 걸치는 경우는 보지 않음
++   - 반대로 복약 시작이 장소 안이면 장소 종료로 옮겨 식후 30분 규칙이 이미 깨짐
++     - 이후 배치: 복약 24건 중 9건(점심 종료 후 76~90분, 설정 30분 대비 46~60분 초과). 창 밖 점심 6건 중에서는 2건(3절)
++     - 이전 배치: 복약 22건 중 10건(점심 종료 후 65~120분, 설정 대비 35~90분 초과)
++     - 대부분 정시 점심 뒤에서 발생함. 빈도는 꼬리 겹침(실행당 1건)보다 훨씬 높음
++   - 겹침 허용과 식후 간격 준수 중 무엇을 우선할지는 제품 판단 사항임
++2. **여유 미압축:** 서울 2회차 1·2일차에는 점심 전 여유가 25분·44분 있음
++   - 이동은 첫 장소 앞 여유만큼의 균일 이동이고, 장소 사이 여유(서울 2회차 1일차 카페 앞 18분 등)는 쓰지 않음
++   - 이 때문에 상한을 맞출 수 없으면 장소를 하나도 당기지 않음
++   - 압축하면 지연이 88→63분, 106→62분으로 줄지만 정시화는 되지 않음
++   - 부분 이동 허용도 정책 변경이라 미수정
++3. 면제 저녁 1건(강릉 3회차 2일차 20:55)은 하루가 23:19에 끝나는 과밀 일정임. 점심 직전 원거리 이동(105분)의 연쇄 영향이며 생성 주체는 UNKNOWN
++
++## 8. 사용자·Codex 결정 사항
++
++| # | 질문 | Claude 권장 |
++|---|---|---|
++| 1 | 점심 상한 초과를 피할 수 있으면 직전 식사를 설정 시각 −30분 범위 안에서 앞당길지 | 보류. 이번 6건 중 3건만 해당하고, 아침 시각을 바꾸는 사용자 영향이 있음. 채택 시 주 수정 지점은 `tryShiftPreviousPlaces`이며, 직전 식사의 시작 하한과 그 앞 장소 이동 조건도 함께 다뤄야 함 |
++| 2 | 정시화가 불가능해도 여유를 압축해 지연을 줄일지 | 보류. 정시 비율 변화 없음 |
++| 3 | 복약 꼬리 겹침 허용과 식후 간격 준수 중 우선순위 | 식후 간격 이탈이 이후 24건 중 9건으로 꼬리 겹침(1건)보다 빈번함. 실제 평가 분모에 두 항목 추가 후 우선 판단 권고 |
++| 4 | Java 필수 일정 골격 도입 | 보류. 필수 식사 48/48, 정규화 결함 0 |
++
++## 9. 실제 평가에 넘길 항목
++
++| 항목 | 분모 | 정의 |
++|---|---|---|
++| 필수 식사 정시 | 성공 실행의 필수 식사 슬롯 | ±30분 |
++| 창 밖 원인 분류 | 창 밖 필수 식사 | A·B 계산(4절)으로 결함, 아침 이동 시 가능, 불가능을 분리 |
++| 점심 직전 이동 60분 이상 | 점심 슬롯 | AI 원거리 선택의 빈도 |
++| 복약 꼬리 겹침 | 복약 슬롯 | 복약 구간과 비복약 장소 구간의 교차 |
++| 식후 복약 간격 이탈 | 식후 복약 슬롯 | 관련 식사 종료 + 설정 간격과 실제 시작의 차이 |
++| 면제 식사 창 밖 | 면제 슬롯 | 참고 지표, gate 아님 |
++
++fixture 정답(결정적)과 실제 관측(모델 응답 의존)은 분리해 보고할 것. 실제 관측의 원인 판정은 최종 raw 기준이며, 최초 AI 응답 trace가 없으면 생성 주체는 UNKNOWN으로 둠.
++
++## 10. 스킬 적용 기록
++
++| 스킬 | 적용 |
++|---|---|
++| diagnosing-bugs | 적용. 재계수 스크립트로 피드백 루프를 만들고 원인 가설 5종을 분리. 결함이 없어 수정 단계는 생략 |
++| codebase-design | 적용. seam을 `ScheduleNormalizer` 공개 메서드로 확정 |
++| research | 미적용. 1차 근거가 저장소 코드와 raw로 충분해 외부 조사가 필요 없었음 |
++| artifact-template-system-design | 미적용. interface 변경 없음 |
++| grilling | 적용. 조사로 답할 수 있는 질문은 자동 판정함. 새 정책(8절)은 채택하지 않고 질문으로 남김 |
++| tdd | 부분 적용. 운영 코드 수정이 없어 RED → GREEN 없이 특성 테스트 1개만 추가 |
++| review-loop | 11절 |
++| llm-evaluation | 적용. fixture와 실제 관측, 분모를 분리(9절) |
++
++## 11. 독립 리뷰
++
++매 회 새 컨텍스트의 subagent가 수행함. 각 리뷰어는 raw를 자체 스크립트로 재계산함.
++
++| 회차 | 점수 | Critical | Important | 주요 지적과 반영 |
++|---|---|---|---|---|
++| 1 | 8/10 | 0 | 2 | 복약 6건 모두 식후 30분이라는 오류, AI 원인 표기와 UNKNOWN의 충돌. 반영 |
++| 2 | 7/10 | 1 | 3 | 경계 사례 B 해석 오류(B는 압축 포함), 원인 표 상위 행 이름, 산출물 경로 부재, 이전 분모 표기. 반영 |
++| 3 | 8/10 | 0 | 1 | 복약 식후 간격 이탈의 배치 전체 건수 누락(9/24, 10/22). 반영 |
++| 4 | **9/10** | **0** | **0** | Minor 7건(호출 순서 보충, 간격 표기, 절대 경로, 주석 출처, 분모 문구 등). 반영 |
++
++gate(최종 9/10 이상, Critical·Important 0, 최소 2회·최대 4회) 충족.
++
++## 12. 인계 산출물
++
++- Claude 변경만의 patch: `/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-meal-time-diagnosis-evidence/p2-meal-time-diagnosis-claude.patch`
++  - snapshot commit `cea4842` 대비 diff. 테스트 1개와 본 문서만 포함하고 #179 변경은 포함하지 않음
++  - 적용: 기준 commit에 #179 patch를 적용한 트리에서 `git apply`
++- 운영 코드 변경: 없음
++- commit·push·PR·이슈: 없음
+diff --git a/src/test/java/com/planb/unit/domain/travel/service/ScheduleNormalizerTest.java b/src/test/java/com/planb/unit/domain/travel/service/ScheduleNormalizerTest.java
+index d4a20f8..330ff0c 100644
+--- a/src/test/java/com/planb/unit/domain/travel/service/ScheduleNormalizerTest.java
++++ b/src/test/java/com/planb/unit/domain/travel/service/ScheduleNormalizerTest.java
+@@ -185,6 +185,73 @@ class ScheduleNormalizerTest {
+         );
+     }
+ 
++    @Test
++    @DisplayName("직전 식사 고정 시 빈틈없는 장소 연쇄의 점심 지연 유지")
++    void keepsPreviousMealWhenTightChainDelaysLunch() {
++
++        // 아침 08:00~09:30, 관광지 10:00~11:30(이동 30분), 점심 이동 61분
++        // 장소 사이 여유 0분과 점심 12:31 배치
++        // 첫 장소 여유 0분으로 앞 장소 이동 거부
++        // 아침 이동은 정규화 범위 밖
++        CreatePlanAiResponse response = response(
++                restaurant(
++                        "아침 식당",
++                        ScheduleType.BREAKFAST,
++                        LocalTime.of(8, 0),
++                        null
++                ),
++                attraction(
++                        "경복궁",
++                        LocalTime.of(10, 0),
++                        30
++                ),
++                restaurant(
++                        "점심 식당",
++                        ScheduleType.LUNCH,
++                        LocalTime.of(12, 0),
++                        61
++                )
++        );
++
++        List<CreatePlanAiResponse.PlanScheduleDetail> schedules = scheduleNormalizer
++                .normalizeScheduleTimes(
++                        response,
++                        healthContexts()
++                )
++                .planDays()
++                .getFirst()
++                .schedules();
++
++        assertEquals(
++                LocalTime.of(8, 0),
++                schedules
++                        .get(0)
++                        .startTime()
++        );
++
++        assertEquals(
++                LocalTime.of(10, 0),
++                schedules
++                        .get(1)
++                        .startTime()
++        );
++
++        // 이동시간 축소·관광지 삭제 없는 가장 이른 점심
++        assertEquals(
++                LocalTime.of(12, 31),
++                schedules
++                        .get(2)
++                        .startTime()
++        );
++
++        assertFalse(
++                scheduleNormalizer.mealTimeSatisfied(
++                        schedules.get(2),
++                        healthContexts()
++                )
++        );
++    }
++
+     @Test
+     @DisplayName("식후 복약의 식사 종료 기준 배치")
+     void placesAfterMealMedicationFromMealEnd() {

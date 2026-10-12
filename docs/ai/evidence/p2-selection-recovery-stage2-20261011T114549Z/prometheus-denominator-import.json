@@ -1,0 +1,16 @@
+{
+  "status": "completed",
+  "importedAt": "2026-10-11T11:55:32.271033+00:00",
+  "source": "quality-required-meal-denominators.openmetrics",
+  "blocks": [
+    "01M4ND2VFG4C0RF2V6MPG0HVGK",
+    "01M4ND2VG645C89TR1ZKF8RE1J"
+  ],
+  "existingBlockCount": 4,
+  "container": "planb-p24c-actual-prometheus",
+  "retention": "30d local, independent evidence files preserved",
+  "sampleKind": "Imported real API evaluation gauges, not live app scrape",
+  "existingBlockDirectoriesPreservedBeforeRestart": true,
+  "previousQualityPanelValuesUnchangedAfterRestart": true,
+  "preservationCheck": "previous-observation-preservation.json; representative panel values, not all TSDB content"
+}

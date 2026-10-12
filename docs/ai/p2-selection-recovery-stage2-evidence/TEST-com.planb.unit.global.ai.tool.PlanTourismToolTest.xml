@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.planb.unit.global.ai.tool.PlanTourismToolTest" tests="18" skipped="0" failures="0" errors="0" timestamp="2026-10-11T11:21:36.182Z" hostname="gang-ujuui-MacBookPro.local" time="0.246">
+  <properties/>
+  <testcase name="앞선 공원이 이미 사용된 경우 다음 미사용 공원 선택" classname="com.planb.unit.global.ai.tool.PlanTourismToolTest" time="0.157"/>
+  <testcase name="공원 산책 검색에서 앞선 호수 대신 실제 공원 후보 선택" classname="com.planb.unit.global.ai.tool.PlanTourismToolTest" time="0.001"/>
+  <testcase name="직전 장소가 이번 호출 후보면 확정 좌표를 함께 전달" classname="com.planb.unit.global.ai.tool.PlanTourismToolTest" time="0.0"/>
+  <testcase name="지역 관광지 후보의 candidateId와 장소 identity 유지" classname="com.planb.unit.global.ai.tool.PlanTourismToolTest" time="0.079"/>
+  <testcase name="접두사 없는 contentId의 음식점 상세 조회 그대로 전달" classname="com.planb.unit.global.ai.tool.PlanTourismToolTest" time="0.0"/>
+  <testcase name="카페 후보 검색 시 CE7 카테고리만 요청" classname="com.planb.unit.global.ai.tool.PlanTourismToolTest" time="0.0"/>
+  <testcase name="[1] category = null" classname="com.planb.unit.global.ai.tool.PlanTourismToolTest" time="0.001"/>
+  <testcase name="[2] category = &quot;&quot;" classname="com.planb.unit.global.ai.tool.PlanTourismToolTest" time="0.0"/>
+  <testcase name="[3] category = &quot;여행 &gt; 관광,명소 &gt; 호수&quot;" classname="com.planb.unit.global.ai.tool.PlanTourismToolTest" time="0.0"/>
+  <testcase name="[4] category = &quot;여행 &gt; 관광,명소&quot;" classname="com.planb.unit.global.ai.tool.PlanTourismToolTest" time="0.0"/>
+  <testcase name="지역 음식점 후보의 candidateId와 장소 identity 유지" classname="com.planb.unit.global.ai.tool.PlanTourismToolTest" time="0.0"/>
+  <testcase name="[1] type = ATTRACTION" classname="com.planb.unit.global.ai.tool.PlanTourismToolTest" time="0.0"/>
+  <testcase name="[2] type = MUST_HAVE" classname="com.planb.unit.global.ai.tool.PlanTourismToolTest" time="0.001"/>
+  <testcase name="같은 요청의 correction 재시도는 최초 관광지 후보를 재사용" classname="com.planb.unit.global.ai.tool.PlanTourismToolTest" time="0.001"/>
+  <testcase name="상세 Tool의 candidateId 복원과 메뉴 원본 기록" classname="com.planb.unit.global.ai.tool.PlanTourismToolTest" time="0.001"/>
+  <testcase name="candidateId로 요청한 음식점 상세 조회의 tour 접두사 제거" classname="com.planb.unit.global.ai.tool.PlanTourismToolTest" time="0.0"/>
+  <testcase name="후보 ID로 확정한 두 장소의 원본 좌표를 유지하여 경로 조회" classname="com.planb.unit.global.ai.tool.PlanTourismToolTest" time="0.0"/>
+  <testcase name="지정 장소 고정 후보를 지역 관광지 검색 결과 맨 앞에 중복 없이 포함" classname="com.planb.unit.global.ai.tool.PlanTourismToolTest" time="0.001"/>
+  <system-out><![CDATA[2026-10-11T20:21:36.338+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 장소+경로 조회 호출 - keyword: 강릉 공원, previousLocation: , transportation: CAR, excludeNames: [사용한 공원], categoryCode: AT4
+2026-10-11T20:21:36.340+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 장소+경로 조회 호출 - keyword: 강릉 경포공원, previousLocation: , transportation: CAR, excludeNames: [], categoryCode: AT4
+2026-10-11T20:21:36.421+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 장소+경로 조회 호출 - keyword: 강릉 공원, previousLocation: , transportation: CAR, excludeNames: [], categoryCode: AT4
+2026-10-11T20:21:36.422+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 장소+경로 조회 호출 - keyword: 강릉 공원, previousLocation: , transportation: CAR, excludeNames: [], categoryCode: AT4
+2026-10-11T20:21:36.422+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 장소+경로 조회 호출 - keyword: 강릉 공원, previousLocation: , transportation: CAR, excludeNames: [], categoryCode: AT4
+2026-10-11T20:21:36.423+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 장소+경로 조회 호출 - keyword: 강릉 공원, previousLocation: , transportation: CAR, excludeNames: [], categoryCode: AT4
+2026-10-11T20:21:36.425+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 장소+경로 조회 호출 - keyword: 강릉 경포호, previousLocation: , transportation: CAR, excludeNames: [], categoryCode: AT4
+2026-10-11T20:21:36.425+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 장소+경로 조회 호출 - keyword: 강릉 경포호, previousLocation: , transportation: CAR, excludeNames: [], categoryCode: AT4
+2026-10-11T20:21:36.428+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 후보 좌표 이동경로 조회 호출 - origin: 불국사, destination: 교동쌈밥, transportation: TRANSIT
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
