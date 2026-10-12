@@ -595,7 +595,7 @@ public class ScheduleNormalizer {
                         )
                         .toMinutes());
 
-        // 자정을 넘긴 장소 종료의 음수 지연
+        // 지연된 식사 시작의 자정 순환
         if (!delayedStart.isAfter(meal.startTime())) {
             throw invalidPlace("복약 겹침 회피 시 자정 초과");
         }
@@ -744,18 +744,29 @@ public class ScheduleNormalizer {
                             .get(index)
                             .startTime());
 
-            // 이동 장소의 종료 역전, 이동 장소 전후의 이동시간 제약 위반, 자정 순환 결과
-            if ((moved && schedule
-                    .endTime()
-                    .isBefore(schedule.startTime()))
-                    || ((moved || previousMoved) && schedule.travelMinutes() != null && schedule
+            // 이동 장소의 종료 역전
+            boolean endReversed = moved
+                    && schedule
+                            .endTime()
+                            .isBefore(schedule.startTime());
+
+            // 이동 장소 전후의 이동시간 제약 위반
+            boolean travelViolated = (moved || previousMoved)
+                    && schedule.travelMinutes() != null
+                    && schedule
                             .startTime()
-                            .isBefore(previousEnd))) {
+                            .isBefore(previousEnd);
+
+            // 자정 순환 결과
+            if (endReversed || travelViolated) {
                 throw invalidPlace("복약 겹침 회피 시 자정 초과");
             }
 
             if (satisfiedMealIndexes.contains(index)
-                    && !mealTimeSatisfied(schedule, healthContexts)) {
+                    && !mealTimeSatisfied(
+                            schedule,
+                            healthContexts
+                    )) {
                 throw invalidPlace("복약 겹침 회피 시 식사시간 이탈");
             }
 

@@ -1111,6 +1111,118 @@ class ScheduleNormalizerTest {
     }
 
     @Test
+    @DisplayName("고정 시각 복약의 잔여 식전 규칙 시각 일치 시 식사 미지연")
+    void delaysPlaceForIndependentMedicationWithMealRule() {
+
+        // 고정 11:15 복약, 잔여 점심 식전 45분 규칙과 시각 일치
+        // 식사 지연 시 점심 12:45 창 초과, 관광지 이동 시 앞당김 거부로 경로 구분
+        List<TravelHealthContext> contexts = List.of(
+                traveler(
+                        "테스트 여행자",
+                        new TravelHealthContext.MedicationInfoContext(
+                                "혈압약",
+                                MedicationBasis.INDEPENDENT,
+                                LocalTime.of(11, 15),
+                                Set.of(
+                                        rule(
+                                                RelatedMeal.LUNCH,
+                                                MealTiming.BEFORE_MEAL,
+                                                45
+                                        )
+                                )
+                        )
+                )
+        );
+
+        CreatePlanAiResponse normalized = scheduleNormalizer.normalizeScheduleTimes(
+                response(
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(10, 30),
+                                null
+                        ),
+                        restaurant(
+                                "점심 식당",
+                                ScheduleType.LUNCH,
+                                LocalTime.of(12, 0),
+                                0
+                        )
+                ),
+                contexts
+        );
+
+        BaseException failure = assertThrows(
+                BaseException.class,
+                () -> scheduleNormalizer.finalizeMedicationSchedules(
+                        normalized,
+                        contexts
+                )
+        );
+
+        assertTrue(failure
+                .getMessage()
+                .contains("장소 앞당김 필요"));
+    }
+
+    @Test
+    @DisplayName("다른 식사의 식전 규칙 시각 일치 시 직후 식사 미지연")
+    void delaysPlaceForOtherMealBeforeRule() {
+
+        // 동행인 1 저녁 식전 45분 규칙, 동행인 2 고정 11:15 복약
+        // 점심 12:00 − 45분 시각 일치, 저녁 규칙이라 점심 미지연
+        // 식사 지연 시 점심 12:45 창 초과, 관광지 이동 시 앞당김 거부로 경로 구분
+        List<TravelHealthContext> contexts = List.of(
+                traveler(
+                        "동행인 1",
+                        mealMedication(
+                                "혈당약",
+                                rule(
+                                        RelatedMeal.DINNER,
+                                        MealTiming.BEFORE_MEAL,
+                                        45
+                                )
+                        )
+                ),
+                traveler(
+                        "동행인 2",
+                        independentMedication(
+                                "혈압약",
+                                LocalTime.of(11, 15)
+                        )
+                )
+        );
+
+        CreatePlanAiResponse normalized = scheduleNormalizer.normalizeScheduleTimes(
+                response(
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(10, 30),
+                                null
+                        ),
+                        restaurant(
+                                "점심 식당",
+                                ScheduleType.LUNCH,
+                                LocalTime.of(12, 0),
+                                0
+                        )
+                ),
+                contexts
+        );
+
+        BaseException failure = assertThrows(
+                BaseException.class,
+                () -> scheduleNormalizer.finalizeMedicationSchedules(
+                        normalized,
+                        contexts
+                )
+        );
+
+        assertTrue(failure
+                .getMessage()
+                .contains("장소 앞당김 필요"));
+    }
+
+    @Test
     @DisplayName("식전 복약 간격 확보가 식사 창을 넘는 배치의 거부")
     void rejectsBeforeMealDelayBeyondMealWindow() {
 
