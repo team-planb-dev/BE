@@ -944,14 +944,14 @@ class PlanPlaceValidationTest {
                 .findFirst()
                 .orElseThrow();
 
-        // 관광지 13:10~14:10에 겹치는 식후 13:30 복약의 장소 종료 후 배치
+        // 관광지 13:10~14:10 안의 식후 13:30 복약의 등록 간격 유지
         assertEquals(
-                LocalTime.of(14, 10),
+                LocalTime.of(13, 30),
                 medication.startTime()
         );
 
         assertEquals(
-                LocalTime.of(14, 20),
+                LocalTime.of(13, 40),
                 medication.endTime()
         );
 
@@ -1115,14 +1115,14 @@ class PlanPlaceValidationTest {
                         .findFirst()
                         .orElseThrow();
 
-        // 관광지 13:20~14:20에 겹치는 식후 13:40 복약의 장소 종료 후 배치
+        // 관광지 13:20~14:20 안의 식후 13:40 복약의 등록 간격 유지
         assertEquals(
-                LocalTime.of(14, 20),
+                LocalTime.of(13, 40),
                 medication.startTime()
         );
 
         assertEquals(
-                LocalTime.of(14, 30),
+                LocalTime.of(13, 50),
                 medication.endTime()
         );
 
@@ -2351,14 +2351,14 @@ class PlanPlaceValidationTest {
                         .findFirst()
                         .orElseThrow();
 
-        // 관광지 13:20~14:20에 겹치는 식후 13:40 복약의 장소 종료 후 배치
+        // 관광지 13:20~14:20 안의 식후 13:40 복약의 등록 간격 유지
         assertEquals(
-                LocalTime.of(14, 20),
+                LocalTime.of(13, 40),
                 medication.startTime()
         );
 
         assertEquals(
-                LocalTime.of(14, 30),
+                LocalTime.of(13, 50),
                 medication.endTime()
         );
 
