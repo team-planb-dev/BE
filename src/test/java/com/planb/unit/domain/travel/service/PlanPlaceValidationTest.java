@@ -935,7 +935,8 @@ class PlanPlaceValidationTest {
                 )
         );
 
-        // 식전 11:30 복약이 관광지 11:00~12:00 내부, 이동 시 점심 12:30 초과
+        // 식전 11:30 복약이 관광지 11:00~12:00 내부
+        // 관광지 이동 시 늦은 점심 보정의 앞 장소 앞당김 발생
         BaseException failure = assertThrows(
                 BaseException.class,
                 () -> service.makePlanByAi(context)
@@ -945,6 +946,10 @@ class PlanPlaceValidationTest {
                 PlanEditExceptionEnum.INVALID_AI_PLACE.getCode(),
                 failure.getErrorCode()
         );
+
+        assertTrue(failure
+                .getMessage()
+                .contains("식사시간 이탈"));
     }
 
     @Test
@@ -4899,7 +4904,9 @@ class PlanPlaceValidationTest {
                 .stream()
                 .filter(schedule -> schedule.courseType() != CourseType.MEDICATION
                         && schedule.courseType() != CourseType.TRANSPORTATION)
-                .filter(schedule -> schedule.scheduleType() == ScheduleType.ACTIVITY)
+                .filter(schedule -> schedule.scheduleType() != ScheduleType.BREAKFAST
+                        && schedule.scheduleType() != ScheduleType.LUNCH
+                        && schedule.scheduleType() != ScheduleType.DINNER)
                 .toList();
 
         assertTrue(places

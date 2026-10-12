@@ -957,7 +957,8 @@ class ScheduleNormalizerTest {
     @DisplayName("이동으로 창 안 식사가 창 밖으로 밀리는 배치의 거부")
     void rejectsDelayPushingMealOutOfWindow() {
 
-        // 식전 11:30 복약이 관광지 10:30~12:00 내부, 이동 시 점심 13:10
+        // 식전 11:30 복약이 관광지 10:30~12:00 내부
+        // 관광지 11:40 이동 시 점심 13:10, 늦은 점심 보정의 관광지 앞당김 발생
         List<TravelHealthContext> beforeMeal = healthContexts(MealTiming.BEFORE_MEAL, 30);
 
         CreatePlanAiResponse normalized = scheduleNormalizer.normalizeScheduleTimes(
@@ -989,6 +990,10 @@ class ScheduleNormalizerTest {
                 PlanEditExceptionEnum.INVALID_AI_PLACE.getCode(),
                 failure.getErrorCode()
         );
+
+        assertTrue(failure
+                .getMessage()
+                .contains("식사시간 이탈"));
     }
 
     @Test
@@ -1019,13 +1024,17 @@ class ScheduleNormalizerTest {
                 independent
         );
 
-        assertThrows(
+        BaseException failure = assertThrows(
                 BaseException.class,
                 () -> scheduleNormalizer.finalizeMedicationSchedules(
                         normalized,
                         independent
                 )
         );
+
+        assertTrue(failure
+                .getMessage()
+                .contains("자정 초과"));
     }
 
     @Test
@@ -1075,12 +1084,148 @@ class ScheduleNormalizerTest {
                 repeated
         );
 
-        assertThrows(
+        BaseException failure = assertThrows(
                 BaseException.class,
                 () -> scheduleNormalizer.finalizeMedicationSchedules(
                         normalized,
                         repeated
                 )
+        );
+
+        assertTrue(failure
+                .getMessage()
+                .contains("복약·장소 시간 겹침"));
+    }
+
+    @Test
+    @DisplayName("이동 상한 3회 이내 겹침의 해소")
+    void resolvesOverlapWithinDelayLimit() {
+
+        // 고정 복약 3개, 이동 3회 후 관광지 13:10~14:40
+        List<TravelHealthContext> repeated = List.of(
+                traveler(
+                        "여행자 1",
+                        independentMedication(
+                                "약 1",
+                                LocalTime.of(10, 0)
+                        )
+                ),
+                traveler(
+                        "여행자 2",
+                        independentMedication(
+                                "약 2",
+                                LocalTime.of(11, 30)
+                        )
+                ),
+                traveler(
+                        "여행자 3",
+                        independentMedication(
+                                "약 3",
+                                LocalTime.of(13, 0)
+                        )
+                )
+        );
+
+        CreatePlanAiResponse result = finalized(
+                response(
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(9, 50),
+                                null
+                        )
+                ),
+                repeated
+        );
+
+        assertEquals(
+                LocalTime.of(13, 10),
+                startTime(result, "해운대해수욕장")
+        );
+    }
+
+    @Test
+    @DisplayName("식사 슬롯 없는 날의 설정 식사시간 기준 복약 겹침 해소")
+    void resolvesOverlapWithoutMealSlot() {
+
+        // 설정 점심 12:00 + 기본 60분 + 식후 30분 = 13:30, 관광지 13:00~14:30
+        CreatePlanAiResponse result = finalized(
+                response(
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(13, 0),
+                                null
+                        )
+                ),
+                healthContexts()
+        );
+
+        assertEquals(
+                LocalTime.of(13, 30),
+                medicationStartTime(result)
+        );
+
+        assertEquals(
+                LocalTime.of(13, 40),
+                startTime(result, "해운대해수욕장")
+        );
+    }
+
+    @Test
+    @DisplayName("입력 AI 복약 슬롯의 제거와 재생성 기준 겹침 해소")
+    void ignoresAiMedicationSlotInInput() {
+
+        // AI 복약 13:45~13:55, 재생성 복약 14:00
+        CreatePlanAiResponse.PlanScheduleDetail aiMedication =
+                new CreatePlanAiResponse.PlanScheduleDetail(
+                        ScheduleType.CHECK_IN,
+                        CourseType.MEDICATION,
+                        LocalTime.of(13, 45),
+                        LocalTime.of(13, 55),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        10,
+                        null,
+                        Set.of(),
+                        new CreatePlanAiResponse.MedicationSchedule(
+                                30,
+                                "AI 복약"
+                        ),
+                        null
+                );
+
+        CreatePlanAiResponse result = finalized(
+                response(
+                        restaurant(
+                                "점심 식당",
+                                ScheduleType.LUNCH,
+                                LocalTime.of(12, 0),
+                                0
+                        ),
+                        aiMedication,
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(13, 40),
+                                10
+                        )
+                ),
+                healthContexts()
+        );
+
+        assertEquals(
+                List.of(LocalTime.of(14, 0)),
+                medications(result)
+                        .stream()
+                        .map(CreatePlanAiResponse.PlanScheduleDetail::startTime)
+                        .toList()
+        );
+
+        assertEquals(
+                LocalTime.of(14, 10),
+                startTime(result, "해운대해수욕장")
         );
     }
 
@@ -1204,7 +1349,11 @@ class ScheduleNormalizerTest {
             String name
     ) {
 
-        return named(response, name).startTime();
+        return named(
+                response,
+                name
+        )
+                .startTime();
     }
 
     private LocalTime endTime(
@@ -1212,7 +1361,11 @@ class ScheduleNormalizerTest {
             String name
     ) {
 
-        return named(response, name).endTime();
+        return named(
+                response,
+                name
+        )
+                .endTime();
     }
 
     private TravelHealthContext.MedicationInfoContext independentMedication(

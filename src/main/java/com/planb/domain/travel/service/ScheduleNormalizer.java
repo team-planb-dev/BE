@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -419,13 +420,20 @@ public class ScheduleNormalizer {
             List<TravelHealthContext> healthContexts
     ) {
 
-        Set<ScheduleType> satisfiedMeals =
-                planDay
-                        .schedules()
-                        .stream()
-                        .filter(schedule -> mealTimeSatisfied(schedule, healthContexts))
-                        .map(CreatePlanAiResponse.PlanScheduleDetail::scheduleType)
-                        .collect(Collectors.toSet());
+        Set<Integer> satisfiedMealIndexes = new HashSet<>();
+
+        for (int index = 0; index < planDay
+                .schedules()
+                .size(); index++) {
+            if (mealTimeSatisfied(
+                    planDay
+                            .schedules()
+                            .get(index),
+                    healthContexts
+            )) {
+                satisfiedMealIndexes.add(index);
+            }
+        }
 
         CreatePlanAiResponse.PlanDayDetail current = planDay;
 
@@ -443,17 +451,20 @@ public class ScheduleNormalizer {
                 throw invalidPlace("복약·장소 시간 겹침");
             }
 
+            CreatePlanAiResponse.PlanDayDetail delayed = delayPlace(
+                    current,
+                    overlap.get()
+            );
+
             current = normalizeScheduleTimes(
-                    delayPlace(
-                            current,
-                            overlap.get()
-                    ),
+                    delayed,
                     healthContexts
             );
 
             validateDelayedDay(
+                    delayed,
                     current,
-                    satisfiedMeals,
+                    satisfiedMealIndexes,
                     healthContexts
             );
         }
@@ -468,17 +479,14 @@ public class ScheduleNormalizer {
                 planDay
                         .schedules()
                         .stream()
-                        .filter(Objects::nonNull)
-                        .filter(planPlaceResolver::requiresPlace)
+                        .filter(this::normalizedPlace)
                         .filter(schedule -> !mealSlot(schedule))
-                        .filter(schedule -> schedule.startTime() != null
-                                && schedule.endTime() != null)
+                        .filter(schedule -> schedule.endTime() != null)
                         .toList();
 
         return planDay
                 .schedules()
                 .stream()
-                .filter(Objects::nonNull)
                 .filter(schedule -> schedule.courseType() == CourseType.MEDICATION)
                 .flatMap(medication -> places
                         .stream()
@@ -487,12 +495,29 @@ public class ScheduleNormalizer {
                                 .isBefore(place.endTime())
                                 && place
                                         .startTime()
-                                        .isBefore(medication.endTime()))
+                                        .isBefore(medicationEnd(medication)))
                         .map(place -> new MedicationPlaceOverlap(
                                 place,
                                 medication.endTime()
                         )))
                 .findFirst();
+    }
+
+    // 자정을 넘긴 복약의 당일 끝까지 구간
+    private LocalTime medicationEnd(CreatePlanAiResponse.PlanScheduleDetail medication) {
+
+        return medication
+                .endTime()
+                .isBefore(medication.startTime())
+                ? LocalTime.MAX
+                : medication.endTime();
+    }
+
+    // 시간표 정규화 대상 장소 슬롯
+    private boolean normalizedPlace(CreatePlanAiResponse.PlanScheduleDetail schedule) {
+
+        return schedule != null && schedule.startTime() != null && schedule.stayMinutes() != null
+                && schedule.stayMinutes() > 0 && planPlaceResolver.requiresPlace(schedule);
     }
 
     // 체류시간 유지와 복약 종료 시각 시작 배치
@@ -530,19 +555,35 @@ public class ScheduleNormalizer {
         );
     }
 
-    // 이동 후 기존 충족 식사시간 유지와 자정 미초과 확인
+    // 앞당김 없는 재정규화, 기존 충족 식사시간 유지, 자정 미초과 확인
     private void validateDelayedDay(
-            CreatePlanAiResponse.PlanDayDetail planDay,
-            Set<ScheduleType> satisfiedMeals,
+            CreatePlanAiResponse.PlanDayDetail delayed,
+            CreatePlanAiResponse.PlanDayDetail normalized,
+            Set<Integer> satisfiedMealIndexes,
             List<TravelHealthContext> healthContexts
     ) {
 
         LocalTime previousEnd = LocalTime.MIN;
 
-        for (CreatePlanAiResponse.PlanScheduleDetail schedule : planDay.schedules()) {
-            if (schedule == null || schedule.startTime() == null || schedule.endTime() == null
-                    || !planPlaceResolver.requiresPlace(schedule)) {
+        for (int index = 0; index < normalized
+                .schedules()
+                .size(); index++) {
+            CreatePlanAiResponse.PlanScheduleDetail schedule = normalized
+                    .schedules()
+                    .get(index);
+
+            if (!normalizedPlace(schedule)) {
                 continue;
+            }
+
+            // 늦은 식사 보정의 장소 앞당김, 식사시간 미충족 신호
+            if (schedule
+                    .startTime()
+                    .isBefore(delayed
+                            .schedules()
+                            .get(index)
+                            .startTime())) {
+                throw invalidPlace("복약 겹침 회피 시 식사시간 이탈");
             }
 
             // 종료 역전 또는 이동시간 제약 위반, 자정 순환 결과
@@ -555,7 +596,7 @@ public class ScheduleNormalizer {
                 throw invalidPlace("복약 겹침 회피 시 자정 초과");
             }
 
-            if (satisfiedMeals.contains(schedule.scheduleType())
+            if (satisfiedMealIndexes.contains(index)
                     && !mealTimeSatisfied(schedule, healthContexts)) {
                 throw invalidPlace("복약 겹침 회피 시 식사시간 이탈");
             }

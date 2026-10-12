@@ -17,6 +17,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 final class TravelPlanAssertions {
 
+    // 복약 겹침 판정에서 제외하는 식사 슬롯
+    private static final Set<String> MEAL_SCHEDULE_TYPES = Set.of(
+            "BREAKFAST",
+            "LUNCH",
+            "DINNER"
+    );
+
     private TravelPlanAssertions() {
     }
 
@@ -242,7 +249,7 @@ final class TravelPlanAssertions {
 
                 if ("MEDICATION".equals(code(slot.path("courseType")))) {
                     medications.add(slot);
-                } else if ("ACTIVITY".equals(code(slot.path("scheduleType")))
+                } else if (!MEAL_SCHEDULE_TYPES.contains(code(slot.path("scheduleType")))
                         && !"TRANSPORTATION".equals(code(slot.path("courseType")))) {
                     places.add(slot);
                 }
