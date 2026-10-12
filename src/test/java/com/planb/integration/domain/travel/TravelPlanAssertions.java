@@ -245,7 +245,7 @@ final class TravelPlanAssertions {
             }
 
             // 식사 종료를 기준으로 한 식후 복약
-            // 식사 슬롯 부재 시 설정 시각에 기본 60분을 더한 기준
+            // 식사 슬롯 부재 시 설정 시각에 기본 식사 60분과 간격 30분을 더한 기준
             LocalTime mealBased = actualMealEndTime == null
                     ? fallbackLunchTime.plusMinutes(90)
                     : actualMealEndTime.plusMinutes(30);
@@ -254,7 +254,7 @@ final class TravelPlanAssertions {
             assertThat(medications)
                     .anySatisfy(slot -> {
                 assertThat(LocalTime.parse(slot
-                                .path("startTime")
+                        .path("startTime")
                         .asText()))
                         .isEqualTo(mealBased);
 
