@@ -1,0 +1,92 @@
+# Part 2 복약·장소 일정 계약 — 등록 간격·겹침 회피·중복 방문
+
+작성일: 2026-10-12  
+관련 Issue: 부모 [#180](https://github.com/team-planb-dev/BE/issues/180), 서브 #181(간격, Bug)·#182(겹침, Bug)·#183(중복, Feature)  
+선행: #179(PR #184, dev `9d56559`)  
+상태: 무료 회귀·독립 리뷰 완료, 실제 API·Grafana 재측정 미실시. dev 전달, main sync·배포 미실시
+
+## 1. 배경
+
+식사 시간 창 진단(`p2-meal-time-window-diagnosis-result.md` §6)의 범위 밖 발견에서 출발.
+
+- `moveOutOfPlaceSlots`가 장소 안에 든 복약을 장소 종료 시각으로 이동, 등록 간격 이탈. 이전 raw 10/22, 이후 9/24 슬롯
+- 복약 시작점만 검사, 10분 꼬리의 다음 장소 겹침 미검출. raw 배치당 1건
+- 기존 "복약 22/22·24/24"는 이동 구현과의 일치값이며 등록 간격 준수 지표 아님
+
+## 2. 사용자 결정 (2026-10-12)
+
+| 항목 | 결정 |
+|---|---|
+| 기준 코드 | #179 dev 병합 후 dev에서 부모 브랜치 |
+| 겹침 판정 | `med.start < place.end && place.start < med.end`, 경계 접촉 제외 |
+| 판정 대상 | 장소 필요 비식사 슬롯 전부(관광지·공원·카페·MUST_HAVE). 식사·TRANSPORTATION·MEDICATION 제외 |
+| 복구 | 겹친 장소만 복약 종료 뒤로 이동, 체류·이동 유지. 재정규화·복약 재생성·재검사, 하루 최대 3회 |
+| 실패 | 원래 창 안 식사의 ±30분 이탈, 자정 초과, 3회 후 잔존 겹침 시 `PLAN.EXCEPTION.INVALID_AI_PLACE` |
+| Project | Priority P1, Size 부모 L·#181 S·#182 L·#183 M (Effort 필드 부재로 Size 대응) |
+
+## 3. 변경
+
+### #181 등록 간격 유지 (PR #185)
+
+- `ScheduleNormalizer.moveOutOfPlaceSlots`·`nonMealPlaceSlots` 제거
+- 식전 = 식사 시작 − 간격, 식후 = 식사 종료 + 간격, 식중 = 식사 시작, INDEPENDENT·REGARDLESS_OF_MEAL = 등록 시각. 10분 슬롯 유지
+- 같은 시각 병합 유지. 동행인 규칙별 준수는 원본 healthContexts 기준 테스트로 판정
+
+### #182 겹침 회피 (PR #187)
+
+- `ScheduleNormalizer.finalizeMedicationSchedules`: 날짜별 복약 생성 → 첫 교차 탐색 → 해당 장소만 복약 종료 시각 시작으로 이동 → `normalizeScheduleTimes` 재실행(뒤 장소는 기존 이동시간 제약으로 연쇄) → 기존 충족 식사·자정 검증 → 재검사
+- `PlanService.finishPlan`의 최종 복약 배치만 교체. 중간 `validatePlaces`는 기존 `ensureMedicationSchedules` 유지
+- 재정규화의 늦은 식사 보정이 장소를 앞당기면 식사시간 이탈로 거부, 앞당김 금지 유지
+- 거부 사유 3종: `복약 겹침 회피 시 식사시간 이탈`, `복약 겹침 회피 시 자정 초과`, `복약·장소 시간 겹침`
+- 예외는 반환·저장 이전 `finishPlan` 내부 발생, 부분 저장 없음(생성 저장은 Facade 반환 이후, 편집 결과 캐시도 반환 이후)
+
+### #183 중복 방지 검증 (PR #186)
+
+- 재현된 빈틈 없음, 운영 코드 변경 없음. 특성 테스트 12건
+- 한계: 이름 정확 일치(양끝 공백 제거) 기준. 별칭·접두 누락, 동명 다른 지점 과잉 거부, 보충 로직의 candidateId 미비교, Kakao↔TourAPI ID 연결 없음. 정책 결정 대상
+
+## 4. TDD 증거
+
+| slice | RED | GREEN |
+|---|---|---|
+| #181 정규화 | 5건 실패: 기대 14:00 실제 15:10, 11:30→12:00, 13:30→15:00 등 | 제거 후 통과 |
+| #181 서비스 | 생성·편집·재구성 기대값을 등록 간격으로 갱신 | 통과 |
+| #182 정규화 | 9건 실패(stub 위임 상태): 꼬리 겹침·내부 시작·연쇄·거부 3종·병합 | 구현 후 28/28 |
+| #182 서비스 | `finishPlan` 연결 제거 시 4건 실패(생성·편집·재구성 이동, 생성 거부) | 연결 후 통과 |
+| #183 | 첫 실행 통과(특성). 변이 확인: resolver guard 비활성 5/8 실패, 복원·보충 이름 guard 비활성 4건 실패 | — |
+
+증거: `p2-medication-schedule-evidence/` (RED·GREEN XML).
+
+## 5. 검증과 리뷰
+
+- 전체 무료 test(external 제외, Docker 통합 포함): #181 934건, #183 939건, #182 963건, 실패·오류·skip 0
+- 통합 판정 `TravelPlanAssertions.assertMealMedication`: 등록 간격 정확 일치 + 복약·비식사 장소 전체 구간 교차 부재
+- 서브 독립 리뷰: #181 7.5, #183 7.0, #182 7.0 → Important 전부 수정(#181 단독 겹침 노출은 #182 동반 병합으로 해소)
+- 통합 독립 리뷰: 부모 PR 기록 참조
+
+## 6. 한계
+
+- 실제 AI 응답 기준 효과 미측정. 겹침 회피 거부가 생성 실패율을 올릴 가능성 존재
+- `intervalMinutes` 입력 검증 없음(null·음수 허용), 새 정책이라 미변경
+- 자정 근처 `LocalTime` 순환: 복약 종료 순환 시 겹침 미검출 가능, 이동 결과 순환은 거부
+- 하루 이동 상한 3회는 고정값, 실측 분포 근거 없음
+- 편집 `preserveOtherDays`: 재구성 날짜와 직후 날짜만 `finishPlan` 경유, 나머지 보존 날짜의 기존 겹침은 미검사
+- 서브 PR의 base가 부모 브랜치라 GitHub CI는 부모 PR에서만 실행
+- 장소 identity 한계는 §3 #183
+
+## 7. Codex 실측 인계
+
+| 항목 | 내용 |
+|---|---|
+| 비교 | 전: dev `9d56559`, 후: #180 dev 병합 commit |
+| 입력 | 기존 `TravelLlmQualityBaselineTest` C1~C4 × 3회, `P2_GENERATION_ONLY=true` |
+| 명령 | `./gradlew externalTest --rerun --tests com.planb.integration.domain.travel.TravelLlmQualityBaselineTest --console=plain` (사용자 승인 후) |
+| 환경변수 이름 | `OPENAI_API_KEY`, `OPENAI_MODEL`, `KOR2_SERVICE_KEY`, `KAKAO_REST_API_KEY`, `FOOD_NTR_CPNT_KEY`, `P2_GENERATION_ONLY` (값 출력 금지) |
+| 규칙별 복약 | 원본 healthContexts 규칙마다 기대 시각 계산, 최종 MEDICATION 슬롯 시작 일치. 분모 = 성공 실행 × 날짜 × 규칙 |
+| 겹침 | 복약 전체 구간과 장소 필요 비식사 슬롯 교차 건수. 분모 = 복약 슬롯 |
+| 중복 | 이름(공백 제거) 기준과 이름+주소 기준 병기. 분모 = 장소 슬롯 |
+| 성공률 | 실패 응답 포함 12시도 분모. `INVALID_AI_PLACE` 사유별(복약·장소 시간 겹침, 식사시간 이탈, 자정 초과) 분리 |
+| 경로 | 생성·편집·재구성 별도 보고 |
+| 보관 | raw·JSONL은 Git 제외, `docs/ai/evidence/<run>/`에 manifest·집계만, 보관 디렉터리 사본 |
+
+새 실측 전 Grafana URL·품질 개선 수치 없음.

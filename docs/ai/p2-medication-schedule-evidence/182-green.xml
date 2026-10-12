@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" tests="28" skipped="0" failures="0" errors="0" timestamp="2026-10-12T02:25:21.911Z" hostname="gang-ujuui-MacBookPro.local" time="0.009">
+  <properties/>
+  <testcase name="식사 슬롯 없는 날의 설정 식사시간 기준 식후 복약 배치" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="카페 겹침의 이동과 식사·이동 슬롯 겹침의 판정 제외" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.001"/>
+  <testcase name="이동시간으로 식사시간을 맞출 수 없는 일정의 예외 없는 최선 배치" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="식중 복약의 식사 시간대 유지" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="여러 동행인·복약 규칙별 등록 간격 유지와 같은 시각 병합" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.001"/>
+  <testcase name="복약 일정 생성의 반복 적용 시 동일 결과" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="복약 끝부분만 겹치는 관광지의 복약 종료 후 이동" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.001"/>
+  <testcase name="이동으로 창 안 식사가 창 밖으로 밀리는 배치의 거부" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.001"/>
+  <testcase name="장소 시간대 안의 식전 복약의 등록 간격 유지" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="복약 구간 안의 짧은 장소와 동일 시작 장소의 복약 종료 후 이동" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="장소 시간대 안의 식사 무관 복약 등록 시각 유지" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="입력 AI 복약 슬롯의 제거와 재생성 기준 겹침 해소" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.001"/>
+  <testcase name="식후 복약의 식사 종료 기준 배치" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="이동시간 반영 시간표 정규화의 반복 적용 시 동일 결과" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="복약과 경계만 맞닿은 장소의 시각 유지" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="관광지 내부 시작 복약의 관광지 복약 종료 후 이동" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="장소 내부 복약 일정 생성의 반복 적용 시 동일 결과" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.001"/>
+  <testcase name="장소 시간대 안의 고정 시각 복약 유지" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="식사 슬롯 없는 날의 설정 식사시간 기준 복약 겹침 해소" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="[1] interval = null" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="[2] interval = 0" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="다중 동행인 같은 시각 복약 병합 후 겹침 해소와 반복 적용 동일 결과" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="이동으로 자정을 넘기는 배치의 거부" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.001"/>
+  <testcase name="연속 장소의 체류·이동시간 유지 이동과 저녁 연동 복약 재계산" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="이동 상한 3회 초과 겹침의 거부" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="장소 시간대 안의 식후 복약의 등록 간격 유지" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="이동 상한 3회 이내 겹침의 해소" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.001"/>
+  <testcase name="같은 식사의 동행인별 다른 간격 복약 개별 유지" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
