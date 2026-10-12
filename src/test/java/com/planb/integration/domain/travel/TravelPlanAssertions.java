@@ -292,6 +292,23 @@ final class TravelPlanAssertions {
             JsonNode second
     ) {
 
+        // 시각 없는 슬롯 제외
+        for (JsonNode slot : List.of(
+                first,
+                second
+        )) {
+            if (slot
+                    .path("startTime")
+                    .asText()
+                    .isBlank()
+                    || slot
+                            .path("endTime")
+                            .asText()
+                            .isBlank()) {
+                return false;
+            }
+        }
+
         return LocalTime
                 .parse(first
                         .path("startTime")

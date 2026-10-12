@@ -848,7 +848,7 @@ class PlanPlaceValidationTest {
                 new TravelHealthContext.MedicationInfoContext.MealMedicationRuleContext(
                         RelatedMeal.LUNCH,
                         MealTiming.BEFORE_MEAL,
-                        30
+                        45
                 );
 
         TravelHealthContext healthContext =
@@ -935,8 +935,8 @@ class PlanPlaceValidationTest {
                 )
         );
 
-        // 식전 11:30 복약이 관광지 11:00~12:00 내부
-        // 관광지 이동 시 늦은 점심 보정의 앞 장소 앞당김 발생
+        // 식전 45분 11:15 복약이 관광지 11:00~12:00 내부
+        // 간격 확보에 점심 12:45 필요, 상한 12:30 초과
         BaseException failure = assertThrows(
                 BaseException.class,
                 () -> service.makePlanByAi(context)

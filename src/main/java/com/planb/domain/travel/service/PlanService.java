@@ -1370,6 +1370,7 @@ public class PlanService {
                 context.healthContexts()
         );
 
+        // 중간 복약 배치, 장소 겹침 해소는 finishPlan 최종 단계 담당
         response = scheduleNormalizer.ensureMedicationSchedules(
                 response,
                 context.healthContexts()

@@ -954,12 +954,280 @@ class ScheduleNormalizerTest {
     }
 
     @Test
-    @DisplayName("이동으로 창 안 식사가 창 밖으로 밀리는 배치의 거부")
-    void rejectsDelayPushingMealOutOfWindow() {
+    @DisplayName("늦은 점심 보정의 장소 앞당김이 필요한 이동의 거부")
+    void rejectsDelayRequiringPlaceToMoveEarlier() {
 
-        // 식전 11:30 복약이 관광지 10:30~12:00 내부
+        // 고정 11:30 복약이 관광지 10:30~12:00 내부
         // 관광지 11:40 이동 시 점심 13:10, 늦은 점심 보정의 관광지 앞당김 발생
+        List<TravelHealthContext> independent = List.of(
+                traveler(
+                        "고정 시각 여행자",
+                        independentMedication(
+                                "혈압약",
+                                LocalTime.of(11, 30)
+                        )
+                )
+        );
+
+        CreatePlanAiResponse normalized = scheduleNormalizer.normalizeScheduleTimes(
+                response(
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(10, 30),
+                                null
+                        ),
+                        restaurant(
+                                "점심 식당",
+                                ScheduleType.LUNCH,
+                                LocalTime.of(12, 0),
+                                0
+                        )
+                ),
+                independent
+        );
+
+        BaseException failure = assertThrows(
+                BaseException.class,
+                () -> scheduleNormalizer.finalizeMedicationSchedules(
+                        normalized,
+                        independent
+                )
+        );
+
+        assertEquals(
+                PlanEditExceptionEnum.INVALID_AI_PLACE.getCode(),
+                failure.getErrorCode()
+        );
+
+        assertTrue(failure
+                .getMessage()
+                .contains("장소 앞당김 필요"));
+    }
+
+    @Test
+    @DisplayName("직전 장소와 겹치는 식전 복약의 식사 창 안 지연")
+    void delaysMealForBeforeMealMedication() {
+
+        // 식전 30분 11:30 복약이 관광지 10:30~12:00 내부
+        // 점심 12:30 이동, 복약 12:00 관광지 종료와 맞닿음
         List<TravelHealthContext> beforeMeal = healthContexts(MealTiming.BEFORE_MEAL, 30);
+
+        CreatePlanAiResponse result = finalized(
+                response(
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(10, 30),
+                                null
+                        ),
+                        restaurant(
+                                "점심 식당",
+                                ScheduleType.LUNCH,
+                                LocalTime.of(12, 0),
+                                0
+                        )
+                ),
+                beforeMeal
+        );
+
+        assertEquals(
+                LocalTime.of(10, 30),
+                startTime(result, "해운대해수욕장")
+        );
+
+        assertEquals(
+                LocalTime.of(12, 30),
+                startTime(result, "점심 식당")
+        );
+
+        assertEquals(
+                LocalTime.of(12, 0),
+                medicationStartTime(result)
+        );
+    }
+
+    @Test
+    @DisplayName("같은 식사의 동행인별 다른 식전 간격 중 큰 간격 기준 식사 지연")
+    void delaysMealForLargestBeforeMealInterval() {
+
+        // 관광지 10:20~11:50, 점심 12:00, 식전 30분 11:30·15분 11:45
+        // 지연 20분, 점심 12:20, 복약 11:50·12:05
+        List<TravelHealthContext> companions = List.of(
+                traveler(
+                        "동행인 1",
+                        mealMedication(
+                                "혈당약",
+                                rule(
+                                        RelatedMeal.LUNCH,
+                                        MealTiming.BEFORE_MEAL,
+                                        30
+                                )
+                        )
+                ),
+                traveler(
+                        "동행인 2",
+                        mealMedication(
+                                "위장약",
+                                rule(
+                                        RelatedMeal.LUNCH,
+                                        MealTiming.BEFORE_MEAL,
+                                        15
+                                )
+                        )
+                )
+        );
+
+        CreatePlanAiResponse result = finalized(
+                response(
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(10, 20),
+                                null
+                        ),
+                        restaurant(
+                                "점심 식당",
+                                ScheduleType.LUNCH,
+                                LocalTime.of(12, 0),
+                                10
+                        )
+                ),
+                companions
+        );
+
+        assertEquals(
+                LocalTime.of(12, 20),
+                startTime(result, "점심 식당")
+        );
+
+        assertEquals(
+                List.of(
+                        LocalTime.of(11, 50),
+                        LocalTime.of(12, 5)
+                ),
+                medications(result)
+                        .stream()
+                        .map(CreatePlanAiResponse.PlanScheduleDetail::startTime)
+                        .toList()
+        );
+    }
+
+    @Test
+    @DisplayName("고정 시각 복약의 잔여 식전 규칙 시각 일치 시 식사 미지연")
+    void delaysPlaceForIndependentMedicationWithMealRule() {
+
+        // 고정 11:15 복약, 잔여 점심 식전 45분 규칙과 시각 일치
+        // 식사 지연 시 점심 12:45 창 초과, 관광지 이동 시 앞당김 거부로 경로 구분
+        List<TravelHealthContext> contexts = List.of(
+                traveler(
+                        "테스트 여행자",
+                        new TravelHealthContext.MedicationInfoContext(
+                                "혈압약",
+                                MedicationBasis.INDEPENDENT,
+                                LocalTime.of(11, 15),
+                                Set.of(
+                                        rule(
+                                                RelatedMeal.LUNCH,
+                                                MealTiming.BEFORE_MEAL,
+                                                45
+                                        )
+                                )
+                        )
+                )
+        );
+
+        CreatePlanAiResponse normalized = scheduleNormalizer.normalizeScheduleTimes(
+                response(
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(10, 30),
+                                null
+                        ),
+                        restaurant(
+                                "점심 식당",
+                                ScheduleType.LUNCH,
+                                LocalTime.of(12, 0),
+                                0
+                        )
+                ),
+                contexts
+        );
+
+        BaseException failure = assertThrows(
+                BaseException.class,
+                () -> scheduleNormalizer.finalizeMedicationSchedules(
+                        normalized,
+                        contexts
+                )
+        );
+
+        assertTrue(failure
+                .getMessage()
+                .contains("장소 앞당김 필요"));
+    }
+
+    @Test
+    @DisplayName("다른 식사의 식전 규칙 시각 일치 시 직후 식사 미지연")
+    void delaysPlaceForOtherMealBeforeRule() {
+
+        // 동행인 1 저녁 식전 45분 규칙, 동행인 2 고정 11:15 복약
+        // 점심 12:00 − 45분 시각 일치, 저녁 규칙이라 점심 미지연
+        // 식사 지연 시 점심 12:45 창 초과, 관광지 이동 시 앞당김 거부로 경로 구분
+        List<TravelHealthContext> contexts = List.of(
+                traveler(
+                        "동행인 1",
+                        mealMedication(
+                                "혈당약",
+                                rule(
+                                        RelatedMeal.DINNER,
+                                        MealTiming.BEFORE_MEAL,
+                                        45
+                                )
+                        )
+                ),
+                traveler(
+                        "동행인 2",
+                        independentMedication(
+                                "혈압약",
+                                LocalTime.of(11, 15)
+                        )
+                )
+        );
+
+        CreatePlanAiResponse normalized = scheduleNormalizer.normalizeScheduleTimes(
+                response(
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(10, 30),
+                                null
+                        ),
+                        restaurant(
+                                "점심 식당",
+                                ScheduleType.LUNCH,
+                                LocalTime.of(12, 0),
+                                0
+                        )
+                ),
+                contexts
+        );
+
+        BaseException failure = assertThrows(
+                BaseException.class,
+                () -> scheduleNormalizer.finalizeMedicationSchedules(
+                        normalized,
+                        contexts
+                )
+        );
+
+        assertTrue(failure
+                .getMessage()
+                .contains("장소 앞당김 필요"));
+    }
+
+    @Test
+    @DisplayName("식전 복약 간격 확보가 식사 창을 넘는 배치의 거부")
+    void rejectsBeforeMealDelayBeyondMealWindow() {
+
+        // 식전 45분 11:15 복약, 점심 12:45 필요, 상한 12:30 초과
+        List<TravelHealthContext> beforeMeal = healthContexts(MealTiming.BEFORE_MEAL, 45);
 
         CreatePlanAiResponse normalized = scheduleNormalizer.normalizeScheduleTimes(
                 response(
@@ -986,6 +1254,263 @@ class ScheduleNormalizerTest {
                 )
         );
 
+        assertTrue(failure
+                .getMessage()
+                .contains("식사시간 이탈"));
+    }
+
+    @Test
+    @DisplayName("앞 장소를 당길 수 없는 점심의 창 밖 이동 거부")
+    void rejectsDelayLeavingMealWindowWithoutShift() {
+
+        // 아침 08:00~09:00 직후 장소 09:00~10:00, 관광지 10:00~12:00, 점심 12:00
+        // 고정 11:00 복약으로 관광지 11:10 이동, 점심 13:10, 아침 종료로 앞당김 불가
+        List<TravelHealthContext> independent = List.of(
+                traveler(
+                        "고정 시각 여행자",
+                        independentMedication(
+                                "혈압약",
+                                LocalTime.of(11, 0)
+                        )
+                )
+        );
+
+        CreatePlanAiResponse normalized = scheduleNormalizer.normalizeScheduleTimes(
+                response(
+                        slot(
+                                ScheduleType.BREAKFAST,
+                                CourseType.RESTAURANT,
+                                "아침 식당",
+                                LocalTime.of(8, 0),
+                                null,
+                                60
+                        ),
+                        slot(
+                                ScheduleType.ACTIVITY,
+                                CourseType.ATTRACTION,
+                                "동백섬",
+                                LocalTime.of(9, 0),
+                                0,
+                                60
+                        ),
+                        slot(
+                                ScheduleType.ACTIVITY,
+                                CourseType.ATTRACTION,
+                                "해운대해수욕장",
+                                LocalTime.of(10, 0),
+                                0,
+                                120
+                        ),
+                        restaurant(
+                                "점심 식당",
+                                ScheduleType.LUNCH,
+                                LocalTime.of(12, 0),
+                                0
+                        )
+                ),
+                independent
+        );
+
+        BaseException failure = assertThrows(
+                BaseException.class,
+                () -> scheduleNormalizer.finalizeMedicationSchedules(
+                        normalized,
+                        independent
+                )
+        );
+
+        assertTrue(failure
+                .getMessage()
+                .contains("식사시간 이탈"));
+    }
+
+    @Test
+    @DisplayName("이동 연쇄로 뒤 장소가 자정을 넘기는 배치의 거부")
+    void rejectsCascadeCrossingMidnight() {
+
+        // 고정 22:00 복약, 관광지 21:00~22:30, 뒤 장소 22:30~23:30
+        // 관광지 22:10~23:40 이동, 뒤 장소 23:40~00:40 순환
+        List<TravelHealthContext> independent = List.of(
+                traveler(
+                        "고정 시각 여행자",
+                        independentMedication(
+                                "혈압약",
+                                LocalTime.of(22, 0)
+                        )
+                )
+        );
+
+        CreatePlanAiResponse normalized = scheduleNormalizer.normalizeScheduleTimes(
+                response(
+                        attraction(
+                                "야경 명소",
+                                LocalTime.of(21, 0),
+                                null
+                        ),
+                        slot(
+                                ScheduleType.ACTIVITY,
+                                CourseType.CAFE_REST,
+                                "심야 카페",
+                                LocalTime.of(22, 30),
+                                0,
+                                60
+                        )
+                ),
+                independent
+        );
+
+        BaseException failure = assertThrows(
+                BaseException.class,
+                () -> scheduleNormalizer.finalizeMedicationSchedules(
+                        normalized,
+                        independent
+                )
+        );
+
+        assertTrue(failure
+                .getMessage()
+                .contains("자정 초과"));
+    }
+
+    @Test
+    @DisplayName("이동시간 계산이 자정을 넘겨 뒤 장소가 남는 배치의 거부")
+    void rejectsCascadeWithWrappedTravelStart() {
+
+        // 고정 22:00 복약, 관광지 21:00~22:30, 이동 30분 뒤 카페 23:00~00:00
+        // 관광지 22:10~23:40 이동, 카페 최소 시작 00:10 순환으로 23:00 잔존
+        List<TravelHealthContext> independent = List.of(
+                traveler(
+                        "고정 시각 여행자",
+                        independentMedication(
+                                "혈압약",
+                                LocalTime.of(22, 0)
+                        )
+                )
+        );
+
+        CreatePlanAiResponse withTravel = response(
+                attraction(
+                        "야경 명소",
+                        LocalTime.of(21, 0),
+                        null
+                ),
+                slot(
+                        ScheduleType.ACTIVITY,
+                        CourseType.CAFE_REST,
+                        "심야 카페",
+                        LocalTime.of(23, 0),
+                        30,
+                        60
+                )
+        );
+
+        BaseException failure = assertThrows(
+                BaseException.class,
+                () -> scheduleNormalizer.finalizeMedicationSchedules(
+                        withTravel,
+                        independent
+                )
+        );
+
+        assertTrue(failure
+                .getMessage()
+                .contains("자정 초과"));
+    }
+
+    @Test
+    @DisplayName("등록 시각 없는 식사의 식전 복약 지연 허용")
+    void delaysMealWithoutConfiguredTime() {
+
+        // 점심 등록 시각 없음, 실제 점심 12:00 기준 식전 30분 복약
+        List<TravelHealthContext> noLunchTime = List.of(
+                new TravelHealthContext(
+                        "테스트 여행자",
+                        List.of(DiseaseType.DIABETES),
+                        WalkType.ACTIVE,
+                        new TravelHealthContext.MealInfoContext(
+                                LocalTime.of(8, 0),
+                                null,
+                                LocalTime.of(18, 0)
+                        ),
+                        List.of(),
+                        List.of(
+                                mealMedication(
+                                        "혈당약",
+                                        rule(
+                                                RelatedMeal.LUNCH,
+                                                MealTiming.BEFORE_MEAL,
+                                                30
+                                        )
+                                )
+                        )
+                )
+        );
+
+        CreatePlanAiResponse result = finalized(
+                response(
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(10, 30),
+                                null
+                        ),
+                        restaurant(
+                                "점심 식당",
+                                ScheduleType.LUNCH,
+                                LocalTime.of(12, 0),
+                                0
+                        )
+                ),
+                noLunchTime
+        );
+
+        assertEquals(
+                LocalTime.of(12, 30),
+                startTime(result, "점심 식당")
+        );
+
+        assertEquals(
+                LocalTime.of(12, 0),
+                medicationStartTime(result)
+        );
+    }
+
+    @Test
+    @DisplayName("자정에 끝나는 장소와 복약 겹침의 검출")
+    void detectsOverlapWithPlaceEndingAtMidnight() {
+
+        // 관광지 23:00~00:00, 고정 23:30 복약, 이동 시 자정 초과
+        List<TravelHealthContext> independent = List.of(
+                traveler(
+                        "고정 시각 여행자",
+                        independentMedication(
+                                "혈압약",
+                                LocalTime.of(23, 30)
+                        )
+                )
+        );
+
+        CreatePlanAiResponse normalized = scheduleNormalizer.normalizeScheduleTimes(
+                response(
+                        slot(
+                                ScheduleType.ACTIVITY,
+                                CourseType.ATTRACTION,
+                                "야경 명소",
+                                LocalTime.of(23, 0),
+                                null,
+                                60
+                        )
+                ),
+                independent
+        );
+
+        BaseException failure = assertThrows(
+                BaseException.class,
+                () -> scheduleNormalizer.finalizeMedicationSchedules(
+                        normalized,
+                        independent
+                )
+        );
+
         assertEquals(
                 PlanEditExceptionEnum.INVALID_AI_PLACE.getCode(),
                 failure.getErrorCode()
@@ -993,7 +1518,7 @@ class ScheduleNormalizerTest {
 
         assertTrue(failure
                 .getMessage()
-                .contains("식사시간 이탈"));
+                .contains("자정 초과"));
     }
 
     @Test
