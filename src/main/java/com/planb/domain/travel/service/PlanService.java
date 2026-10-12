@@ -793,7 +793,8 @@ public class PlanService {
                 context,
                 anchor,
                 candidates,
-                densityReductionDays
+                densityReductionDays,
+                currentPlan
         );
 
         validateTravelMinutes(mealFixed);
@@ -955,7 +956,8 @@ public class PlanService {
             TravelPlanContext context,
             RouteAnchor anchor,
             PlaceCandidateContext candidates,
-            Set<Integer> densityReductionDays
+            Set<Integer> densityReductionDays,
+            GetAiPlanResponse currentPlan
     ) {
 
         if (missingMealDays(response, context.healthContexts())
@@ -963,12 +965,36 @@ public class PlanService {
             return response;
         }
 
+        Set<String> reservedPlaces = new HashSet<>();
+        Set<String> reservedMenus = new HashSet<>();
+
+        if (currentPlan != null) {
+            Set<Integer> finishedDays = response
+                    .planDays()
+                    .stream()
+                    .map(CreatePlanAiResponse.PlanDayDetail::dayNumber)
+                    .collect(Collectors.toSet());
+
+            // 부분 편집의 보충 대상 밖 보존 날짜 예약
+            for (var day : currentPlan.planDays()) {
+                if (!finishedDays.contains(day.dayNumber())) {
+                    for (var slot : day.schedules()) {
+                        planPlaceResolver.track(
+                                planPlaceResolver.fromExisting(slot),
+                                reservedPlaces,
+                                reservedMenus
+                        );
+                    }
+                }
+            }
+        }
+
         CreatePlanAiResponse filled = missingSlotCompleter.complete(
                 response,
                 context.healthContexts(),
                 candidates,
-                new HashSet<>(),
-                new HashSet<>(),
+                reservedPlaces,
+                reservedMenus,
                 densityReductionDays,
                 context
                         .createTravelRequest()
@@ -976,7 +1002,7 @@ public class PlanService {
                         .getPlusDays() + 1
         );
 
-        return scheduleNormalizer.normalizeScheduleTimes(
+        CreatePlanAiResponse normalized = scheduleNormalizer.normalizeScheduleTimes(
                 fillMissingTravelMinutes(
                         filled,
                         context.createTravelRequest(),
@@ -984,6 +1010,98 @@ public class PlanService {
                 ),
                 context.healthContexts()
         );
+
+        return validateCompletedMeals(
+                response,
+                normalized,
+                candidates,
+                reservedPlaces,
+                reservedMenus
+        );
+    }
+
+    // 최종 보충 식사의 출처·좌표·중복 검증, 기존 편집 슬롯의 재선택 제외
+    private CreatePlanAiResponse validateCompletedMeals(
+            CreatePlanAiResponse original,
+            CreatePlanAiResponse completed,
+            PlaceCandidateContext candidates,
+            Set<String> reservedPlaces,
+            Set<String> reservedMenus
+    ) {
+
+        Map<MealSlotIdentity, Integer> retainedMeals = new HashMap<>();
+        Set<String> usedPlaces = new HashSet<>(reservedPlaces);
+        Set<String> usedMenus = new HashSet<>(reservedMenus);
+
+        for (var day : original.planDays()) {
+            for (var slot : day.schedules()) {
+                planPlaceResolver.track(slot, usedPlaces, usedMenus);
+
+                if (slot.courseType() == CourseType.RESTAURANT || slot.courseType() == CourseType.LOCAL_FOOD) {
+                    retainedMeals.merge(
+                            new MealSlotIdentity(
+                                    day.dayNumber(),
+                                    slot.scheduleType(),
+                                    slot.candidateId()
+                            ),
+                            1,
+                            Integer::sum
+                    );
+                }
+            }
+        }
+
+        List<CreatePlanAiResponse.PlanDayDetail> days = new ArrayList<>();
+
+        for (var day : completed.planDays()) {
+            List<CreatePlanAiResponse.PlanScheduleDetail> schedules = new ArrayList<>();
+
+            for (var slot : day.schedules()) {
+                if (slot.courseType() == CourseType.RESTAURANT || slot.courseType() == CourseType.LOCAL_FOOD) {
+                    MealSlotIdentity identity = new MealSlotIdentity(
+                            day.dayNumber(),
+                            slot.scheduleType(),
+                            slot.candidateId()
+                    );
+                    int retained = retainedMeals.getOrDefault(identity, 0);
+
+                    if (retained > 0) {
+                        retainedMeals.put(identity, retained - 1);
+                    } else {
+                        Validation validation = planPlaceResolver.validate(
+                                slot,
+                                candidates,
+                                usedPlaces,
+                                usedMenus
+                        );
+
+                        if (!validation.valid()) {
+                            throw invalidPlace(validation.reason());
+                        }
+
+                        slot = validation.schedule();
+                        planPlaceResolver.track(slot, usedPlaces, usedMenus);
+                    }
+                }
+
+                schedules.add(slot);
+            }
+
+            days.add(new CreatePlanAiResponse.PlanDayDetail(
+                    day.dayNumber(),
+                    day.date(),
+                    schedules
+            ));
+        }
+
+        return new CreatePlanAiResponse(days);
+    }
+
+    private record MealSlotIdentity(
+            Integer dayNumber,
+            ScheduleType scheduleType,
+            String candidateId
+    ) {
     }
 
     /**
@@ -1527,7 +1645,7 @@ public class PlanService {
                         + ", " + finalReason));
     }
 
-    // 동일 날짜·시간·유형의 기존 슬롯만 출처 재검증 후 원본 복원
+    // 동일 날짜·시간·유형의 기존 슬롯만 구조·중복 검증 후 원본 복원
     private Optional<CreatePlanAiResponse.PlanScheduleDetail> verifiedFallback(
             GetAiPlanResponse existing,
             CreatePlanAiResponse.PlanDayDetail day,

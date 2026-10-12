@@ -315,8 +315,8 @@ class TravelRecommendHandlerContractTest {
     }
 
     @Test
-    @DisplayName("초기 생성에서 상세 미조회 메뉴의 교정 사유 반환")
-    void rejectsGenerationMenuWithoutMatchingSource() {
+    @DisplayName("초기 생성의 메뉴 출처 오류를 최종 슬롯 검증으로 전달")
+    void delegatesGenerationMenuSourceValidationToSlotRecovery() {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();
         candidates.record(restaurantItem("456", "춘천식당"));
@@ -351,8 +351,10 @@ class TravelRecommendHandlerContractTest {
         handler().createPlanByAi(travelPlanContext(WalkType.ACTIVE), candidates);
 
         assertThat(capturedPlanValidation().apply(selection))
+                .allSatisfy(failure -> assertThat(failure)
+                        .doesNotContain("메뉴"))
                 .anySatisfy(failure -> assertThat(failure)
-                        .contains("음식점 상세 메뉴 미확인", "tour:456"));
+                        .contains("여행 일수"));
     }
 
     @Test

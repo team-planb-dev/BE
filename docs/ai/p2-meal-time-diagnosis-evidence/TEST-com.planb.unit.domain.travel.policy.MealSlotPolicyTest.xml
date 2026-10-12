@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.planb.unit.domain.travel.policy.MealSlotPolicyTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-12T00:23:47.838Z" hostname="gang-ujuui-MacBookPro.local" time="0.046">
+  <properties/>
+  <testcase name="중간 날은 등록된 세 끼를 모두 요구" classname="com.planb.unit.domain.travel.policy.MealSlotPolicyTest" time="0.04"/>
+  <testcase name="첫날 아침은 없어도 거부하지 않음" classname="com.planb.unit.domain.travel.policy.MealSlotPolicyTest" time="0.001"/>
+  <testcase name="마지막 날 저녁은 없어도 거부하지 않음" classname="com.planb.unit.domain.travel.policy.MealSlotPolicyTest" time="0.0"/>
+  <testcase name="등록 식사시각을 지나지 않는 하루도 등록된 식사를 모두 채울 대상으로 판단" classname="com.planb.unit.domain.travel.policy.MealSlotPolicyTest" time="0.0"/>
+  <testcase name="등록된 식사가 모두 있는 하루는 채울 대상 없음" classname="com.planb.unit.domain.travel.policy.MealSlotPolicyTest" time="0.001"/>
+  <testcase name="이미 있는 식사는 채울 대상에서 빠짐" classname="com.planb.unit.domain.travel.policy.MealSlotPolicyTest" time="0.0"/>
+  <testcase name="식사시간 미적용 동행인만 있으면 식사 슬롯을 요구하지 않음" classname="com.planb.unit.domain.travel.policy.MealSlotPolicyTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

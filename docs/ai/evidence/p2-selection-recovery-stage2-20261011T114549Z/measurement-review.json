@@ -1,0 +1,33 @@
+{
+  "minimumScore": 9,
+  "rounds": [
+    {
+      "round": 1,
+      "score": 8,
+      "critical": 0,
+      "important": 3,
+      "action": "PASS cohort filters, Grafana datasource verification and previous-observation preservation corrected"
+    },
+    {
+      "round": 2,
+      "score": 8.9,
+      "critical": 0,
+      "important": 1,
+      "action": "Archive copies synchronized; historical progress wording clarified"
+    },
+    {
+      "round": 3,
+      "score": 9.3,
+      "critical": 0,
+      "important": 0,
+      "minor": 0,
+      "action": "Independent review verified numeric evidence, 23 Grafana proxy panels, URL and 53 mirrored files; passed"
+    }
+  ],
+  "remainingLimits": [
+    "No independent actual park selection improvement proof",
+    "No actual edit/STOMP/HIGH/opening-hours checks",
+    "No statistical significance proof from 12 runs"
+  ],
+  "browserCheck": "Primary agent checked title and first two loaded panels; reviewer did not inspect browser rendering"
+}

@@ -1,0 +1,729 @@
+{
+  "checkedAt": "2026-10-11T11:56:14.779470+00:00",
+  "panelQueries": [
+    {
+      "panel": "생성 구조 검사 통과 / 12",
+      "expression": "sum by (phase) (last_over_time(planb_stage2_quality_pass[30d]))",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-menu-fix"
+          },
+          "value": [
+            1791719774.397,
+            "11"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "#179-stage2"
+          },
+          "value": [
+            1791719774.397,
+            "12"
+          ]
+        }
+      ],
+      "expectedValues": {
+        "#177-menu-fix": 11,
+        "#179-stage2": 12
+      },
+      "matchesEvidence": true,
+      "grafanaDatasourceProxyMatches": true
+    },
+    {
+      "panel": "지정 장소 포함 실행 (성공 응답)",
+      "expression": "sum by (phase) (last_over_time(planb_stage2_quality_plannedPlaceIncluded{outcome=\"PASS\"}[30d]))",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-menu-fix"
+          },
+          "value": [
+            1791719774.423,
+            "11"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "#179-stage2"
+          },
+          "value": [
+            1791719774.423,
+            "12"
+          ]
+        }
+      ],
+      "expectedValues": {
+        "#177-menu-fix": 11,
+        "#179-stage2": 12
+      },
+      "matchesEvidence": true,
+      "grafanaDatasourceProxyMatches": true
+    },
+    {
+      "panel": "날짜 간 장소 중복",
+      "expression": "sum by (phase) (last_over_time(planb_stage2_quality_crossDayDuplicatePlaces{outcome=\"PASS\"}[30d]))",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-menu-fix"
+          },
+          "value": [
+            1791719774.43,
+            "0"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "#179-stage2"
+          },
+          "value": [
+            1791719774.43,
+            "0"
+          ]
+        }
+      ],
+      "expectedValues": {
+        "#177-menu-fix": 0,
+        "#179-stage2": 0
+      },
+      "matchesEvidence": true,
+      "grafanaDatasourceProxyMatches": true
+    },
+    {
+      "panel": "알레르기 키워드 적중 — 성분 확정 아님",
+      "expression": "sum by (phase) (last_over_time(planb_stage2_quality_allergenHits{outcome=\"PASS\"}[30d]))",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-menu-fix"
+          },
+          "value": [
+            1791719774.438,
+            "0"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "#179-stage2"
+          },
+          "value": [
+            1791719774.438,
+            "0"
+          ]
+        }
+      ],
+      "expectedValues": {
+        "#177-menu-fix": 0,
+        "#179-stage2": 0
+      },
+      "matchesEvidence": true,
+      "grafanaDatasourceProxyMatches": true
+    },
+    {
+      "panel": "기존 메뉴 출처 proxy 일치율 — 부분 문자열",
+      "expression": "sum by (phase) (last_over_time(planb_stage2_quality_menu_matched{outcome=\"PASS\"}[30d])) / sum by (phase) (last_over_time(planb_stage2_quality_menu_checked{outcome=\"PASS\"}[30d]))",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-menu-fix"
+          },
+          "value": [
+            1791719774.445,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "#179-stage2"
+          },
+          "value": [
+            1791719774.445,
+            "1"
+          ]
+        }
+      ],
+      "expectedValues": {
+        "#177-menu-fix": 1.0,
+        "#179-stage2": 1.0
+      },
+      "matchesEvidence": true,
+      "grafanaDatasourceProxyMatches": true
+    },
+    {
+      "panel": "필수 식사 존재 — 첫 아침·마지막 저녁 면제",
+      "expression": "last_over_time(planb_stage2_raw_required_meals_present[30d]) / last_over_time(planb_stage2_raw_required_meals_expected[30d])",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-menu-fix"
+          },
+          "value": [
+            1791719774.452,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "#179-stage2"
+          },
+          "value": [
+            1791719774.452,
+            "1"
+          ]
+        }
+      ],
+      "expectedValues": {
+        "#177-menu-fix": 1.0,
+        "#179-stage2": 1.0
+      },
+      "matchesEvidence": true,
+      "grafanaDatasourceProxyMatches": true
+    },
+    {
+      "panel": "복약 deterministic 계약 충족일 비율",
+      "expression": "last_over_time(planb_stage2_raw_medication_days_matched[30d]) / last_over_time(planb_stage2_raw_medication_days_checked[30d])",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-menu-fix"
+          },
+          "value": [
+            1791719774.46,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "#179-stage2"
+          },
+          "value": [
+            1791719774.46,
+            "1"
+          ]
+        }
+      ],
+      "expectedValues": {
+        "#177-menu-fix": 1.0,
+        "#179-stage2": 1.0
+      },
+      "matchesEvidence": true,
+      "grafanaDatasourceProxyMatches": true
+    },
+    {
+      "panel": "필수 식사 슬롯 시작시각 ±30분 — 관찰 지표",
+      "expression": "last_over_time(planb_stage2_raw_required_meals_on_time[30d]) / last_over_time(planb_stage2_raw_required_meals_evaluable_slots[30d])",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-menu-fix"
+          },
+          "value": [
+            1791719774.467,
+            "0.9318181818181818"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "#179-stage2"
+          },
+          "value": [
+            1791719774.467,
+            "0.875"
+          ]
+        }
+      ],
+      "expectedValues": {
+        "#177-menu-fix": 0.9318181818181818,
+        "#179-stage2": 0.875
+      },
+      "matchesEvidence": true,
+      "grafanaDatasourceProxyMatches": true
+    },
+    {
+      "panel": "식사시각 태그 불일치",
+      "expression": "last_over_time(planb_stage2_raw_meal_tag_mismatches[30d])",
+      "result": [
+        {
+          "metric": {
+            "__name__": "planb_stage2_raw_meal_tag_mismatches",
+            "phase": "#177-menu-fix"
+          },
+          "value": [
+            1791719774.474,
+            "0"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "planb_stage2_raw_meal_tag_mismatches",
+            "phase": "#179-stage2"
+          },
+          "value": [
+            1791719774.474,
+            "0"
+          ]
+        }
+      ],
+      "expectedValues": {
+        "#177-menu-fix": 0,
+        "#179-stage2": 0
+      },
+      "matchesEvidence": true,
+      "grafanaDatasourceProxyMatches": true
+    },
+    {
+      "panel": "필수 필드 오류 슬롯",
+      "expression": "last_over_time(planb_stage2_raw_place_field_invalid_slots[30d])",
+      "result": [
+        {
+          "metric": {
+            "__name__": "planb_stage2_raw_place_field_invalid_slots",
+            "phase": "#177-menu-fix"
+          },
+          "value": [
+            1791719774.481,
+            "0"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "planb_stage2_raw_place_field_invalid_slots",
+            "phase": "#179-stage2"
+          },
+          "value": [
+            1791719774.481,
+            "0"
+          ]
+        }
+      ],
+      "expectedValues": {
+        "#177-menu-fix": 0,
+        "#179-stage2": 0
+      },
+      "matchesEvidence": true,
+      "grafanaDatasourceProxyMatches": true
+    },
+    {
+      "panel": "영양 채움 proxy — carbohydrate 숫자",
+      "expression": "sum by (phase) (last_over_time(planb_stage2_quality_nutritionFilled{outcome=\"PASS\"}[30d])) / sum by (phase) (last_over_time(planb_stage2_quality_restaurantSlots{outcome=\"PASS\"}[30d]))",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-menu-fix"
+          },
+          "value": [
+            1791719774.489,
+            "0.45454545454545453"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "#179-stage2"
+          },
+          "value": [
+            1791719774.489,
+            "0.4583333333333333"
+          ]
+        }
+      ],
+      "expectedValues": {
+        "#177-menu-fix": 0.45454545454545453,
+        "#179-stage2": 0.4583333333333333
+      },
+      "matchesEvidence": true,
+      "grafanaDatasourceProxyMatches": true
+    },
+    {
+      "panel": "영양 3필드 숫자 — 정확성 검증 아님",
+      "expression": "last_over_time(planb_stage2_raw_all_nutrition_fields_filled[30d]) / last_over_time(planb_stage2_raw_restaurant_slots[30d])",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-menu-fix"
+          },
+          "value": [
+            1791719774.501,
+            "0.45454545454545453"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "#179-stage2"
+          },
+          "value": [
+            1791719774.501,
+            "0.4583333333333333"
+          ]
+        }
+      ],
+      "expectedValues": {
+        "#177-menu-fix": 0.45454545454545453,
+        "#179-stage2": 0.4583333333333333
+      },
+      "matchesEvidence": true,
+      "grafanaDatasourceProxyMatches": true
+    },
+    {
+      "panel": "이동시간 누락·음수 슬롯",
+      "expression": "last_over_time(planb_stage2_raw_route_invalid_slots[30d])",
+      "result": [
+        {
+          "metric": {
+            "__name__": "planb_stage2_raw_route_invalid_slots",
+            "phase": "#177-menu-fix"
+          },
+          "value": [
+            1791719774.508,
+            "0"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "planb_stage2_raw_route_invalid_slots",
+            "phase": "#179-stage2"
+          },
+          "value": [
+            1791719774.508,
+            "0"
+          ]
+        }
+      ],
+      "expectedValues": {
+        "#177-menu-fix": 0,
+        "#179-stage2": 0
+      },
+      "matchesEvidence": true,
+      "grafanaDatasourceProxyMatches": true
+    },
+    {
+      "panel": "candidateId 누락·형식 오류 슬롯",
+      "expression": "last_over_time(planb_stage2_raw_identity_invalid_slots[30d])",
+      "result": [
+        {
+          "metric": {
+            "__name__": "planb_stage2_raw_identity_invalid_slots",
+            "phase": "#177-menu-fix"
+          },
+          "value": [
+            1791719774.516,
+            "0"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "planb_stage2_raw_identity_invalid_slots",
+            "phase": "#179-stage2"
+          },
+          "value": [
+            1791719774.516,
+            "0"
+          ]
+        }
+      ],
+      "expectedValues": {
+        "#177-menu-fix": 0,
+        "#179-stage2": 0
+      },
+      "matchesEvidence": true,
+      "grafanaDatasourceProxyMatches": true
+    },
+    {
+      "panel": "CAFE_REST 슬롯 수",
+      "expression": "sum by (phase) (last_over_time(planb_stage2_quality_cafeRestSlots{outcome=\"PASS\"}[30d]))",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-menu-fix"
+          },
+          "value": [
+            1791719774.526,
+            "12"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "#179-stage2"
+          },
+          "value": [
+            1791719774.526,
+            "12"
+          ]
+        }
+      ],
+      "expectedValues": {
+        "#177-menu-fix": 12,
+        "#179-stage2": 12
+      },
+      "matchesEvidence": true,
+      "grafanaDatasourceProxyMatches": true
+    },
+    {
+      "panel": "메뉴 문자열 중복 — 후처리 proxy",
+      "expression": "last_over_time(planb_stage2_raw_duplicate_menu_proxy[30d])",
+      "result": [
+        {
+          "metric": {
+            "__name__": "planb_stage2_raw_duplicate_menu_proxy",
+            "phase": "#177-menu-fix"
+          },
+          "value": [
+            1791719774.533,
+            "0"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "planb_stage2_raw_duplicate_menu_proxy",
+            "phase": "#179-stage2"
+          },
+          "value": [
+            1791719774.533,
+            "0"
+          ]
+        }
+      ],
+      "expectedValues": {
+        "#177-menu-fix": 0,
+        "#179-stage2": 0
+      },
+      "matchesEvidence": true,
+      "grafanaDatasourceProxyMatches": true
+    },
+    {
+      "panel": "PARK_WALK 슬롯 수 — 원본 분류 검증 아님",
+      "expression": "last_over_time(planb_stage2_raw_park_walk_slots[30d])",
+      "result": [
+        {
+          "metric": {
+            "__name__": "planb_stage2_raw_park_walk_slots",
+            "phase": "#177-menu-fix"
+          },
+          "value": [
+            1791719774.546,
+            "0"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "planb_stage2_raw_park_walk_slots",
+            "phase": "#179-stage2"
+          },
+          "value": [
+            1791719774.546,
+            "0"
+          ]
+        }
+      ],
+      "expectedValues": {
+        "#177-menu-fix": 0,
+        "#179-stage2": 0
+      },
+      "matchesEvidence": true,
+      "grafanaDatasourceProxyMatches": true
+    },
+    {
+      "panel": "슬롯 재선택 단계 수 — 전체 시도",
+      "expression": "last_over_time(planb_stage2_raw_reselection_stages[30d])",
+      "result": [
+        {
+          "metric": {
+            "__name__": "planb_stage2_raw_reselection_stages",
+            "phase": "#177-menu-fix"
+          },
+          "value": [
+            1791719774.554,
+            "4"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "planb_stage2_raw_reselection_stages",
+            "phase": "#179-stage2"
+          },
+          "value": [
+            1791719774.554,
+            "3"
+          ]
+        }
+      ],
+      "expectedValues": {
+        "#177-menu-fix": 4.0,
+        "#179-stage2": 3.0
+      },
+      "matchesEvidence": true,
+      "grafanaDatasourceProxyMatches": true
+    },
+    {
+      "panel": "앱 교정 시도 수 — 전체 시도",
+      "expression": "last_over_time(planb_stage2_raw_correction_attempts[30d])",
+      "result": [
+        {
+          "metric": {
+            "__name__": "planb_stage2_raw_correction_attempts",
+            "phase": "#177-menu-fix"
+          },
+          "value": [
+            1791719774.561,
+            "4"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "planb_stage2_raw_correction_attempts",
+            "phase": "#179-stage2"
+          },
+          "value": [
+            1791719774.561,
+            "0"
+          ]
+        }
+      ],
+      "expectedValues": {
+        "#177-menu-fix": 4.0,
+        "#179-stage2": 0
+      },
+      "matchesEvidence": true,
+      "grafanaDatasourceProxyMatches": true
+    },
+    {
+      "panel": "전체 생성 시도의 모델 호출 수 — 보조",
+      "expression": "sum by (phase) (last_over_time(planb_stage2_quality_llm_calls[30d]))",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-menu-fix"
+          },
+          "value": [
+            1791719774.569,
+            "73"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "#179-stage2"
+          },
+          "value": [
+            1791719774.569,
+            "69"
+          ]
+        }
+      ],
+      "expectedValues": {
+        "#177-menu-fix": 73,
+        "#179-stage2": 69
+      },
+      "matchesEvidence": true,
+      "grafanaDatasourceProxyMatches": true
+    },
+    {
+      "panel": "성공 응답 시간 중앙값 — 보조",
+      "expression": "quantile by (phase) (0.5,last_over_time(planb_stage2_quality_duration_seconds{outcome=\"PASS\"}[30d]))",
+      "result": [
+        {
+          "metric": {
+            "phase": "#177-menu-fix"
+          },
+          "value": [
+            1791719774.577,
+            "20.399"
+          ]
+        },
+        {
+          "metric": {
+            "phase": "#179-stage2"
+          },
+          "value": [
+            1791719774.577,
+            "23.517"
+          ]
+        }
+      ],
+      "expectedValues": {
+        "#177-menu-fix": 20.399,
+        "#179-stage2": 23.517
+      },
+      "matchesEvidence": true,
+      "grafanaDatasourceProxyMatches": true
+    },
+    {
+      "panel": "성공 일정 이동시간 합계 중앙값 — 분",
+      "expression": "last_over_time(planb_stage2_raw_travel_minutes_median[30d])",
+      "result": [
+        {
+          "metric": {
+            "__name__": "planb_stage2_raw_travel_minutes_median",
+            "phase": "#177-menu-fix"
+          },
+          "value": [
+            1791719774.585,
+            "333"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "planb_stage2_raw_travel_minutes_median",
+            "phase": "#179-stage2"
+          },
+          "value": [
+            1791719774.585,
+            "291.5"
+          ]
+        }
+      ],
+      "expectedValues": {
+        "#177-menu-fix": 333,
+        "#179-stage2": 291.5
+      },
+      "matchesEvidence": true,
+      "grafanaDatasourceProxyMatches": true
+    },
+    {
+      "panel": "성공 응답 입출력 token 중앙값 — 보조",
+      "expression": "last_over_time(planb_stage2_raw_tokens_median[30d])",
+      "result": [
+        {
+          "metric": {
+            "__name__": "planb_stage2_raw_tokens_median",
+            "phase": "#177-menu-fix"
+          },
+          "value": [
+            1791719774.596,
+            "51497"
+          ]
+        },
+        {
+          "metric": {
+            "__name__": "planb_stage2_raw_tokens_median",
+            "phase": "#179-stage2"
+          },
+          "value": [
+            1791719774.596,
+            "54437.5"
+          ]
+        }
+      ],
+      "expectedValues": {
+        "#177-menu-fix": 51497,
+        "#179-stage2": 54437.5
+      },
+      "matchesEvidence": true,
+      "grafanaDatasourceProxyMatches": true
+    }
+  ],
+  "count": 23,
+  "allValuesMatchRecordedEvidence": true,
+  "datasource": {
+    "uid": "p24c-actual",
+    "type": "prometheus",
+    "url": "http://host.docker.internal:9091",
+    "allProxyValuesVerified": true
+  },
+  "storedUidVerified": true,
+  "dashboardPageHttpStatus": 200,
+  "dashboardResolvedUrl": "http://localhost:3000/d/p2-selection-stage2/5a24d2d",
+  "browserRenderVerified": true,
+  "previousPanelsPreserved": 17,
+  "browserRenderVerificationScope": "In-app browser title, loaded explanations and first two numeric panels observed: PASS 11/12 and planned inclusion 11/12 vs 12/12. Remaining numeric panels verified through datasource proxy, not individually scrolled."
+}

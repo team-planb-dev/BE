@@ -247,11 +247,37 @@ public class KakaoMapServiceHandler {
             String previousLatitude
     ) {
 
+        return findPlaceWithRoute(
+                keyword,
+                previousLocation,
+                transportation,
+                excludeNames,
+                categoryCode,
+                previousLongitude,
+                previousLatitude,
+                false
+        );
+    }
+
+    public Mono<PlaceWithRouteResult> findPlaceWithRoute(
+            String keyword,
+            String previousLocation,
+            Transportation transportation,
+            List<String> excludeNames,
+            String categoryCode,
+            String previousLongitude,
+            String previousLatitude,
+            boolean parksOnly
+    ) {
+
         return searchPlace(keyword)
                 .map(response -> kakaoPlaceSearchHelper.filterByCategory(
                         response,
                         categoryCode
                 ))
+                .map(response -> parksOnly
+                        ? kakaoPlaceSearchHelper.filterParks(response, excludeNames)
+                        : response)
                 .filter(kakaoPlaceSearchHelper::hasResult)
                 .filter(response -> !kakaoPlaceSearchHelper.isExcluded(response, excludeNames))
                 .flatMap(response ->

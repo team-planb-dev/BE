@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-10-11T11:21:33.058Z" hostname="gang-ujuui-MacBookPro.local" time="0.671">
+  <properties/>
+  <testcase name="부분 편집의 늦은 식사 보충에서 보존 날짜 식당·메뉴 예약 유지" classname="com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest" time="0.081"/>
+  <testcase name="[1] cause = &quot;source&quot;" classname="com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest" time="0.039"/>
+  <testcase name="[2] cause = &quot;duplicate&quot;" classname="com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest" time="0.032"/>
+  <testcase name="[3] cause = &quot;category&quot;" classname="com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest" time="0.05"/>
+  <testcase name="JSON 해석 실패의 기존 응답 단위 재시도와 실패 계약 유지" classname="com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest" time="0.028"/>
+  <testcase name="늦은 식사 보충의 유효한 출처와 정상 점심 보존" classname="com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest" time="0.049"/>
+  <testcase name="[1] latitude = &quot;&quot;" classname="com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest" time="0.041"/>
+  <testcase name="[2] latitude = &quot;181&quot;" classname="com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest" time="0.08"/>
+  <testcase name="[3] latitude = &quot;NaN&quot;" classname="com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest" time="0.036"/>
+  <testcase name="초기 메뉴 오류의 슬롯 복구와 뒤쪽 정상 관광지 보존" classname="com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest" time="0.062"/>
+  <testcase name="[1] candidateId = &quot;tour:910003&quot;, menu = &quot;출처 없는 메뉴&quot;" classname="com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest" time="0.048"/>
+  <testcase name="[2] candidateId = &quot;tour:unknown&quot;, menu = &quot;칼국수&quot;" classname="com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest" time="0.043"/>
+  <testcase name="[3] candidateId = &quot;tour:900001&quot;, menu = &quot;칼국수&quot;" classname="com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest" time="0.039"/>
+  <testcase name="실제 파이프라인의 등록 점심 보충과 원본 메뉴 확정" classname="com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest" time="0.028"/>
+  <system-out><![CDATA[2026-10-11T20:21:33.106+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 관광지 후보 조회 호출 - locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.115+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 음식점 검색 호출 - keyword: 비빔밥, locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.116+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910001
+2026-10-11T20:21:33.123+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 식사 슬롯 보정 실패 - scheduleType: BREAKFAST, 검색 음식점 후보 수: 2
+2026-10-11T20:21:33.133+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 식사 슬롯 보정 실패 - scheduleType: BREAKFAST, 검색 음식점 후보 수: 2
+2026-10-11T20:21:33.163+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 관광지 후보 조회 호출 - locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.164+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 음식점 검색 호출 - keyword: 비빔밥, locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.166+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910001
+2026-10-11T20:21:33.170+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 관광지 03, startTime: 13:20
+2026-10-11T20:21:33.170+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 관광지 02, startTime: 14:40
+2026-10-11T20:21:33.170+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910002
+2026-10-11T20:21:33.172+09:00  WARN 3993 --- [default-setting] [    Test worker] c.p.g.c.kor2Service.Kor2ServiceClient    : [TOURAPI] 비정상 응답 - endpoint: detailIntro2, outcome: http_500
+2026-10-11T20:21:33.172+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 음식점 상세 조회 실패로 후보 제외 - locationName: 스텁 음식점 02, 원인: org.springframework.web.reactive.function.client.WebClientResponseException$InternalServerError: 500 Internal Server Error from UNKNOWN 
+2026-10-11T20:21:33.172+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 식사 슬롯 보정 실패 - scheduleType: BREAKFAST, 검색 음식점 후보 수: 2
+2026-10-11T20:21:33.176+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910002
+2026-10-11T20:21:33.177+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 식사 슬롯 보정 실패 - scheduleType: BREAKFAST, 검색 음식점 후보 수: 2
+2026-10-11T20:21:33.199+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 관광지 후보 조회 호출 - locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.200+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 음식점 검색 호출 - keyword: 비빔밥, locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.201+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910001
+2026-10-11T20:21:33.205+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 관광지 03, startTime: 13:20
+2026-10-11T20:21:33.205+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 관광지 02, startTime: 14:40
+2026-10-11T20:21:33.205+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910002
+2026-10-11T20:21:33.205+09:00  WARN 3993 --- [default-setting] [    Test worker] c.p.g.c.kor2Service.Kor2ServiceClient    : [TOURAPI] 비정상 응답 - endpoint: detailIntro2, outcome: http_500
+2026-10-11T20:21:33.205+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 음식점 상세 조회 실패로 후보 제외 - locationName: 스텁 음식점 02, 원인: org.springframework.web.reactive.function.client.WebClientResponseException$InternalServerError: 500 Internal Server Error from UNKNOWN 
+2026-10-11T20:21:33.205+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 식사 슬롯 보정 실패 - scheduleType: BREAKFAST, 검색 음식점 후보 수: 2
+2026-10-11T20:21:33.209+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910002
+2026-10-11T20:21:33.210+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 식사 슬롯 보정 실패 - scheduleType: BREAKFAST, 검색 음식점 후보 수: 2
+2026-10-11T20:21:33.245+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 관광지 후보 조회 호출 - locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.247+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 음식점 검색 호출 - keyword: 비빔밥, locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.248+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910001
+2026-10-11T20:21:33.253+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 관광지 03, startTime: 13:20
+2026-10-11T20:21:33.253+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 음식점 02, startTime: 14:40
+2026-10-11T20:21:33.253+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 식사 슬롯 보정 실패 - scheduleType: BREAKFAST, 검색 음식점 후보 수: 1
+2026-10-11T20:21:33.260+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 식사 슬롯 보정 실패 - scheduleType: BREAKFAST, 검색 음식점 후보 수: 1
+2026-10-11T20:21:33.285+09:00  WARN 3993 --- [default-setting] [    Test worker] com.planb.ai.client.OpenAiClient         : AI 구조화 응답 JSON 파싱 실패. 응답 길이: 1
+2026-10-11T20:21:33.285+09:00  WARN 3993 --- [default-setting] [    Test worker] com.planb.ai.client.OpenAiClient         : AI 구조화 응답 생성 또는 JSON 파싱 실패 (시도 1/2). 동일 요청으로 1회 재시도합니다. 원인: com.planb.global.config.exception.domain.AiOrchestrationException: AI 구조화 응답을 해석하지 못했습니다.
+2026-10-11T20:21:33.292+09:00  WARN 3993 --- [default-setting] [    Test worker] com.planb.ai.client.OpenAiClient         : AI 구조화 응답 JSON 파싱 실패. 응답 길이: 1
+2026-10-11T20:21:33.324+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 관광지 후보 조회 호출 - locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.325+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 음식점 검색 호출 - keyword: 비빔밥, locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.326+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910001
+2026-10-11T20:21:33.330+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 관광지 03, startTime: 13:20
+2026-10-11T20:21:33.330+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 관광지 02, startTime: 14:40
+2026-10-11T20:21:33.330+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910002
+2026-10-11T20:21:33.331+09:00  WARN 3993 --- [default-setting] [    Test worker] c.p.g.c.kor2Service.Kor2ServiceClient    : [TOURAPI] 비정상 응답 - endpoint: detailIntro2, outcome: http_500
+2026-10-11T20:21:33.331+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 음식점 상세 조회 실패로 후보 제외 - locationName: 스텁 음식점 02, 원인: org.springframework.web.reactive.function.client.WebClientResponseException$InternalServerError: 500 Internal Server Error from UNKNOWN 
+2026-10-11T20:21:33.331+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 식사 슬롯 보정 실패 - scheduleType: BREAKFAST, 검색 음식점 후보 수: 2
+2026-10-11T20:21:33.336+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910002
+2026-10-11T20:21:33.336+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 식사 슬롯 보정 - scheduleType: BREAKFAST, locationName: 스텁 음식점 02, startTime: 08:00
+2026-10-11T20:21:33.367+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 관광지 후보 조회 호출 - locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.369+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 음식점 검색 호출 - keyword: 비빔밥, locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.370+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910001
+2026-10-11T20:21:33.374+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 관광지 03, startTime: 13:20
+2026-10-11T20:21:33.374+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 관광지 02, startTime: 14:40
+2026-10-11T20:21:33.374+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910002
+2026-10-11T20:21:33.375+09:00  WARN 3993 --- [default-setting] [    Test worker] c.p.g.c.kor2Service.Kor2ServiceClient    : [TOURAPI] 비정상 응답 - endpoint: detailIntro2, outcome: http_500
+2026-10-11T20:21:33.375+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 음식점 상세 조회 실패로 후보 제외 - locationName: 스텁 음식점 02, 원인: org.springframework.web.reactive.function.client.WebClientResponseException$InternalServerError: 500 Internal Server Error from UNKNOWN 
+2026-10-11T20:21:33.375+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 식사 슬롯 보정 실패 - scheduleType: BREAKFAST, 검색 음식점 후보 수: 2
+2026-10-11T20:21:33.380+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910002
+2026-10-11T20:21:33.381+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 식사 슬롯 보정 - scheduleType: BREAKFAST, locationName: 스텁 음식점 02, startTime: 08:00
+2026-10-11T20:21:33.403+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 관광지 후보 조회 호출 - locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.404+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 음식점 검색 호출 - keyword: 비빔밥, locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.405+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910001
+2026-10-11T20:21:33.409+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 관광지 03, startTime: 13:20
+2026-10-11T20:21:33.453+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 관광지 02, startTime: 14:40
+2026-10-11T20:21:33.454+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910002
+2026-10-11T20:21:33.455+09:00  WARN 3993 --- [default-setting] [    Test worker] c.p.g.c.kor2Service.Kor2ServiceClient    : [TOURAPI] 비정상 응답 - endpoint: detailIntro2, outcome: http_500
+2026-10-11T20:21:33.455+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 음식점 상세 조회 실패로 후보 제외 - locationName: 스텁 음식점 02, 원인: org.springframework.web.reactive.function.client.WebClientResponseException$InternalServerError: 500 Internal Server Error from UNKNOWN 
+2026-10-11T20:21:33.455+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 식사 슬롯 보정 실패 - scheduleType: BREAKFAST, 검색 음식점 후보 수: 2
+2026-10-11T20:21:33.461+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910002
+2026-10-11T20:21:33.461+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 식사 슬롯 보정 - scheduleType: BREAKFAST, locationName: 스텁 음식점 02, startTime: 08:00
+2026-10-11T20:21:33.486+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 관광지 후보 조회 호출 - locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.487+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 음식점 검색 호출 - keyword: 비빔밥, locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.488+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910001
+2026-10-11T20:21:33.492+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 관광지 03, startTime: 13:20
+2026-10-11T20:21:33.492+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 관광지 02, startTime: 14:40
+2026-10-11T20:21:33.492+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910002
+2026-10-11T20:21:33.492+09:00  WARN 3993 --- [default-setting] [    Test worker] c.p.g.c.kor2Service.Kor2ServiceClient    : [TOURAPI] 비정상 응답 - endpoint: detailIntro2, outcome: http_500
+2026-10-11T20:21:33.493+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 음식점 상세 조회 실패로 후보 제외 - locationName: 스텁 음식점 02, 원인: org.springframework.web.reactive.function.client.WebClientResponseException$InternalServerError: 500 Internal Server Error from UNKNOWN 
+2026-10-11T20:21:33.493+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 식사 슬롯 보정 실패 - scheduleType: BREAKFAST, 검색 음식점 후보 수: 2
+2026-10-11T20:21:33.497+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910002
+2026-10-11T20:21:33.498+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 식사 슬롯 보정 - scheduleType: BREAKFAST, locationName: 스텁 음식점 02, startTime: 08:00
+2026-10-11T20:21:33.521+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 관광지 후보 조회 호출 - locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.523+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 음식점 검색 호출 - keyword: 비빔밥, locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.523+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910001
+2026-10-11T20:21:33.549+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 관광지 후보 조회 호출 - locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.550+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 음식점 검색 호출 - keyword: 비빔밥, locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.551+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910003
+2026-10-11T20:21:33.588+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 관광지 후보 조회 호출 - locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.589+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 음식점 검색 호출 - keyword: 비빔밥, locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.590+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910001
+2026-10-11T20:21:33.595+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 관광지 03, startTime: 13:20
+2026-10-11T20:21:33.595+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 관광지 02, startTime: 14:40
+2026-10-11T20:21:33.601+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 관광지 후보 조회 호출 - locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.602+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 음식점 검색 호출 - keyword: 비빔밥, locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.602+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910003
+2026-10-11T20:21:33.613+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 관광지 후보 조회 호출 - locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.615+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 음식점 검색 호출 - keyword: 비빔밥, locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.616+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910003
+2026-10-11T20:21:33.636+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 관광지 후보 조회 호출 - locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.637+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 음식점 검색 호출 - keyword: 비빔밥, locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.638+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910001
+2026-10-11T20:21:33.641+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 관광지 03, startTime: 13:20
+2026-10-11T20:21:33.641+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 관광지 02, startTime: 14:40
+2026-10-11T20:21:33.648+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 관광지 후보 조회 호출 - locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.649+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 음식점 검색 호출 - keyword: 비빔밥, locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.650+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910003
+2026-10-11T20:21:33.657+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 관광지 후보 조회 호출 - locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.658+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 음식점 검색 호출 - keyword: 비빔밥, locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.659+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910003
+2026-10-11T20:21:33.678+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 관광지 후보 조회 호출 - locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.679+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 음식점 검색 호출 - keyword: 비빔밥, locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.680+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910001
+2026-10-11T20:21:33.683+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 관광지 03, startTime: 13:20
+2026-10-11T20:21:33.683+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 관광지 02, startTime: 14:40
+2026-10-11T20:21:33.688+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 관광지 후보 조회 호출 - locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.689+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 음식점 검색 호출 - keyword: 비빔밥, locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.690+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910003
+2026-10-11T20:21:33.696+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 관광지 후보 조회 호출 - locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.697+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 음식점 검색 호출 - keyword: 비빔밥, locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.698+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910003
+2026-10-11T20:21:33.718+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 관광지 후보 조회 호출 - locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.719+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 지역 음식점 검색 호출 - keyword: 비빔밥, locationDo: 서울, locationSigungu: 종로구
+2026-10-11T20:21:33.720+09:00  INFO 3993 --- [default-setting] [    Test worker] com.planb.ai.mcp.TourismTool             : [AI TOOL] 음식점 상세정보 호출 - contentId: 910001
+2026-10-11T20:21:33.723+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 관광지 01, startTime: 09:00
+2026-10-11T20:21:33.723+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 관광 슬롯 보정 - locationName: 스텁 관광지 02, startTime: 10:20
+2026-10-11T20:21:33.723+09:00  INFO 3993 --- [default-setting] [    Test worker] c.planb.ai.handler.MissingSlotCompleter  : [SLOT FILL] 식사 슬롯 보정 - scheduleType: LUNCH, locationName: 스텁 음식점 01, startTime: 12:00
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

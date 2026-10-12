@@ -8,6 +8,7 @@ import com.planb.ai.dto.response.CreatePlanAiResponse.MedicationSchedule;
 import com.planb.domain.travel.dto.response.GetAiPlanResponse;
 import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.ScheduleType;
+import com.planb.domain.travel.policy.ParkPlacePolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -402,9 +403,7 @@ public class PlanPlaceResolver {
                     || !tour && blank(candidate.type()) && verifiedAttractionCategory(candidate.categoryName());
 
             case PARK_WALK -> Objects.equals(candidate.type(), tour ? "12" : "AT4")
-                    && candidate.categoryName() != null && candidate
-                            .categoryName()
-                            .contains("공원");
+                    && ParkPlacePolicy.allows(candidate.type(), candidate.categoryName());
 
             case CAFE_REST -> !tour && "CE7".equals(candidate.type());
 

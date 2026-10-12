@@ -1,0 +1,52 @@
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :compileTestJava
+> Task :processTestResources UP-TO-DATE
+> Task :testClasses
+Java HotSpot(TM) 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+> Task :test
+
+2026-10-11T20:21:39.716+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-11T20:21:39.716+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-13 - Shutdown initiated...
+2026-10-11T20:21:39.723+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-13 - Shutdown completed.
+2026-10-11T20:21:39.725+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-11T20:21:39.726+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-14 - Shutdown initiated...
+2026-10-11T20:21:39.734+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-14 - Shutdown completed.
+2026-10-11T20:21:39.735+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-11T20:21:39.735+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-15 - Shutdown initiated...
+2026-10-11T20:21:39.739+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-15 - Shutdown completed.
+2026-10-11T20:21:39.739+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-11T20:21:39.740+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-16 - Shutdown initiated...
+2026-10-11T20:21:39.745+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-16 - Shutdown completed.
+2026-10-11T20:21:39.745+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-11T20:21:39.746+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-17 - Shutdown initiated...
+2026-10-11T20:21:39.751+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-17 - Shutdown completed.
+2026-10-11T20:21:39.752+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-11T20:21:39.753+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-18 - Shutdown initiated...
+2026-10-11T20:21:39.758+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-18 - Shutdown completed.
+2026-10-11T20:21:39.760+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-11T20:21:39.761+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-19 - Shutdown initiated...
+2026-10-11T20:21:39.764+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-19 - Shutdown completed.
+2026-10-11T20:21:39.764+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-11T20:21:39.764+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-20 - Shutdown initiated...
+2026-10-11T20:21:39.766+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-20 - Shutdown completed.
+2026-10-11T20:21:39.767+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-11T20:21:39.767+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-21 - Shutdown initiated...
+2026-10-11T20:21:39.775+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-21 - Shutdown completed.
+2026-10-11T20:21:39.775+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-11T20:21:39.776+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-22 - Shutdown initiated...
+2026-10-11T20:21:39.779+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-22 - Shutdown completed.
+2026-10-11T20:21:39.779+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-11T20:21:39.779+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-23 - Shutdown initiated...
+2026-10-11T20:21:39.780+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-23 - Shutdown completed.
+2026-10-11T20:21:39.780+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-11T20:21:39.781+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-24 - Shutdown initiated...
+2026-10-11T20:21:39.784+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-24 - Shutdown completed.
+2026-10-11T20:21:39.785+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-10-11T20:21:39.785+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-25 - Shutdown initiated...
+2026-10-11T20:21:39.788+09:00  INFO 3993 --- [default-setting] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-25 - Shutdown completed.
+
+BUILD SUCCESSFUL in 3m 47s
+5 actionable tasks: 2 executed, 3 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.2.1/userguide/configuration_cache_enabling.html

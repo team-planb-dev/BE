@@ -1009,7 +1009,8 @@ class TourismToolTest {
                                 List.of(),
                                 "CE7",
                                 "129.2",
-                                "35.8"
+                                "35.8",
+                                false
                         )
         )
                 .thenReturn(Mono.just(response));
