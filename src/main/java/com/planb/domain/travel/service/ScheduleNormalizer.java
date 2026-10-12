@@ -545,10 +545,11 @@ public class ScheduleNormalizer {
                 continue;
             }
 
+            // 종료 역전 또는 이동시간 제약 위반, 자정 순환 결과
             if (schedule
                     .endTime()
                     .isBefore(schedule.startTime())
-                    || schedule
+                    || schedule.travelMinutes() != null && schedule
                             .startTime()
                             .isBefore(previousEnd)) {
                 throw invalidPlace("복약 겹침 회피 시 자정 초과");
