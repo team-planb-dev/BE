@@ -451,7 +451,8 @@ public class ScheduleNormalizer {
 
             CreatePlanAiResponse.PlanDayDetail delayed = delayPlace(
                     previous,
-                    overlap.get()
+                    overlap.get(),
+                    healthContexts
             );
 
             current = normalizeScheduleTimes(
@@ -497,6 +498,7 @@ public class ScheduleNormalizer {
                                         .isBefore(medicationEnd(medication)))
                         .map(place -> new MedicationPlaceOverlap(
                                 place,
+                                medication.startTime(),
                                 medication.endTime()
                         )))
                 .findFirst();
@@ -529,30 +531,165 @@ public class ScheduleNormalizer {
     }
 
     // 체류시간 유지와 복약 종료 시각 시작 배치
+    // 직후 식사의 식전 복약이면 장소 대신 식사를 늦춰 간격 확보
     private CreatePlanAiResponse.PlanDayDetail delayPlace(
             CreatePlanAiResponse.PlanDayDetail planDay,
-            MedicationPlaceOverlap overlap
+            MedicationPlaceOverlap overlap,
+            List<TravelHealthContext> healthContexts
     ) {
 
         CreatePlanAiResponse.PlanScheduleDetail place = overlap.place();
 
+        Optional<CreatePlanAiResponse.PlanScheduleDetail> nextMeal = nextPlace(
+                planDay,
+                place
+        )
+                .filter(this::mealSlot)
+                .filter(meal -> beforeMealMedication(
+                        meal,
+                        overlap.medicationStart(),
+                        healthContexts
+                ));
+
+        if (nextMeal.isPresent()) {
+            return delayMealForBeforeMedication(
+                    planDay,
+                    nextMeal.get(),
+                    place,
+                    overlap.medicationStart(),
+                    healthContexts
+            );
+        }
+
         LocalTime delayedStart = overlap.medicationEnd();
-        LocalTime delayedEnd = delayedStart.plusMinutes(place.stayMinutes());
 
         // 자정을 넘긴 복약 종료 또는 장소 종료
-        if (!delayedStart.isAfter(place.startTime()) || delayedEnd.isBefore(delayedStart)) {
+        if (!delayedStart.isAfter(place.startTime())
+                || delayedStart
+                        .plusMinutes(place.stayMinutes())
+                        .isBefore(delayedStart)) {
             throw invalidPlace("복약 겹침 회피 시 자정 초과");
         }
+
+        return withDelayedSchedule(
+                planDay,
+                place,
+                delayedStart
+        );
+    }
+
+    // 장소 종료 시각에 식전 복약이 시작되도록 식사 시작 이동, 식사시간 창 유지
+    private CreatePlanAiResponse.PlanDayDetail delayMealForBeforeMedication(
+            CreatePlanAiResponse.PlanDayDetail planDay,
+            CreatePlanAiResponse.PlanScheduleDetail meal,
+            CreatePlanAiResponse.PlanScheduleDetail place,
+            LocalTime medicationStart,
+            List<TravelHealthContext> healthContexts
+    ) {
+
+        LocalTime delayedStart = meal
+                .startTime()
+                .plusMinutes(Duration
+                        .between(
+                                medicationStart,
+                                place.endTime()
+                        )
+                        .toMinutes());
+
+        if (!delayedStart.isAfter(meal.startTime())) {
+            throw invalidPlace("복약 겹침 회피 시 자정 초과");
+        }
+
+        if (!mealTimeSatisfied(
+                withScheduleTimes(
+                        meal,
+                        delayedStart,
+                        delayedStart.plusMinutes(meal.stayMinutes())
+                ),
+                healthContexts
+        )) {
+            throw invalidPlace("복약 겹침 회피 시 식사시간 이탈");
+        }
+
+        return withDelayedSchedule(
+                planDay,
+                meal,
+                delayedStart
+        );
+    }
+
+    // 장소 다음의 시간표 정규화 대상 슬롯
+    private Optional<CreatePlanAiResponse.PlanScheduleDetail> nextPlace(
+            CreatePlanAiResponse.PlanDayDetail planDay,
+            CreatePlanAiResponse.PlanScheduleDetail place
+    ) {
+
+        List<CreatePlanAiResponse.PlanScheduleDetail> schedules = planDay.schedules();
+
+        return schedules
+                .subList(
+                        schedules.indexOf(place) + 1,
+                        schedules.size()
+                )
+                .stream()
+                .filter(this::normalizedPlace)
+                .findFirst();
+    }
+
+    // 식사 시작 − 등록 간격이 복약 시작과 같은 식전 복약 규칙 존재 여부
+    private boolean beforeMealMedication(
+            CreatePlanAiResponse.PlanScheduleDetail meal,
+            LocalTime medicationStart,
+            List<TravelHealthContext> healthContexts
+    ) {
+
+        return healthContexts
+                .stream()
+                .flatMap(healthContext -> healthContext
+                        .medicationInfos()
+                        .stream())
+                .filter(medicationInfo -> medicationInfo.medicationBasis() == MedicationBasis.WITH_MEAL
+                        || medicationInfo.medicationBasis() == MedicationBasis.UNKNOWN)
+                .flatMap(medicationInfo -> medicationInfo
+                        .mealMedicationRules()
+                        .stream())
+                .filter(rule -> rule.mealTiming() == MealTiming.BEFORE_MEAL)
+                .filter(rule -> scheduleType(rule.relatedMeal()) == meal.scheduleType())
+                .anyMatch(rule -> meal
+                        .startTime()
+                        .minusMinutes(rule.intervalMinutes() == null
+                                ? 0
+                                : rule.intervalMinutes())
+                        .equals(medicationStart));
+    }
+
+    private static ScheduleType scheduleType(RelatedMeal relatedMeal) {
+
+        return switch (relatedMeal) {
+            case BREAKFAST -> ScheduleType.BREAKFAST;
+
+            case LUNCH -> ScheduleType.LUNCH;
+
+            case DINNER -> ScheduleType.DINNER;
+        };
+    }
+
+    // 체류시간 유지와 지정 시각 시작 배치
+    private CreatePlanAiResponse.PlanDayDetail withDelayedSchedule(
+            CreatePlanAiResponse.PlanDayDetail planDay,
+            CreatePlanAiResponse.PlanScheduleDetail schedule,
+            LocalTime delayedStart
+    ) {
 
         List<CreatePlanAiResponse.PlanScheduleDetail> schedules =
                 new ArrayList<>(planDay.schedules());
 
         schedules.set(
-                schedules.indexOf(place),
+                schedules.indexOf(schedule),
                 withScheduleTimes(
-                        place,
+                        schedule,
                         delayedStart,
-                        delayedEnd
+                        delayedStart.plusMinutes(schedule.stayMinutes())
                 )
         );
 
@@ -621,6 +758,7 @@ public class ScheduleNormalizer {
     private record MedicationPlaceOverlap(
 
             CreatePlanAiResponse.PlanScheduleDetail place,
+            LocalTime medicationStart,
             LocalTime medicationEnd
     ) {
     }
