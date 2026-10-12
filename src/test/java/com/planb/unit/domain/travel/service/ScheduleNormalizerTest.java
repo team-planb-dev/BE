@@ -233,10 +233,10 @@ class ScheduleNormalizerTest {
     }
 
     @Test
-    @DisplayName("장소 시간대 안에 들어간 복약의 장소 종료시각 배치")
-    void movesMedicationOutOfPlaceSlot() {
+    @DisplayName("장소 시간대 안의 식후 복약의 등록 간격 유지")
+    void keepsAfterMealIntervalInsidePlaceSlot() {
 
-        // 관광지 13:40~15:10과 겹치는 식후 14:00 복약
+        // 점심 12:00~13:30 종료 30분 뒤 복약, 관광지 13:40~15:10 내부
         CreatePlanAiResponse response = response(
                 restaurant(
                         "점심 식당",
@@ -256,9 +256,233 @@ class ScheduleNormalizerTest {
                 healthContexts());
 
         assertEquals(
-                LocalTime.of(15, 10),
+                LocalTime.of(14, 0),
                 medicationStartTime(result)
         );
+    }
+
+    @Test
+    @DisplayName("장소 시간대 안의 식전 복약의 등록 간격 유지")
+    void keepsBeforeMealIntervalInsidePlaceSlot() {
+
+        // 점심 12:00 시작 30분 전 복약, 관광지 10:30~12:00 내부
+        List<TravelHealthContext> beforeMeal = healthContexts(MealTiming.BEFORE_MEAL, 30);
+
+        CreatePlanAiResponse response = response(
+                attraction(
+                        "해운대해수욕장",
+                        LocalTime.of(10, 30),
+                        null
+                ),
+                restaurant(
+                        "점심 식당",
+                        ScheduleType.LUNCH,
+                        LocalTime.of(12, 0),
+                        0
+                )
+        );
+
+        CreatePlanAiResponse result = scheduleNormalizer.ensureMedicationSchedules(
+                scheduleNormalizer.normalizeScheduleTimes(response, beforeMeal),
+                beforeMeal);
+
+        assertEquals(
+                LocalTime.of(11, 30),
+                medicationStartTime(result)
+        );
+    }
+
+    @Test
+    @DisplayName("간격 0·누락 식후 복약의 식사 종료시각 유지")
+    void keepsZeroIntervalAtMealEnd() {
+
+        // 점심 종료 13:30과 같은 시각에 시작하는 관광지
+        for (Integer interval : new Integer[]{0, null}) {
+            List<TravelHealthContext> zeroInterval = healthContexts(MealTiming.AFTER_MEAL, interval);
+
+            CreatePlanAiResponse response = response(
+                    restaurant(
+                            "점심 식당",
+                            ScheduleType.LUNCH,
+                            LocalTime.of(12, 0),
+                            0
+                    ),
+                    attraction(
+                            "해운대해수욕장",
+                            LocalTime.of(13, 30),
+                            0
+                    )
+            );
+
+            CreatePlanAiResponse result = scheduleNormalizer.ensureMedicationSchedules(
+                    scheduleNormalizer.normalizeScheduleTimes(response, zeroInterval),
+                    zeroInterval);
+
+            assertEquals(
+                    LocalTime.of(13, 30),
+                    medicationStartTime(result)
+            );
+        }
+    }
+
+    @Test
+    @DisplayName("장소 시간대 안의 고정 시각 복약 유지")
+    void keepsIndependentMedicationTimeInsidePlaceSlot() {
+
+        // 등록 시각 14:00, 관광지 13:40~15:10 내부
+        List<TravelHealthContext> independent = List.of(
+                traveler(
+                        "고정 시각 여행자",
+                        new TravelHealthContext.MedicationInfoContext(
+                                "혈압약",
+                                MedicationBasis.INDEPENDENT,
+                                LocalTime.of(14, 0),
+                                Set.of()
+                        )
+                )
+        );
+
+        CreatePlanAiResponse response = response(
+                restaurant(
+                        "점심 식당",
+                        ScheduleType.LUNCH,
+                        LocalTime.of(12, 0),
+                        0
+                ),
+                attraction(
+                        "해운대해수욕장",
+                        LocalTime.of(13, 40),
+                        10
+                )
+        );
+
+        CreatePlanAiResponse result = scheduleNormalizer.ensureMedicationSchedules(
+                scheduleNormalizer.normalizeScheduleTimes(response, independent),
+                independent);
+
+        assertEquals(
+                LocalTime.of(14, 0),
+                medicationStartTime(result)
+        );
+    }
+
+    @Test
+    @DisplayName("여러 동행인·복약 규칙별 등록 간격 유지와 같은 시각 병합")
+    void keepsEachCompanionRuleAndMergesSameTime() {
+
+        // 동행인 1: 점심 식후 30분, 저녁 식전 15분
+        // 동행인 2: 점심 식후 30분
+        List<TravelHealthContext> companions = List.of(
+                traveler(
+                        "동행인 1",
+                        new TravelHealthContext.MedicationInfoContext(
+                                "혈당약",
+                                MedicationBasis.WITH_MEAL,
+                                null,
+                                Set.of(
+                                        rule(
+                                                RelatedMeal.LUNCH,
+                                                MealTiming.AFTER_MEAL,
+                                                30
+                                        ),
+                                        rule(
+                                                RelatedMeal.DINNER,
+                                                MealTiming.BEFORE_MEAL,
+                                                15
+                                        )
+                                )
+                        )
+                ),
+                traveler(
+                        "동행인 2",
+                        new TravelHealthContext.MedicationInfoContext(
+                                "위장약",
+                                MedicationBasis.WITH_MEAL,
+                                null,
+                                Set.of(
+                                        rule(
+                                                RelatedMeal.LUNCH,
+                                                MealTiming.AFTER_MEAL,
+                                                30
+                                        )
+                                )
+                        )
+                )
+        );
+
+        CreatePlanAiResponse response = response(
+                restaurant(
+                        "점심 식당",
+                        ScheduleType.LUNCH,
+                        LocalTime.of(12, 0),
+                        0
+                ),
+                attraction(
+                        "해운대해수욕장",
+                        LocalTime.of(13, 40),
+                        10
+                ),
+                restaurant(
+                        "저녁 식당",
+                        ScheduleType.DINNER,
+                        LocalTime.of(18, 0),
+                        20
+                )
+        );
+
+        CreatePlanAiResponse result = scheduleNormalizer.ensureMedicationSchedules(
+                scheduleNormalizer.normalizeScheduleTimes(response, companions),
+                companions);
+
+        List<CreatePlanAiResponse.PlanScheduleDetail> medications = medications(result);
+
+        assertEquals(
+                List.of(
+                        LocalTime.of(14, 0),
+                        LocalTime.of(17, 45)
+                ),
+                medications
+                        .stream()
+                        .map(CreatePlanAiResponse.PlanScheduleDetail::startTime)
+                        .toList()
+        );
+
+        String lunchDescription = medications
+                .getFirst()
+                .medication()
+                .description();
+
+        assertTrue(lunchDescription.contains("혈당약"));
+        assertTrue(lunchDescription.contains("위장약"));
+    }
+
+    @Test
+    @DisplayName("장소 내부 복약 일정 생성의 반복 적용 시 동일 결과")
+    void keepsMedicationInsidePlaceIdempotent() {
+
+        CreatePlanAiResponse response = response(
+                restaurant(
+                        "점심 식당",
+                        ScheduleType.LUNCH,
+                        LocalTime.of(12, 0),
+                        0
+                ),
+                attraction(
+                        "해운대해수욕장",
+                        LocalTime.of(13, 40),
+                        10
+                )
+        );
+
+        CreatePlanAiResponse once = scheduleNormalizer.ensureMedicationSchedules(
+                scheduleNormalizer.normalizeScheduleTimes(response, healthContexts()),
+                healthContexts());
+
+        CreatePlanAiResponse twice = scheduleNormalizer.ensureMedicationSchedules(
+                once,
+                healthContexts());
+
+        assertEquals(once, twice);
     }
 
     @Test
@@ -298,6 +522,49 @@ class ScheduleNormalizerTest {
                 .map(CreatePlanAiResponse.PlanScheduleDetail::startTime)
                 .findFirst()
                 .orElseThrow();
+    }
+
+    private List<CreatePlanAiResponse.PlanScheduleDetail> medications(CreatePlanAiResponse response) {
+
+        return response
+                .planDays()
+                .getFirst()
+                .schedules()
+                .stream()
+                .filter(schedule -> schedule.courseType() == CourseType.MEDICATION)
+                .toList();
+    }
+
+    private TravelHealthContext traveler(
+            String name,
+            TravelHealthContext.MedicationInfoContext medicationInfo
+    ) {
+
+        return new TravelHealthContext(
+                name,
+                List.of(DiseaseType.DIABETES),
+                WalkType.ACTIVE,
+                new TravelHealthContext.MealInfoContext(
+                        LocalTime.of(8, 0),
+                        LocalTime.of(12, 0),
+                        LocalTime.of(18, 0)
+                ),
+                List.of(),
+                List.of(medicationInfo)
+        );
+    }
+
+    private TravelHealthContext.MedicationInfoContext.MealMedicationRuleContext rule(
+            RelatedMeal relatedMeal,
+            MealTiming mealTiming,
+            Integer intervalMinutes
+    ) {
+
+        return new TravelHealthContext.MedicationInfoContext.MealMedicationRuleContext(
+                relatedMeal,
+                mealTiming,
+                intervalMinutes
+        );
     }
 
     private List<TravelHealthContext> healthContexts() {
