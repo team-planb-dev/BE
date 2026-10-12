@@ -679,6 +679,29 @@ public class TourismTool {
             String previousLatitude
     ) {
 
+        return findPlaceWithRoute(
+                keyword,
+                previousLocation,
+                transportation,
+                excludeNames,
+                categoryCode,
+                previousLongitude,
+                previousLatitude,
+                false
+        );
+    }
+
+    public PlaceWithRouteResult findPlaceWithRoute(
+            String keyword,
+            String previousLocation,
+            Transportation transportation,
+            List<String> excludeNames,
+            String categoryCode,
+            String previousLongitude,
+            String previousLatitude,
+            boolean parksOnly
+    ) {
+
         log.info(
                 "[AI TOOL] 장소+경로 조회 호출 - keyword: {}, previousLocation: {}, transportation: {}, excludeNames: {}, categoryCode: {}",
                 keyword,
@@ -696,7 +719,8 @@ public class TourismTool {
                         excludeNames,
                         categoryCode,
                         previousLongitude,
-                        previousLatitude
+                        previousLatitude,
+                        parksOnly
                 )
                 .block();
     }

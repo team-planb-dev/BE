@@ -1,6 +1,7 @@
 package com.planb.global.client.kakaoMapService.helper;
 
 import com.planb.ai.dto.response.PlaceWithRouteResult;
+import com.planb.domain.travel.policy.ParkPlacePolicy;
 import com.planb.global.client.kakaoMapService.dto.response.KakaoPlaceSearchResponse;
 import org.springframework.stereotype.Component;
 
@@ -39,6 +40,30 @@ public class KakaoPlaceSearchHelper {
                         .documents()
                         .stream()
                         .filter(place -> categoryCode.equals(place.category_group_code()))
+                        .toList()
+        );
+    }
+
+    public KakaoPlaceSearchResponse filterParks(
+            KakaoPlaceSearchResponse response,
+            List<String> excludeNames
+    ) {
+
+        List<String> excluded = excludeNames == null ? List.of() : excludeNames;
+
+        return new KakaoPlaceSearchResponse(
+                response.meta(),
+                response
+                        .documents()
+                        .stream()
+                        .filter(place -> ParkPlacePolicy.allows(
+                                place.category_group_code(),
+                                place.category_name()
+                        ))
+                        .filter(place -> excluded
+                                .stream()
+                                .map(this::normalize)
+                                .noneMatch(normalize(place.place_name())::equals))
                         .toList()
         );
     }

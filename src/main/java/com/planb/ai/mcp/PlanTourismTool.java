@@ -227,16 +227,28 @@ public class PlanTourismTool {
         // 카카오의 전국 동명 장소 재검색 방지를 위한 확정 좌표 사용
         PlaceCandidateContext.Candidate previous = candidates.findByName(previousLocation);
 
-        PlaceWithRouteResult result = tourismTool
-                .findPlaceWithRoute(
-                        keyword,
-                        previousLocation,
-                        transportation,
-                        excludeNames,
-                        categoryCode,
-                        previous == null ? null : previous.longitude(),
-                        previous == null ? null : previous.latitude()
-                );
+        PlaceWithRouteResult result = courseType == CourseType.PARK_WALK
+                ? tourismTool
+                        .findPlaceWithRoute(
+                                keyword,
+                                previousLocation,
+                                transportation,
+                                excludeNames,
+                                categoryCode,
+                                previous == null ? null : previous.longitude(),
+                                previous == null ? null : previous.latitude(),
+                                true
+                        )
+                : tourismTool
+                        .findPlaceWithRoute(
+                                keyword,
+                                previousLocation,
+                                transportation,
+                                excludeNames,
+                                categoryCode,
+                                previous == null ? null : previous.longitude(),
+                                previous == null ? null : previous.latitude()
+                        );
 
         candidates.record(result);
 

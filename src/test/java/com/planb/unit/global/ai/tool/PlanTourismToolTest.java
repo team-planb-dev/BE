@@ -10,11 +10,24 @@ import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.domain.travel.service.NutritionService;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
+import com.planb.global.client.kakaoMapService.KakaoMapServiceClient;
+import com.planb.global.client.kakaoMapService.dto.response.KakaoPlaceSearchResponse;
+import com.planb.global.client.kakaoMapService.helper.KakaoMapRouteHelper;
+import com.planb.global.client.kakaoMapService.helper.KakaoPlaceSearchHelper;
+import com.planb.global.client.kakaoMapService.helper.KakaoSearchKeywordSanitizer;
+import com.planb.global.client.kakaoMobilityService.KakaoMobilityServiceClient;
+import com.planb.global.client.kakaoMobilityService.helper.KakaoMobilityRouteHelper;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
 import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
 import com.planb.global.client.kor2Service.handler.Kor2ServiceHandler;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.EnumSource;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
@@ -29,6 +42,156 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class PlanTourismToolTest {
+
+    @Test
+    @DisplayName("공원 산책 검색에서 앞선 호수 대신 실제 공원 후보 선택")
+    void selectsParkInsteadOfEarlierLake() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+        PlanTourismTool tool = searchTool(
+                List.of(
+                        parkSearchDocument("lake", "경포호", "여행 > 관광,명소 > 호수"),
+                        parkSearchDocument("park", "경포공원", "여행 > 관광,명소 > 공원")
+                ),
+                candidates
+        );
+
+        PlaceWithRouteResult result = tool.findPlaceWithRoute(
+                "강릉 경포공원",
+                "",
+                Transportation.CAR,
+                List.of(),
+                CourseType.PARK_WALK
+        );
+
+        assertEquals("kakao:park", result.candidateId());
+        assertNull(candidates.find("kakao:lake"));
+        assertNotNull(candidates.find("kakao:park"));
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"여행 > 관광,명소 > 호수", "여행 > 관광,명소"})
+    @DisplayName("공원 근거 없는 검색 결과의 선택·후보 등록 제외")
+    void excludesCandidatesWithoutParkEvidence(String category) {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+        PlanTourismTool tool = searchTool(
+                List.of(parkSearchDocument("unknown", "공원이라는 이름", category)),
+                candidates
+        );
+
+        PlaceWithRouteResult result = tool.findPlaceWithRoute(
+                "강릉 공원",
+                "",
+                Transportation.CAR,
+                List.of(),
+                CourseType.PARK_WALK
+        );
+
+        assertFalse(result.found());
+        assertNull(candidates.find("kakao:unknown"));
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = CourseType.class, names = {"ATTRACTION", "MUST_HAVE"})
+    @DisplayName("일반 관광 슬롯의 호수 후보 자격 유지")
+    void preservesLakeAsOrdinaryAttraction(CourseType type) {
+
+        PlanTourismTool tool = searchTool(
+                List.of(parkSearchDocument("lake", "경포호", "여행 > 관광,명소 > 호수")),
+                new PlaceCandidateContext()
+        );
+
+        PlaceWithRouteResult result = tool.findPlaceWithRoute(
+                "강릉 경포호",
+                "",
+                Transportation.CAR,
+                List.of(),
+                type
+        );
+
+        assertTrue(result.found());
+        assertEquals("kakao:lake", result.candidateId());
+    }
+
+    @Test
+    @DisplayName("앞선 공원이 이미 사용된 경우 다음 미사용 공원 선택")
+    void selectsUnusedPark() {
+
+        PlanTourismTool tool = searchTool(
+                List.of(
+                        parkSearchDocument("used", "사용한 공원", "여행 > 공원"),
+                        parkSearchDocument("new", "새 공원", "여행 > 공원")
+                ),
+                new PlaceCandidateContext()
+        );
+
+        PlaceWithRouteResult result = tool.findPlaceWithRoute(
+                "강릉 공원",
+                "",
+                Transportation.CAR,
+                List.of("사용한 공원"),
+                CourseType.PARK_WALK
+        );
+
+        assertEquals("kakao:new", result.candidateId());
+    }
+
+    private PlanTourismTool searchTool(
+            List<KakaoPlaceSearchResponse.Document> documents,
+            PlaceCandidateContext candidates
+    ) {
+
+        KakaoMapServiceClient client = mock(KakaoMapServiceClient.class);
+        KakaoPlaceSearchResponse response = new KakaoPlaceSearchResponse(null, documents);
+        org.mockito.Mockito
+                .doReturn(Mono.just(response))
+                .when(client)
+                .get(
+                        org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.eq(KakaoPlaceSearchResponse.class)
+                );
+
+        KakaoMapServiceHandler kakao = new KakaoMapServiceHandler(
+                client,
+                mock(KakaoMobilityServiceClient.class),
+                new KakaoMapRouteHelper(),
+                new KakaoMobilityRouteHelper(),
+                new KakaoSearchKeywordSanitizer(),
+                new KakaoPlaceSearchHelper()
+        );
+        TourismTool tourism = new TourismTool(
+                mock(Kor2ServiceHandler.class),
+                kakao,
+                mock(NutritionService.class),
+                new NutritionEvaluationCollector()
+        );
+        return new PlanTourismTool(tourism, candidates);
+    }
+
+    private KakaoPlaceSearchResponse.Document parkSearchDocument(
+            String id,
+            String name,
+            String category
+    ) {
+
+        return new KakaoPlaceSearchResponse.Document(
+                id,
+                name,
+                category,
+                "AT4",
+                "관광명소",
+                "",
+                "강릉시",
+                "강릉시",
+                "128.9",
+                "37.8",
+                "",
+                ""
+        );
+    }
 
     @Test
     @DisplayName("지역 관광지 후보의 candidateId와 장소 identity 유지")
