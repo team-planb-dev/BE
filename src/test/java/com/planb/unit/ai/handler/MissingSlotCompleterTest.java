@@ -865,6 +865,12 @@ class MissingSlotCompleterTest {
                 .filteredOn(slot -> slot.scheduleType() == ScheduleType.LUNCH)
                 .extracting(CreatePlanAiResponse.PlanScheduleDetail::locationName)
                 .containsExactly("하니칼국수");
+
+        verify(
+                tourismTool,
+                never()
+        )
+                .getRestaurantDetail("101");
     }
 
     @Test
@@ -895,22 +901,57 @@ class MissingSlotCompleterTest {
                         "35.84"
                 ));
 
-        // 편집 보존 날짜의 장소명과 candidateId가 함께 담긴 예약 집합
+        // 편집 보존 날짜의 장소명 예약 집합
         CreatePlanAiResponse filled = missingSlotCompleter.complete(
                 response(attraction("첨성대", LocalTime.of(9, 0))),
                 List.of(healthContext()),
                 candidates,
-                Set.of(
-                        "백제삼계탕",
-                        "tour:101"
-                ),
-                Set.of("삼계탕")
+                Set.of("백제삼계탕"),
+                Set.of()
         );
 
         assertThat(schedules(filled))
                 .filteredOn(slot -> slot.scheduleType() == ScheduleType.LUNCH)
                 .extracting(CreatePlanAiResponse.PlanScheduleDetail::locationName)
                 .containsExactly("하니칼국수");
+
+        verify(
+                tourismTool,
+                never()
+        )
+                .getRestaurantDetail("101");
+    }
+
+    @Test
+    @DisplayName("candidateId만 예약된 식당의 재선택, 이름 기준 식별 한계")
+    void reselectsRestaurantReservedOnlyByCandidateId() {
+
+        lenient()
+                .when(tourismTool.getRestaurantDetail("101"))
+                .thenReturn(intro("101", "칼국수"));
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(restaurantItem(
+                        "101",
+                        "백제삼계탕",
+                        "129.21",
+                        "35.83"
+                ));
+
+        // 보충 로직의 이름 기준 비교, candidateId 예약 미반영
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
+                response(attraction("첨성대", LocalTime.of(9, 0))),
+                List.of(healthContext()),
+                candidates,
+                Set.of("tour:101"),
+                Set.of()
+        );
+
+        assertThat(schedules(filled))
+                .filteredOn(slot -> slot.scheduleType() == ScheduleType.LUNCH)
+                .extracting(CreatePlanAiResponse.PlanScheduleDetail::locationName)
+                .containsExactly("백제삼계탕");
     }
 
     private List<CreatePlanAiResponse.PlanScheduleDetail> daySchedules(

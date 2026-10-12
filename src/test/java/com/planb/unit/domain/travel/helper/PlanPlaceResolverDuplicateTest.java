@@ -88,8 +88,8 @@ class PlanPlaceResolverDuplicateTest {
                                 candidates,
                                 places,
                                 menus)
-                        .valid())
-                .isFalse();
+                        .reason())
+                .startsWith("이미 사용한 장소");
     }
 
     @Test
@@ -122,8 +122,8 @@ class PlanPlaceResolverDuplicateTest {
                                 candidates,
                                 places,
                                 menus)
-                        .valid())
-                .isFalse();
+                        .reason())
+                .startsWith("이미 사용한 장소");
     }
 
     @Test
@@ -155,8 +155,8 @@ class PlanPlaceResolverDuplicateTest {
                                 candidates,
                                 places,
                                 menus)
-                        .valid())
-                .isFalse();
+                        .reason())
+                .startsWith("이미 사용한 장소");
     }
 
     @Test
@@ -270,7 +270,7 @@ class PlanPlaceResolverDuplicateTest {
     }
 
     @Test
-    @DisplayName("저장 일정 기존 중복의 검출만 수행하고 사용 집합·원본 보존")
+    @DisplayName("저장 일정 기존 중복의 검출과 원본 슬롯 변환 유지")
     void reportsPersistedDuplicateWithoutDroppingIt() {
 
         GetAiPlanResponse.PlanScheduleDetail first = saved("첨성대");
@@ -302,11 +302,43 @@ class PlanPlaceResolverDuplicateTest {
         assertThat(places)
                 .isEqualTo(before);
 
-        // 보존 날짜 경로의 실패 슬롯 원본 변환 유지
+        // 검출 후 원본 슬롯 변환 유지, PlanService 보존 날짜 경로 자체는 범위 밖
         assertThat(planPlaceResolver
                         .fromExisting(second)
                         .locationName())
                 .isEqualTo("첨성대");
+    }
+
+    @Test
+    @DisplayName("저장 일정의 다른 식당 같은 메뉴 중복 검출")
+    void reportsPersistedMenuDuplicate() {
+
+        planPlaceResolver.track(
+                planPlaceResolver
+                        .verifyExisting(
+                                savedRestaurant(
+                                        "백제삼계탕",
+                                        "삼계탕"
+                                ),
+                                places,
+                                menus
+                        )
+                        .schedule(),
+                places,
+                menus
+        );
+
+        Validation duplicate = planPlaceResolver.verifyExisting(
+                savedRestaurant(
+                        "황남삼계탕",
+                        "삼계탕"
+                ),
+                places,
+                menus
+        );
+
+        assertThat(duplicate.reason())
+                .isEqualTo("음식점 메뉴 누락 또는 중복");
     }
 
     private void accept(
@@ -410,6 +442,40 @@ class PlanPlaceResolverDuplicateTest {
                 Set.of(),
                 null,
                 null
+        );
+    }
+
+    private GetAiPlanResponse.PlanScheduleDetail savedRestaurant(
+            String locationName,
+            String menuName
+    ) {
+
+        return new GetAiPlanResponse.PlanScheduleDetail(
+                ScheduleType.LUNCH,
+                CourseType.RESTAURANT,
+                LocalTime.of(12, 0),
+                LocalTime.of(13, 0),
+                locationName,
+                "경상북도 경주시 황남동",
+                "129.21",
+                "35.83",
+                null,
+                null,
+                60,
+                0,
+                Set.of(),
+                null,
+                new GetAiPlanResponse.RestaurantDetail(
+                        menuName,
+                        0.0,
+                        0.0,
+                        0.0,
+                        "",
+                        "경상북도 경주시 황남동",
+                        "129.21",
+                        "35.83",
+                        null
+                )
         );
     }
 
