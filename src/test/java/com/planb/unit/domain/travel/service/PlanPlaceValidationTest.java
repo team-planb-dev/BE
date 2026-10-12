@@ -39,6 +39,7 @@ import com.planb.global.client.kakaoMapService.dto.response.KakaoPlaceSearchResp
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
 import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
+import com.planb.global.config.exception.PlanEditExceptionEnum;
 import com.planb.global.config.exception.domain.BaseException;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
@@ -840,6 +841,118 @@ class PlanPlaceValidationTest {
     }
 
     @Test
+    @DisplayName("복약 겹침 회피가 등록 식사시간을 깨는 생성의 명시적 거부")
+    void rejectsMedicationOverlapBreakingMealTime() {
+
+        TravelHealthContext.MedicationInfoContext.MealMedicationRuleContext rule =
+                new TravelHealthContext.MedicationInfoContext.MealMedicationRuleContext(
+                        RelatedMeal.LUNCH,
+                        MealTiming.BEFORE_MEAL,
+                        30
+                );
+
+        TravelHealthContext healthContext =
+                new TravelHealthContext(
+                        "테스트 여행자",
+                        List.of(DiseaseType.DIABETES),
+                        WalkType.MODERATE,
+                        new TravelHealthContext.MealInfoContext(
+                                true,
+                                true,
+                                LocalTime.of(8, 0),
+                                true,
+                                LocalTime.of(12, 0),
+                                false,
+                                null
+                        ),
+                        List.of(),
+                        List.of(
+                                new TravelHealthContext.MedicationInfoContext(
+                                        "테스트 복약",
+                                        MedicationBasis.WITH_MEAL,
+                                        null,
+                                        Set.of(rule)
+                                )
+                        )
+                );
+
+        TravelPlanContext context =
+                new TravelPlanContext(
+                        travel.createTravelRequest(),
+                        List.of(healthContext)
+                );
+
+        PlanScheduleDetail invalidMedication =
+                new PlanScheduleDetail(
+                        ScheduleType.CHECK_IN,
+                        CourseType.MEDICATION,
+                        LocalTime.of(12, 30),
+                        LocalTime.of(12, 30),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        0,
+                        null,
+                        Set.of(),
+                        new CreatePlanAiResponse.MedicationSchedule(
+                                30,
+                                "테스트 복약 점심 식후 30분"
+                        ),
+                        null,
+                        null
+                );
+
+        stubCreate(
+                new CreatePlanAiResponse(
+                        List.of(
+                                new PlanDayDetail(
+                                        1,
+                                        date,
+                                        List.of(
+                                                slot(
+                                                        "tour:1",
+                                                        "해운대",
+                                                        9
+                                                ),
+                                                slot(
+                                                        "tour:3",
+                                                        "이기대",
+                                                        11
+                                                ),
+                                                lunchSlot(),
+                                                slot(
+                                                        "tour:4",
+                                                        "오죽헌",
+                                                        13
+                                                ),
+                                                invalidMedication
+                                        )
+                                )
+                        )
+                )
+        );
+
+        // 식전 11:30 복약이 관광지 11:00~12:00 내부
+        // 관광지 이동 시 늦은 점심 보정의 앞 장소 앞당김 발생
+        BaseException failure = assertThrows(
+                BaseException.class,
+                () -> service.makePlanByAi(context)
+        );
+
+        assertEquals(
+                PlanEditExceptionEnum.INVALID_AI_PLACE.getCode(),
+                failure.getErrorCode()
+        );
+
+        assertTrue(failure
+                .getMessage()
+                .contains("식사시간 이탈"));
+    }
+
+    @Test
     @DisplayName("잘못된 AI 복약 시간은 Java가 재생성하고 장소 재선택하지 않음")
     void invalidMedicationTimeIsRegeneratedBeforePlaceValidation() {
 
@@ -934,11 +1047,13 @@ class PlanPlaceValidationTest {
                 )
         );
 
-        PlanScheduleDetail medication = service
+        List<PlanScheduleDetail> schedules = service
                 .makePlanByAi(context)
                 .planDays()
                 .getFirst()
-                .schedules()
+                .schedules();
+
+        PlanScheduleDetail medication = schedules
                 .stream()
                 .filter(schedule -> schedule.courseType() == CourseType.MEDICATION)
                 .findFirst()
@@ -953,6 +1068,12 @@ class PlanPlaceValidationTest {
         assertEquals(
                 LocalTime.of(13, 40),
                 medication.endTime()
+        );
+
+        // 겹친 관광지의 복약 종료 후 이동
+        assertPlaceDelayedAfterMedication(
+                schedules,
+                medication
         );
 
         assertEquals(
@@ -1124,6 +1245,15 @@ class PlanPlaceValidationTest {
         assertEquals(
                 LocalTime.of(13, 50),
                 medication.endTime()
+        );
+
+        // 겹친 관광지의 복약 종료 후 이동
+        assertPlaceDelayedAfterMedication(
+                result
+                        .planDays()
+                        .getFirst()
+                        .schedules(),
+                medication
         );
 
         verify(
@@ -2360,6 +2490,15 @@ class PlanPlaceValidationTest {
         assertEquals(
                 LocalTime.of(13, 50),
                 medication.endTime()
+        );
+
+        // 겹친 관광지의 복약 종료 후 이동
+        assertPlaceDelayedAfterMedication(
+                result
+                        .planDays()
+                        .getFirst()
+                        .schedules(),
+                medication
         );
 
         verify(
@@ -4753,5 +4892,36 @@ class PlanPlaceValidationTest {
                                                 .of(old)
                                 ))
         );
+    }
+
+    // 비식사 장소와 복약 구간의 교차 부재, 겹쳤던 장소의 복약 종료 시각 시작
+    private void assertPlaceDelayedAfterMedication(
+            List<PlanScheduleDetail> schedules,
+            PlanScheduleDetail medication
+    ) {
+
+        List<PlanScheduleDetail> places = schedules
+                .stream()
+                .filter(schedule -> schedule.courseType() != CourseType.MEDICATION
+                        && schedule.courseType() != CourseType.TRANSPORTATION)
+                .filter(schedule -> schedule.scheduleType() != ScheduleType.BREAKFAST
+                        && schedule.scheduleType() != ScheduleType.LUNCH
+                        && schedule.scheduleType() != ScheduleType.DINNER)
+                .toList();
+
+        assertTrue(places
+                .stream()
+                .noneMatch(place -> medication
+                        .startTime()
+                        .isBefore(place.endTime())
+                        && place
+                                .startTime()
+                                .isBefore(medication.endTime())));
+
+        assertTrue(places
+                .stream()
+                .anyMatch(place -> place
+                        .startTime()
+                        .equals(medication.endTime())));
     }
 }

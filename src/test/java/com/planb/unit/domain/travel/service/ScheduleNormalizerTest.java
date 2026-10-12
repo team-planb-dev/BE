@@ -12,6 +12,8 @@ import com.planb.domain.travel.entity.constant.RecommendationTag;
 import com.planb.domain.travel.entity.constant.ScheduleType;
 import com.planb.domain.travel.helper.PlanPlaceResolver;
 import com.planb.domain.travel.service.ScheduleNormalizer;
+import com.planb.global.config.exception.PlanEditExceptionEnum;
+import com.planb.global.config.exception.domain.BaseException;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,6 +28,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -649,6 +652,655 @@ class ScheduleNormalizerTest {
         );
     }
 
+    @Test
+    @DisplayName("관광지 내부 시작 복약의 관광지 복약 종료 후 이동")
+    void delaysPlaceContainingMedicationStart() {
+
+        // 점심 12:00~13:30, 식후 14:00 복약, 관광지 13:40~15:10
+        CreatePlanAiResponse result = finalized(
+                response(
+                        restaurant(
+                                "점심 식당",
+                                ScheduleType.LUNCH,
+                                LocalTime.of(12, 0),
+                                0
+                        ),
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(13, 40),
+                                10
+                        )
+                ),
+                healthContexts()
+        );
+
+        assertEquals(
+                LocalTime.of(14, 0),
+                medicationStartTime(result)
+        );
+
+        assertEquals(
+                LocalTime.of(14, 10),
+                startTime(result, "해운대해수욕장")
+        );
+
+        assertEquals(
+                LocalTime.of(15, 40),
+                endTime(result, "해운대해수욕장")
+        );
+    }
+
+    @Test
+    @DisplayName("복약 끝부분만 겹치는 관광지의 복약 종료 후 이동")
+    void delaysPlaceOverlappingMedicationTail() {
+
+        // 식후 14:00~14:10 복약, 이동 35분 뒤 14:05 시작 관광지
+        CreatePlanAiResponse result = finalized(
+                response(
+                        restaurant(
+                                "점심 식당",
+                                ScheduleType.LUNCH,
+                                LocalTime.of(12, 0),
+                                0
+                        ),
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(14, 5),
+                                35
+                        )
+                ),
+                healthContexts()
+        );
+
+        assertEquals(
+                LocalTime.of(14, 10),
+                startTime(result, "해운대해수욕장")
+        );
+    }
+
+    @Test
+    @DisplayName("복약 구간 안의 짧은 장소와 동일 시작 장소의 복약 종료 후 이동")
+    void delaysPlaceInsideOrStartingWithMedication() {
+
+        // 14:02~14:07 짧은 장소, 14:00 동일 시작 장소
+        List<LocalTime> placeStarts = List.of(
+                LocalTime.of(14, 2),
+                LocalTime.of(14, 0)
+        );
+
+        for (LocalTime placeStart : placeStarts) {
+            CreatePlanAiResponse result = finalized(
+                    response(
+                            restaurant(
+                                    "점심 식당",
+                                    ScheduleType.LUNCH,
+                                    LocalTime.of(12, 0),
+                                    0
+                            ),
+                            slot(
+                                    ScheduleType.ACTIVITY,
+                                    CourseType.ATTRACTION,
+                                    "포토존",
+                                    placeStart,
+                                    10,
+                                    5
+                            )
+                    ),
+                    healthContexts()
+            );
+
+            assertEquals(
+                    LocalTime.of(14, 10),
+                    startTime(result, "포토존")
+            );
+        }
+    }
+
+    @Test
+    @DisplayName("복약과 경계만 맞닿은 장소의 시각 유지")
+    void keepsPlaceTouchingMedicationBoundary() {
+
+        // 복약 14:00~14:10 종료와 같은 14:10 시작 관광지
+        CreatePlanAiResponse result = finalized(
+                response(
+                        restaurant(
+                                "점심 식당",
+                                ScheduleType.LUNCH,
+                                LocalTime.of(12, 0),
+                                0
+                        ),
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(14, 10),
+                                40
+                        )
+                ),
+                healthContexts()
+        );
+
+        assertEquals(
+                LocalTime.of(14, 10),
+                startTime(result, "해운대해수욕장")
+        );
+
+        // 식전 11:30 복약 시작과 같은 11:30 종료 관광지
+        List<TravelHealthContext> beforeMeal = healthContexts(MealTiming.BEFORE_MEAL, 30);
+
+        CreatePlanAiResponse touchingEnd = finalized(
+                response(
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(10, 0),
+                                null
+                        ),
+                        restaurant(
+                                "점심 식당",
+                                ScheduleType.LUNCH,
+                                LocalTime.of(12, 0),
+                                0
+                        )
+                ),
+                beforeMeal
+        );
+
+        assertEquals(
+                LocalTime.of(10, 0),
+                startTime(touchingEnd, "해운대해수욕장")
+        );
+    }
+
+    @Test
+    @DisplayName("연속 장소의 체류·이동시간 유지 이동과 저녁 연동 복약 재계산")
+    void cascadesDelayAndRecalculatesDinnerMedication() {
+
+        // 점심 식후 30분, 저녁 식후 30분 복약
+        List<TravelHealthContext> lunchAndDinner = List.of(
+                traveler(
+                        "테스트 여행자",
+                        new TravelHealthContext.MedicationInfoContext(
+                                "혈당약",
+                                MedicationBasis.WITH_MEAL,
+                                null,
+                                Set.of(
+                                        rule(
+                                                RelatedMeal.LUNCH,
+                                                MealTiming.AFTER_MEAL,
+                                                30
+                                        ),
+                                        rule(
+                                                RelatedMeal.DINNER,
+                                                MealTiming.AFTER_MEAL,
+                                                30
+                                        )
+                                )
+                        )
+                )
+        );
+
+        // 관광지 13:40~15:10, 15:20~16:50, 저녁 17:30
+        CreatePlanAiResponse result = finalized(
+                response(
+                        restaurant(
+                                "점심 식당",
+                                ScheduleType.LUNCH,
+                                LocalTime.of(12, 0),
+                                0
+                        ),
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(13, 40),
+                                10
+                        ),
+                        attraction(
+                                "동백섬",
+                                LocalTime.of(15, 20),
+                                10
+                        ),
+                        restaurant(
+                                "저녁 식당",
+                                ScheduleType.DINNER,
+                                LocalTime.of(17, 30),
+                                20
+                        )
+                ),
+                lunchAndDinner
+        );
+
+        assertEquals(
+                List.of(
+                        LocalTime.of(14, 10),
+                        LocalTime.of(15, 50),
+                        LocalTime.of(17, 40)
+                ),
+                List.of(
+                        startTime(result, "해운대해수욕장"),
+                        startTime(result, "동백섬"),
+                        startTime(result, "저녁 식당")
+                )
+        );
+
+        assertEquals(
+                List.of(
+                        LocalTime.of(14, 0),
+                        LocalTime.of(19, 40)
+                ),
+                medications(result)
+                        .stream()
+                        .map(CreatePlanAiResponse.PlanScheduleDetail::startTime)
+                        .toList()
+        );
+    }
+
+    @Test
+    @DisplayName("카페 겹침의 이동과 식사·이동 슬롯 겹침의 판정 제외")
+    void judgesOnlyNonMealPlaceSlots() {
+
+        // 카페 13:40~15:10 내부 14:00 복약
+        CreatePlanAiResponse cafe = finalized(
+                response(
+                        restaurant(
+                                "점심 식당",
+                                ScheduleType.LUNCH,
+                                LocalTime.of(12, 0),
+                                0
+                        ),
+                        slot(
+                                ScheduleType.ACTIVITY,
+                                CourseType.CAFE_REST,
+                                "바다 카페",
+                                LocalTime.of(13, 40),
+                                10
+                        )
+                ),
+                healthContexts()
+        );
+
+        assertEquals(
+                LocalTime.of(14, 10),
+                startTime(cafe, "바다 카페")
+        );
+
+        // 식중 복약과 점심, 13:40 이동 슬롯과 14:00 복약
+        List<TravelHealthContext> duringMeal = healthContexts(MealTiming.DURING_MEAL, 0);
+
+        CreatePlanAiResponse excluded = finalized(
+                response(
+                        restaurant(
+                                "점심 식당",
+                                ScheduleType.LUNCH,
+                                LocalTime.of(12, 0),
+                                0
+                        ),
+                        slot(
+                                ScheduleType.ACTIVITY,
+                                CourseType.TRANSPORTATION,
+                                "버스 이동",
+                                LocalTime.of(11, 50),
+                                null
+                        )
+                ),
+                duringMeal
+        );
+
+        assertEquals(
+                LocalTime.of(12, 0),
+                startTime(excluded, "점심 식당")
+        );
+
+        assertEquals(
+                LocalTime.of(11, 50),
+                startTime(excluded, "버스 이동")
+        );
+    }
+
+    @Test
+    @DisplayName("이동으로 창 안 식사가 창 밖으로 밀리는 배치의 거부")
+    void rejectsDelayPushingMealOutOfWindow() {
+
+        // 식전 11:30 복약이 관광지 10:30~12:00 내부
+        // 관광지 11:40 이동 시 점심 13:10, 늦은 점심 보정의 관광지 앞당김 발생
+        List<TravelHealthContext> beforeMeal = healthContexts(MealTiming.BEFORE_MEAL, 30);
+
+        CreatePlanAiResponse normalized = scheduleNormalizer.normalizeScheduleTimes(
+                response(
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(10, 30),
+                                null
+                        ),
+                        restaurant(
+                                "점심 식당",
+                                ScheduleType.LUNCH,
+                                LocalTime.of(12, 0),
+                                0
+                        )
+                ),
+                beforeMeal
+        );
+
+        BaseException failure = assertThrows(
+                BaseException.class,
+                () -> scheduleNormalizer.finalizeMedicationSchedules(
+                        normalized,
+                        beforeMeal
+                )
+        );
+
+        assertEquals(
+                PlanEditExceptionEnum.INVALID_AI_PLACE.getCode(),
+                failure.getErrorCode()
+        );
+
+        assertTrue(failure
+                .getMessage()
+                .contains("식사시간 이탈"));
+    }
+
+    @Test
+    @DisplayName("이동으로 자정을 넘기는 배치의 거부")
+    void rejectsDelayCrossingMidnight() {
+
+        // 고정 23:00 복약, 관광지 22:00~23:30
+        List<TravelHealthContext> independent = List.of(
+                traveler(
+                        "고정 시각 여행자",
+                        new TravelHealthContext.MedicationInfoContext(
+                                "혈압약",
+                                MedicationBasis.INDEPENDENT,
+                                LocalTime.of(23, 0),
+                                Set.of()
+                        )
+                )
+        );
+
+        CreatePlanAiResponse normalized = scheduleNormalizer.normalizeScheduleTimes(
+                response(
+                        attraction(
+                                "야경 명소",
+                                LocalTime.of(22, 0),
+                                null
+                        )
+                ),
+                independent
+        );
+
+        BaseException failure = assertThrows(
+                BaseException.class,
+                () -> scheduleNormalizer.finalizeMedicationSchedules(
+                        normalized,
+                        independent
+                )
+        );
+
+        assertTrue(failure
+                .getMessage()
+                .contains("자정 초과"));
+    }
+
+    @Test
+    @DisplayName("이동 상한 3회 초과 겹침의 거부")
+    void rejectsOverlapRemainingAfterDelayLimit() {
+
+        // 고정 복약 4개가 매 이동 후 같은 관광지와 다시 겹치는 배치
+        List<TravelHealthContext> repeated = List.of(
+                traveler(
+                        "여행자 1",
+                        independentMedication(
+                                "약 1",
+                                LocalTime.of(10, 0)
+                        )
+                ),
+                traveler(
+                        "여행자 2",
+                        independentMedication(
+                                "약 2",
+                                LocalTime.of(11, 30)
+                        )
+                ),
+                traveler(
+                        "여행자 3",
+                        independentMedication(
+                                "약 3",
+                                LocalTime.of(13, 0)
+                        )
+                ),
+                traveler(
+                        "여행자 4",
+                        independentMedication(
+                                "약 4",
+                                LocalTime.of(14, 30)
+                        )
+                )
+        );
+
+        CreatePlanAiResponse normalized = scheduleNormalizer.normalizeScheduleTimes(
+                response(
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(9, 50),
+                                null
+                        )
+                ),
+                repeated
+        );
+
+        BaseException failure = assertThrows(
+                BaseException.class,
+                () -> scheduleNormalizer.finalizeMedicationSchedules(
+                        normalized,
+                        repeated
+                )
+        );
+
+        assertTrue(failure
+                .getMessage()
+                .contains("복약·장소 시간 겹침"));
+    }
+
+    @Test
+    @DisplayName("이동 상한 3회 이내 겹침의 해소")
+    void resolvesOverlapWithinDelayLimit() {
+
+        // 고정 복약 3개, 이동 3회 후 관광지 13:10~14:40
+        List<TravelHealthContext> repeated = List.of(
+                traveler(
+                        "여행자 1",
+                        independentMedication(
+                                "약 1",
+                                LocalTime.of(10, 0)
+                        )
+                ),
+                traveler(
+                        "여행자 2",
+                        independentMedication(
+                                "약 2",
+                                LocalTime.of(11, 30)
+                        )
+                ),
+                traveler(
+                        "여행자 3",
+                        independentMedication(
+                                "약 3",
+                                LocalTime.of(13, 0)
+                        )
+                )
+        );
+
+        CreatePlanAiResponse result = finalized(
+                response(
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(9, 50),
+                                null
+                        )
+                ),
+                repeated
+        );
+
+        assertEquals(
+                LocalTime.of(13, 10),
+                startTime(result, "해운대해수욕장")
+        );
+    }
+
+    @Test
+    @DisplayName("식사 슬롯 없는 날의 설정 식사시간 기준 복약 겹침 해소")
+    void resolvesOverlapWithoutMealSlot() {
+
+        // 설정 점심 12:00 + 기본 60분 + 식후 30분 = 13:30, 관광지 13:00~14:30
+        CreatePlanAiResponse result = finalized(
+                response(
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(13, 0),
+                                null
+                        )
+                ),
+                healthContexts()
+        );
+
+        assertEquals(
+                LocalTime.of(13, 30),
+                medicationStartTime(result)
+        );
+
+        assertEquals(
+                LocalTime.of(13, 40),
+                startTime(result, "해운대해수욕장")
+        );
+    }
+
+    @Test
+    @DisplayName("입력 AI 복약 슬롯의 제거와 재생성 기준 겹침 해소")
+    void ignoresAiMedicationSlotInInput() {
+
+        // AI 복약 13:45~13:55, 재생성 복약 14:00
+        CreatePlanAiResponse.PlanScheduleDetail aiMedication =
+                new CreatePlanAiResponse.PlanScheduleDetail(
+                        ScheduleType.CHECK_IN,
+                        CourseType.MEDICATION,
+                        LocalTime.of(13, 45),
+                        LocalTime.of(13, 55),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        10,
+                        null,
+                        Set.of(),
+                        new CreatePlanAiResponse.MedicationSchedule(
+                                30,
+                                "AI 복약"
+                        ),
+                        null
+                );
+
+        CreatePlanAiResponse result = finalized(
+                response(
+                        restaurant(
+                                "점심 식당",
+                                ScheduleType.LUNCH,
+                                LocalTime.of(12, 0),
+                                0
+                        ),
+                        aiMedication,
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(13, 40),
+                                10
+                        )
+                ),
+                healthContexts()
+        );
+
+        assertEquals(
+                List.of(LocalTime.of(14, 0)),
+                medications(result)
+                        .stream()
+                        .map(CreatePlanAiResponse.PlanScheduleDetail::startTime)
+                        .toList()
+        );
+
+        assertEquals(
+                LocalTime.of(14, 10),
+                startTime(result, "해운대해수욕장")
+        );
+    }
+
+    @Test
+    @DisplayName("다중 동행인 같은 시각 복약 병합 후 겹침 해소와 반복 적용 동일 결과")
+    void resolvesMergedMedicationOverlapIdempotently() {
+
+        List<TravelHealthContext> companions = List.of(
+                traveler(
+                        "동행인 1",
+                        new TravelHealthContext.MedicationInfoContext(
+                                "혈당약",
+                                MedicationBasis.WITH_MEAL,
+                                null,
+                                Set.of(
+                                        rule(
+                                                RelatedMeal.LUNCH,
+                                                MealTiming.AFTER_MEAL,
+                                                30
+                                        )
+                                )
+                        )
+                ),
+                traveler(
+                        "동행인 2",
+                        new TravelHealthContext.MedicationInfoContext(
+                                "위장약",
+                                MedicationBasis.WITH_MEAL,
+                                null,
+                                Set.of(
+                                        rule(
+                                                RelatedMeal.LUNCH,
+                                                MealTiming.AFTER_MEAL,
+                                                30
+                                        )
+                                )
+                        )
+                )
+        );
+
+        CreatePlanAiResponse once = finalized(
+                response(
+                        restaurant(
+                                "점심 식당",
+                                ScheduleType.LUNCH,
+                                LocalTime.of(12, 0),
+                                0
+                        ),
+                        attraction(
+                                "해운대해수욕장",
+                                LocalTime.of(13, 40),
+                                10
+                        )
+                ),
+                companions
+        );
+
+        CreatePlanAiResponse twice = scheduleNormalizer.finalizeMedicationSchedules(
+                once,
+                companions
+        );
+
+        assertEquals(
+                LocalTime.of(14, 10),
+                startTime(once, "해운대해수욕장")
+        );
+
+        assertEquals(
+                1,
+                medications(once).size()
+        );
+
+        assertEquals(once, twice);
+    }
+
     private CreatePlanAiResponse medicated(
             CreatePlanAiResponse response,
             List<TravelHealthContext> healthContexts
@@ -660,6 +1312,72 @@ class ScheduleNormalizerTest {
                         healthContexts
                 ),
                 healthContexts
+        );
+    }
+
+    private CreatePlanAiResponse finalized(
+            CreatePlanAiResponse response,
+            List<TravelHealthContext> healthContexts
+    ) {
+
+        return scheduleNormalizer.finalizeMedicationSchedules(
+                scheduleNormalizer.normalizeScheduleTimes(
+                        response,
+                        healthContexts
+                ),
+                healthContexts
+        );
+    }
+
+    private CreatePlanAiResponse.PlanScheduleDetail named(
+            CreatePlanAiResponse response,
+            String name
+    ) {
+
+        return response
+                .planDays()
+                .getFirst()
+                .schedules()
+                .stream()
+                .filter(schedule -> name.equals(schedule.locationName()))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private LocalTime startTime(
+            CreatePlanAiResponse response,
+            String name
+    ) {
+
+        return named(
+                response,
+                name
+        )
+                .startTime();
+    }
+
+    private LocalTime endTime(
+            CreatePlanAiResponse response,
+            String name
+    ) {
+
+        return named(
+                response,
+                name
+        )
+                .endTime();
+    }
+
+    private TravelHealthContext.MedicationInfoContext independentMedication(
+            String drugName,
+            LocalTime medicationTime
+    ) {
+
+        return new TravelHealthContext.MedicationInfoContext(
+                drugName,
+                MedicationBasis.INDEPENDENT,
+                medicationTime,
+                Set.of()
         );
     }
 
@@ -823,18 +1541,37 @@ class ScheduleNormalizerTest {
             Integer travelMinutes
     ) {
 
+        return slot(
+                scheduleType,
+                courseType,
+                name,
+                startTime,
+                travelMinutes,
+                90
+        );
+    }
+
+    private CreatePlanAiResponse.PlanScheduleDetail slot(
+            ScheduleType scheduleType,
+            CourseType courseType,
+            String name,
+            LocalTime startTime,
+            Integer travelMinutes,
+            int stayMinutes
+    ) {
+
         return new CreatePlanAiResponse.PlanScheduleDetail(
                 scheduleType,
                 courseType,
                 startTime,
-                startTime.plusMinutes(90),
+                startTime.plusMinutes(stayMinutes),
                 name,
                 "부산 해운대구",
                 "129.16",
                 "35.16",
                 "image-url",
                 "thumbnail-url",
-                90,
+                stayMinutes,
                 travelMinutes,
                 Set.of(RecommendationTag.NATURAL_SCENERY),
                 null,

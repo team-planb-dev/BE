@@ -17,6 +17,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 final class TravelPlanAssertions {
 
+    // 복약 겹침 판정에서 제외하는 식사 슬롯
+    private static final Set<String> MEAL_SCHEDULE_TYPES = Set.of(
+            "BREAKFAST",
+            "LUNCH",
+            "DINNER"
+    );
+
     private TravelPlanAssertions() {
     }
 
@@ -228,6 +235,7 @@ final class TravelPlanAssertions {
             LocalTime actualMealEndTime = null;
 
             List<JsonNode> medications = new ArrayList<>();
+            List<JsonNode> places = new ArrayList<>();
 
             for (JsonNode slot : day.path("schedules")) {
                 if (actualMealEndTime == null
@@ -241,6 +249,9 @@ final class TravelPlanAssertions {
 
                 if ("MEDICATION".equals(code(slot.path("courseType")))) {
                     medications.add(slot);
+                } else if (!MEAL_SCHEDULE_TYPES.contains(code(slot.path("scheduleType")))
+                        && !"TRANSPORTATION".equals(code(slot.path("courseType")))) {
+                    places.add(slot);
                 }
             }
 
@@ -249,6 +260,14 @@ final class TravelPlanAssertions {
             LocalTime mealBased = actualMealEndTime == null
                     ? fallbackLunchTime.plusMinutes(90)
                     : actualMealEndTime.plusMinutes(30);
+
+            // 복약 전체 구간과 비식사 장소 구간의 교차 부재
+            assertThat(medications)
+                    .allSatisfy(medication -> assertThat(places)
+                            .noneMatch(place -> overlaps(
+                                    medication,
+                                    place
+                            )));
 
             // 장소 겹침과 무관한 등록 간격 유지
             assertThat(medications)
@@ -265,6 +284,28 @@ final class TravelPlanAssertions {
                         .isEqualTo(30);
             });
         }
+    }
+
+    // 경계 접촉을 제외한 두 슬롯 구간의 교차 여부
+    private static boolean overlaps(
+            JsonNode first,
+            JsonNode second
+    ) {
+
+        return LocalTime
+                .parse(first
+                        .path("startTime")
+                        .asText())
+                .isBefore(LocalTime.parse(second
+                        .path("endTime")
+                        .asText()))
+                && LocalTime
+                        .parse(second
+                                .path("startTime")
+                                .asText())
+                        .isBefore(LocalTime.parse(first
+                                .path("endTime")
+                                .asText()));
     }
 
     static void assertSameDays(JsonNode expected, JsonNode actual) {
