@@ -6,6 +6,7 @@ import com.planb.ai.dto.response.CreatePlanAiResponse;
 import com.planb.ai.handler.MissingSlotCompleter;
 import com.planb.ai.mcp.TourismTool;
 import com.planb.domain.health.entity.constant.DiseaseType;
+import com.planb.domain.health.entity.constant.FoodType;
 import com.planb.domain.health.entity.constant.WalkType;
 import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.RecommendationTag;
@@ -451,6 +452,72 @@ class MissingSlotCompleterTest {
                                     .menuName())
                             .isEqualTo("대표메뉴");
                 });
+    }
+
+    @Test
+    @DisplayName("등록 알레르기 분류어 업소를 건너뛰고 다음 후보로 식사 보충")
+    void skipsAllergenRestaurantWhenFillingMeal() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(restaurantItem(
+                "7",
+                "해물왕창칼국수",
+                "129.20",
+                "35.83"
+        ));
+        candidates.recordRestaurantDetail(
+                "tour:7",
+                intro(
+                        "7",
+                        "해물듬뿍칼국수"
+                )
+        );
+        candidates.record(restaurantItem(
+                "9",
+                "교리김밥",
+                "129.21",
+                "35.83"
+        ));
+        candidates.recordRestaurantDetail(
+                "tour:9",
+                intro(
+                        "9",
+                        "김밥"
+                )
+        );
+
+        TravelHealthContext base = healthContext();
+
+        TravelHealthContext allergic = new TravelHealthContext(
+                base.travelerName(),
+                base.diseaseTypes(),
+                base.walkType(),
+                base.mealInfo(),
+                List.of(new TravelHealthContext.FoodInfoContext(
+                        "새우",
+                        FoodType.ALLERGY
+                )),
+                base.medicationInfos()
+        );
+
+        CreatePlanAiResponse filled = missingSlotCompleter.complete(
+                response(
+                        attraction("첨성대", LocalTime.of(9, 0)),
+                        attraction("대릉원", LocalTime.of(11, 0)),
+                        attraction("동궁과 월지", LocalTime.of(13, 0))
+                ),
+                List.of(allergic),
+                candidates,
+                Set.of(),
+                Set.of()
+        );
+
+        assertThat(schedules(filled))
+                .filteredOn(slot -> slot.scheduleType() == ScheduleType.LUNCH)
+                .singleElement()
+                .satisfies(slot -> assertThat(slot.locationName())
+                        .isEqualTo("교리김밥"));
     }
 
     @Test

@@ -41,9 +41,11 @@ public record RebuildPlanDayPrompt(
                 RESTAURANT/LOCAL_FOOD는 BREAKFAST/LUNCH/DINNER,
                 나머지 courseType은 ACTIVITY를 사용합니다.
                 날짜는 YYYY-MM-DD, 시간은 HH:mm:ss입니다. startTime/endTime과 stayMinutes를 일치시킵니다.
-                검색 후보 사이에는 getRoute(originCandidateId, destinationCandidateId, transportation)로
-                구간 이동시간을 확인합니다. 장소명 대신 검색 Tool의 candidateId를 전달하고,
-                도착 전에 다음 일정이 시작되지 않도록 배치합니다.
+                후보의 순서나 선택을 비교할 때는 getRoute(originCandidateId, destinationCandidateId, transportation)를
+                사용할 수 있습니다. 모든 구간의 사전 조회는 필수가 아닙니다.
+                장소명 대신 검색 Tool의 candidateId를 전달합니다. Tool 이동시간은 후보 비교용이며,
+                최종 이동시간은 확정한 장소·좌표·이동수단으로 Java가 별도로 확인합니다.
+                조회 실패 시 이동시간을 추측하지 않고, 도착 전에 다음 일정이 시작되지 않도록 배치합니다.
                 MEDICATION 슬롯을 생성하지 않습니다. Java가 최종 일정에서 다시 생성합니다.
                 태그는 근거가 있을 때만 사용하며 없으면 []입니다.
 

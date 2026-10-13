@@ -256,7 +256,8 @@ public class PlanTourismTool {
     }
 
     @Tool(description = """
-            이번 호출의 검색 결과로 확정한 두 장소 사이의 이동시간 조회.
+            이번 호출의 검색 후보 두 곳의 순서·선택 비교용 이동시간 조회.
+            모든 구간의 사전 호출은 필수가 아니며, 최종 일정의 이동시간은 Java에서 별도로 확인합니다.
             originCandidateId와 destinationCandidateId에는 장소명이 아니라
             searchAttractionsByRegion, searchRestaurantsByLocation 또는 findPlaceWithRoute가 반환한 candidateId를 전달합니다.
             후보 ID가 없거나 이번 호출에서 검색하지 않은 후보이면 이동시간을 반환하지 않습니다.

@@ -1,5 +1,7 @@
 package com.planb.integration.domain.chat.helper;
 
+import jakarta.websocket.ContainerProvider;
+import jakarta.websocket.WebSocketContainer;
 import org.springframework.messaging.converter.JacksonJsonMessageConverter;
 import org.springframework.messaging.simp.stomp.StompFrameHandler;
 import org.springframework.messaging.simp.stomp.StompHeaders;
@@ -30,6 +32,11 @@ public class StompTestClientHelper {
     private static final int MESSAGE_TIMEOUT_SECONDS =
             5;
 
+    // 브라우저 수준 대형 메시지 수신 허용(브라우저 수신은 미측정)
+    // Tomcat 클라이언트 기본 텍스트 버퍼 8192자, STOMP 기본 수신 한도 64KB 확대
+    private static final int CLIENT_MESSAGE_LIMIT =
+            1024 * 1024;
+
     private final int port;
 
     public StompTestClientHelper(
@@ -41,10 +48,23 @@ public class StompTestClientHelper {
     // STOMP 클라이언트 생성
     public WebSocketStompClient createStompClient() {
 
+        WebSocketContainer container =
+                ContainerProvider.getWebSocketContainer();
+
+        container.setDefaultMaxTextMessageBufferSize(
+                CLIENT_MESSAGE_LIMIT
+        );
+
         WebSocketStompClient stompClient =
                 new WebSocketStompClient(
-                        new StandardWebSocketClient()
+                        new StandardWebSocketClient(
+                                container
+                        )
                 );
+
+        stompClient.setInboundMessageSizeLimit(
+                CLIENT_MESSAGE_LIMIT
+        );
 
         stompClient.setMessageConverter(
                 new JacksonJsonMessageConverter()

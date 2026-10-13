@@ -109,7 +109,8 @@ public class TravelController {
 
                     구성원 누락은 `TRAVEL.EXCEPTION.COMPANION_REQUIRED`, 소유권 불일치는
                     `TRAVEL.EXCEPTION.COMPANION_NOT_OWNED`, 장소 검증 실패는
-                    `PLAN.EXCEPTION.INVALID_AI_PLACE`로 구분됩니다.
+                    `PLAN.EXCEPTION.INVALID_AI_PLACE`, 경로 조회 실패는
+                    `PLAN.EXCEPTION.ROUTE_LOOKUP_FAILED`로 구분됩니다.
                     AI 실패는 재시도로 해소될 수 있는 `AI.EXCEPTION.AI_TEMPORARILY_UNAVAILABLE`,
                     AI가 조건을 만족하지 못한 `AI.EXCEPTION.AI_RESPONSE_REJECTED`,
                     서버 내부 오류인 `AI.EXCEPTION.AI_INTERNAL_ERROR`로 구분됩니다.
@@ -268,8 +269,10 @@ public class TravelController {
                     장소와 이동 경로 외부 API를 조회할 수 있어 응답 시간이 길어질 수 있습니다.
                     수정안은 서버 검증을 통과한 뒤 기존 일정과 함께 반환되며 아직 실제 일정에는 반영되지 않습니다.
                     AI가 요청을 처리할 수 없다고 판단하면 `processable=false`인 정상 미리보기를 반환합니다.
+                    수정할 날짜·대상을 특정할 수 없으면 `PLAN.EXCEPTION.EDIT_TARGET_UNCLEAR`,
                     수정 범위 또는 재구성 검증 실패는 `PLAN.EXCEPTION.EDIT_NOT_APPLIED`,
-                    장소 검증 실패는 `PLAN.EXCEPTION.INVALID_AI_PLACE`로 구분됩니다.
+                    장소 검증 실패는 `PLAN.EXCEPTION.INVALID_AI_PLACE`, 경로 조회 실패는
+                    `PLAN.EXCEPTION.ROUTE_LOOKUP_FAILED`로 구분됩니다.
                     AI 실패는 재시도로 해소될 수 있는 `AI.EXCEPTION.AI_TEMPORARILY_UNAVAILABLE`,
                     AI가 조건을 만족하지 못한 `AI.EXCEPTION.AI_RESPONSE_REJECTED`,
                     서버 내부 오류인 `AI.EXCEPTION.AI_INTERNAL_ERROR`로 구분됩니다.

@@ -36,6 +36,7 @@ import com.planb.domain.travel.service.NutritionService;
 import com.planb.domain.travel.service.ScheduleNormalizer;
 import com.planb.domain.travel.service.TravelMinutesResolver;
 import com.planb.global.client.kakaoMapService.dto.response.KakaoPlaceSearchResponse;
+import com.planb.global.client.kakaoMapService.dto.response.KakaoRouteFailure;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
 import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
@@ -361,6 +362,92 @@ class PlanPlaceValidationTest {
                 BaseException.class,
                 () -> service.makePlanByAi(travel)
         );
+    }
+
+    @Test
+    @DisplayName("경로 공급자 실패로 누락된 이동시간의 실패 구간·공급자 사유 전달")
+    void rejectsProviderRouteFailureWithReason() {
+
+        PlanScheduleDetail missingTravelMinutes =
+                new PlanScheduleDetail(
+                        ScheduleType.ACTIVITY,
+                        CourseType.ATTRACTION,
+                        LocalTime.of(9, 0),
+                        LocalTime.of(10, 0),
+                        "해운대",
+                        "부산",
+                        "129.1",
+                        "35.1",
+                        "원본 사진",
+                        "원본 썸네일",
+                        60,
+                        null,
+                        Set.of(),
+                        null,
+                        null,
+                        "tour:1"
+                );
+
+        when(
+                handler
+                        .createPlanByAi(
+                                any(),
+                                any()
+                        )
+        )
+                .thenAnswer(invocation -> {
+                    PlaceCandidateContext candidates = invocation.getArgument(1);
+
+                    candidates.record(
+                            tour(
+                                    "1",
+                                    "12",
+                                    "해운대"
+                            )
+                    );
+
+                    return new CreatePlanAiResponse(
+                            List.of(
+                                    new PlanDayDetail(
+                                            1,
+                                            date,
+                                            List.of(missingTravelMinutes)
+                                    )
+                            )
+                    );
+                }
+        );
+
+        when(kakao.getRoute(
+                anyString(),
+                anyString(),
+                any()
+        ))
+                .thenReturn(Mono.just(new KakaoRouteResult(
+                        null,
+                        null,
+                        null,
+                        null,
+                        routeFailure()
+                )));
+
+        BaseException failure = assertThrows(
+                BaseException.class,
+                () -> service.makePlanByAi(travel)
+        );
+
+        assertEquals("PLAN.EXCEPTION.ROUTE_LOOKUP_FAILED", failure.getErrorCode());
+
+        // 공급자 실패와 AI 이동시간 누락 구분
+        assertTrue(failure
+                .getMessage()
+                .contains("경로 공급자 조회 실패: day=1"));
+        assertTrue(failure
+                .getMessage()
+                .contains("destination=해운대"));
+        assertTrue(failure
+                .getMessage()
+                .contains("stage=ROUTE, kind=HTTP_ERROR, status=400, providerCode=-10"));
     }
 
     @Test
@@ -841,8 +928,8 @@ class PlanPlaceValidationTest {
     }
 
     @Test
-    @DisplayName("복약 겹침 회피가 등록 식사시간을 깨는 생성의 명시적 거부")
-    void rejectsMedicationOverlapBreakingMealTime() {
+    @DisplayName("관광 중 식전 복약 알림과 생성 식사 시각 보존")
+    void keepsMealTimeWithMedicationDuringAttraction() {
 
         TravelHealthContext.MedicationInfoContext.MealMedicationRuleContext rule =
                 new TravelHealthContext.MedicationInfoContext.MealMedicationRuleContext(
@@ -935,21 +1022,26 @@ class PlanPlaceValidationTest {
                 )
         );
 
-        // 식전 45분 11:15 복약이 관광지 11:00~12:00 내부
-        // 간격 확보에 점심 12:45 필요, 상한 12:30 초과
-        BaseException failure = assertThrows(
-                BaseException.class,
-                () -> service.makePlanByAi(context)
-        );
+        List<PlanScheduleDetail> schedules = service
+                .makePlanByAi(context)
+                .planDays()
+                .getFirst()
+                .schedules();
+        PlanScheduleDetail lunch = schedules
+                .stream()
+                .filter(schedule -> schedule.scheduleType() == ScheduleType.LUNCH)
+                .findFirst()
+                .orElseThrow();
+        PlanScheduleDetail medication = schedules
+                .stream()
+                .filter(schedule -> schedule.courseType() == CourseType.MEDICATION)
+                .findFirst()
+                .orElseThrow();
 
-        assertEquals(
-                PlanEditExceptionEnum.INVALID_AI_PLACE.getCode(),
-                failure.getErrorCode()
-        );
-
-        assertTrue(failure
-                .getMessage()
-                .contains("식사시간 이탈"));
+        assertEquals(LocalTime.of(12, 0), lunch.startTime());
+        assertEquals(LocalTime.of(11, 15), medication.startTime());
+        assertEquals(LocalTime.of(11, 25), medication.endTime());
+        assertMedicationDuringPlace(schedules, medication);
     }
 
     @Test
@@ -1070,8 +1162,8 @@ class PlanPlaceValidationTest {
                 medication.endTime()
         );
 
-        // 겹친 관광지의 복약 종료 후 이동
-        assertPlaceDelayedAfterMedication(
+        // 관광 중 등록 시각 복약 알림
+        assertMedicationDuringPlace(
                 schedules,
                 medication
         );
@@ -1247,8 +1339,8 @@ class PlanPlaceValidationTest {
                 medication.endTime()
         );
 
-        // 겹친 관광지의 복약 종료 후 이동
-        assertPlaceDelayedAfterMedication(
+        // 관광 중 등록 시각 복약 알림
+        assertMedicationDuringPlace(
                 result
                         .planDays()
                         .getFirst()
@@ -1572,6 +1664,94 @@ class PlanPlaceValidationTest {
                 .reselectPlace(
                 any(),
                 any());
+    }
+
+    @Test
+    @DisplayName("재선택 후 경로 재계산 공급자 실패의 사유 전달")
+    void rejectsRecalculatedRouteProviderFailureWithReason() {
+
+        PlanScheduleDetail valid = slot(
+                "tour:1",
+                "해운대",
+                9
+        );
+
+        PlanScheduleDetail invalid = slot(
+                "tour:2784321",
+                "개금밀면",
+                10
+        );
+
+        PlanScheduleDetail following = slot(
+                "tour:3",
+                "이기대",
+                11
+        );
+
+        stubCreate(
+                new CreatePlanAiResponse(
+                        List.of(
+                                new PlanDayDetail(
+                                        1,
+                                        date,
+                                        List.of(
+                                                valid,
+                                                invalid,
+                                                following
+                                        )
+                                )
+                        )
+                )
+        );
+
+        when(handler.reselectPlace(
+                any(),
+                any()
+        ))
+                .thenAnswer(invocation -> {
+                    PlaceCandidateContext candidates = invocation.getArgument(1);
+
+                    // 도보 추정 범위 밖 원거리 좌표
+                    candidates.record(tourAt(
+                            "2",
+                            "동백섬",
+                            "129.3",
+                            "35.3"
+                    ));
+
+                    return slot(
+                            "tour:2",
+                            "AI 이름",
+                            10
+                    );
+                });
+
+        when(kakao.getRoute(
+                anyString(),
+                anyString(),
+                any()
+        ))
+                .thenReturn(Mono.just(new KakaoRouteResult(
+                        null,
+                        null,
+                        null,
+                        null,
+                        routeFailure()
+                )));
+
+        BaseException failure = assertThrows(
+                BaseException.class,
+                () -> service.makePlanByAi(travel)
+        );
+
+        assertEquals("PLAN.EXCEPTION.ROUTE_LOOKUP_FAILED", failure.getErrorCode());
+
+        assertTrue(failure
+                .getMessage()
+                .contains("장소 변경 후 이동시간 확인 실패"));
+        assertTrue(failure
+                .getMessage()
+                .contains("stage=ROUTE, kind=HTTP_ERROR, status=400, providerCode=-10"));
     }
 
     @Test
@@ -2294,6 +2474,115 @@ class PlanPlaceValidationTest {
     }
 
     @Test
+    @DisplayName("경로 공급자 실패 시 AI 날짜 재구성 반복 없이 종료")
+    void stopsDayRebuildWhenRouteProviderFails() {
+
+        PlanEditContext context = rebuildContext();
+
+        when(
+                handler
+                        .classifyEditScope(
+                                any()))
+                .thenReturn(
+                        new PlanEditScope(
+                                List
+                                        .of(1)));
+
+        stubUnchangedEdit();
+
+        when(
+                kakao
+                        .searchPlace("이기대"))
+                .thenReturn(
+                        Mono
+                                .just(
+                                        kakaoPlace(
+                                                "AT4",
+                                                "이기대")));
+
+        when(
+                handler
+                        .rebuildDay(
+                        any(),
+                        any(),
+                        eq(1),
+                        anyString(),
+                        any()
+                ))
+                .thenAnswer(
+                        invocation -> {
+                            PlaceCandidateContext candidates = invocation
+                                    .getArgument(4);
+
+                            candidates
+                                    .record(
+                                            new PlaceWithRouteResult(
+                                                    true,
+                                                    "동백섬",
+                                                    "부산",
+                                                    "129.2",
+                                                    "35.2",
+                                                    10,
+                                                    "kakao:new",
+                                                    "AT4",
+                                                    "관광명소"
+                                            ));
+
+                            return new RebuildPlanDayResponse(
+                                    true,
+                                    "",
+                                    List
+                                            .of(
+                                                    new PlanDayDetail(
+                                                            1,
+                                                            date,
+                                                            List
+                                                                    .of(
+                                                                            slot(
+                                                                                    "kakao:new",
+                                                                                    "동백섬",
+                                                                                    9
+                                                                            ))
+                                                    ))
+                            );
+                        });
+
+        when(
+                kakao
+                        .getRoute(
+                        anyString(),
+                        anyString(),
+                        any()
+                ))
+                .thenReturn(
+                        Mono
+                                .just(
+                                        new KakaoRouteResult(
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                routeFailure()
+                                        )));
+
+        BaseException failure = assertThrows(
+                BaseException.class,
+                () -> service.makeEditPlanByAi(context)
+        );
+
+        assertEquals("PLAN.EXCEPTION.ROUTE_LOOKUP_FAILED", failure.getErrorCode());
+
+        verify(handler, times(1))
+                .rebuildDay(
+                        any(),
+                        any(),
+                        eq(1),
+                        anyString(),
+                        any()
+                );
+    }
+
+    @Test
     @DisplayName("재구성 응답의 잘못된 AI 복약 시간은 검증 전에 Java가 재생성")
     void rebuildRegeneratesMedicationBeforeValidation() {
 
@@ -2492,8 +2781,8 @@ class PlanPlaceValidationTest {
                 medication.endTime()
         );
 
-        // 겹친 관광지의 복약 종료 후 이동
-        assertPlaceDelayedAfterMedication(
+        // 관광 중 등록 시각 복약 알림
+        assertMedicationDuringPlace(
                 result
                         .planDays()
                         .getFirst()
@@ -4818,6 +5107,43 @@ class PlanPlaceValidationTest {
         );
     }
 
+    private Kor2KeywordSearchResponse.Item tourAt(
+            String id,
+            String name,
+            String longitude,
+            String latitude
+    ) {
+
+        Kor2KeywordSearchResponse.Item item = tour(
+                id,
+                "12",
+                name
+        );
+
+        return new Kor2KeywordSearchResponse.Item(
+                item.addr1(),
+                item.addr2(),
+                item.zipcode(),
+                item.contentid(),
+                item.contenttypeid(),
+                item.createdtime(),
+                item.firstimage(),
+                item.firstimage2(),
+                item.cpyrhtDivCd(),
+                longitude,
+                latitude,
+                item.mlevel(),
+                item.modifiedtime(),
+                item.tel(),
+                item.title(),
+                item.lDongRegnCd(),
+                item.lDongSignguCd(),
+                item.lclsSystm1(),
+                item.lclsSystm2(),
+                item.lclsSystm3()
+        );
+    }
+
     private KakaoPlaceSearchResponse kakaoPlace(String category, String name) {
 
         return new KakaoPlaceSearchResponse(
@@ -4894,34 +5220,39 @@ class PlanPlaceValidationTest {
         );
     }
 
-    // 비식사 장소와 복약 구간의 교차 부재, 겹쳤던 장소의 복약 종료 시각 시작
-    private void assertPlaceDelayedAfterMedication(
+    // 관광 체류 중 등록 시각 복약 알림
+    private void assertMedicationDuringPlace(
             List<PlanScheduleDetail> schedules,
             PlanScheduleDetail medication
     ) {
 
-        List<PlanScheduleDetail> places = schedules
+        assertTrue(schedules
                 .stream()
                 .filter(schedule -> schedule.courseType() != CourseType.MEDICATION
                         && schedule.courseType() != CourseType.TRANSPORTATION)
-                .filter(schedule -> schedule.scheduleType() != ScheduleType.BREAKFAST
-                        && schedule.scheduleType() != ScheduleType.LUNCH
-                        && schedule.scheduleType() != ScheduleType.DINNER)
-                .toList();
-
-        assertTrue(places
-                .stream()
-                .noneMatch(place -> medication
+                .filter(schedule -> schedule.scheduleType() == ScheduleType.ACTIVITY)
+                .anyMatch(place -> medication
                         .startTime()
                         .isBefore(place.endTime())
                         && place
                                 .startTime()
                                 .isBefore(medication.endTime())));
+    }
 
-        assertTrue(places
-                .stream()
-                .anyMatch(place -> place
-                        .startTime()
-                        .equals(medication.endTime())));
+    // 대중교통 400 공급자 실패
+    private static KakaoRouteFailure routeFailure() {
+
+        return new KakaoRouteFailure(
+                KakaoRouteFailure.Stage.ROUTE,
+                KakaoRouteFailure.Kind.HTTP_ERROR,
+                400,
+                "-10",
+                "API limit has been exceeded.",
+                "WebClientResponseException",
+                "129.0",
+                "35.0",
+                "129.1",
+                "35.1"
+        );
     }
 }

@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 import org.springframework.web.socket.messaging.SessionSubscribeEvent;
 import org.springframework.web.socket.messaging.SessionUnsubscribeEvent;
@@ -106,6 +107,20 @@ public class ChatSessionEventListener {
 
     @EventListener
     public void handleDisconnect(SessionDisconnectEvent event) {
+
+        // 연결 종료 원인 판별용 종료 코드·사유
+        CloseStatus closeStatus = event.getCloseStatus();
+
+        log.info(
+                "STOMP DISCONNECT - sessionId: {}, closeCode: {}, closeReason: {}",
+                event.getSessionId(),
+                closeStatus == null
+                        ? null
+                        : closeStatus.getCode(),
+                closeStatus == null
+                        ? null
+                        : closeStatus.getReason()
+        );
 
         subscriptionRegistry
                 .disconnect(event.getSessionId())

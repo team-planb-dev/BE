@@ -119,11 +119,12 @@ public record TravelPlanPrompt(
 
                 [5. 이동 및 시간]
 
-                - 검색 후보 사이의 이동 구간은 getRoute(originCandidateId,
-                  destinationCandidateId, transportation)로 확인합니다.
-                  장소명 대신 Tool의 candidateId를 사용합니다.
+                - 후보의 순서나 선택을 비교하려면 getRoute(originCandidateId,
+                  destinationCandidateId, transportation)를 사용할 수 있습니다.
+                  모든 구간의 사전 조회는 필수가 아닙니다. 장소명 대신 Tool의 candidateId를 사용합니다.
+                  최종 이동시간은 확정한 장소·좌표·이동수단으로 Java가 별도로 확인합니다.
                 - findPlaceWithRoute로 확정한 장소로 들어오는 구간은 getRoute를 중복 호출하지 않습니다.
-                  다음 구간에는 다시 getRoute를 사용합니다.
+                  다음 구간도 후보 비교가 필요한 경우에만 getRoute를 사용합니다.
                 - Tool 조회가 실패하면 이동시간을 추측하지 않습니다.
                   도보 30분 초과 구간은 순서나 후보 변경을 고려합니다.
                 - date는 YYYY-MM-DD, startTime과 endTime은 HH:mm 문자열로 반환합니다.
