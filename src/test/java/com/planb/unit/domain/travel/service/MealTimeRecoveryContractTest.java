@@ -9,6 +9,7 @@ import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.ScheduleType;
 import com.planb.domain.travel.helper.PlanPlaceResolver;
 import com.planb.domain.travel.service.ScheduleNormalizer;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -16,6 +17,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -444,6 +446,558 @@ class MealTimeRecoveryContractTest {
         ));
     }
 
+    @Test
+    @DisplayName("실측 C6 1회차: 장소 사이 여유 압축과 직전 식사 앞당김으로 점심 허용 창 충족")
+    void recoversLunchByCompactingSlackBeforeShiftingBreakfast() {
+
+        CreatePlanAiResponse input = c6LiveDay();
+
+        CreatePlanAiResponse result = finish(input);
+
+        LocalTime breakfast = meal(
+                result,
+                ScheduleType.BREAKFAST
+        )
+                .startTime();
+
+        assertEquals(
+                LocalTime.of(7, 30),
+                breakfast
+        );
+        assertEquals(
+                LocalTime.of(8, 57),
+                startOf(
+                        result,
+                        "경복궁"
+                )
+        );
+        assertEquals(
+                LocalTime.of(10, 59),
+                startOf(
+                        result,
+                        "결"
+                )
+        );
+        assertEquals(
+                LocalTime.of(12, 30),
+                lunch(result)
+                        .startTime()
+        );
+        assertTravelGapsKept(result);
+        assertMedicationContract(result);
+        assertEquals(
+                result,
+                finish(result)
+        );
+        assertEquals(
+                names(input),
+                names(result)
+        );
+    }
+
+    @Test
+    @DisplayName("실측 C3 1회차: 고정 선택으로 점심 창 충족 불가한 장거리 오전 일정은 기존 배치 유지")
+    void keepsLateLunchWhenLongMorningTripCannotFit() {
+
+        CreatePlanAiResponse result = finish(dayOf(List.of(
+                slot(
+                        ScheduleType.BREAKFAST,
+                        CourseType.RESTAURANT,
+                        "금천칼국수",
+                        "08:00:00",
+                        50,
+                        10
+                ),
+                slot(
+                        ScheduleType.ACTIVITY,
+                        CourseType.ATTRACTION,
+                        "오대산 소금강계곡",
+                        "10:00:00",
+                        90,
+                        109
+                ),
+                slot(
+                        ScheduleType.LUNCH,
+                        CourseType.RESTAURANT,
+                        "강릉불고기 초당점",
+                        "12:00:00",
+                        50,
+                        87
+                )
+        )));
+
+        assertEquals(
+                LocalTime.of(8, 0),
+                meal(
+                        result,
+                        ScheduleType.BREAKFAST
+                )
+                        .startTime()
+        );
+        assertEquals(
+                LocalTime.of(13, 36),
+                lunch(result)
+                        .startTime()
+        );
+        assertTravelGapsKept(result);
+    }
+
+    @Test
+    @DisplayName("장소 사이 여유 압축만으로 충족되면 직전 식사 유지")
+    void compactsSlackWithoutShiftingBreakfast() {
+
+        CreatePlanAiResponse result = finish(dayOf(List.of(
+                slot(
+                        ScheduleType.BREAKFAST,
+                        CourseType.RESTAURANT,
+                        "아침 식당",
+                        "08:00:00",
+                        50,
+                        10
+                ),
+                slot(
+                        ScheduleType.ACTIVITY,
+                        CourseType.ATTRACTION,
+                        "오전 관광지 A",
+                        "09:00:00",
+                        60,
+                        10
+                ),
+                slot(
+                        ScheduleType.ACTIVITY,
+                        CourseType.ATTRACTION,
+                        "오전 관광지 B",
+                        "10:40:00",
+                        90,
+                        10
+                ),
+                slot(
+                        ScheduleType.LUNCH,
+                        CourseType.RESTAURANT,
+                        "점심 식당",
+                        "12:50:00",
+                        50,
+                        40
+                )
+        )));
+
+        assertEquals(
+                LocalTime.of(8, 0),
+                meal(
+                        result,
+                        ScheduleType.BREAKFAST
+                )
+                        .startTime()
+        );
+        assertEquals(
+                LocalTime.of(9, 0),
+                startOf(
+                        result,
+                        "오전 관광지 A"
+                )
+        );
+        assertEquals(
+                LocalTime.of(10, 20),
+                startOf(
+                        result,
+                        "오전 관광지 B"
+                )
+        );
+        assertEquals(
+                LocalTime.of(12, 30),
+                lunch(result)
+                        .startTime()
+        );
+        assertTravelGapsKept(result);
+    }
+
+    @Test
+    @DisplayName("뒤 장소 여유만으로 충족되면 앞 장소는 원래 시각 유지")
+    void movesOnlyPlacesNeededForLunch() {
+
+        CreatePlanAiResponse result = finish(dayOf(List.of(
+                slot(
+                        ScheduleType.BREAKFAST,
+                        CourseType.RESTAURANT,
+                        "아침 식당",
+                        "08:00:00",
+                        50,
+                        10
+                ),
+                slot(
+                        ScheduleType.ACTIVITY,
+                        CourseType.ATTRACTION,
+                        "오전 관광지 A",
+                        "10:00:00",
+                        60,
+                        10
+                ),
+                slot(
+                        ScheduleType.ACTIVITY,
+                        CourseType.CAFE_REST,
+                        "카페",
+                        "12:00:00",
+                        30,
+                        10
+                ),
+                slot(
+                        ScheduleType.LUNCH,
+                        CourseType.RESTAURANT,
+                        "점심 식당",
+                        "13:00:00",
+                        50,
+                        30
+                )
+        )));
+
+        assertEquals(
+                LocalTime.of(10, 0),
+                startOf(
+                        result,
+                        "오전 관광지 A"
+                )
+        );
+        assertEquals(
+                LocalTime.of(11, 30),
+                startOf(
+                        result,
+                        "카페"
+                )
+        );
+        assertEquals(
+                LocalTime.of(12, 30),
+                lunch(result)
+                        .startTime()
+        );
+        assertTravelGapsKept(result);
+    }
+
+    @Test
+    @DisplayName("여유와 직전 식사 앞당김으로 1분이 모자라면 충족 위장 없이 이동 우선 배치")
+    void keepsOneMinuteLateLunchWhenNoRoomRemains() {
+
+        CreatePlanAiResponse result = finish(dayOf(List.of(
+                slot(
+                        ScheduleType.BREAKFAST,
+                        CourseType.RESTAURANT,
+                        "아침 식당",
+                        "07:30:00",
+                        50,
+                        10
+                ),
+                slot(
+                        ScheduleType.ACTIVITY,
+                        CourseType.ATTRACTION,
+                        "오전 관광지 A",
+                        "08:30:00",
+                        60,
+                        10
+                ),
+                slot(
+                        ScheduleType.ACTIVITY,
+                        CourseType.ATTRACTION,
+                        "오전 관광지 B",
+                        "09:40:00",
+                        120,
+                        10
+                ),
+                slot(
+                        ScheduleType.LUNCH,
+                        CourseType.RESTAURANT,
+                        "점심 식당",
+                        "12:31:00",
+                        50,
+                        51
+                )
+        )));
+
+        assertEquals(
+                LocalTime.of(7, 30),
+                meal(
+                        result,
+                        ScheduleType.BREAKFAST
+                )
+                        .startTime()
+        );
+        assertEquals(
+                LocalTime.of(12, 31),
+                lunch(result)
+                        .startTime()
+        );
+        assertTravelGapsKept(result);
+    }
+
+    @Test
+    @DisplayName("동행인 교집합으로 좁아진 점심 창은 직전 식사 창 밖 앞당김 없이 미충족 유지")
+    void keepsLunchLateWhenCompanionWindowIsNarrower() {
+
+        List<TravelHealthContext> companions = new ArrayList<>(contexts());
+
+        companions.add(new TravelHealthContext(
+                "동행인 2",
+                List.of(),
+                null,
+                new TravelHealthContext.MealInfoContext(
+                        LocalTime.of(8, 0),
+                        LocalTime.of(11, 50),
+                        LocalTime.of(18, 0)
+                ),
+                List.of(),
+                List.of()
+        ));
+
+        CreatePlanAiResponse result = finish(
+                c6LiveDay(),
+                companions
+        );
+
+        assertEquals(
+                LocalTime.of(8, 0),
+                meal(
+                        result,
+                        ScheduleType.BREAKFAST
+                )
+                        .startTime()
+        );
+        assertEquals(
+                LocalTime.of(13, 31),
+                lunch(result)
+                        .startTime()
+        );
+        assertTravelGapsKept(result);
+    }
+
+    @Test
+    @DisplayName("이동시간 누락으로 겹친 오전 장소가 있어도 직전 식사와 겹치게 당기지 않음")
+    void doesNotPullPlaceIntoBreakfastWhenTravelIsMissing() {
+
+        CreatePlanAiResponse result = finish(dayOf(List.of(
+                slot(
+                        ScheduleType.BREAKFAST,
+                        CourseType.RESTAURANT,
+                        "아침 식당",
+                        "07:55:00",
+                        50,
+                        10
+                ),
+                slot(
+                        ScheduleType.ACTIVITY,
+                        CourseType.ATTRACTION,
+                        "오전 관광지 A",
+                        "09:00:00",
+                        60,
+                        0
+                ),
+                slot(
+                        ScheduleType.ACTIVITY,
+                        CourseType.ATTRACTION,
+                        "오전 관광지 B",
+                        "09:30:00",
+                        30,
+                        null
+                ),
+                slot(
+                        ScheduleType.ACTIVITY,
+                        CourseType.ATTRACTION,
+                        "오전 관광지 C",
+                        "12:00:00",
+                        60,
+                        10
+                ),
+                slot(
+                        ScheduleType.LUNCH,
+                        CourseType.RESTAURANT,
+                        "점심 식당",
+                        "13:00:00",
+                        50,
+                        0
+                )
+        )));
+
+        // 장소 압축은 겹침 때문에 거부, 직전 식사 15분 앞당김으로 회복
+        assertEquals(
+                LocalTime.of(7, 40),
+                meal(
+                        result,
+                        ScheduleType.BREAKFAST
+                )
+                        .startTime()
+        );
+        assertEquals(
+                LocalTime.of(8, 30),
+                startOf(
+                        result,
+                        "오전 관광지 A"
+                )
+        );
+        assertEquals(
+                LocalTime.of(12, 30),
+                lunch(result)
+                        .startTime()
+        );
+        assertFalse(startOf(
+                result,
+                "오전 관광지 A"
+        )
+                .isBefore(meal(
+                        result,
+                        ScheduleType.BREAKFAST
+                )
+                        .endTime()));
+    }
+
+    // 실측 C6 1회차 1일차 정규화 입력의 장소·체류·이동시간
+    private CreatePlanAiResponse c6LiveDay() {
+
+        return dayOf(List.of(
+                slot(
+                        ScheduleType.BREAKFAST,
+                        CourseType.LOCAL_FOOD,
+                        "동우설렁탕 본점",
+                        "08:00:00",
+                        50,
+                        32
+                ),
+                slot(
+                        ScheduleType.ACTIVITY,
+                        CourseType.MUST_HAVE,
+                        "경복궁",
+                        "09:30:00",
+                        110,
+                        37
+                ),
+                slot(
+                        ScheduleType.ACTIVITY,
+                        CourseType.CAFE_REST,
+                        "결",
+                        "12:00:00",
+                        40,
+                        12
+                ),
+                slot(
+                        ScheduleType.LUNCH,
+                        CourseType.RESTAURANT,
+                        "광양불고기",
+                        "12:30:00",
+                        60,
+                        51
+                )
+        ));
+    }
+
+    // 오전 일정 뒤 고정 오후 관광지와 저녁
+    private CreatePlanAiResponse dayOf(List<CreatePlanAiResponse.PlanScheduleDetail> morning) {
+
+        List<CreatePlanAiResponse.PlanScheduleDetail> slots = new ArrayList<>(morning);
+
+        slots.add(slot(
+                ScheduleType.ACTIVITY,
+                CourseType.ATTRACTION,
+                "오후 관광지",
+                "15:00:00",
+                60,
+                30
+        ));
+        slots.add(slot(
+                ScheduleType.DINNER,
+                CourseType.RESTAURANT,
+                "저녁 식당",
+                "18:00:00",
+                60,
+                20
+        ));
+
+        return new CreatePlanAiResponse(List.of(new CreatePlanAiResponse.PlanDayDetail(
+                1,
+                LocalDate.of(
+                        2026,
+                        10,
+                        19
+                ),
+                slots
+        )));
+    }
+
+    // 장소 슬롯의 체류시간 유지와 앞 장소 종료·이동시간 이후 시작
+    private void assertTravelGapsKept(CreatePlanAiResponse response) {
+
+        LocalTime previousEnd = null;
+
+        for (CreatePlanAiResponse.PlanScheduleDetail slot : response
+                .planDays()
+                .getFirst()
+                .schedules()) {
+            if (slot.courseType() == CourseType.MEDICATION || slot.courseType() == CourseType.TRANSPORTATION) {
+                continue;
+            }
+
+            assertEquals(
+                    slot.stayMinutes().longValue(),
+                    Duration
+                            .between(
+                                    slot.startTime(),
+                                    slot.endTime()
+                            )
+                            .toMinutes(),
+                    slot.locationName()
+            );
+
+            if (previousEnd != null && slot.travelMinutes() != null) {
+                assertFalse(
+                        slot
+                                .startTime()
+                                .isBefore(previousEnd.plusMinutes(slot.travelMinutes())),
+                        slot.locationName()
+                );
+            }
+
+            previousEnd = slot.endTime();
+        }
+    }
+
+    private LocalTime startOf(
+            CreatePlanAiResponse response,
+            String name
+    ) {
+
+        return response
+                .planDays()
+                .getFirst()
+                .schedules()
+                .stream()
+                .filter(slot -> name.equals(slot.locationName()))
+                .findFirst()
+                .orElseThrow()
+                .startTime();
+    }
+
+    private CreatePlanAiResponse.PlanScheduleDetail meal(
+            CreatePlanAiResponse response,
+            ScheduleType type
+    ) {
+
+        return response
+                .planDays()
+                .getFirst()
+                .schedules()
+                .stream()
+                .filter(slot -> slot.scheduleType() == type)
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private List<String> names(CreatePlanAiResponse response) {
+
+        return response
+                .planDays()
+                .getFirst()
+                .schedules()
+                .stream()
+                .filter(slot -> slot.courseType() != CourseType.MEDICATION)
+                .map(CreatePlanAiResponse.PlanScheduleDetail::locationName)
+                .toList();
+    }
+
     private void assertMedicationContract(CreatePlanAiResponse response) {
 
         List<CreatePlanAiResponse.PlanScheduleDetail> slots = response
@@ -491,15 +1045,26 @@ class MealTimeRecoveryContractTest {
 
     private CreatePlanAiResponse finish(CreatePlanAiResponse input) {
 
+        return finish(
+                input,
+                contexts()
+        );
+    }
+
+    private CreatePlanAiResponse finish(
+            CreatePlanAiResponse input,
+            List<TravelHealthContext> healthContexts
+    ) {
+
         CreatePlanAiResponse normalized = normalizer
                 .normalizeScheduleTimes(
                         input,
-                        contexts()
+                        healthContexts
                 );
         return normalizer
                 .finalizeMedicationSchedules(
                         normalized,
-                        contexts()
+                        healthContexts
                 );
     }
 
