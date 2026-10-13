@@ -9,6 +9,7 @@ import com.planb.ai.mcp.TourismTool;
 import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.RecommendationTag;
 import com.planb.domain.travel.entity.constant.ScheduleType;
+import com.planb.domain.travel.policy.AllergenPolicy;
 import com.planb.domain.travel.policy.AttractionTagPolicy;
 import com.planb.domain.travel.policy.MealSlotPolicy;
 import com.planb.domain.travel.policy.TouristPlaceCountPolicy;
@@ -567,7 +568,8 @@ public class MissingSlotCompleter {
                     mealTime,
                     candidates,
                     usedNames,
-                    usedMenus
+                    usedMenus,
+                    healthContexts
             );
 
             if (mealSlot == null) {
@@ -614,7 +616,8 @@ public class MissingSlotCompleter {
             LocalTime mealTime,
             PlaceCandidateContext candidates,
             Set<String> usedNames,
-            Set<String> usedMenus
+            Set<String> usedMenus,
+            List<TravelHealthContext> healthContexts
     ) {
 
         for (PlaceCandidateContext.Candidate candidate : candidates.restaurantCandidates()) {
@@ -622,7 +625,8 @@ public class MissingSlotCompleter {
                     candidate,
                     candidates,
                     usedNames,
-                    usedMenus
+                    usedMenus,
+                    healthContexts
             );
 
             if (selection == null) {
@@ -665,10 +669,24 @@ public class MissingSlotCompleter {
             PlaceCandidateContext.Candidate candidate,
             PlaceCandidateContext candidates,
             Set<String> usedNames,
-            Set<String> usedMenus
+            Set<String> usedMenus,
+            List<TravelHealthContext> healthContexts
     ) {
 
         if (usedNames.contains(normalized(candidate.name()))) {
+            return null;
+        }
+
+        // 등록 알레르기 식재료·분류어 업소의 보충 후보 제외, 상세 조회 전 판정
+        boolean allergenPlace = AllergenPolicy
+                .violation(
+                        healthContexts,
+                        candidate.name(),
+                        null
+                )
+                .isPresent();
+
+        if (allergenPlace) {
             return null;
         }
 
@@ -694,6 +712,13 @@ public class MissingSlotCompleter {
         String menuName = menus
                 .stream()
                 .filter(menu -> !usedMenus.contains(normalized(menu)))
+                .filter(menu -> AllergenPolicy
+                        .violation(
+                                healthContexts,
+                                candidate.name(),
+                                menu
+                        )
+                        .isEmpty())
                 .findFirst()
                 .orElse(null);
 

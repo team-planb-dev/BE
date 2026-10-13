@@ -122,6 +122,17 @@ public class PlaceCandidateContext {
                 .toList();
     }
 
+    // 장소명·메뉴명의 공백 무시 비교 기준
+    public static String normalizeName(String name) {
+
+        return name == null
+                ? ""
+                : name.replaceAll(
+                        "\\s+",
+                        ""
+                );
+    }
+
     public Candidate find(String id) {
 
         return id == null ? null : candidates.get(id);
