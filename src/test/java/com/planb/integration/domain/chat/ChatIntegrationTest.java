@@ -512,23 +512,24 @@ public class ChatIntegrationTest extends IntegrationTest {
     }
 
     @Test
-    @DisplayName("기본 테스트 STOMP 클라이언트의 발행 메시지 크기별 수신·실패 방식 특성")
+    @DisplayName("기본 Java STOMP 클라이언트의 텍스트 버퍼 8192자 초과 시 연결 종료 특성")
     void receivesPublishedMessagesBySize() throws Exception {
 
-        // 실측 편집 미리보기 약 21KB, 기본 STOMP 수신 한도 64KB 초과 약 75KB
-        Delivery preview = publishAndReceive("가".repeat(7_000));
+        // Tomcat 클라이언트 기본 텍스트 버퍼는 바이트가 아닌 문자 수 8192 기준
+        // 한글 7000자(약 21KB)는 수신, ASCII 9000자(약 9KB)는 종료
+        Delivery korean = publishAndReceive("가".repeat(7_000));
 
-        Delivery oversized = publishAndReceive("가".repeat(25_000));
+        Delivery ascii = publishAndReceive("a".repeat(9_000));
 
-        assertThat(preview.received())
+        assertThat(korean.received())
                 .isNotNull();
-        assertThat(oversized.received())
+        assertThat(ascii.received())
                 .isNull();
 
-        // 수신 한도 초과의 클라이언트 측 연결 종료 형태
-        assertThat(oversized.failureType())
+        // 한도 초과의 클라이언트 측 연결 종료 형태, 실측 STOMP 편집 종료와 같은 형태
+        assertThat(ascii.failureType())
                 .isEqualTo("ConnectionLostException");
-        assertThat(oversized.connectedAfter())
+        assertThat(ascii.connectedAfter())
                 .isFalse();
     }
 

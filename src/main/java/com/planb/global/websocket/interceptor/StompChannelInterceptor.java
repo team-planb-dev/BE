@@ -5,8 +5,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessageHandler;
+import org.springframework.messaging.simp.annotation.support.SimpAnnotationMethodMessageHandler;
+import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
-import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.messaging.support.ExecutorChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
@@ -18,10 +21,12 @@ import com.planb.global.security.provider.JwtAuthenticationProvider;
 import com.planb.domain.chat.websocket.resolver.ChatDestinationResolver;
 import com.planb.query.chat.service.ChatRoomMemberQueryService;
 
+import java.util.Arrays;
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class StompChannelInterceptor implements ChannelInterceptor {
+public class StompChannelInterceptor implements ExecutorChannelInterceptor {
 
     private final JwtAuthenticationProvider jwtAuthenticationProvider;
     private final ChatRoomMemberQueryService chatRoomMemberQueryService;
@@ -70,6 +75,38 @@ public class StompChannelInterceptor implements ChannelInterceptor {
         return message;
     }
 
+    // SEND 처리 스레드의 종류 기록, 장시간 AI 편집이 점유하는 실행기 확인
+    @Override
+    public Message<?> beforeHandle(
+            Message<?> message,
+            MessageChannel channel,
+            MessageHandler handler
+    ) {
+
+        StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(
+                message,
+                StompHeaderAccessor.class
+        );
+
+        // SEND 구독 처리기 중 컨트롤러 처리 작업만 기록, broker·사용자 경로 처리 제외
+        if (accessor != null && accessor.getCommand() == StompCommand.SEND
+                && handler instanceof SimpAnnotationMethodMessageHandler) {
+            log.info(
+                    "STOMP HANDLE - sessionId: {}, destination: {}, thread: {}, virtual: {}",
+                    accessor.getSessionId(),
+                    accessor.getDestination(),
+                    Thread
+                            .currentThread()
+                            .getName(),
+                    Thread
+                            .currentThread()
+                            .isVirtual()
+            );
+        }
+
+        return message;
+    }
+
     private void validateConnection(StompHeaderAccessor accessor) {
 
         String authorizationHeader =
@@ -81,7 +118,7 @@ public class StompChannelInterceptor implements ChannelInterceptor {
         accessor.setUser(authentication);
 
         log.info(
-                "STOMP CONNECT AUTH SUCCESS - sessionId={}, user={}, authenticationType={}",
+                "STOMP CONNECT AUTH SUCCESS - sessionId={}, user={}, authenticationType={}, clientHeartbeat={}",
                 accessor.getSessionId(),
                 accessor.getUser() != null
                         ? accessor
@@ -93,7 +130,10 @@ public class StompChannelInterceptor implements ChannelInterceptor {
                                 .getUser()
                                 .getClass()
                                 .getName()
-                        : null
+                        : null,
+                Arrays.toString(
+                        accessor.getHeartbeat()
+                )
         );
     }
 

@@ -9,6 +9,7 @@ import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 import com.planb.global.config.web.cors.CorsMvcConfig;
 import com.planb.global.websocket.interceptor.StompChannelInterceptor;
+import com.planb.global.websocket.interceptor.StompOutboundChannelInterceptor;
 
 
 @Configuration
@@ -17,6 +18,8 @@ import com.planb.global.websocket.interceptor.StompChannelInterceptor;
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final StompChannelInterceptor stompChannelInterceptor;
+
+    private final StompOutboundChannelInterceptor stompOutboundChannelInterceptor;
 
     @Override
     public void registerStompEndpoints
@@ -42,5 +45,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
         registration.interceptors(stompChannelInterceptor);
+    }
+
+    @Override
+    public void configureClientOutboundChannel(ChannelRegistration registration) {
+        registration.interceptors(stompOutboundChannelInterceptor);
     }
 }
