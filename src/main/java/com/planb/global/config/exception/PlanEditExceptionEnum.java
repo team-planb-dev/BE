@@ -12,6 +12,8 @@ public enum PlanEditExceptionEnum implements MessageCommInterface {
 
     ROUTE_LOOKUP_FAILED("PLAN.EXCEPTION.ROUTE_LOOKUP_FAILED", "이동 경로 조회 실패: {0}"),
 
+    EDIT_TARGET_UNCLEAR("PLAN.EXCEPTION.EDIT_TARGET_UNCLEAR", "수정 대상 확인 필요: {0}"),
+
     EDIT_RESULT_NOT_FOUND("PLAN.EXCEPTION.EDIT_RESULT_NOT_FOUND",
             "수정 요청 결과를 찾을 수 없거나 만료되었습니다.");
 

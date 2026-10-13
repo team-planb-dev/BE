@@ -33,6 +33,9 @@ public class ChatAiReplyMessageHelper {
     private static final String EDIT_RESULT_EXPIRED_MESSAGE =
             "수정 결과가 만료되었어요. 일정을 다시 수정해 주세요.";
 
+    private static final String EDIT_TARGET_UNCLEAR_MESSAGE =
+            "어느 날짜의 어떤 일정을 바꿀지 알려주세요. 예: 2일차 점심 메뉴를 바꿔줘";
+
     // 편집 미리보기 결과 기준 AI 응답 메시지 가공
     public String makeReplyMessage(EditPlanPreviewResponse preview) {
 
@@ -71,6 +74,12 @@ public class ChatAiReplyMessageHelper {
                 .getCode()
                 .equals(errorCode)) {
             return EDIT_RESULT_EXPIRED_MESSAGE;
+        }
+
+        if (PlanEditExceptionEnum.EDIT_TARGET_UNCLEAR
+                .getCode()
+                .equals(errorCode)) {
+            return EDIT_TARGET_UNCLEAR_MESSAGE;
         }
 
         if (PlanEditExceptionEnum.ROUTE_LOOKUP_FAILED

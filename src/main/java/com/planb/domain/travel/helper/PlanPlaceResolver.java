@@ -241,6 +241,62 @@ public class PlanPlaceResolver {
         return new Validation(slot, null);
     }
 
+    /**
+     * 원본을 그대로 옮긴 저장 장소의 재선택 없는 확인, 시각은 현재 슬롯 기준
+     * 이동시간은 저장 값, 재계산 표시(null)는 유지
+     */
+    public Validation verifyUnchanged(
+            GetAiPlanResponse.PlanScheduleDetail old,
+            PlanScheduleDetail slot,
+            Set<String> places,
+            Set<String> menus
+    ) {
+
+        Validation existing = verifyExisting(
+                old,
+                places,
+                menus
+        );
+
+        if (!existing.valid()) {
+            return existing;
+        }
+
+        if (slot.startTime() == null || slot.endTime() == null || slot.stayMinutes() == null
+                || !slot
+                        .endTime()
+                        .isAfter(slot.startTime()) || Duration
+                        .between(
+                                slot.startTime(),
+                                slot.endTime())
+                        .toMinutes() != slot.stayMinutes()) {
+            return Validation.failure("유효하지 않은 일정 시간");
+        }
+
+        PlanScheduleDetail kept = existing.schedule();
+
+        return new Validation(new PlanScheduleDetail(
+                kept.scheduleType(),
+                kept.courseType(),
+                slot.startTime(),
+                slot.endTime(),
+                kept.locationName(),
+                kept.location(),
+                kept.longitude(),
+                kept.latitude(),
+                kept.imageUrl(),
+                kept.thumbNailImageUrl(),
+                slot.stayMinutes(),
+                slot.travelMinutes() == null
+                        ? null
+                        : kept.travelMinutes(),
+                kept.tags(),
+                kept.medication(),
+                kept.restaurantDetail(),
+                null
+        ), null);
+    }
+
     public PlanScheduleDetail select(PlanScheduleDetail original, PlanScheduleDetail choice) {
 
         if (choice == null) {

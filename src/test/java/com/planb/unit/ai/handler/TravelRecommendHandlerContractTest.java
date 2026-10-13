@@ -315,6 +315,127 @@ class TravelRecommendHandlerContractTest {
     }
 
     @Test
+    @DisplayName("메뉴만 변경 대상의 기존 음식점을 공백 무시 이름·근접 좌표로 찾고 상세 메뉴 기록")
+    void findsCurrentRestaurantByNameAndCoordinates() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        when(tourismTool.searchRestaurantsByLocation(
+                "할매국밥",
+                mealAppliedContext()
+                        .createTravelRequest()
+                        .locationDo(),
+                mealAppliedContext()
+                        .createTravelRequest()
+                        .locationSigungu()
+        ))
+                .thenReturn(restaurantSearch(List.of(
+                        restaurantItem(
+                                "21",
+                                "할매국밥 2호점"
+                        ),
+                        restaurantItem(
+                                "20",
+                                "할매 국밥"
+                        )
+                )));
+
+        when(tourismTool.getRestaurantDetail("20"))
+                .thenReturn(intro(
+                        "20",
+                        "돼지국밥, 순대국밥"
+                ));
+
+        assertThat(handler()
+                .findRestaurant(
+                        mealAppliedContext(),
+                        "할매국밥",
+                        "126.9001",
+                        "37.5001",
+                        candidates
+                ))
+                .hasValueSatisfying(candidate -> assertThat(candidate.candidateId())
+                        .isEqualTo("tour:20"));
+
+        assertThat(candidates.restaurantMenus(
+                "tour:20",
+                () -> null
+        ))
+                .containsExactly(
+                        "돼지국밥",
+                        "순대국밥"
+                );
+    }
+
+    @Test
+    @DisplayName("같은 이름이라도 좌표가 먼 음식점은 기존 음식점으로 인정하지 않음")
+    void ignoresSameNameRestaurantFarAway() {
+
+        when(tourismTool.searchRestaurantsByLocation(
+                any(),
+                any(),
+                any()
+        ))
+                .thenReturn(restaurantSearch(List.of(restaurantItem(
+                        "20",
+                        "할매국밥"
+                ))));
+
+        assertThat(handler()
+                .findRestaurant(
+                        mealAppliedContext(),
+                        "할매국밥",
+                        "127.5",
+                        "37.5",
+                        new PlaceCandidateContext()
+                ))
+                .isEmpty();
+
+        verify(
+                tourismTool,
+                org.mockito.Mockito.never()
+        )
+                .getRestaurantDetail(any());
+    }
+
+    private Kor2KeywordSearchResponse restaurantSearch(List<Kor2KeywordSearchResponse.Item> items) {
+
+        return new Kor2KeywordSearchResponse(new Kor2KeywordSearchResponse.Response(
+                null,
+                new Kor2KeywordSearchResponse.Body(
+                        new Kor2KeywordSearchResponse.Items(items),
+                        items.size(),
+                        1,
+                        items.size()
+                )
+        ));
+    }
+
+    private Kor2RestaurantIntroResponse intro(
+            String contentId,
+            String menus
+    ) {
+
+        return new Kor2RestaurantIntroResponse(new Kor2RestaurantIntroResponse.Response(
+                new Kor2RestaurantIntroResponse.Header(
+                        "0000",
+                        "OK"
+                ),
+                new Kor2RestaurantIntroResponse.Body(
+                        new Kor2RestaurantIntroResponse.Items(List.of(new Kor2RestaurantIntroResponse.Item(
+                                contentId,
+                                "39",
+                                menus,
+                                null
+                        ))),
+                        1,
+                        1,
+                        1
+                )
+        ));
+    }
+
+    @Test
     @DisplayName("초기 생성의 메뉴 출처 오류를 최종 슬롯 검증으로 전달")
     void delegatesGenerationMenuSourceValidationToSlotRecovery() {
 
