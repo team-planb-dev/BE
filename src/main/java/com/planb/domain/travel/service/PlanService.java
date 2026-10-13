@@ -34,6 +34,7 @@ import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.domain.travel.helper.PlanPlaceResolver.Validation;
 import com.planb.domain.travel.helper.PlanPlaceResolver;
 import com.planb.domain.travel.repository.PlanRepository;
+import com.planb.global.client.kakaoMapService.dto.response.KakaoRouteFailure;
 import com.planb.global.config.exception.PlanEditExceptionEnum;
 import com.planb.global.config.exception.domain.BaseException;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -823,7 +824,7 @@ public class PlanService {
                         )
                 );
 
-        // 식사 슬롯 확정 후 식전·식후 복약 배치와 장소 겹침 해소
+        // 최종 식사 기준 복약 알림 배치
         CreatePlanAiResponse medicationFixed = scheduleNormalizer.finalizeMedicationSchedules(
                 mealFixed,
                 context.healthContexts()
@@ -1370,7 +1371,7 @@ public class PlanService {
                 context.healthContexts()
         );
 
-        // 중간 복약 배치, 장소 겹침 해소는 finishPlan 최종 단계 담당
+        // 중간 복약 배치, 최종 식사 기준 재배치는 finishPlan 담당
         response = scheduleNormalizer.ensureMedicationSchedules(
                 response,
                 context.healthContexts()
@@ -1688,15 +1689,22 @@ public class PlanService {
             CreateTravelRequest request
     ) {
 
-        int travelMinutes = travelMinutesResolver
-                .minutes(
-                        previousLocation,
-                        previousPlace,
-                        slot,
-                        request.transportation()
-                )
-                .orElseThrow(() -> invalidPlace("장소 변경 후 이동시간 확인 실패: origin=" + previousLocation
-                        + ", destination=" + slot.locationName() + ", transportation=" + request.transportation()));
+        TravelMinutesResolver.SegmentMinutes segment = travelMinutesResolver.lookup(
+                previousLocation,
+                previousPlace,
+                slot,
+                request.transportation()
+        );
+
+        int travelMinutes = segment
+                .minutes()
+                .orElseThrow(() -> routeLookupFailure(
+                        "장소 변경 후 이동시간 확인 실패: origin=" + previousLocation
+                                + ", destination=" + slot.locationName()
+                                + ", transportation=" + request.transportation()
+                                + routeFailureReason(segment.failure()),
+                        segment.failure()
+                ));
 
         LocalTime arrival = previousEnd == null ? slot.startTime() : previousEnd.plusMinutes(travelMinutes);
 
@@ -1732,6 +1740,20 @@ public class PlanService {
     private BaseException invalidPlace(String reason) {
 
         return new BaseException(PlanEditExceptionEnum.INVALID_AI_PLACE, new Object[]{reason});
+    }
+
+    // 공급자 실패와 AI 장소 검증 실패의 오류 코드 분리
+    private BaseException routeLookupFailure(
+            String reason,
+            KakaoRouteFailure failure
+    ) {
+
+        return failure == null
+                ? invalidPlace(reason)
+                : new BaseException(
+                        PlanEditExceptionEnum.ROUTE_LOOKUP_FAILED,
+                        new Object[]{reason}
+                );
     }
 
     // STEP 6/STEP 9에서 AI 판단 없이 결정 가능한 RecommendationTag를 Java에서 보강
@@ -2091,17 +2113,47 @@ public class PlanService {
     }
 
     // 여행 전체 기간이 이어지는 동안 직전 확정 장소를 유지하며 누락된 이동시간을 채움
+    // 공급자 실패로 남은 누락은 실패 구간·사유와 함께 거부
     private CreatePlanAiResponse fillMissingTravelMinutes(
             CreatePlanAiResponse response,
             CreateTravelRequest createTravelRequest,
             RouteAnchor anchor
     ) {
 
-        return travelMinutesResolver.fill(
+        TravelMinutesResolver.Filled filled = travelMinutesResolver.fillReporting(
                 response,
                 createTravelRequest.transportation(),
                 anchor
         );
+
+        filled
+                .missing()
+                .stream()
+                .filter(segment -> segment.failure() != null)
+                .findFirst()
+                .ifPresent(segment -> {
+                    throw routeLookupFailure(
+                            "경로 공급자 조회 실패: day=" + segment.dayNumber()
+                                    + ", origin=" + segment.origin()
+                                    + ", destination=" + segment.destination()
+                                    + ", transportation=" + createTravelRequest.transportation()
+                                    + routeFailureReason(segment.failure()),
+                            segment.failure()
+                    );
+                });
+
+        return filled.response();
+    }
+
+    // 공급자 실패의 단계·유형·상태·코드, 원문 메시지 제외
+    private static String routeFailureReason(KakaoRouteFailure failure) {
+
+        return failure == null
+                ? ""
+                : ", stage=" + failure.stage()
+                        + ", kind=" + failure.kind()
+                        + ", status=" + failure.httpStatus()
+                        + ", providerCode=" + failure.providerCode();
     }
 
     /*

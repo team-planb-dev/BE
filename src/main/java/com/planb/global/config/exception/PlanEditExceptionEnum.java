@@ -10,6 +10,8 @@ public enum PlanEditExceptionEnum implements MessageCommInterface {
 
     INVALID_AI_PLACE("PLAN.EXCEPTION.INVALID_AI_PLACE", "일정 장소 검증 실패: {0}"),
 
+    ROUTE_LOOKUP_FAILED("PLAN.EXCEPTION.ROUTE_LOOKUP_FAILED", "이동 경로 조회 실패: {0}"),
+
     EDIT_RESULT_NOT_FOUND("PLAN.EXCEPTION.EDIT_RESULT_NOT_FOUND",
             "수정 요청 결과를 찾을 수 없거나 만료되었습니다.");
 

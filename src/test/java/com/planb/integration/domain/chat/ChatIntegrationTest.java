@@ -12,6 +12,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.MediaType;
 import org.springframework.messaging.converter.JacksonJsonMessageConverter;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompFrameHandler;
 import org.springframework.messaging.simp.stomp.StompHeaders;
 import org.springframework.messaging.simp.stomp.StompSession;
@@ -36,11 +38,13 @@ import com.planb.integration.domain.user.dto.LoginResult;
 import tools.jackson.databind.ObjectMapper;
 
 import java.lang.reflect.Type;
+import java.time.Instant;
 
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.startsWith;
@@ -97,6 +101,9 @@ public class ChatIntegrationTest extends IntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     @LocalServerPort
     private int port;
@@ -502,6 +509,152 @@ public class ChatIntegrationTest extends IntegrationTest {
 
         session.disconnect();
         stompClient.stop();
+    }
+
+    @Test
+    @DisplayName("기본 테스트 STOMP 클라이언트의 발행 메시지 크기별 수신·실패 방식 특성")
+    void receivesPublishedMessagesBySize() throws Exception {
+
+        // 실측 편집 미리보기 약 21KB, 기본 STOMP 수신 한도 64KB 초과 약 75KB
+        Delivery preview = publishAndReceive("가".repeat(7_000));
+
+        Delivery oversized = publishAndReceive("가".repeat(25_000));
+
+        assertThat(preview.received())
+                .isNotNull();
+        assertThat(oversized.received())
+                .isNull();
+
+        // 수신 한도 초과의 클라이언트 측 연결 종료 형태
+        assertThat(oversized.failureType())
+                .isEqualTo("ConnectionLostException");
+        assertThat(oversized.connectedAfter())
+                .isFalse();
+    }
+
+    private record Delivery(
+
+            SendChatMessageResponse received,
+            String failureType,
+            boolean connectedAfter
+    ) {
+    }
+
+    // 구독 후 서버 TALK 발행, 수신·전송 오류·연결 상태 기록
+    private Delivery publishAndReceive(String message) throws Exception {
+
+        TestUser testUser = createAuthenticatedUser();
+
+        Long roomId = createChatRoom(
+                testUser.accessToken(),
+                "stomp-probe-room-" + createUniqueValue()
+        );
+
+        addChatRoomMember(
+                testUser.accessToken(),
+                roomId,
+                testUser.userId()
+        );
+
+        WebSocketStompClient stompClient = createStompClient();
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+
+        StompHeaders connectHeaders = new StompHeaders();
+
+        connectHeaders.add(
+                "Authorization",
+                testUser.accessToken()
+        );
+
+        StompSession session = stompClient
+                .connectAsync(
+                        "ws://localhost:" + port + "/ws-stomp",
+                        new WebSocketHttpHeaders(),
+                        connectHeaders,
+                        new StompSessionHandlerAdapter() {
+
+                            @Override
+                            public void handleTransportError(
+                                    StompSession session,
+                                    Throwable exception
+                            ) {
+
+                                failure.compareAndSet(
+                                        null,
+                                        exception
+                                );
+                            }
+
+                            @Override
+                            public void handleException(
+                                    StompSession session,
+                                    StompCommand command,
+                                    StompHeaders headers,
+                                    byte[] payload,
+                                    Throwable exception
+                            ) {
+
+                                failure.compareAndSet(
+                                        null,
+                                        exception
+                                );
+                            }
+                        }
+                )
+                .get(
+                        5,
+                        TimeUnit.SECONDS
+                );
+
+        BlockingQueue<SendChatMessageResponse> messages = new LinkedBlockingQueue<>();
+
+        subscribe(
+                session,
+                roomId,
+                messages
+        );
+
+        awaitMessageType(
+                messages,
+                MessageType.ENTER
+        );
+
+        messagingTemplate.convertAndSend(
+                CHAT_SUBSCRIPTION_PREFIX + roomId,
+                new SendChatMessageResponse(
+                        MessageType.TALK,
+                        roomId,
+                        1L,
+                        "AI 비서",
+                        message,
+                        null,
+                        Instant.now()
+                )
+        );
+
+        SendChatMessageResponse received = awaitMessageType(
+                messages,
+                MessageType.TALK
+        );
+
+        boolean connectedAfter = session.isConnected();
+
+        if (connectedAfter) {
+            session.disconnect();
+        }
+
+        stompClient.stop();
+
+        return new Delivery(
+                received,
+                failure.get() == null
+                        ? null
+                        : failure
+                                .get()
+                                .getClass()
+                                .getSimpleName(),
+                connectedAfter
+        );
     }
 
     @Test

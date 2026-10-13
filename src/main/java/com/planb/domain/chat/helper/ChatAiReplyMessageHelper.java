@@ -73,6 +73,12 @@ public class ChatAiReplyMessageHelper {
             return EDIT_RESULT_EXPIRED_MESSAGE;
         }
 
+        if (PlanEditExceptionEnum.ROUTE_LOOKUP_FAILED
+                .getCode()
+                .equals(errorCode)) {
+            return "이동 경로를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.";
+        }
+
         if (PlanEditExceptionEnum.EDIT_NOT_APPLIED
                 .getCode()
                 .equals(errorCode)

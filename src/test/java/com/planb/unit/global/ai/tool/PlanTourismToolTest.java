@@ -20,6 +20,7 @@ import com.planb.global.client.kakaoMobilityService.helper.KakaoMobilityRouteHel
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
 import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
 import com.planb.global.client.kor2Service.handler.Kor2ServiceHandler;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -160,7 +161,8 @@ class PlanTourismToolTest {
                 new KakaoMapRouteHelper(),
                 new KakaoMobilityRouteHelper(),
                 new KakaoSearchKeywordSanitizer(),
-                new KakaoPlaceSearchHelper()
+                new KakaoPlaceSearchHelper(),
+                new SimpleMeterRegistry()
         );
         TourismTool tourism = new TourismTool(
                 mock(Kor2ServiceHandler.class),

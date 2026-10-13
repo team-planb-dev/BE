@@ -115,6 +115,23 @@ class ChatAiReplyMessageHelperTest {
     }
 
     @Test
+    @DisplayName("경로 공급자 실패의 안전한 안내와 AI 오류 구분")
+    void makeEditFailedMessageWhenRouteLookupFailed() {
+
+        String result = chatAiReplyMessageHelper.makeEditFailedMessage(
+                new BaseException(
+                        PlanEditExceptionEnum.ROUTE_LOOKUP_FAILED,
+                        new Object[]{"origin=비공개 장소, providerCode=-10"}
+                )
+        );
+
+        assertThat(result)
+                .isEqualTo("이동 경로를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.")
+                .isNotEqualTo(AiExceptionEnum.AI_RESPONSE_REJECTED.getMessage())
+                .doesNotContain("비공개 장소", "providerCode", "-10");
+    }
+
+    @Test
     @DisplayName("만료된 수정 결과의 재요청 안내 메시지")
     void makeEditFailedMessageWhenEditResultExpired() {
 

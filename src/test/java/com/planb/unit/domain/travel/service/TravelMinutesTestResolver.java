@@ -1,5 +1,13 @@
 package com.planb.unit.domain.travel.service;
 
+import com.planb.ai.context.PlaceCandidateContext;
+import com.planb.ai.dto.response.PlaceWithRouteResult;
+import com.planb.ai.mcp.NutritionEvaluationCollector;
+import com.planb.ai.mcp.PlanTourismTool;
+import com.planb.ai.mcp.TourismTool;
+import com.planb.domain.travel.service.NutritionService;
+import com.planb.global.client.kor2Service.handler.Kor2ServiceHandler;
+import com.planb.global.client.kakaoMapService.dto.response.KakaoRouteFailure;
 import com.planb.ai.dto.response.CreatePlanAiResponse;
 import com.planb.ai.dto.response.KakaoRouteResult;
 import com.planb.domain.travel.entity.constant.CourseType;
@@ -212,6 +220,191 @@ class TravelMinutesTestResolver {
                         slot("금산재 칼국수", "129.1928553267", "35.8448311971", null),
                         Transportation.CAR
                 )
+        );
+    }
+
+    @Test
+    @DisplayName("Tool 비교 결과와 별개로 Java 최종 경로의 현재 이동시간 적용")
+    void usesFinalRouteInsteadOfToolComparison() {
+
+        when(kakao.getRoute(
+                "A",
+                "B",
+                Transportation.TRANSIT,
+                "129.0",
+                "35.0",
+                "129.1",
+                "35.1"
+        ))
+                .thenReturn(
+                        Mono.just(new KakaoRouteResult(
+                                "A",
+                                "B",
+                                10000,
+                                5
+                        )),
+                        Mono.just(new KakaoRouteResult(
+                                "A",
+                                "B",
+                                10000,
+                                35
+                        ))
+                );
+
+        KakaoRouteResult comparison = comparisonTool()
+                .getRoute(
+                        "kakao:A",
+                        "kakao:B",
+                        Transportation.TRANSIT
+                );
+
+        CreatePlanAiResponse result = new TravelMinutesResolver(kakao, 4)
+                .fill(
+                        plan(slot(
+                                "B",
+                                "129.1",
+                                "35.1",
+                                null
+                        )),
+                        Transportation.TRANSIT,
+                        new RouteAnchor(
+                                "A",
+                                slot(
+                                        "A",
+                                        "129.0",
+                                        "35.0",
+                                        5
+                                )
+                        )
+                );
+
+        assertEquals(5, comparison.travelMinutes());
+        assertEquals(35, minutesAt(result, 0));
+        verify(kakao, times(2))
+                .getRoute(
+                        "A",
+                        "B",
+                        Transportation.TRANSIT,
+                        "129.0",
+                        "35.0",
+                        "129.1",
+                        "35.1"
+                );
+    }
+
+    @Test
+    @DisplayName("Tool 비교 성공 후 최종 경로 실패 시 이전 이동시간 대체 금지")
+    void preservesFinalFailureAfterSuccessfulToolComparison() {
+
+        KakaoRouteFailure failure = new KakaoRouteFailure(
+                KakaoRouteFailure.Stage.ROUTE,
+                KakaoRouteFailure.Kind.HTTP_ERROR,
+                400,
+                "-10",
+                "fixture quota failure",
+                null,
+                "129.0",
+                "35.0",
+                "129.1",
+                "35.1"
+        );
+
+        when(kakao.getRoute(
+                "A",
+                "B",
+                Transportation.TRANSIT,
+                "129.0",
+                "35.0",
+                "129.1",
+                "35.1"
+        ))
+                .thenReturn(
+                        Mono.just(new KakaoRouteResult(
+                                "A",
+                                "B",
+                                10000,
+                                5
+                        )),
+                        Mono.just(new KakaoRouteResult(
+                                "A",
+                                "B",
+                                null,
+                                null,
+                                failure
+                        ))
+                );
+
+        assertEquals(
+                5,
+                comparisonTool()
+                        .getRoute(
+                                "kakao:A",
+                                "kakao:B",
+                                Transportation.TRANSIT
+                        )
+                        .travelMinutes()
+        );
+
+        TravelMinutesResolver.Filled result = new TravelMinutesResolver(kakao, 4)
+                .fillReporting(
+                        plan(slot(
+                                "B",
+                                "129.1",
+                                "35.1",
+                                null
+                        )),
+                        Transportation.TRANSIT,
+                        new RouteAnchor(
+                                "A",
+                                slot(
+                                        "A",
+                                        "129.0",
+                                        "35.0",
+                                        5
+                                )
+                        )
+                );
+
+        assertNull(minutesAt(result.response(), 0));
+        assertEquals(1, result.missing().size());
+        assertEquals(failure, result.missing().getFirst().failure());
+    }
+
+    private PlanTourismTool comparisonTool() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        candidates.record(new PlaceWithRouteResult(
+                true,
+                "A",
+                "주소 A",
+                "129.0",
+                "35.0",
+                null,
+                "kakao:A",
+                null,
+                null
+        ));
+        candidates.record(new PlaceWithRouteResult(
+                true,
+                "B",
+                "주소 B",
+                "129.1",
+                "35.1",
+                null,
+                "kakao:B",
+                null,
+                null
+        ));
+
+        return new PlanTourismTool(
+                new TourismTool(
+                        mock(Kor2ServiceHandler.class),
+                        kakao,
+                        mock(NutritionService.class),
+                        mock(NutritionEvaluationCollector.class)
+                ),
+                candidates
         );
     }
 

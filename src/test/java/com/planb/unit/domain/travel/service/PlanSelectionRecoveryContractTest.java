@@ -129,7 +129,8 @@ class PlanSelectionRecoveryContractTest {
                 new KakaoMapRouteHelper(),
                 new KakaoMobilityRouteHelper(),
                 new KakaoSearchKeywordSanitizer(),
-                new KakaoPlaceSearchHelper()
+                new KakaoPlaceSearchHelper(),
+                registry
         );
         NutritionService nutrition = new NutritionService(
                 new FoodNtrCpntHandler(
