@@ -1,5 +1,7 @@
 package com.planb.ai.handler;
 
+import lombok.extern.slf4j.Slf4j;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.planb.ai.client.OpenAiClient;
 import com.planb.ai.context.PlaceCandidateContext;
@@ -43,6 +45,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class TravelRecommendHandler {
 
     /*
@@ -315,6 +318,13 @@ public class TravelRecommendHandler {
         }
 
         CreatePlanAiResponse.PlanScheduleDetail slot = prompt.slot();
+
+        if (candidates.find(response.selectedCandidateId()) == null) {
+            log.info(
+                    "[PLAN RESELECT RESPONSE] rawCandidateId={}, candidatePresent=false",
+                    response.selectedCandidateId()
+            );
+        }
 
         String candidateId = candidates
                 .find(response.selectedCandidateId()) == null
