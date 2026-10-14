@@ -1,0 +1,118 @@
+{
+  "issue": 197,
+  "scope": "M4-M7/P2-7 bounded closeout; not product-wide quality completion",
+  "codeCommit": "50664b0679e44009cf5e77f628a4641a667550c8",
+  "codeTree": "1dafb10bb38e8327e8f06a355725853c414ea97d",
+  "mainCommit": "a6271bf8bce26436b250b426f50fa30bd61a7601",
+  "newPaidCalls": 0,
+  "newRuntimeChanges": 0,
+  "M4": {
+    "status": "current behavior audited; product policies UNDECIDED",
+    "newPolicyAdopted": false
+  },
+  "M5": {
+    "additionalDateFanOut": "deferred, no H3 evaluation",
+    "additionalGlobalCorrectionLocalisation": "deferred, existing local recovery retained",
+    "persistedCandidateIdentity": "deferred, no causal requirement proven"
+  },
+  "M6": {
+    "historicalFlakeCause": "UNKNOWN",
+    "latestFullTests": 1078,
+    "latestFailures": 0,
+    "latestErrors": 0,
+    "latestSkipped": 0,
+    "previousExactHeadCi": "db7a5cc SUCCESS, 5m28s, zero reruns",
+    "recurrenceDisposition": "preserve original failure evidence; hold merge; diagnose attribution; report scope and obtain user confirmation before follow-up dev PR; do not rerun-only pass"
+  },
+  "M7": "final bounded closeout report reviewed; dev publication pending",
+  "stage7AggregateSha256": "e01dbe1d6ed0423af7db05dd4552966e4abc916714b05141e0b5697444dc8c64",
+  "generationComparison": {
+    "previous": {
+      "attempts": 18,
+      "pass": 18,
+      "plannedPlaceIncluded": 18,
+      "nutritionFilled": 56,
+      "restaurantSlots": 108,
+      "apiSuccess": 18,
+      "timeContractValid": 16,
+      "auditCounts": {
+        "allConfiguredReturnedMealSlots": 108,
+        "allConfiguredReturnedMealsOnTime": 106,
+        "requiredMealSlots": 72,
+        "requiredMealsOnTime": 70,
+        "placeSlots": 229,
+        "adjacentPlacePairs": 193,
+        "registeredMealMedicationRules": 78,
+        "satisfiedMedicationRules": 78,
+        "medicationSlots": 66,
+        "medicationPlaceOverlapPairs": 13,
+        "overlappingMedicationSlots": 13,
+        "duplicateNamesAllDays": 0,
+        "outsideMealWindows": 2
+      },
+      "allergyConfirmedViolations": 3,
+      "allergyUnknownMealSlots": 105,
+      "failureReasons": {}
+    },
+    "stage7": {
+      "attempts": 18,
+      "pass": 17,
+      "plannedPlaceIncluded": 17,
+      "nutritionFilled": 56,
+      "restaurantSlots": 102,
+      "apiSuccess": 17,
+      "timeContractValid": 15,
+      "auditCounts": {
+        "allConfiguredReturnedMealSlots": 102,
+        "allConfiguredReturnedMealsOnTime": 100,
+        "requiredMealSlots": 68,
+        "requiredMealsOnTime": 66,
+        "placeSlots": 219,
+        "adjacentPlacePairs": 185,
+        "registeredMealMedicationRules": 74,
+        "satisfiedMedicationRules": 74,
+        "medicationSlots": 64,
+        "duplicateNamesAllDays": 0,
+        "medicationPlaceOverlapPairs": 9,
+        "overlappingMedicationSlots": 9,
+        "outsideMealWindows": 2
+      },
+      "allergyConfirmedViolations": 0,
+      "allergyUnknownMealSlots": 102,
+      "failureReasons": {
+        "일정 장소 검증 실패: 이번 호출에서 검색하지 않은 candidateId: null": 1
+      }
+    }
+  },
+  "menuEditSummarySha256": "0c36592a730a181529cdf0eef7304d7197891a6355536368ea4965f4a00ef6d4",
+  "evidenceRestoration": {
+    "directory": "p2-stage7-live-20261013T062122Z",
+    "beforeFiles": 2,
+    "restoredVerifiedFiles": 129,
+    "conflicts": 0
+  },
+  "limitations": [
+    "No new full actual generation/edit/STOMP run",
+    "Historical actual menu failure and Kakao400 root cause UNKNOWN",
+    "Three same-seed menu repeats, no statistical generalization",
+    "Nutrients/HIGH/ingredient truth/opening-hours NOT_EVALUABLE",
+    "Policy recording is not cancellation/concurrency/DB-preview recovery implementation"
+  ],
+  "reviewLoops": [
+    {
+      "round": 1,
+      "score": 9,
+      "critical": 0,
+      "important": 0,
+      "minor": 2,
+      "fixed": true
+    },
+    {
+      "round": 2,
+      "score": 9,
+      "critical": 0,
+      "important": 0,
+      "minor": 0
+    }
+  ]
+}
