@@ -292,7 +292,11 @@ public class PlanService {
         PlaceCandidateContext candidates = new PlaceCandidateContext();
 
         try {
-            PlanEditScope scope = travelRecommendHandler.classifyEditScope(context);
+            PlanEditScope scope = recordStage(
+                    "edit",
+                    "scope_classification",
+                    () -> travelRecommendHandler.classifyEditScope(context)
+            );
 
             rebuildDays = planEditValidator.rebuildDays(scope, context);
 
@@ -306,19 +310,31 @@ public class PlanService {
                     context
             );
 
-            List<PlanEditContext.EditTargetGuide> guides = targets
-                    .stream()
-                    .map(target -> targetGuide(
-                            context,
-                            travelContext,
-                            target,
-                            candidates
-                    ))
-                    .toList();
+            List<PlanEditScope.EditTarget> guideTargets = targets;
 
-            response = travelRecommendHandler.editPlanByAi(
-                    context.withEditTargets(guides),
-                    candidates
+            List<PlanEditContext.EditTargetGuide> guides = recordStage(
+                    "edit",
+                    "candidate_prefetch",
+                    () -> guideTargets
+                            .stream()
+                            .map(target -> targetGuide(
+                                    context,
+                                    travelContext,
+                                    target,
+                                    candidates
+                            ))
+                            .toList()
+            );
+
+            PlanEditContext aiContext = context.withEditTargets(guides);
+
+            response = recordStage(
+                    "edit",
+                    "ai_response",
+                    () -> travelRecommendHandler.editPlanByAi(
+                            aiContext,
+                            candidates
+                    )
             );
 
             // 처리 불가 응답은 부분 변경 대상 확인 제외
@@ -347,27 +363,37 @@ public class PlanService {
                             wholeDays
                     );
 
-            validated = preserveOtherDays
-                    ? validateRebuildTargets(
+            validated = recordStage(
+                    "edit",
+                    "place_validation",
+                    () -> preserveOtherDays
+                            ? validateRebuildTargets(
+                                    context,
+                                    proposed,
+                                    candidates,
+                                    rebuildDays,
+                                    densityReductionDays
+                            )
+                            : validatePlaces(
+                                    proposed,
+                                    candidates,
+                                    travelContext,
+                                    context.currentPlan(),
+                                    densityReductionDays
+                            )
+            );
+
+            CreatePlanAiResponse beforeRebuild = validated;
+
+            validated = recordStage(
+                    "edit",
+                    "day_rebuild",
+                    () -> ensureDaysRebuilt(
                             context,
-                            proposed,
-                            candidates,
+                            beforeRebuild,
                             rebuildDays,
                             densityReductionDays
                     )
-                    : validatePlaces(
-                            proposed,
-                            candidates,
-                            travelContext,
-                            context.currentPlan(),
-                            densityReductionDays
-                    );
-
-            validated = ensureDaysRebuilt(
-                    context,
-                    validated,
-                    rebuildDays,
-                    densityReductionDays
             );
 
             requireTargetsApplied(
@@ -407,18 +433,24 @@ public class PlanService {
         CreatePlanAiResponse toFinish = !preserveOtherDays ? validated
                 : new CreatePlanAiResponse(finishTargets(validated, rebuildDays));
 
-        CreatePlanAiResponse finished = finishPlan(
-                toFinish,
-                travelContext,
-                evaluations,
-                preserveOtherDays
-                        ? rebuildAnchor(context, rebuildDays)
-                        : RouteAnchor.from(context
+        List<NutritionEvaluationCollector.FoodNutritionEvaluation> finalEvaluations = evaluations;
+
+        CreatePlanAiResponse finished = recordStage(
+                "edit",
+                "finish_plan",
+                () -> finishPlan(
+                        toFinish,
+                        travelContext,
+                        finalEvaluations,
+                        preserveOtherDays
+                                ? rebuildAnchor(context, rebuildDays)
+                                : RouteAnchor.from(context
                                         .createTravelRequest()
                                         .decidedLocation()),
-                candidates,
-                densityReductionDays,
-                context.currentPlan()
+                        candidates,
+                        densityReductionDays,
+                        context.currentPlan()
+                )
         );
 
         CreatePlanAiResponse result = !preserveOtherDays
@@ -512,6 +544,15 @@ public class PlanService {
                         .findFirst();
 
         if (meal.isEmpty()) {
+            log.info(
+                    "[PLAN EDIT GUIDE] day={}, slot={}, condition={}, candidateId={}, otherMenus={}",
+                    target.dayNumber(),
+                    target.slot(),
+                    !target.menuOnlyRequested() || !isMealTarget(target.slot()) ? "not_applicable" : "unmatched",
+                    null,
+                    0
+            );
+
             return new PlanEditContext.EditTargetGuide(
                     target.dayNumber(),
                     target.slot(),
@@ -525,6 +566,7 @@ public class PlanService {
         GetAiPlanResponse.PlanScheduleDetail old = meal.get();
 
         Optional<PlaceCandidateContext.Candidate> restaurant;
+        String condition;
 
         try {
             restaurant = travelRecommendHandler.findRestaurant(
@@ -534,6 +576,7 @@ public class PlanService {
                     old.latitude(),
                     candidates
             );
+            condition = restaurant.isPresent() ? "found" : "not_found";
         } catch (WebClientException | CodecException exception) {
             // TourAPI 조회·응답 해석 실패는 같은 음식점 메뉴 후보 없음으로 처리, 요청 URL의 인증값 제외
             log.warn(
@@ -551,6 +594,7 @@ public class PlanService {
             );
 
             restaurant = Optional.empty();
+            condition = "lookup_error";
         }
 
         String currentMenu = old.restaurantDetail() == null
@@ -572,6 +616,17 @@ public class PlanService {
                         ))
                         .toList())
                 .orElse(List.of());
+
+        log.info(
+                "[PLAN EDIT GUIDE] day={}, slot={}, condition={}, candidateId={}, otherMenus={}",
+                target.dayNumber(),
+                target.slot(),
+                condition,
+                restaurant
+                        .map(PlaceCandidateContext.Candidate::candidateId)
+                        .orElse(null),
+                otherMenus.size()
+        );
 
         return new PlanEditContext.EditTargetGuide(
                 target.dayNumber(),
@@ -865,6 +920,20 @@ public class PlanService {
                 CreatePlanAiResponse.PlanScheduleDetail slot = replacement != null
                         ? replacement
                         : planPlaceResolver.fromExisting(old);
+
+                if (!wholeDays.contains(oldDay.dayNumber()) && targeted(old, dayTargets)) {
+                    log.info(
+                            "[PLAN EDIT ASSEMBLY] day={}, slot={}, index={}, source={}, candidateId={}, menu={}",
+                            oldDay.dayNumber(),
+                            old.scheduleType(),
+                            index,
+                            replacement == null ? "java_restore" : "ai_match",
+                            slot.candidateId(),
+                            slot.restaurantDetail() == null ? null : slot
+                                    .restaurantDetail()
+                                    .menuName()
+                    );
+                }
 
                 // 바뀐 장소 다음 구간, 날짜 경계의 다음 첫 장소 포함 이동시간 재계산
                 if (replacement == null && previousReplaced && planPlaceResolver.requiresPlace(slot)) {
@@ -2137,7 +2206,9 @@ public class PlanService {
 
         for (CreatePlanAiResponse.PlanDayDetail day : response.planDays()) {
             for (CreatePlanAiResponse.PlanScheduleDetail slot : day.schedules()) {
-                if (validations.get(preservedIndex) == null) {
+                boolean preserved = validations.get(preservedIndex) != null;
+
+                if (!preserved) {
                     Validation validation = validateSelection(
                             slot,
                             candidates,
@@ -2158,6 +2229,17 @@ public class PlanService {
                                 usedMenus
                         );
                     }
+                }
+
+                if (existing != null) {
+                    log.info(
+                            "[PLAN EDIT FIRST VALIDATION] day={}, slot={}, result={}",
+                            day.dayNumber(),
+                            slot.scheduleType(),
+                            preserved ? "preserved" : validations
+                                    .get(preservedIndex)
+                                    .valid() ? "pass" : "failure"
+                    );
                 }
 
                 preservedIndex++;
@@ -2473,6 +2555,14 @@ public class PlanService {
             return validation.schedule();
         }
 
+        log.info(
+                "[PLAN SELECTION RECOVERY] flow={}, day={}, slot={}, event=initial_failure, reason={}",
+                existing == null ? "create" : "edit",
+                day.dayNumber(),
+                slot == null ? null : slot.scheduleType(),
+                selectionFailureForLog(validation.reason())
+        );
+
         if (slot == null) {
             throw invalidPlace(validation.reason());
         }
@@ -2508,6 +2598,20 @@ public class PlanService {
                     context.healthContexts()
             );
 
+            log.info(
+                    "[PLAN SELECTION RECOVERY] flow={}, day={}, slot={}, event=reselect, attempt={}, candidateId={}, menu={}, result={}, reason={}",
+                    existing == null ? "create" : "edit",
+                    day.dayNumber(),
+                    slot.scheduleType(),
+                    attempt + 1,
+                    choice == null ? null : choice.candidateId(),
+                    choice == null || choice.restaurantDetail() == null ? null : choice
+                            .restaurantDetail()
+                            .menuName(),
+                    result.valid() ? "pass" : "failure",
+                    selectionFailureForLog(result.reason())
+            );
+
             if (result.valid()) {
                 return result.schedule();
             }
@@ -2515,16 +2619,34 @@ public class PlanService {
 
         String finalReason = result.reason();
 
-        return verifiedFallback(
+        Optional<CreatePlanAiResponse.PlanScheduleDetail> fallback = verifiedFallback(
                 existing,
                 day,
                 slot,
                 usedPlaces,
                 usedMenus,
                 context.healthContexts()
-        )
+        );
+
+        log.info(
+                "[PLAN SELECTION RECOVERY] flow={}, day={}, slot={}, event=fallback, result={}, reason={}",
+                existing == null ? "create" : "edit",
+                day.dayNumber(),
+                slot.scheduleType(),
+                fallback.isPresent() ? "restored" : "unavailable",
+                selectionFailureForLog(finalReason)
+        );
+
+        return fallback
                 .orElseThrow(() -> invalidPlace("day=" + day.dayNumber() + ", time=" + slot.startTime()
                         + ", " + finalReason));
+    }
+
+    private String selectionFailureForLog(String reason) {
+
+        return reason != null && reason.startsWith("등록 알레르기 ")
+                ? "등록 알레르기 충돌"
+                : reason;
     }
 
     // 동일 날짜·시간·유형의 기존 슬롯만 구조·중복·알레르기 검증 후 원본 복원

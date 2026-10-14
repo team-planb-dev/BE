@@ -1,5 +1,10 @@
 package com.planb.unit.domain.travel.service;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.planb.ai.client.OpenAiClient;
@@ -96,6 +101,9 @@ class PlanSelectionRecoveryContractTest {
     private OpenAiChatCompletionStub ai;
     private ExternalHttpStubServer external;
     private PlanService service;
+    private SimpleMeterRegistry registry;
+    private final Logger serviceLogger = (Logger) LoggerFactory.getLogger(PlanService.class);
+    private ListAppender<ILoggingEvent> editLogs;
     private boolean lateMealScenario;
     private boolean partialEditScenario;
     private String invalidLateLatitude;
@@ -109,7 +117,10 @@ class PlanSelectionRecoveryContractTest {
 
         ai = new OpenAiChatCompletionStub();
         external = ExternalHttpStubServer.start(0, ExternalHttpStubServer.Settings.normal());
-        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        registry = new SimpleMeterRegistry();
+        editLogs = new ListAppender<>();
+        editLogs.start();
+        serviceLogger.addAppender(editLogs);
         NutritionEvaluationCollector collector = new NutritionEvaluationCollector();
         KakaoMapServiceHandler kakao = new KakaoMapServiceHandler(
                 new KakaoMapServiceClient(
@@ -203,6 +214,8 @@ class PlanSelectionRecoveryContractTest {
 
         ai.close();
         external.close();
+        serviceLogger.detachAppender(editLogs);
+        editLogs.stop();
     }
 
     @Test
@@ -747,6 +760,33 @@ class PlanSelectionRecoveryContractTest {
                 });
         assertThat(ai.requests())
                 .hasSize(2);
+        assertThat(editLogs.list)
+                .extracting(ILoggingEvent::getFormattedMessage)
+                .anySatisfy(message -> assertThat(message)
+                        .contains("[PLAN EDIT GUIDE]", "condition=found", "candidateId=tour:910001", "otherMenus=1"))
+                .anySatisfy(message -> assertThat(message)
+                        .contains("[PLAN EDIT ASSEMBLY]", "source=ai_match", "candidateId=tour:910001", "menu=공깃밥"))
+                .anySatisfy(message -> assertThat(message)
+                        .contains("[PLAN EDIT FIRST VALIDATION]", "day=1", "slot=LUNCH", "result=pass"))
+                .anySatisfy(message -> assertThat(message)
+                        .contains("[PLAN EDIT FIRST VALIDATION]", "slot=ACTIVITY", "result=preserved"));
+
+        for (String stage : List.of(
+                "scope_classification",
+                "candidate_prefetch",
+                "ai_response",
+                "place_validation",
+                "day_rebuild",
+                "finish_plan"
+        )) {
+            assertThat(registry
+                    .get("planb.travel.plan.stage")
+                    .tags("flow", "edit", "stage", stage, "outcome", "success")
+                    .timer()
+                    .count())
+                    .isEqualTo(1);
+        }
+
     }
 
     private CreatePlanAiResponse.PlanScheduleDetail proposedEditSlot(

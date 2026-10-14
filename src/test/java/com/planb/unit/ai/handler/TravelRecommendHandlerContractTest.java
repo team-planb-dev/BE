@@ -1,5 +1,11 @@
 package com.planb.unit.ai.handler;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.AfterEach;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.planb.ai.client.OpenAiClient;
 import com.planb.ai.context.PlaceCandidateContext;
@@ -62,6 +68,17 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TravelRecommendHandlerContractTest {
+
+    private final Logger observationLogger = (Logger) LoggerFactory.getLogger(TravelRecommendHandler.class);
+    private final ListAppender<ILoggingEvent> observations = new ListAppender<>();
+
+    @AfterEach
+    void detachObservations() {
+
+        observationLogger.detachAppender(observations);
+        observations.stop();
+    }
+
 
     @ParameterizedTest
     @ValueSource(strings = {"막국수", "교동쌈밥 한정식 (A, B, C)"})
@@ -167,6 +184,9 @@ class TravelRecommendHandlerContractTest {
 
     @BeforeEach
     void originalSlot() {
+
+        observations.start();
+        observationLogger.addAppender(observations);
 
         lenient()
                 .when(prompt.slot())
@@ -734,6 +754,10 @@ class TravelRecommendHandlerContractTest {
                         candidates);
 
         assertNull(result.candidateId());
+        assertThat(observations.list)
+                .extracting(ILoggingEvent::getFormattedMessage)
+                .anySatisfy(message -> assertThat(message)
+                        .contains("[PLAN RESELECT RESPONSE]", "rawCandidateId=kakao:missing", "candidatePresent=false"));
     }
 
     @Test
