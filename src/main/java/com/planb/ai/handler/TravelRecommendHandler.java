@@ -133,7 +133,7 @@ public class TravelRecommendHandler {
                         )
                 );
 
-        // 재시도 초기화나 모델의 관광지 검색 생략과 무관하게 후속 보충 단계에 고정 후보 전달
+        // 모델의 관광지 검색 생략과 무관한 후속 보충 단계의 고정 후보 전달
         plannedPlaces.forEach(candidates::pin);
 
         // PlanService 검증 직전의 관광지 개수·빈 슬롯 단일 보정
