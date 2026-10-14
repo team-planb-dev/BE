@@ -1000,10 +1000,10 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                 .collectRestaurantCandidates(any(), any());
 
         when(tourismTool.getRestaurantDetail("9001"))
-                .thenReturn(restaurantIntro("지역 보정 메뉴"));
+                .thenReturn(restaurantIntro("9001", "지역 보정 메뉴"));
 
         when(tourismTool.getRestaurantDetail("9002"))
-                .thenReturn(restaurantIntro("지역 보정 메뉴2"));
+                .thenReturn(restaurantIntro("9002", "지역 보정 메뉴2"));
 
         JsonNode created = success(postApi("/add-with-recommend", request));
 
@@ -1036,11 +1036,11 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                 .thenReturn(new PlanEditScope(List.of(2)));
 
         when(tourismTool.getRestaurantDetail(anyString()))
-                .thenReturn(restaurantIntro("보정 메뉴"));
+                .thenAnswer(invocation -> restaurantIntro(invocation.getArgument(0), "보정 메뉴"));
 
         // 2일차 아침·저녁 누락과 서로 다른 대표메뉴 후보
         when(tourismTool.getRestaurantDetail("9002"))
-                .thenReturn(restaurantIntro("보정 메뉴2"));
+                .thenReturn(restaurantIntro("9002", "보정 메뉴2"));
 
         // 2일차 저녁 누락과 편집 호출 전용 음식점 후보
         when(handler.editPlanByAi(any(), any()))
@@ -1207,7 +1207,10 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         );
     }
 
-    private Kor2RestaurantIntroResponse restaurantIntro(String firstMenu) {
+    private Kor2RestaurantIntroResponse restaurantIntro(
+            String contentId,
+            String firstMenu
+    ) {
 
         return new Kor2RestaurantIntroResponse(
                 new Kor2RestaurantIntroResponse.Response(
@@ -1216,7 +1219,7 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                                 new Kor2RestaurantIntroResponse.Items(
                                         List.of(
                                                 new Kor2RestaurantIntroResponse.Item(
-                                                        "9",
+                                                        contentId,
                                                         "39",
                                                         firstMenu,
                                                         firstMenu

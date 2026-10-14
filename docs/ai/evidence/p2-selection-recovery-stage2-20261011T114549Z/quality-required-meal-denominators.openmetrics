@@ -1,0 +1,4 @@
+# TYPE planb_stage2_raw_required_meals_evaluable_slots gauge
+planb_stage2_raw_required_meals_evaluable_slots{phase="#177-menu-fix"} 44 1791687813.7984
+planb_stage2_raw_required_meals_evaluable_slots{phase="#179-stage2"} 48 1791719159.495191
+# EOF

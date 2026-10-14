@@ -1,0 +1,16 @@
+{
+  "status": "completed",
+  "importedAt": "2026-10-11T11:52:49.841976+00:00",
+  "source": "quality-comparison.openmetrics",
+  "blocks": [
+    "01M4NCXX0W2KRSP8CXCE3EB665",
+    "01M4NCXX1S74HK83CCD77XMM29"
+  ],
+  "existingBlockCount": 4,
+  "container": "planb-p24c-actual-prometheus",
+  "retention": "30d local, independent evidence files preserved",
+  "sampleKind": "Imported real API evaluation gauges, not live app scrape",
+  "existingBlockDirectoriesPreservedBeforeRestart": true,
+  "previousQualityPanelValuesUnchangedAfterRestart": true,
+  "preservationCheck": "previous-observation-preservation.json; representative panel values, not all TSDB content"
+}

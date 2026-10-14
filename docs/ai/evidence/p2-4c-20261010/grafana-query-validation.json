@@ -1,0 +1,788 @@
+[
+  {
+    "panel": "성공 생성 시간 중앙값",
+    "query": "quantile by (phase) (0.5,last_over_time(planb_actual_experiment_duration_seconds{outcome=\"PASS\"}[7d]))",
+    "series": [
+      {
+        "metric": {
+          "phase": "P2-4A"
+        },
+        "value": [
+          1791628337.875,
+          "19.985999999999997"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4C"
+        },
+        "value": [
+          1791628337.875,
+          "23.889"
+        ]
+      }
+    ]
+  },
+  {
+    "panel": "성공 생성 token 중앙값",
+    "query": "quantile by (phase) (0.5,last_over_time(planb_actual_experiment_tokens{outcome=\"PASS\"}[7d]))",
+    "series": [
+      {
+        "metric": {
+          "phase": "P2-4A"
+        },
+        "value": [
+          1791628337.877,
+          "47916.5"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4C"
+        },
+        "value": [
+          1791628337.877,
+          "35232"
+        ]
+      }
+    ]
+  },
+  {
+    "panel": "일정 생성 통과 수 / 12",
+    "query": "sum by (phase) (last_over_time(planb_actual_experiment_success[7d]))",
+    "series": [
+      {
+        "metric": {
+          "phase": "P2-4A"
+        },
+        "value": [
+          1791628337.879,
+          "12"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4C"
+        },
+        "value": [
+          1791628337.879,
+          "11"
+        ]
+      }
+    ]
+  },
+  {
+    "panel": "지역별 성공 시간 중앙값",
+    "query": "quantile by (phase,case) (0.5,last_over_time(planb_actual_experiment_duration_seconds{outcome=\"PASS\"}[7d]))",
+    "series": [
+      {
+        "metric": {
+          "case": "C1",
+          "phase": "P2-4A"
+        },
+        "value": [
+          1791628337.88,
+          "21.739"
+        ]
+      },
+      {
+        "metric": {
+          "case": "C1",
+          "phase": "P2-4C"
+        },
+        "value": [
+          1791628337.88,
+          "23.889"
+        ]
+      },
+      {
+        "metric": {
+          "case": "C2",
+          "phase": "P2-4A"
+        },
+        "value": [
+          1791628337.88,
+          "15.17"
+        ]
+      },
+      {
+        "metric": {
+          "case": "C2",
+          "phase": "P2-4C"
+        },
+        "value": [
+          1791628337.88,
+          "16.806"
+        ]
+      },
+      {
+        "metric": {
+          "case": "C3",
+          "phase": "P2-4A"
+        },
+        "value": [
+          1791628337.88,
+          "20.022"
+        ]
+      },
+      {
+        "metric": {
+          "case": "C3",
+          "phase": "P2-4C"
+        },
+        "value": [
+          1791628337.88,
+          "23.995"
+        ]
+      },
+      {
+        "metric": {
+          "case": "C4",
+          "phase": "P2-4A"
+        },
+        "value": [
+          1791628337.88,
+          "19.95"
+        ]
+      },
+      {
+        "metric": {
+          "case": "C4",
+          "phase": "P2-4C"
+        },
+        "value": [
+          1791628337.88,
+          "31.2065"
+        ]
+      }
+    ]
+  },
+  {
+    "panel": "각 실행 시간 — 실패 포함",
+    "query": "last_over_time(planb_actual_experiment_duration_seconds[7d])",
+    "series": [
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C1",
+          "outcome": "PASS",
+          "phase": "P2-4A",
+          "repeat": "1"
+        },
+        "value": [
+          1791628337.882,
+          "57.475"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C1",
+          "outcome": "PASS",
+          "phase": "P2-4A",
+          "repeat": "2"
+        },
+        "value": [
+          1791628337.882,
+          "21.739"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C1",
+          "outcome": "PASS",
+          "phase": "P2-4A",
+          "repeat": "3"
+        },
+        "value": [
+          1791628337.882,
+          "14.97"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C1",
+          "outcome": "PASS",
+          "phase": "P2-4C",
+          "repeat": "1"
+        },
+        "value": [
+          1791628337.882,
+          "94.453"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C1",
+          "outcome": "PASS",
+          "phase": "P2-4C",
+          "repeat": "2"
+        },
+        "value": [
+          1791628337.882,
+          "23.889"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C1",
+          "outcome": "PASS",
+          "phase": "P2-4C",
+          "repeat": "3"
+        },
+        "value": [
+          1791628337.882,
+          "18.414"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C2",
+          "outcome": "PASS",
+          "phase": "P2-4A",
+          "repeat": "1"
+        },
+        "value": [
+          1791628337.882,
+          "38.454"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C2",
+          "outcome": "PASS",
+          "phase": "P2-4A",
+          "repeat": "2"
+        },
+        "value": [
+          1791628337.882,
+          "13.083"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C2",
+          "outcome": "PASS",
+          "phase": "P2-4A",
+          "repeat": "3"
+        },
+        "value": [
+          1791628337.882,
+          "15.17"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C2",
+          "outcome": "PASS",
+          "phase": "P2-4C",
+          "repeat": "1"
+        },
+        "value": [
+          1791628337.882,
+          "40.306"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C2",
+          "outcome": "PASS",
+          "phase": "P2-4C",
+          "repeat": "2"
+        },
+        "value": [
+          1791628337.882,
+          "16.806"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C2",
+          "outcome": "PASS",
+          "phase": "P2-4C",
+          "repeat": "3"
+        },
+        "value": [
+          1791628337.882,
+          "10.28"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C3",
+          "outcome": "PASS",
+          "phase": "P2-4A",
+          "repeat": "1"
+        },
+        "value": [
+          1791628337.882,
+          "51.893"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C3",
+          "outcome": "PASS",
+          "phase": "P2-4A",
+          "repeat": "2"
+        },
+        "value": [
+          1791628337.882,
+          "20.022"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C3",
+          "outcome": "PASS",
+          "phase": "P2-4A",
+          "repeat": "3"
+        },
+        "value": [
+          1791628337.882,
+          "14.345"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C3",
+          "outcome": "PASS",
+          "phase": "P2-4C",
+          "repeat": "1"
+        },
+        "value": [
+          1791628337.882,
+          "48.434"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C3",
+          "outcome": "PASS",
+          "phase": "P2-4C",
+          "repeat": "2"
+        },
+        "value": [
+          1791628337.882,
+          "23.995"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C3",
+          "outcome": "PASS",
+          "phase": "P2-4C",
+          "repeat": "3"
+        },
+        "value": [
+          1791628337.882,
+          "18.364"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C4",
+          "outcome": "API_FAILURE",
+          "phase": "P2-4C",
+          "repeat": "2"
+        },
+        "value": [
+          1791628337.882,
+          "12.202"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C4",
+          "outcome": "PASS",
+          "phase": "P2-4A",
+          "repeat": "1"
+        },
+        "value": [
+          1791628337.882,
+          "48.024"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C4",
+          "outcome": "PASS",
+          "phase": "P2-4A",
+          "repeat": "2"
+        },
+        "value": [
+          1791628337.882,
+          "14.622"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C4",
+          "outcome": "PASS",
+          "phase": "P2-4A",
+          "repeat": "3"
+        },
+        "value": [
+          1791628337.882,
+          "19.95"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C4",
+          "outcome": "PASS",
+          "phase": "P2-4C",
+          "repeat": "1"
+        },
+        "value": [
+          1791628337.882,
+          "53.07"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "planb_actual_experiment_duration_seconds",
+          "case": "C4",
+          "outcome": "PASS",
+          "phase": "P2-4C",
+          "repeat": "3"
+        },
+        "value": [
+          1791628337.882,
+          "9.343"
+        ]
+      }
+    ]
+  },
+  {
+    "panel": "모델 호출 합계 — 실패 포함",
+    "query": "sum by (phase) (last_over_time(planb_actual_experiment_llm_calls[7d]))",
+    "series": [
+      {
+        "metric": {
+          "phase": "P2-4A"
+        },
+        "value": [
+          1791628337.885,
+          "61"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4C"
+        },
+        "value": [
+          1791628337.885,
+          "60"
+        ]
+      }
+    ]
+  },
+  {
+    "panel": "CAFE_REST 슬롯 합계",
+    "query": "sum by (phase) (last_over_time(planb_actual_experiment_quality{metric=\"cafeRestSlots\"}[7d]))",
+    "series": [
+      {
+        "metric": {
+          "phase": "P2-4A"
+        },
+        "value": [
+          1791628337.886,
+          "11"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4C"
+        },
+        "value": [
+          1791628337.886,
+          "6"
+        ]
+      }
+    ]
+  },
+  {
+    "panel": "식사 영양 채움 비율",
+    "query": "sum by (phase) (last_over_time(planb_actual_experiment_quality{metric=\"nutritionFilled\"}[7d])) / sum by (phase) (last_over_time(planb_actual_experiment_quality{metric=\"restaurantSlots\"}[7d]))",
+    "series": [
+      {
+        "metric": {
+          "phase": "P2-4A"
+        },
+        "value": [
+          1791628337.888,
+          "0.5"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4C"
+        },
+        "value": [
+          1791628337.888,
+          "0.5"
+        ]
+      }
+    ]
+  },
+  {
+    "panel": "기록된 요청의 단계 누적시간 평균 — 실패 포함",
+    "query": "avg by (phase,stage) (sum by (phase,case,repeat,stage) (last_over_time(planb_actual_experiment_stage_seconds[7d])))",
+    "series": [
+      {
+        "metric": {
+          "phase": "P2-4A",
+          "stage": "ai_response"
+        },
+        "value": [
+          1791628337.889,
+          "23.504779256833334"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4A",
+          "stage": "finish_plan"
+        },
+        "value": [
+          1791628337.889,
+          "2.677154041666667"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4A",
+          "stage": "health_snapshot"
+        },
+        "value": [
+          1791628337.889,
+          "0.020493065916666664"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4A",
+          "stage": "nutrition_enrichment"
+        },
+        "value": [
+          1791628337.889,
+          "1.9531195381666666"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4A",
+          "stage": "nutrition_lookup"
+        },
+        "value": [
+          1791628337.889,
+          "3.1232215662"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4A",
+          "stage": "persistence"
+        },
+        "value": [
+          1791628337.889,
+          "0.12083043058333334"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4A",
+          "stage": "place_validation"
+        },
+        "value": [
+          1791628337.889,
+          "1.1462981666666665"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4A",
+          "stage": "reselect"
+        },
+        "value": [
+          1791628337.889,
+          "12.000489584"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4C",
+          "stage": "ai_response"
+        },
+        "value": [
+          1791628337.889,
+          "25.401605496416668"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4C",
+          "stage": "finish_plan"
+        },
+        "value": [
+          1791628337.889,
+          "1.7485094653333333"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4C",
+          "stage": "health_snapshot"
+        },
+        "value": [
+          1791628337.889,
+          "0.018348701583333335"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4C",
+          "stage": "nutrition_enrichment"
+        },
+        "value": [
+          1791628337.889,
+          "1.1369367725454547"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4C",
+          "stage": "persistence"
+        },
+        "value": [
+          1791628337.889,
+          "0.09744104554545456"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4C",
+          "stage": "place_validation"
+        },
+        "value": [
+          1791628337.889,
+          "3.5297885067499997"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4C",
+          "stage": "reselect"
+        },
+        "value": [
+          1791628337.889,
+          "18.084371896"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4C",
+          "stage": "nutrition_lookup"
+        },
+        "value": [
+          1791628337.889,
+          "2.0840497223333334"
+        ]
+      }
+    ]
+  },
+  {
+    "panel": "알레르기 키워드 추정 적중 — 성분 확정 아님",
+    "query": "sum by (phase) (last_over_time(planb_actual_experiment_quality{metric=\"allergenHits\"}[7d]))",
+    "series": [
+      {
+        "metric": {
+          "phase": "P2-4A"
+        },
+        "value": [
+          1791628337.892,
+          "0"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4C"
+        },
+        "value": [
+          1791628337.892,
+          "1"
+        ]
+      }
+    ]
+  },
+  {
+    "panel": "날짜 간 장소 중복",
+    "query": "sum by (phase) (last_over_time(planb_actual_experiment_quality{metric=\"crossDayDuplicatePlaces\"}[7d]))",
+    "series": [
+      {
+        "metric": {
+          "phase": "P2-4A"
+        },
+        "value": [
+          1791628337.893,
+          "0"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4C"
+        },
+        "value": [
+          1791628337.893,
+          "0"
+        ]
+      }
+    ]
+  },
+  {
+    "panel": "지정 장소 포함 실행",
+    "query": "sum by (phase) (last_over_time(planb_actual_experiment_quality{metric=\"plannedPlaceIncluded\"}[7d]))",
+    "series": [
+      {
+        "metric": {
+          "phase": "P2-4A"
+        },
+        "value": [
+          1791628337.895,
+          "12"
+        ]
+      },
+      {
+        "metric": {
+          "phase": "P2-4C"
+        },
+        "value": [
+          1791628337.895,
+          "11"
+        ]
+      }
+    ]
+  }
+]

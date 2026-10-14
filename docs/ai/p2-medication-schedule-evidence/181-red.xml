@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" tests="12" skipped="0" failures="5" errors="0" timestamp="2026-10-12T01:56:14.562Z" hostname="gang-ujuui-MacBookPro.local" time="0.039">
+  <properties/>
+  <testcase name="식사 슬롯 없는 날의 설정 식사시간 기준 식후 복약 배치" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.014"/>
+  <testcase name="이동시간으로 식사시간을 맞출 수 없는 일정의 예외 없는 최선 배치" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.005"/>
+  <testcase name="식중 복약의 식사 시간대 유지" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.001"/>
+  <testcase name="여러 동행인·복약 규칙별 등록 간격 유지와 같은 시각 병합" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.006">
+    <failure message="org.opentest4j.AssertionFailedError: expected: &lt;[14:00, 17:45]&gt; but was: &lt;[15:10, 17:45]&gt;" type="org.opentest4j.AssertionFailedError">org.opentest4j.AssertionFailedError: expected: &lt;[14:00, 17:45]&gt; but was: &lt;[15:10, 17:45]&gt;
+	at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:158)
+	at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:139)
+	at app//org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:201)
+	at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:184)
+	at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:179)
+	at app//org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1188)
+	at app//com.planb.unit.domain.travel.service.ScheduleNormalizerTest.keepsEachCompanionRuleAndMergesSameTime(ScheduleNormalizerTest.java:433)
+</failure>
+  </testcase>
+  <testcase name="복약 일정 생성의 반복 적용 시 동일 결과" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.004"/>
+  <testcase name="장소 시간대 안의 식전 복약의 등록 간격 유지" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.001">
+    <failure message="org.opentest4j.AssertionFailedError: expected: &lt;11:30&gt; but was: &lt;12:00&gt;" type="org.opentest4j.AssertionFailedError">org.opentest4j.AssertionFailedError: expected: &lt;11:30&gt; but was: &lt;12:00&gt;
+	at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:158)
+	at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:139)
+	at app//org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:201)
+	at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:184)
+	at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:179)
+	at app//org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1188)
+	at app//com.planb.unit.domain.travel.service.ScheduleNormalizerTest.keepsBeforeMealIntervalInsidePlaceSlot(ScheduleNormalizerTest.java:289)
+</failure>
+  </testcase>
+  <testcase name="식후 복약의 식사 종료 기준 배치" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.001"/>
+  <testcase name="이동시간 반영 시간표 정규화의 반복 적용 시 동일 결과" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="장소 내부 복약 일정 생성의 반복 적용 시 동일 결과" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.0"/>
+  <testcase name="장소 시간대 안의 고정 시각 복약 유지" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.002">
+    <failure message="org.opentest4j.AssertionFailedError: expected: &lt;14:00&gt; but was: &lt;15:10&gt;" type="org.opentest4j.AssertionFailedError">org.opentest4j.AssertionFailedError: expected: &lt;14:00&gt; but was: &lt;15:10&gt;
+	at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:158)
+	at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:139)
+	at app//org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:201)
+	at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:184)
+	at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:179)
+	at app//org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1188)
+	at app//com.planb.unit.domain.travel.service.ScheduleNormalizerTest.keepsIndependentMedicationTimeInsidePlaceSlot(ScheduleNormalizerTest.java:363)
+</failure>
+  </testcase>
+  <testcase name="간격 0·누락 식후 복약의 식사 종료시각 유지" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.001">
+    <failure message="org.opentest4j.AssertionFailedError: expected: &lt;13:30&gt; but was: &lt;15:00&gt;" type="org.opentest4j.AssertionFailedError">org.opentest4j.AssertionFailedError: expected: &lt;13:30&gt; but was: &lt;15:00&gt;
+	at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:158)
+	at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:139)
+	at app//org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:201)
+	at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:184)
+	at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:179)
+	at app//org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1188)
+	at app//com.planb.unit.domain.travel.service.ScheduleNormalizerTest.keepsZeroIntervalAtMealEnd(ScheduleNormalizerTest.java:321)
+</failure>
+  </testcase>
+  <testcase name="장소 시간대 안의 식후 복약의 등록 간격 유지" classname="com.planb.unit.domain.travel.service.ScheduleNormalizerTest" time="0.001">
+    <failure message="org.opentest4j.AssertionFailedError: expected: &lt;14:00&gt; but was: &lt;15:10&gt;" type="org.opentest4j.AssertionFailedError">org.opentest4j.AssertionFailedError: expected: &lt;14:00&gt; but was: &lt;15:10&gt;
+	at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:158)
+	at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:139)
+	at app//org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:201)
+	at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:184)
+	at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:179)
+	at app//org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1188)
+	at app//com.planb.unit.domain.travel.service.ScheduleNormalizerTest.keepsAfterMealIntervalInsidePlaceSlot(ScheduleNormalizerTest.java:258)
+</failure>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -8,6 +8,7 @@ import com.planb.ai.dto.response.CreatePlanAiResponse.MedicationSchedule;
 import com.planb.domain.travel.dto.response.GetAiPlanResponse;
 import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.ScheduleType;
+import com.planb.domain.travel.policy.ParkPlacePolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -103,8 +104,21 @@ public class PlanPlaceResolver {
             return Validation.failure("음식점 메뉴 누락 또는 중복");
         }
 
+        if (isMeal(slot.courseType()) && candidate.candidateId().startsWith("tour:")) {
+            String menuFailure = candidates.restaurantMenuFailure(
+                    candidate.candidateId(),
+                    restaurant.menuName()
+            );
+
+            if (menuFailure != null) {
+                return Validation.failure(menuFailure);
+            }
+        }
+
         RestaurantDetail canonicalRestaurant = !isMeal(slot.courseType()) ? null : new RestaurantDetail(
-                restaurant.menuName(),
+                restaurant
+                        .menuName()
+                        .strip(),
                 restaurant.carbohydrate(),
                 restaurant.sodium(),
                 restaurant.fat(),
@@ -225,6 +239,62 @@ public class PlanPlaceResolver {
         }
 
         return new Validation(slot, null);
+    }
+
+    /**
+     * 원본을 그대로 옮긴 저장 장소의 재선택 없는 확인, 시각은 현재 슬롯 기준
+     * 이동시간은 저장 값, 재계산 표시(null)는 유지
+     */
+    public Validation verifyUnchanged(
+            GetAiPlanResponse.PlanScheduleDetail old,
+            PlanScheduleDetail slot,
+            Set<String> places,
+            Set<String> menus
+    ) {
+
+        Validation existing = verifyExisting(
+                old,
+                places,
+                menus
+        );
+
+        if (!existing.valid()) {
+            return existing;
+        }
+
+        if (slot.startTime() == null || slot.endTime() == null || slot.stayMinutes() == null
+                || !slot
+                        .endTime()
+                        .isAfter(slot.startTime()) || Duration
+                        .between(
+                                slot.startTime(),
+                                slot.endTime())
+                        .toMinutes() != slot.stayMinutes()) {
+            return Validation.failure("유효하지 않은 일정 시간");
+        }
+
+        PlanScheduleDetail kept = existing.schedule();
+
+        return new Validation(new PlanScheduleDetail(
+                kept.scheduleType(),
+                kept.courseType(),
+                slot.startTime(),
+                slot.endTime(),
+                kept.locationName(),
+                kept.location(),
+                kept.longitude(),
+                kept.latitude(),
+                kept.imageUrl(),
+                kept.thumbNailImageUrl(),
+                slot.stayMinutes(),
+                slot.travelMinutes() == null
+                        ? null
+                        : kept.travelMinutes(),
+                kept.tags(),
+                kept.medication(),
+                kept.restaurantDetail(),
+                null
+        ), null);
     }
 
     public PlanScheduleDetail select(PlanScheduleDetail original, PlanScheduleDetail choice) {
@@ -389,9 +459,7 @@ public class PlanPlaceResolver {
                     || !tour && blank(candidate.type()) && verifiedAttractionCategory(candidate.categoryName());
 
             case PARK_WALK -> Objects.equals(candidate.type(), tour ? "12" : "AT4")
-                    && candidate.categoryName() != null && candidate
-                            .categoryName()
-                            .contains("공원");
+                    && ParkPlacePolicy.allows(candidate.type(), candidate.categoryName());
 
             case CAFE_REST -> !tour && "CE7".equals(candidate.type());
 

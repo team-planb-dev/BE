@@ -1,0 +1,22 @@
+{
+  "warnings": [
+    {
+      "timestamp": "2026-10-11T12:04:30.374+09:00",
+      "validation": "planDays[day2].schedules[18:00]: 음식점 상세 메뉴 미확인: tour:2844918 / getRestaurantDetail 조회 필요]"
+    },
+    {
+      "timestamp": "2026-10-11T12:07:34.955+09:00",
+      "validation": "planDays[day1].schedules[12:00]: 음식점 메뉴 원본 불일치: tour:623279 / 선택 메뉴(JSON): \"초당순두부\" / 선택 가능 메뉴(JSON 배열): [\"초당순두부·두부전골\",\"초당두부\",\"문어무침\",\"제육볶음\",\"통메밀전\",\"순두부 외\"] / 배열의 문자열 하나를 괄호 내부 표현까지 그대로 선택]"
+    },
+    {
+      "timestamp": "2026-10-11T12:08:05.546+09:00",
+      "validation": "planDays[day1].schedules[08:00]: 음식점 메뉴 원본 불일치: tour:623279 / 선택 메뉴(JSON): \"초당순두부\" / 선택 가능 메뉴(JSON 배열): [\"초당순두부·두부전골\",\"초당두부\",\"문어무침\",\"제육볶음\",\"통메밀전\",\"순두부 외\"] / 배열의 문자열 하나를 괄호 내부 표현까지 그대로 선택]"
+    },
+    {
+      "timestamp": "2026-10-11T12:08:34.346+09:00",
+      "validation": "planDays[day1].schedules[08:00]: 음식점 메뉴 원본 불일치: tour:623279 / 선택 메뉴(JSON): \"초당순두부\" / 선택 가능 메뉴(JSON 배열): [\"초당순두부·두부전골\",\"초당두부\",\"문어무침\",\"제육볶음\",\"통메밀전\",\"순두부 외\"] / 배열의 문자열 하나를 괄호 내부 표현까지 그대로 선택]"
+    }
+  ],
+  "count": 4,
+  "scope": "Only structured validation messages extracted; original logs not archived"
+}

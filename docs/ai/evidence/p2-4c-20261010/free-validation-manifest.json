@@ -1,0 +1,61 @@
+{
+  "phase": "P2-4C",
+  "issue": 173,
+  "baseCommit": "2a99375f1316b2652bf6965e61e2f21a4665afde",
+  "branch": "173-perf-prefetch-travel-generation-candidates-before-ai-selection",
+  "sourceSha256": {
+    "src/main/java/com/planb/ai/client/OpenAiClient.java": "9612324781016bfefdd720303b953961fe3e70929882027dc411a5082c06db5c",
+    "src/main/java/com/planb/ai/context/PlaceCandidateContext.java": "c6ecb371b5a377548965ba258b1952420160710786e25a6afc5fd00a08a96e21",
+    "src/main/java/com/planb/ai/context/PlanCandidateSnapshot.java": "beedc2fcf4234b95c90534ab8ebc0140c4ce318eff4e04c66ecab20e146017b6",
+    "src/main/java/com/planb/ai/handler/PlanCandidatePrefetcher.java": "e5ab4b0336c6d6007e744c52023ca767abdde25013a7af0bd07494fc6b32bcfb",
+    "src/main/java/com/planb/ai/handler/TravelRecommendHandler.java": "5dea27546626b555fc35c2d6e18e71d1a12d2ad267a03302b2947a2c30777796",
+    "src/main/java/com/planb/ai/mcp/PrefetchedPlanTourismTool.java": "186706108e0b648970c003a2bbb0c8c0a2c944cf8630934ea4bb5d8e904caf3c",
+    "src/main/java/com/planb/ai/mcp/TourismTool.java": "4816c73f6e08518f36436e1806b739896efb95d1fe1741e28f65b17b9cc88f97",
+    "src/main/java/com/planb/ai/prompt/PrefetchedPlaceReselectPrompt.java": "c3258ca19724161b56ef546827b8898779540761421b812b87ae707aa6d2ba46",
+    "src/main/java/com/planb/ai/prompt/TravelPlanPrompt.java": "248ab9310d73f61350d05302c6266a7fea2eddbd3520dadc28bf06d8e73f8acd",
+    "src/main/java/com/planb/ai/prompt/VerifiedPlacePrompt.java": "838ef30ade93e67129abb1f3fb02143f3bcfd33c948f376612c8d5395b0f2022",
+    "src/main/java/com/planb/domain/travel/service/PlanService.java": "2c38b0b4a9f0988c4917c7b26f7f53131c61a2b054614ef70472418c0aa13b16",
+    "src/test/java/com/planb/integration/domain/travel/TravelLoadTestSmokeIntegrationTest.java": "9e1457acd095ce62c8874d6df518de6d664dd7836a290acf9675831b74d52a45",
+    "src/test/java/com/planb/performance/openai/OpenAiChatCompletionStub.java": "41ceac70a3397abe337f90f617ff4fdbc385628f58f28e38038c6f1477a74df9",
+    "src/test/java/com/planb/performance/openai/OpenAiProtocolStubTest.java": "4c1f48bad23d35398df3accb03cb8f00a1a90390851b4f82f085d463d867c90b",
+    "src/test/java/com/planb/unit/ai/handler/PlanCandidatePrefetcherTest.java": "24ceffc8e36c1a30f499e4d279322eb6b1ca925ff5c51fca045ea2a07beb5771",
+    "src/test/java/com/planb/unit/ai/handler/TravelRecommendHandlerContractTest.java": "8e3f43429ad41ce0a84abc99d2cd85398b600add73a977163d337cb881db37f8",
+    "src/test/java/com/planb/unit/domain/travel/service/PlanPlaceValidationTest.java": "a5c8d93e226e3bf70684ba6b55704fb9e7ce62b292ba7ba8e93ff4b7ae896334",
+    "src/test/java/com/planb/unit/global/ai/client/OpenAiClientTest.java": "f6ab5c86f6ce05fb494a098609f1365629f47690f787be9e2b6d7649c0ef080b",
+    "src/test/java/com/planb/unit/global/ai/prompt/PlanDayRebuildContractTest.java": "e22596ca11f41c56b2f57310af57c741fa5e9f8ce2f4b60f2122020976c263ae"
+  },
+  "paidApiRuns": 12,
+  "adopted": false,
+  "fullRegressionBeforeLastErrorMapping": {
+    "tests": 875,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "focusedRegressionAfterLastErrorMapping": {
+    "tests": 24,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "redGreen": {
+    "prefetchFailureClassification": {
+      "red": "1 test failed: IllegalStateException instead of AiOrchestrationException",
+      "green": "UPSTREAM_CALL_FAILED, preserved cause, zero AI calls"
+    }
+  },
+  "review": {
+    "designScores": [
+      9,
+      8,
+      9.2
+    ],
+    "implementationScores": [
+      7,
+      9,
+      9
+    ],
+    "finalReviewPending": false
+  },
+  "performanceMeasurement": "actual API 12 runs complete: 11 PASS; failed latency and hard-quality gates"
+}

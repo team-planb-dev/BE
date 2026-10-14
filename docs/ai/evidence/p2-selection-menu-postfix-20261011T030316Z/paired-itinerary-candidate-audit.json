@@ -1,0 +1,77 @@
+{
+  "scope": "Common successful runs only; candidate sequence comparison, no causal attribution",
+  "pairs": [
+    {
+      "case": "C1-seoul-single-disease",
+      "repeat": 1,
+      "sameOrderedCandidateIds": false,
+      "commonCandidates": 9,
+      "beforeCandidates": 13,
+      "afterCandidates": 13
+    },
+    {
+      "case": "C1-seoul-single-disease",
+      "repeat": 2,
+      "sameOrderedCandidateIds": false,
+      "commonCandidates": 8,
+      "beforeCandidates": 13,
+      "afterCandidates": 13
+    },
+    {
+      "case": "C1-seoul-single-disease",
+      "repeat": 3,
+      "sameOrderedCandidateIds": false,
+      "commonCandidates": 7,
+      "beforeCandidates": 13,
+      "afterCandidates": 13
+    },
+    {
+      "case": "C2-busan-two-companions",
+      "repeat": 1,
+      "sameOrderedCandidateIds": false,
+      "commonCandidates": 9,
+      "beforeCandidates": 13,
+      "afterCandidates": 13
+    },
+    {
+      "case": "C2-busan-two-companions",
+      "repeat": 2,
+      "sameOrderedCandidateIds": false,
+      "commonCandidates": 10,
+      "beforeCandidates": 13,
+      "afterCandidates": 14
+    },
+    {
+      "case": "C2-busan-two-companions",
+      "repeat": 3,
+      "sameOrderedCandidateIds": false,
+      "commonCandidates": 12,
+      "beforeCandidates": 14,
+      "afterCandidates": 13
+    },
+    {
+      "case": "C3-gangneung-combined-diseases",
+      "repeat": 1,
+      "sameOrderedCandidateIds": false,
+      "commonCandidates": 9,
+      "beforeCandidates": 13,
+      "afterCandidates": 14
+    },
+    {
+      "case": "C3-gangneung-combined-diseases",
+      "repeat": 3,
+      "sameOrderedCandidateIds": false,
+      "commonCandidates": 9,
+      "beforeCandidates": 12,
+      "afterCandidates": 14
+    },
+    {
+      "case": "C4-gyeongju-two-companions-combined",
+      "repeat": 1,
+      "sameOrderedCandidateIds": false,
+      "commonCandidates": 7,
+      "beforeCandidates": 14,
+      "afterCandidates": 12
+    }
+  ]
+}

@@ -1,0 +1,4998 @@
+{
+  "before": {
+    "schemaVersion": 1,
+    "measurementLabel": "supplemental_offline_raw_audit",
+    "rawDirectory": "/private/tmp/planb-selection-contract-177/build/llm-quality-baseline/raw/2026-10-10T15-38-24.056735Z",
+    "counts": {
+      "availableRawFiles": 12,
+      "apiSuccessfulRuns": 10,
+      "savedRuns": 0,
+      "notEvaluableRuns": 2,
+      "notEvaluableDays": 0,
+      "evaluableDays": 20,
+      "requiredMealExpectedCount": 40,
+      "requiredMealPresentCount": 40,
+      "requiredMealPresencePassedDays": 20,
+      "medicationEvaluableDays": 20,
+      "medicationContractPassedDays": 20,
+      "fieldIssueSlots": 0,
+      "placeSlotCount": 130,
+      "missingNumericRouteTimeCount": 0,
+      "invalidRouteTimeCount": 0,
+      "restaurantSlotCount": 60,
+      "allThreeNutritionFieldsCompleteCount": 30,
+      "allMealSlots": 60,
+      "mealTimeEvaluableSlots": 60,
+      "allMealSlotsWithin30Minutes": 57,
+      "requiredMealSlotsWithin30Minutes": 37,
+      "mealTagInconsistentSlots": 0,
+      "expectedRuns": 12
+    },
+    "runs": [
+      {
+        "file": "C1-seoul-single-disease-1.json",
+        "caseId": "C1-seoul-single-disease",
+        "repeat": 1,
+        "companionCount": 1,
+        "apiSuccess": true,
+        "saved": false,
+        "status": "evaluable",
+        "dayStructurePassed": true,
+        "days": [
+          {
+            "dayNumber": 1,
+            "date": "2026-10-18",
+            "status": "evaluable",
+            "requiredMeals": [
+              "LUNCH",
+              "DINNER"
+            ],
+            "exemptMeals": [
+              "BREAKFAST"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "LOCAL_FOOD",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "08:00:00",
+                "endTime": "08:50:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:39:00",
+                "endTime": "13:29:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 39,
+                "within30Minutes": false,
+                "mealTimeAppliedTag": false,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 7,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "18:00:00",
+                "endTime": "18:50:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 7,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 2,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 1,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "13:59:00",
+              "expectedEndTime": "14:09:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "13:59:00",
+                  "endTime": "14:09:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "dayNumber": 2,
+            "date": "2026-10-19",
+            "status": "evaluable",
+            "requiredMeals": [
+              "BREAKFAST",
+              "LUNCH"
+            ],
+            "exemptMeals": [
+              "DINNER"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "08:00:00",
+                "endTime": "08:50:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:32:00",
+                "endTime": "13:22:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 32,
+                "within30Minutes": false,
+                "mealTimeAppliedTag": false,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "18:14:00",
+                "endTime": "19:04:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 14,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 6,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 2,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 1,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "13:52:00",
+              "expectedEndTime": "14:02:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "13:52:00",
+                  "endTime": "14:02:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "file": "C1-seoul-single-disease-2.json",
+        "caseId": "C1-seoul-single-disease",
+        "repeat": 2,
+        "companionCount": 1,
+        "apiSuccess": true,
+        "saved": false,
+        "status": "evaluable",
+        "dayStructurePassed": true,
+        "days": [
+          {
+            "dayNumber": 1,
+            "date": "2026-10-18",
+            "status": "evaluable",
+            "requiredMeals": [
+              "LUNCH",
+              "DINNER"
+            ],
+            "exemptMeals": [
+              "BREAKFAST"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "LOCAL_FOOD",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "08:00:00",
+                "endTime": "08:50:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 3,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:30:00",
+                "endTime": "13:30:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 30,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 7,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "18:00:00",
+                "endTime": "18:50:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 7,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 1,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 1,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "14:00:00",
+              "expectedEndTime": "14:10:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "14:00:00",
+                  "endTime": "14:10:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "dayNumber": 2,
+            "date": "2026-10-19",
+            "status": "evaluable",
+            "requiredMeals": [
+              "BREAKFAST",
+              "LUNCH"
+            ],
+            "exemptMeals": [
+              "DINNER"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "08:00:00",
+                "endTime": "08:50:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:18:00",
+                "endTime": "13:08:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 18,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 6,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 3,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 1,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "14:24:00",
+              "expectedEndTime": "14:34:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [
+                {
+                  "from": "13:38:00",
+                  "to": "14:24:00"
+                }
+              ],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "14:24:00",
+                  "endTime": "14:34:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "file": "C1-seoul-single-disease-3.json",
+        "caseId": "C1-seoul-single-disease",
+        "repeat": 3,
+        "companionCount": 1,
+        "apiSuccess": true,
+        "saved": false,
+        "status": "evaluable",
+        "dayStructurePassed": true,
+        "days": [
+          {
+            "dayNumber": 1,
+            "date": "2026-10-18",
+            "status": "evaluable",
+            "requiredMeals": [
+              "LUNCH",
+              "DINNER"
+            ],
+            "exemptMeals": [
+              "BREAKFAST"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "LOCAL_FOOD",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "08:00:00",
+                "endTime": "09:00:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:28:00",
+                "endTime": "13:28:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 28,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 7,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "18:08:00",
+                "endTime": "19:08:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 8,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 7,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 2,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 1,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "13:58:00",
+              "expectedEndTime": "14:08:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "13:58:00",
+                  "endTime": "14:08:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "dayNumber": 2,
+            "date": "2026-10-19",
+            "status": "evaluable",
+            "requiredMeals": [
+              "BREAKFAST",
+              "LUNCH"
+            ],
+            "exemptMeals": [
+              "DINNER"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "08:00:00",
+                "endTime": "09:00:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:12:00",
+                "endTime": "13:12:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 12,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 6,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 1,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 1,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "13:42:00",
+              "expectedEndTime": "13:52:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "13:42:00",
+                  "endTime": "13:52:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "file": "C2-busan-two-companions-1.json",
+        "caseId": "C2-busan-two-companions",
+        "repeat": 1,
+        "companionCount": 2,
+        "apiSuccess": true,
+        "saved": false,
+        "status": "evaluable",
+        "dayStructurePassed": true,
+        "days": [
+          {
+            "dayNumber": 1,
+            "date": "2026-10-18",
+            "status": "evaluable",
+            "requiredMeals": [
+              "LUNCH",
+              "DINNER"
+            ],
+            "exemptMeals": [
+              "BREAKFAST"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "08:00:00",
+                "endTime": "09:00:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:00:00",
+                "endTime": "13:00:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "LOCAL_FOOD",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 7,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 1,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 2,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "13:30:00",
+              "expectedEndTime": "13:40:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "13:30:00",
+                  "endTime": "13:40:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "dayNumber": 2,
+            "date": "2026-10-19",
+            "status": "evaluable",
+            "requiredMeals": [
+              "BREAKFAST",
+              "LUNCH"
+            ],
+            "exemptMeals": [
+              "DINNER"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "08:00:00",
+                "endTime": "09:00:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:08:00",
+                "endTime": "13:08:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 8,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 6,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 2,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 2,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "14:20:00",
+              "expectedEndTime": "14:30:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [
+                {
+                  "from": "13:38:00",
+                  "to": "14:20:00"
+                }
+              ],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "14:20:00",
+                  "endTime": "14:30:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "file": "C2-busan-two-companions-2.json",
+        "caseId": "C2-busan-two-companions",
+        "repeat": 2,
+        "companionCount": 2,
+        "apiSuccess": true,
+        "saved": false,
+        "status": "evaluable",
+        "dayStructurePassed": true,
+        "days": [
+          {
+            "dayNumber": 1,
+            "date": "2026-10-18",
+            "status": "evaluable",
+            "requiredMeals": [
+              "LUNCH",
+              "DINNER"
+            ],
+            "exemptMeals": [
+              "BREAKFAST"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "08:00:00",
+                "endTime": "09:00:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:00:00",
+                "endTime": "12:50:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 7,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "18:00:00",
+                "endTime": "18:50:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 7,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 2,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 2,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "13:20:00",
+              "expectedEndTime": "13:30:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "13:20:00",
+                  "endTime": "13:30:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "dayNumber": 2,
+            "date": "2026-10-19",
+            "status": "evaluable",
+            "requiredMeals": [
+              "BREAKFAST",
+              "LUNCH"
+            ],
+            "exemptMeals": [
+              "DINNER"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "LOCAL_FOOD",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "08:00:00",
+                "endTime": "08:50:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 3,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:30:00",
+                "endTime": "13:30:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 30,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 6,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 0,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 2,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "14:59:00",
+              "expectedEndTime": "15:09:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [
+                {
+                  "from": "14:00:00",
+                  "to": "14:59:00"
+                }
+              ],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "14:59:00",
+                  "endTime": "15:09:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "file": "C2-busan-two-companions-3.json",
+        "caseId": "C2-busan-two-companions",
+        "repeat": 3,
+        "companionCount": 2,
+        "apiSuccess": true,
+        "saved": false,
+        "status": "evaluable",
+        "dayStructurePassed": true,
+        "days": [
+          {
+            "dayNumber": 1,
+            "date": "2026-10-18",
+            "status": "evaluable",
+            "requiredMeals": [
+              "LUNCH",
+              "DINNER"
+            ],
+            "exemptMeals": [
+              "BREAKFAST"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "LOCAL_FOOD",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "08:00:00",
+                "endTime": "08:50:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:00:00",
+                "endTime": "13:00:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 7,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 7,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 2,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 2,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "13:30:00",
+              "expectedEndTime": "13:40:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "13:30:00",
+                  "endTime": "13:40:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "dayNumber": 2,
+            "date": "2026-10-19",
+            "status": "evaluable",
+            "requiredMeals": [
+              "BREAKFAST",
+              "LUNCH"
+            ],
+            "exemptMeals": [
+              "DINNER"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 1,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "08:30:00",
+                "endTime": "09:30:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 30,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 4,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "13:13:00",
+                "endTime": "14:13:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 73,
+                "within30Minutes": false,
+                "mealTimeAppliedTag": false,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 7,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 7,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 0,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 2,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "15:28:00",
+              "expectedEndTime": "15:38:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [
+                {
+                  "from": "14:43:00",
+                  "to": "15:28:00"
+                }
+              ],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "15:28:00",
+                  "endTime": "15:38:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "file": "C3-gangneung-combined-diseases-1.json",
+        "caseId": "C3-gangneung-combined-diseases",
+        "repeat": 1,
+        "companionCount": 1,
+        "apiSuccess": true,
+        "saved": false,
+        "status": "evaluable",
+        "dayStructurePassed": true,
+        "days": [
+          {
+            "dayNumber": 1,
+            "date": "2026-10-18",
+            "status": "evaluable",
+            "requiredMeals": [
+              "LUNCH",
+              "DINNER"
+            ],
+            "exemptMeals": [
+              "BREAKFAST"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "LOCAL_FOOD",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "08:00:00",
+                "endTime": "08:50:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 3,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:08:00",
+                "endTime": "13:08:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 8,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 7,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 7,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 0,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 1,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "13:38:00",
+              "expectedEndTime": "13:48:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "13:38:00",
+                  "endTime": "13:48:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "dayNumber": 2,
+            "date": "2026-10-19",
+            "status": "evaluable",
+            "requiredMeals": [
+              "BREAKFAST",
+              "LUNCH"
+            ],
+            "exemptMeals": [
+              "DINNER"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "08:00:00",
+                "endTime": "08:50:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:00:00",
+                "endTime": "13:00:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 6,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 3,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 1,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "13:30:00",
+              "expectedEndTime": "13:40:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "13:30:00",
+                  "endTime": "13:40:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "file": "C3-gangneung-combined-diseases-2.json",
+        "caseId": "C3-gangneung-combined-diseases",
+        "repeat": 2,
+        "companionCount": 1,
+        "apiSuccess": true,
+        "saved": false,
+        "status": "evaluable",
+        "dayStructurePassed": true,
+        "days": [
+          {
+            "dayNumber": 1,
+            "date": "2026-10-18",
+            "status": "evaluable",
+            "requiredMeals": [
+              "LUNCH",
+              "DINNER"
+            ],
+            "exemptMeals": [
+              "BREAKFAST"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "LOCAL_FOOD",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "08:00:00",
+                "endTime": "08:50:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:00:00",
+                "endTime": "12:50:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "18:00:00",
+                "endTime": "18:50:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 6,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 1,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 1,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "13:20:00",
+              "expectedEndTime": "13:30:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "13:20:00",
+                  "endTime": "13:30:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "dayNumber": 2,
+            "date": "2026-10-19",
+            "status": "evaluable",
+            "requiredMeals": [
+              "BREAKFAST",
+              "LUNCH"
+            ],
+            "exemptMeals": [
+              "DINNER"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "08:00:00",
+                "endTime": "08:50:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:13:00",
+                "endTime": "13:03:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 13,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "18:00:00",
+                "endTime": "18:50:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 6,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 2,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 1,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "13:33:00",
+              "expectedEndTime": "13:43:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "13:33:00",
+                  "endTime": "13:43:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "file": "C3-gangneung-combined-diseases-3.json",
+        "caseId": "C3-gangneung-combined-diseases",
+        "repeat": 3,
+        "companionCount": 1,
+        "apiSuccess": true,
+        "saved": false,
+        "status": "evaluable",
+        "dayStructurePassed": true,
+        "days": [
+          {
+            "dayNumber": 1,
+            "date": "2026-10-18",
+            "status": "evaluable",
+            "requiredMeals": [
+              "LUNCH",
+              "DINNER"
+            ],
+            "exemptMeals": [
+              "BREAKFAST"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "08:00:00",
+                "endTime": "09:00:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "LOCAL_FOOD",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:00:00",
+                "endTime": "13:00:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 6,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 0,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 1,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "13:30:00",
+              "expectedEndTime": "13:40:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "13:30:00",
+                  "endTime": "13:40:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "dayNumber": 2,
+            "date": "2026-10-19",
+            "status": "evaluable",
+            "requiredMeals": [
+              "BREAKFAST",
+              "LUNCH"
+            ],
+            "exemptMeals": [
+              "DINNER"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "08:00:00",
+                "endTime": "09:00:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:00:00",
+                "endTime": "13:00:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 6,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 3,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 1,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "13:30:00",
+              "expectedEndTime": "13:40:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "13:30:00",
+                  "endTime": "13:40:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "file": "C4-gyeongju-two-companions-combined-1.json",
+        "caseId": "C4-gyeongju-two-companions-combined",
+        "repeat": 1,
+        "companionCount": 2,
+        "apiSuccess": true,
+        "saved": false,
+        "status": "evaluable",
+        "dayStructurePassed": true,
+        "days": [
+          {
+            "dayNumber": 1,
+            "date": "2026-10-18",
+            "status": "evaluable",
+            "requiredMeals": [
+              "LUNCH",
+              "DINNER"
+            ],
+            "exemptMeals": [
+              "BREAKFAST"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "08:00:00",
+                "endTime": "09:00:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "LOCAL_FOOD",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:00:00",
+                "endTime": "13:00:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 7,
+                "scheduleType": "DINNER",
+                "courseType": "LOCAL_FOOD",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 7,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 1,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 2,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "15:00:00",
+              "expectedEndTime": "15:10:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [
+                {
+                  "from": "13:30:00",
+                  "to": "15:00:00"
+                }
+              ],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "15:00:00",
+                  "endTime": "15:10:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "dayNumber": 2,
+            "date": "2026-10-19",
+            "status": "evaluable",
+            "requiredMeals": [
+              "BREAKFAST",
+              "LUNCH"
+            ],
+            "exemptMeals": [
+              "DINNER"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "08:00:00",
+                "endTime": "09:00:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:00:00",
+                "endTime": "13:00:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 7,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 2,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 2,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "13:30:00",
+              "expectedEndTime": "13:40:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "13:30:00",
+                  "endTime": "13:40:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "file": "C4-gyeongju-two-companions-combined-2.json",
+        "caseId": "C4-gyeongju-two-companions-combined",
+        "repeat": 2,
+        "companionCount": 2,
+        "apiSuccess": false,
+        "saved": null,
+        "status": "not_evaluable",
+        "reason": "api_not_successful",
+        "days": []
+      },
+      {
+        "file": "C4-gyeongju-two-companions-combined-3.json",
+        "caseId": "C4-gyeongju-two-companions-combined",
+        "repeat": 3,
+        "companionCount": 2,
+        "apiSuccess": false,
+        "saved": null,
+        "status": "not_evaluable",
+        "reason": "api_not_successful",
+        "days": []
+      }
+    ],
+    "interpretation": {
+      "mealPresence": "First breakfast and last dinner exempt; no exemption for lunch.",
+      "mealTime": "Deviation is observational; late untagged meals are not automatically policy violations. Physical travel constraints take priority.",
+      "medication": "Fixed fixture: lunch after 30 minutes, ten-minute slot; identical companion prescriptions merge at the same time.",
+      "nutrition": "Numeric carbohydrate+sodium+fat completeness only; no nutrition accuracy or HIGH grade claim.",
+      "menuSource": "not_evaluable_from_raw: firstmenu/treatmenu and matching successful detail identity are not stored in API raw.",
+      "safety": "No ingredient/allergy safety or opening-hours conclusion.",
+      "savedFlag": "saved=false is the expected confirmation state, not proof of missing persistence"
+    },
+    "policyReferences": {
+      "mealExemptions": "MealSlotPolicy.java:77-105",
+      "mealTimeTolerance": "ScheduleNormalizer.java:40,321-351",
+      "travelConstraintsFirst": "ScheduleNormalizer.java:110-140",
+      "mealTimeTag": "PlanService.java:1683-1689",
+      "medicationMovement": "ScheduleNormalizer.java:447-475",
+      "medicationMerge": "ScheduleNormalizer.java:415-428,744-777",
+      "medicationTiming": "ScheduleNormalizer.java:643-741"
+    }
+  },
+  "after": {
+    "schemaVersion": 1,
+    "measurementLabel": "supplemental_offline_raw_audit",
+    "rawDirectory": "/private/tmp/planb-selection-contract-177/build/llm-quality-baseline/raw/2026-10-11T03-03-33.798400Z",
+    "counts": {
+      "availableRawFiles": 12,
+      "apiSuccessfulRuns": 11,
+      "savedRuns": 0,
+      "notEvaluableRuns": 1,
+      "notEvaluableDays": 0,
+      "evaluableDays": 22,
+      "requiredMealExpectedCount": 44,
+      "requiredMealPresentCount": 44,
+      "requiredMealPresencePassedDays": 22,
+      "medicationEvaluableDays": 22,
+      "medicationContractPassedDays": 22,
+      "fieldIssueSlots": 0,
+      "placeSlotCount": 144,
+      "missingNumericRouteTimeCount": 0,
+      "invalidRouteTimeCount": 0,
+      "restaurantSlotCount": 66,
+      "allThreeNutritionFieldsCompleteCount": 30,
+      "allMealSlots": 66,
+      "mealTimeEvaluableSlots": 66,
+      "allMealSlotsWithin30Minutes": 63,
+      "requiredMealSlotsWithin30Minutes": 41,
+      "mealTagInconsistentSlots": 0,
+      "expectedRuns": 12
+    },
+    "runs": [
+      {
+        "file": "C1-seoul-single-disease-1.json",
+        "caseId": "C1-seoul-single-disease",
+        "repeat": 1,
+        "companionCount": 1,
+        "apiSuccess": true,
+        "saved": false,
+        "status": "evaluable",
+        "dayStructurePassed": true,
+        "days": [
+          {
+            "dayNumber": 1,
+            "date": "2026-10-18",
+            "status": "evaluable",
+            "requiredMeals": [
+              "LUNCH",
+              "DINNER"
+            ],
+            "exemptMeals": [
+              "BREAKFAST"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "LOCAL_FOOD",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "08:00:00",
+                "endTime": "08:40:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:00:00",
+                "endTime": "12:50:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 7,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "18:00:00",
+                "endTime": "18:50:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 7,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 2,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 1,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "13:20:00",
+              "expectedEndTime": "13:30:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "13:20:00",
+                  "endTime": "13:30:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "dayNumber": 2,
+            "date": "2026-10-19",
+            "status": "evaluable",
+            "requiredMeals": [
+              "BREAKFAST",
+              "LUNCH"
+            ],
+            "exemptMeals": [
+              "DINNER"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "08:00:00",
+                "endTime": "08:50:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:00:00",
+                "endTime": "12:50:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "18:00:00",
+                "endTime": "18:50:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 6,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 2,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 1,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "13:20:00",
+              "expectedEndTime": "13:30:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "13:20:00",
+                  "endTime": "13:30:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "file": "C1-seoul-single-disease-2.json",
+        "caseId": "C1-seoul-single-disease",
+        "repeat": 2,
+        "companionCount": 1,
+        "apiSuccess": true,
+        "saved": false,
+        "status": "evaluable",
+        "dayStructurePassed": true,
+        "days": [
+          {
+            "dayNumber": 1,
+            "date": "2026-10-18",
+            "status": "evaluable",
+            "requiredMeals": [
+              "LUNCH",
+              "DINNER"
+            ],
+            "exemptMeals": [
+              "BREAKFAST"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "LOCAL_FOOD",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "08:00:00",
+                "endTime": "08:50:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 3,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:17:00",
+                "endTime": "13:07:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 17,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 7,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "18:00:00",
+                "endTime": "18:50:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 7,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 2,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 1,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "15:00:00",
+              "expectedEndTime": "15:10:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [
+                {
+                  "from": "13:37:00",
+                  "to": "15:00:00"
+                }
+              ],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "15:00:00",
+                  "endTime": "15:10:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "dayNumber": 2,
+            "date": "2026-10-19",
+            "status": "evaluable",
+            "requiredMeals": [
+              "BREAKFAST",
+              "LUNCH"
+            ],
+            "exemptMeals": [
+              "DINNER"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "08:00:00",
+                "endTime": "08:50:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:00:00",
+                "endTime": "12:50:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "18:20:00",
+                "endTime": "19:10:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 20,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 6,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 1,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 1,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "13:20:00",
+              "expectedEndTime": "13:30:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "13:20:00",
+                  "endTime": "13:30:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "file": "C1-seoul-single-disease-3.json",
+        "caseId": "C1-seoul-single-disease",
+        "repeat": 3,
+        "companionCount": 1,
+        "apiSuccess": true,
+        "saved": false,
+        "status": "evaluable",
+        "dayStructurePassed": true,
+        "days": [
+          {
+            "dayNumber": 1,
+            "date": "2026-10-18",
+            "status": "evaluable",
+            "requiredMeals": [
+              "LUNCH",
+              "DINNER"
+            ],
+            "exemptMeals": [
+              "BREAKFAST"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "LOCAL_FOOD",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "08:00:00",
+                "endTime": "08:50:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:00:00",
+                "endTime": "12:50:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 7,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "18:19:00",
+                "endTime": "19:09:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 19,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 7,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 3,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 1,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "13:20:00",
+              "expectedEndTime": "13:30:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "13:20:00",
+                  "endTime": "13:30:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "dayNumber": 2,
+            "date": "2026-10-19",
+            "status": "evaluable",
+            "requiredMeals": [
+              "BREAKFAST",
+              "LUNCH"
+            ],
+            "exemptMeals": [
+              "DINNER"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "08:00:00",
+                "endTime": "08:50:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 4,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "15:55:00",
+                "endTime": "16:55:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 235,
+                "within30Minutes": false,
+                "mealTimeAppliedTag": false,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 6,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 1,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 1,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "17:25:00",
+              "expectedEndTime": "17:35:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "17:25:00",
+                  "endTime": "17:35:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "file": "C2-busan-two-companions-1.json",
+        "caseId": "C2-busan-two-companions",
+        "repeat": 1,
+        "companionCount": 2,
+        "apiSuccess": true,
+        "saved": false,
+        "status": "evaluable",
+        "dayStructurePassed": true,
+        "days": [
+          {
+            "dayNumber": 1,
+            "date": "2026-10-18",
+            "status": "evaluable",
+            "requiredMeals": [
+              "LUNCH",
+              "DINNER"
+            ],
+            "exemptMeals": [
+              "BREAKFAST"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "08:00:00",
+                "endTime": "09:00:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:00:00",
+                "endTime": "13:00:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 7,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 2,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 2,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "13:30:00",
+              "expectedEndTime": "13:40:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "13:30:00",
+                  "endTime": "13:40:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "dayNumber": 2,
+            "date": "2026-10-19",
+            "status": "evaluable",
+            "requiredMeals": [
+              "BREAKFAST",
+              "LUNCH"
+            ],
+            "exemptMeals": [
+              "DINNER"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "LOCAL_FOOD",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "08:00:00",
+                "endTime": "09:00:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:07:00",
+                "endTime": "13:07:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 7,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 6,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 0,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 2,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "14:37:00",
+              "expectedEndTime": "14:47:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [
+                {
+                  "from": "13:37:00",
+                  "to": "14:37:00"
+                }
+              ],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "14:37:00",
+                  "endTime": "14:47:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "file": "C2-busan-two-companions-2.json",
+        "caseId": "C2-busan-two-companions",
+        "repeat": 2,
+        "companionCount": 2,
+        "apiSuccess": true,
+        "saved": false,
+        "status": "evaluable",
+        "dayStructurePassed": true,
+        "days": [
+          {
+            "dayNumber": 1,
+            "date": "2026-10-18",
+            "status": "evaluable",
+            "requiredMeals": [
+              "LUNCH",
+              "DINNER"
+            ],
+            "exemptMeals": [
+              "BREAKFAST"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "LOCAL_FOOD",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "08:00:00",
+                "endTime": "08:50:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:00:00",
+                "endTime": "12:55:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 7,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 7,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 1,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 2,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "14:16:00",
+              "expectedEndTime": "14:26:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [
+                {
+                  "from": "13:25:00",
+                  "to": "14:16:00"
+                }
+              ],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "14:16:00",
+                  "endTime": "14:26:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "dayNumber": 2,
+            "date": "2026-10-19",
+            "status": "evaluable",
+            "requiredMeals": [
+              "BREAKFAST",
+              "LUNCH"
+            ],
+            "exemptMeals": [
+              "DINNER"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "08:00:00",
+                "endTime": "09:00:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 3,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:30:00",
+                "endTime": "13:25:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 30,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 7,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 7,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 1,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 2,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "14:30:00",
+              "expectedEndTime": "14:40:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [
+                {
+                  "from": "13:55:00",
+                  "to": "14:30:00"
+                }
+              ],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "14:30:00",
+                  "endTime": "14:40:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "file": "C2-busan-two-companions-3.json",
+        "caseId": "C2-busan-two-companions",
+        "repeat": 3,
+        "companionCount": 2,
+        "apiSuccess": true,
+        "saved": false,
+        "status": "evaluable",
+        "dayStructurePassed": true,
+        "days": [
+          {
+            "dayNumber": 1,
+            "date": "2026-10-18",
+            "status": "evaluable",
+            "requiredMeals": [
+              "LUNCH",
+              "DINNER"
+            ],
+            "exemptMeals": [
+              "BREAKFAST"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "08:00:00",
+                "endTime": "09:00:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 3,
+                "scheduleType": "LUNCH",
+                "courseType": "LOCAL_FOOD",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:18:00",
+                "endTime": "12:58:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 18,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 7,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "18:00:00",
+                "endTime": "18:40:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 7,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 1,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 2,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "14:46:00",
+              "expectedEndTime": "14:56:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [
+                {
+                  "from": "13:28:00",
+                  "to": "14:46:00"
+                }
+              ],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "14:46:00",
+                  "endTime": "14:56:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "dayNumber": 2,
+            "date": "2026-10-19",
+            "status": "evaluable",
+            "requiredMeals": [
+              "BREAKFAST",
+              "LUNCH"
+            ],
+            "exemptMeals": [
+              "DINNER"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "08:00:00",
+                "endTime": "08:40:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 3,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:30:00",
+                "endTime": "13:30:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 30,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 6,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 1,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 2,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "15:00:00",
+              "expectedEndTime": "15:10:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [
+                {
+                  "from": "14:00:00",
+                  "to": "15:00:00"
+                }
+              ],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "15:00:00",
+                  "endTime": "15:10:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "file": "C3-gangneung-combined-diseases-1.json",
+        "caseId": "C3-gangneung-combined-diseases",
+        "repeat": 1,
+        "companionCount": 1,
+        "apiSuccess": true,
+        "saved": false,
+        "status": "evaluable",
+        "dayStructurePassed": true,
+        "days": [
+          {
+            "dayNumber": 1,
+            "date": "2026-10-18",
+            "status": "evaluable",
+            "requiredMeals": [
+              "LUNCH",
+              "DINNER"
+            ],
+            "exemptMeals": [
+              "BREAKFAST"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "08:00:00",
+                "endTime": "09:00:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 3,
+                "scheduleType": "LUNCH",
+                "courseType": "LOCAL_FOOD",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:00:00",
+                "endTime": "12:50:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 8,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "18:22:00",
+                "endTime": "19:12:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 22,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 8,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 0,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 1,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "14:10:00",
+              "expectedEndTime": "14:20:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [
+                {
+                  "from": "13:20:00",
+                  "to": "14:10:00"
+                }
+              ],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "14:10:00",
+                  "endTime": "14:20:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "dayNumber": 2,
+            "date": "2026-10-19",
+            "status": "evaluable",
+            "requiredMeals": [
+              "BREAKFAST",
+              "LUNCH"
+            ],
+            "exemptMeals": [
+              "DINNER"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "08:00:00",
+                "endTime": "08:50:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 3,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "14:46:00",
+                "endTime": "15:36:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 166,
+                "within30Minutes": false,
+                "mealTimeAppliedTag": false,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "18:21:00",
+                "endTime": "19:11:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 21,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 6,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 2,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 1,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "16:06:00",
+              "expectedEndTime": "16:16:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "16:06:00",
+                  "endTime": "16:16:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "file": "C3-gangneung-combined-diseases-2.json",
+        "caseId": "C3-gangneung-combined-diseases",
+        "repeat": 2,
+        "companionCount": 1,
+        "apiSuccess": false,
+        "saved": null,
+        "status": "not_evaluable",
+        "reason": "api_not_successful",
+        "days": []
+      },
+      {
+        "file": "C3-gangneung-combined-diseases-3.json",
+        "caseId": "C3-gangneung-combined-diseases",
+        "repeat": 3,
+        "companionCount": 1,
+        "apiSuccess": true,
+        "saved": false,
+        "status": "evaluable",
+        "dayStructurePassed": true,
+        "days": [
+          {
+            "dayNumber": 1,
+            "date": "2026-10-18",
+            "status": "evaluable",
+            "requiredMeals": [
+              "LUNCH",
+              "DINNER"
+            ],
+            "exemptMeals": [
+              "BREAKFAST"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "LOCAL_FOOD",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "08:00:00",
+                "endTime": "09:00:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 3,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:56:00",
+                "endTime": "13:56:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 56,
+                "within30Minutes": false,
+                "mealTimeAppliedTag": false,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 7,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "18:12:00",
+                "endTime": "19:12:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 12,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 7,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 1,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 1,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "14:26:00",
+              "expectedEndTime": "14:36:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "14:26:00",
+                  "endTime": "14:36:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "dayNumber": 2,
+            "date": "2026-10-19",
+            "status": "evaluable",
+            "requiredMeals": [
+              "BREAKFAST",
+              "LUNCH"
+            ],
+            "exemptMeals": [
+              "DINNER"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "08:00:00",
+                "endTime": "09:00:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:28:00",
+                "endTime": "13:28:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 28,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 7,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "18:23:00",
+                "endTime": "19:23:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 23,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 7,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 2,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 1,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "14:56:00",
+              "expectedEndTime": "15:06:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [
+                {
+                  "from": "13:58:00",
+                  "to": "14:56:00"
+                }
+              ],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "14:56:00",
+                  "endTime": "15:06:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "file": "C4-gyeongju-two-companions-combined-1.json",
+        "caseId": "C4-gyeongju-two-companions-combined",
+        "repeat": 1,
+        "companionCount": 2,
+        "apiSuccess": true,
+        "saved": false,
+        "status": "evaluable",
+        "dayStructurePassed": true,
+        "days": [
+          {
+            "dayNumber": 1,
+            "date": "2026-10-18",
+            "status": "evaluable",
+            "requiredMeals": [
+              "LUNCH",
+              "DINNER"
+            ],
+            "exemptMeals": [
+              "BREAKFAST"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "08:00:00",
+                "endTime": "09:00:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "LOCAL_FOOD",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:00:00",
+                "endTime": "13:00:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 6,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 1,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 2,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "13:30:00",
+              "expectedEndTime": "13:40:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "13:30:00",
+                  "endTime": "13:40:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "dayNumber": 2,
+            "date": "2026-10-19",
+            "status": "evaluable",
+            "requiredMeals": [
+              "BREAKFAST",
+              "LUNCH"
+            ],
+            "exemptMeals": [
+              "DINNER"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "08:00:00",
+                "endTime": "09:00:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:00:00",
+                "endTime": "13:00:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 6,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 1,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 2,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "13:30:00",
+              "expectedEndTime": "13:40:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "13:30:00",
+                  "endTime": "13:40:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "file": "C4-gyeongju-two-companions-combined-2.json",
+        "caseId": "C4-gyeongju-two-companions-combined",
+        "repeat": 2,
+        "companionCount": 2,
+        "apiSuccess": true,
+        "saved": false,
+        "status": "evaluable",
+        "dayStructurePassed": true,
+        "days": [
+          {
+            "dayNumber": 1,
+            "date": "2026-10-18",
+            "status": "evaluable",
+            "requiredMeals": [
+              "LUNCH",
+              "DINNER"
+            ],
+            "exemptMeals": [
+              "BREAKFAST"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "LOCAL_FOOD",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "08:00:00",
+                "endTime": "09:00:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:00:00",
+                "endTime": "13:00:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 7,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 2,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 2,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "13:30:00",
+              "expectedEndTime": "13:40:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "13:30:00",
+                  "endTime": "13:40:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "dayNumber": 2,
+            "date": "2026-10-19",
+            "status": "evaluable",
+            "requiredMeals": [
+              "BREAKFAST",
+              "LUNCH"
+            ],
+            "exemptMeals": [
+              "DINNER"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "08:00:00",
+                "endTime": "09:00:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 3,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:30:00",
+                "endTime": "13:30:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 30,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 6,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 1,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 2,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "15:30:00",
+              "expectedEndTime": "15:40:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [
+                {
+                  "from": "14:00:00",
+                  "to": "15:30:00"
+                }
+              ],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "15:30:00",
+                  "endTime": "15:40:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "file": "C4-gyeongju-two-companions-combined-3.json",
+        "caseId": "C4-gyeongju-two-companions-combined",
+        "repeat": 3,
+        "companionCount": 2,
+        "apiSuccess": true,
+        "saved": false,
+        "status": "evaluable",
+        "dayStructurePassed": true,
+        "days": [
+          {
+            "dayNumber": 1,
+            "date": "2026-10-18",
+            "status": "evaluable",
+            "requiredMeals": [
+              "LUNCH",
+              "DINNER"
+            ],
+            "exemptMeals": [
+              "BREAKFAST"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "LOCAL_FOOD",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "08:00:00",
+                "endTime": "09:00:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:00:00",
+                "endTime": "13:00:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 6,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 1,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 2,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "13:30:00",
+              "expectedEndTime": "13:40:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "13:30:00",
+                  "endTime": "13:40:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "dayNumber": 2,
+            "date": "2026-10-19",
+            "status": "evaluable",
+            "requiredMeals": [
+              "BREAKFAST",
+              "LUNCH"
+            ],
+            "exemptMeals": [
+              "DINNER"
+            ],
+            "mealSlotCounts": {
+              "BREAKFAST": 1,
+              "LUNCH": 1,
+              "DINNER": 1
+            },
+            "requiredMealExpectedCount": 2,
+            "requiredMealPresentCount": 2,
+            "requiredMealPresencePassed": true,
+            "meals": [
+              {
+                "slotIndex": 0,
+                "scheduleType": "BREAKFAST",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "08:00:00",
+                "endTime": "09:00:00",
+                "configuredTime": "08:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 2,
+                "scheduleType": "LUNCH",
+                "courseType": "RESTAURANT",
+                "required": true,
+                "exemptFromRequiredPresence": false,
+                "startTime": "12:00:00",
+                "endTime": "13:00:00",
+                "configuredTime": "12:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              },
+              {
+                "slotIndex": 6,
+                "scheduleType": "DINNER",
+                "courseType": "RESTAURANT",
+                "required": false,
+                "exemptFromRequiredPresence": true,
+                "startTime": "18:00:00",
+                "endTime": "19:00:00",
+                "configuredTime": "18:00:00",
+                "signedDeviationMinutes": 0,
+                "within30Minutes": true,
+                "mealTimeAppliedTag": true,
+                "tagConsistent": true,
+                "status": "evaluable"
+              }
+            ],
+            "fieldIssues": [],
+            "placeSlotCount": 6,
+            "missingNumericRouteTimeCount": 0,
+            "invalidRouteTimeCount": 0,
+            "restaurantSlotCount": 3,
+            "allThreeNutritionFieldsCompleteCount": 2,
+            "medication": {
+              "status": "evaluable",
+              "reason": null,
+              "companionCount": 2,
+              "expectedMergedSlotCount": 1,
+              "expectedStartTime": "14:40:00",
+              "expectedEndTime": "14:50:00",
+              "expectedDescription": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+              "movedAfterNonmealSlots": [
+                {
+                  "from": "13:30:00",
+                  "to": "14:40:00"
+                }
+              ],
+              "checks": {
+                "exactlyOneMergedSlot": true,
+                "startTime": true,
+                "endTime": true,
+                "stayMinutes": true,
+                "scheduleType": true,
+                "intervalMinutes": true,
+                "mergedDescription": true,
+                "medicationScheduleTag": true,
+                "noPlaceFields": true
+              },
+              "passed": true,
+              "actual": [
+                {
+                  "startTime": "14:40:00",
+                  "endTime": "14:50:00",
+                  "stayMinutes": 10,
+                  "scheduleType": "CHECK_IN",
+                  "intervalMinutes": 30,
+                  "description": "테스트 복약 점심 식후 30분, 테스트 복약 점심 식후 30분",
+                  "tags": [
+                    "MEDICATION_SCHEDULE"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "interpretation": {
+      "mealPresence": "First breakfast and last dinner exempt; no exemption for lunch.",
+      "mealTime": "Deviation is observational; late untagged meals are not automatically policy violations. Physical travel constraints take priority.",
+      "medication": "Fixed fixture: lunch after 30 minutes, ten-minute slot; identical companion prescriptions merge at the same time.",
+      "nutrition": "Numeric carbohydrate+sodium+fat completeness only; no nutrition accuracy or HIGH grade claim.",
+      "menuSource": "not_evaluable_from_raw: firstmenu/treatmenu and matching successful detail identity are not stored in API raw.",
+      "safety": "No ingredient/allergy safety or opening-hours conclusion.",
+      "savedFlag": "saved=false is the expected confirmation state, not proof of missing persistence"
+    },
+    "policyReferences": {
+      "mealExemptions": "MealSlotPolicy.java:77-105",
+      "mealTimeTolerance": "ScheduleNormalizer.java:40,321-351",
+      "travelConstraintsFirst": "ScheduleNormalizer.java:110-140",
+      "mealTimeTag": "PlanService.java:1683-1689",
+      "medicationMovement": "ScheduleNormalizer.java:447-475",
+      "medicationMerge": "ScheduleNormalizer.java:415-428,744-777",
+      "medicationTiming": "ScheduleNormalizer.java:643-741"
+    }
+  }
+}

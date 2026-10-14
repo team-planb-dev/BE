@@ -1,0 +1,263 @@
+{
+  "date": "2026-10-12",
+  "scope": "Offline handoff validation; no new provider calls or production changes",
+  "baselineCommit": "f236f953f6ca3dd55cbb67f1e20142c0fe4ec280",
+  "original179PatchSha256": "67b1dec1b8d2f2ee3741ec370227138ef7dfc649412e13197cbb032972eb63f4",
+  "claudePatchSha256": "ce2beb14d1571771bc227720f77c04be2b9f6f1d2dc30af4e6c981bcf77b0d41",
+  "claudeReportSha256": "b7264fe5ee1953f88a8281c380bc1689bf162ba3c4dc4647f02197830fcd168b",
+  "claudeProductionSourcesMatchOriginal": true,
+  "claudeTestPatchAppliedToCodexWorktree": false,
+  "codexTargetedTests": [
+    {
+      "class": "com.planb.unit.domain.travel.service.ScheduleNormalizerTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.planb.unit.domain.travel.policy.MealSlotPolicyTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "class": "com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest",
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "codexTargetedTotal": 29,
+  "claudeFull930Tests": "Reported by Claude; not rerun in Codex handoff validation",
+  "rawMedicationAudit": {
+    "before": {
+      "mealLateCount": 3,
+      "medicationSlots": 22,
+      "intervalViolationSlots": 10,
+      "overlapSlots": 1,
+      "cases": [
+        {
+          "case": "C1-seoul-single-disease-2",
+          "day": 1,
+          "mealEnd": "13:07:00",
+          "medicationStart": "15:00:00",
+          "medicationEnd": "15:10:00",
+          "delayMinutes": 113.0,
+          "intervalViolation": true,
+          "overlappingPlaceCount": 0
+        },
+        {
+          "case": "C2-busan-two-companions-1",
+          "day": 2,
+          "mealEnd": "13:07:00",
+          "medicationStart": "14:37:00",
+          "medicationEnd": "14:47:00",
+          "delayMinutes": 90.0,
+          "intervalViolation": true,
+          "overlappingPlaceCount": 1
+        },
+        {
+          "case": "C2-busan-two-companions-2",
+          "day": 1,
+          "mealEnd": "12:55:00",
+          "medicationStart": "14:16:00",
+          "medicationEnd": "14:26:00",
+          "delayMinutes": 81.0,
+          "intervalViolation": true,
+          "overlappingPlaceCount": 0
+        },
+        {
+          "case": "C2-busan-two-companions-2",
+          "day": 2,
+          "mealEnd": "13:25:00",
+          "medicationStart": "14:30:00",
+          "medicationEnd": "14:40:00",
+          "delayMinutes": 65.0,
+          "intervalViolation": true,
+          "overlappingPlaceCount": 0
+        },
+        {
+          "case": "C2-busan-two-companions-3",
+          "day": 1,
+          "mealEnd": "12:58:00",
+          "medicationStart": "14:46:00",
+          "medicationEnd": "14:56:00",
+          "delayMinutes": 108.0,
+          "intervalViolation": true,
+          "overlappingPlaceCount": 0
+        },
+        {
+          "case": "C2-busan-two-companions-3",
+          "day": 2,
+          "mealEnd": "13:30:00",
+          "medicationStart": "15:00:00",
+          "medicationEnd": "15:10:00",
+          "delayMinutes": 90.0,
+          "intervalViolation": true,
+          "overlappingPlaceCount": 0
+        },
+        {
+          "case": "C3-gangneung-combined-diseases-1",
+          "day": 1,
+          "mealEnd": "12:50:00",
+          "medicationStart": "14:10:00",
+          "medicationEnd": "14:20:00",
+          "delayMinutes": 80.0,
+          "intervalViolation": true,
+          "overlappingPlaceCount": 0
+        },
+        {
+          "case": "C3-gangneung-combined-diseases-3",
+          "day": 2,
+          "mealEnd": "13:28:00",
+          "medicationStart": "14:56:00",
+          "medicationEnd": "15:06:00",
+          "delayMinutes": 88.0,
+          "intervalViolation": true,
+          "overlappingPlaceCount": 0
+        },
+        {
+          "case": "C4-gyeongju-two-companions-combined-2",
+          "day": 2,
+          "mealEnd": "13:30:00",
+          "medicationStart": "15:30:00",
+          "medicationEnd": "15:40:00",
+          "delayMinutes": 120.0,
+          "intervalViolation": true,
+          "overlappingPlaceCount": 0
+        },
+        {
+          "case": "C4-gyeongju-two-companions-combined-3",
+          "day": 2,
+          "mealEnd": "13:00:00",
+          "medicationStart": "14:40:00",
+          "medicationEnd": "14:50:00",
+          "delayMinutes": 100.0,
+          "intervalViolation": true,
+          "overlappingPlaceCount": 0
+        }
+      ]
+    },
+    "after": {
+      "mealLateCount": 6,
+      "medicationSlots": 24,
+      "intervalViolationSlots": 9,
+      "overlapSlots": 1,
+      "cases": [
+        {
+          "case": "C1-seoul-single-disease-2",
+          "day": 2,
+          "mealEnd": "14:46:00",
+          "medicationStart": "15:16:00",
+          "medicationEnd": "15:26:00",
+          "delayMinutes": 30.0,
+          "intervalViolation": false,
+          "overlappingPlaceCount": 1
+        },
+        {
+          "case": "C1-seoul-single-disease-3",
+          "day": 2,
+          "mealEnd": "13:47:00",
+          "medicationStart": "15:05:00",
+          "medicationEnd": "15:15:00",
+          "delayMinutes": 78.0,
+          "intervalViolation": true,
+          "overlappingPlaceCount": 0
+        },
+        {
+          "case": "C2-busan-two-companions-1",
+          "day": 1,
+          "mealEnd": "12:50:00",
+          "medicationStart": "14:10:00",
+          "medicationEnd": "14:20:00",
+          "delayMinutes": 80.0,
+          "intervalViolation": true,
+          "overlappingPlaceCount": 0
+        },
+        {
+          "case": "C2-busan-two-companions-1",
+          "day": 2,
+          "mealEnd": "12:50:00",
+          "medicationStart": "14:10:00",
+          "medicationEnd": "14:20:00",
+          "delayMinutes": 80.0,
+          "intervalViolation": true,
+          "overlappingPlaceCount": 0
+        },
+        {
+          "case": "C2-busan-two-companions-2",
+          "day": 2,
+          "mealEnd": "12:50:00",
+          "medicationStart": "14:10:00",
+          "medicationEnd": "14:20:00",
+          "delayMinutes": 80.0,
+          "intervalViolation": true,
+          "overlappingPlaceCount": 0
+        },
+        {
+          "case": "C2-busan-two-companions-3",
+          "day": 1,
+          "mealEnd": "13:45:00",
+          "medicationStart": "15:01:00",
+          "medicationEnd": "15:11:00",
+          "delayMinutes": 76.0,
+          "intervalViolation": true,
+          "overlappingPlaceCount": 0
+        },
+        {
+          "case": "C3-gangneung-combined-diseases-2",
+          "day": 1,
+          "mealEnd": "13:28:00",
+          "medicationStart": "14:58:00",
+          "medicationEnd": "15:08:00",
+          "delayMinutes": 90.0,
+          "intervalViolation": true,
+          "overlappingPlaceCount": 0
+        },
+        {
+          "case": "C3-gangneung-combined-diseases-2",
+          "day": 2,
+          "mealEnd": "13:30:00",
+          "medicationStart": "14:47:00",
+          "medicationEnd": "14:57:00",
+          "delayMinutes": 77.0,
+          "intervalViolation": true,
+          "overlappingPlaceCount": 0
+        },
+        {
+          "case": "C3-gangneung-combined-diseases-3",
+          "day": 1,
+          "mealEnd": "13:00:00",
+          "medicationStart": "14:20:00",
+          "medicationEnd": "14:30:00",
+          "delayMinutes": 80.0,
+          "intervalViolation": true,
+          "overlappingPlaceCount": 0
+        },
+        {
+          "case": "C4-gyeongju-two-companions-combined-2",
+          "day": 2,
+          "mealEnd": "12:50:00",
+          "medicationStart": "14:10:00",
+          "medicationEnd": "14:20:00",
+          "delayMinutes": 80.0,
+          "intervalViolation": true,
+          "overlappingPlaceCount": 0
+        }
+      ]
+    }
+  },
+  "interpretation": [
+    "All observed merged medication slots use fixed fixture lunch-after-30min input; not generic clinical assessment",
+    "Existing22/22 and24/24 count agreement with current postprocessing including movement; not adherence to configured interval",
+    "Overlap uses half-open medication/place intervals; observed overlap1 per batch",
+    "A/B feasibility fixes final place order, travel and stay; not a global scheduling impossibility proof",
+    "Old run12 API observations and Grafana data remain immutable; new counters are offline supplemental evidence"
+  ],
+  "policyDecision": "Pending user: registered interval vs place-end movement",
+  "newPaidBatches": 0,
+  "grafanaImportPerformed": false
+}

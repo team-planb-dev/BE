@@ -1,0 +1,332 @@
+{
+  "generatedManifestExcludedFromOwnHashes": true,
+  "allCopiesByteIdentical": true,
+  "sourceFiles": 54,
+  "secretValueScan": "no configured key or secret values found; original process log not included",
+  "files": [
+    {
+      "source": "docs/ai/p2-selection-recovery-stage2-result.md",
+      "sha256": "28f42ab9f03e544d525bd0b6e36e610e07c6e7074103371f31eb5c8ad8b665ae",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/p2-selection-recovery-stage2-result.md",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-result.md"
+    },
+    {
+      "source": "docs/ai/p2-selection-recovery-stage2-research.md",
+      "sha256": "47d9b0fa316b58a0e20b5bb246ea92b459f30324f6f5739f3e40e9831f70c0de",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/p2-selection-recovery-stage2-research.md",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-research.md"
+    },
+    {
+      "source": "docs/ai/p2-selection-recovery-stage2-verification.json",
+      "sha256": "6901bb6e773a02696f9a236e92f47119b31a153259fc60df7b2da689a416d5e6",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/p2-selection-recovery-stage2-verification.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-verification.json"
+    },
+    {
+      "source": "docs/ai/p2-selection-recovery-stage2-actual-quality-20261011.json",
+      "sha256": "11e7a197926bfda2d25621389771faeb9674cbf09f07a46a94e29aaa2b5691cf",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/p2-selection-recovery-stage2-actual-quality-20261011.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-actual-quality-20261011.json"
+    },
+    {
+      "source": "docs/ai/p2-selection-quality-followup-design.md",
+      "sha256": "d113af73b45cae508c7fb85f7b8bb04c823e32d8d32653bd6b923e3a6c131a44",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/p2-selection-quality-followup-design.md",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-quality-followup-design.md"
+    },
+    {
+      "source": "docs/ai/part2-orchestration-plan.md",
+      "sha256": "0016adebed7fd99c57de6508941c2c45b947ebe5d61a318fbef53248bb4337be",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/part2-orchestration-plan.md",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/part2-orchestration-plan.md"
+    },
+    {
+      "source": "docs/perf/refactoring-plan.md",
+      "sha256": "fe5ed467220e7b8f67c15bd25e67d9f071f26bf2b84179db4ec5d37744ff2dbe",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/perf/refactoring-plan.md",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/refactoring-plan.md"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/prior-grafana-query-verification.json",
+      "sha256": "00b346d195efd2b1d6e1a8df10b541072c6b0a30c2070eac844a893e164f44b7",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/prior-grafana-query-verification.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/prior-grafana-query-verification.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/baseline-manifest-reference.json",
+      "sha256": "3fcd71e060565241b15643d8845839ec19a4b5fe3e34dfca6fb39533ea69e282",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/baseline-manifest-reference.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/baseline-manifest-reference.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/grafana-query-verification.json",
+      "sha256": "91cbe51b6f235e51c995811232c9a7e48eef5a4ddfca33ff6546d2c398787f27",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/grafana-query-verification.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/grafana-query-verification.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/previous-observation-preservation.json",
+      "sha256": "376e46439a66bb192ca85c55dd384affc8776b0720cdabc026b95a0a1b37d09e",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/previous-observation-preservation.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/previous-observation-preservation.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/baseline-results.jsonl",
+      "sha256": "aef4e0604b9d1f92046ba25bd1a82b181c7f101dff756e604c7cc94198d244a8",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/baseline-results.jsonl",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/baseline-results.jsonl"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/quality-required-meal-denominators.openmetrics",
+      "sha256": "3985f5697d4ee645b9858ecdf2991ff1d51741b23b101246e6c6f6a93bfbf188",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/quality-required-meal-denominators.openmetrics",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/quality-required-meal-denominators.openmetrics"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/grafana-quality-comparison.json",
+      "sha256": "8d5ffe01ca6524200ec09b0aa8c62ced7ba2ff9542bc79f9a39d32e6db29ce73",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/grafana-quality-comparison.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/grafana-quality-comparison.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/actual-api-run-manifest.json",
+      "sha256": "c889d5c11c59b58a5be030d4e6d2987249e1715da7710c5ec50e68d0f603277f",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/actual-api-run-manifest.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/actual-api-run-manifest.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/grafana-url.json",
+      "sha256": "e77333c2bef2750c3ce91e2f7e3f6071bf17989644524dcb1ae6456ef7cd31f3",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/grafana-url.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/grafana-url.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/quality-comparison.openmetrics",
+      "sha256": "6555f0a708ff2cfbf0886797208ec05d6483ab63d27aeb48b433b3bcc609a9c2",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/quality-comparison.openmetrics",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/quality-comparison.openmetrics"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/measurement-review.json",
+      "sha256": "7c4680d6530994fdc16616e647741963ba241ac71190934df7ae0b3ff8905faf",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/measurement-review.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/measurement-review.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/results.jsonl",
+      "sha256": "961306f55e12ce38fb92ef4512ea6a57be3897ef44e01feb9292038b108dbf9b",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/results.jsonl",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/results.jsonl"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/validation-warnings.json",
+      "sha256": "da4c8c7c7302b3c7a2ea5db0acaae41c74d7d302ff1381eec470bff1702fcefd",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/validation-warnings.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/validation-warnings.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/prometheus-denominator-import.json",
+      "sha256": "709c45a4e1dd760ef02861b94df930875fec41fae4da083843b245b17e16d935",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/prometheus-denominator-import.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/prometheus-denominator-import.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/grafana-expected-values.json",
+      "sha256": "56ecc7aa11a4418361d2aed810751048edfd8a535ae053e86fc3fbc58133d29b",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/grafana-expected-values.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/grafana-expected-values.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/supplemental-raw-quality.json",
+      "sha256": "8d80cce916f56c9b070e0a506e576e454d0259a506370f7255a6e2064cedd1f6",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/supplemental-raw-quality.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/supplemental-raw-quality.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/prometheus-import.json",
+      "sha256": "d5fe33af63dd3218a0f95affb89cae2d4f8fedf0cbb83bd4968e05c4779213c0",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/prometheus-import.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/prometheus-import.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C3-gangneung-combined-diseases-1.json",
+      "sha256": "5123f3da529143e87a6ac2b23732adfc17415f64339b248783699eb811641b9b",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C3-gangneung-combined-diseases-1.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/raw/C3-gangneung-combined-diseases-1.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C2-busan-two-companions-1.json",
+      "sha256": "b372069c2098fac8afe0e2f2d44976507ac8d3ad67ac44a6d35b294950f84263",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C2-busan-two-companions-1.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/raw/C2-busan-two-companions-1.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C4-gyeongju-two-companions-combined-1.json",
+      "sha256": "db646d6709ef74febb27b84d0f4410cda6e64e67d382d91d4264f7098d4b3f2a",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C4-gyeongju-two-companions-combined-1.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/raw/C4-gyeongju-two-companions-combined-1.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C1-seoul-single-disease-1.json",
+      "sha256": "831a6223ccc2842a5b4c834479ac61fe403293c0b409f407c42984ce19e84336",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C1-seoul-single-disease-1.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/raw/C1-seoul-single-disease-1.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C2-busan-two-companions-3.json",
+      "sha256": "efd875bb23d83ce51796fcfc7d14e93c3573384f0cf55e72b2b063fc756a633d",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C2-busan-two-companions-3.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/raw/C2-busan-two-companions-3.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C3-gangneung-combined-diseases-3.json",
+      "sha256": "cb1da2d52b4a2546aef38213bd0e63781235a5d3a02599639db004e3e9bba334",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C3-gangneung-combined-diseases-3.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/raw/C3-gangneung-combined-diseases-3.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C1-seoul-single-disease-3.json",
+      "sha256": "0aaa784b9a318ea2c371d801db702c60263f77a27d13c0d8ccb6efddee9a119a",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C1-seoul-single-disease-3.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/raw/C1-seoul-single-disease-3.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C4-gyeongju-two-companions-combined-3.json",
+      "sha256": "9de46d354c4a8369aade6a520f1cfb89aaeff9523a922d688b1955bd45388236",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C4-gyeongju-two-companions-combined-3.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/raw/C4-gyeongju-two-companions-combined-3.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C4-gyeongju-two-companions-combined-2.json",
+      "sha256": "91011b96c522a4d91eaaf27ebf559ddabf4ceda04ee8d3aaa02aac56bec9ee0c",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C4-gyeongju-two-companions-combined-2.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/raw/C4-gyeongju-two-companions-combined-2.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C1-seoul-single-disease-2.json",
+      "sha256": "a4bcfeeac85b0d0a070b17f97cfe09eac99b4a6d3c0338be26d4050211dd80fc",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C1-seoul-single-disease-2.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/raw/C1-seoul-single-disease-2.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C3-gangneung-combined-diseases-2.json",
+      "sha256": "0124e8ade635b2b22bbbfb94421d8cc82e0b2130f21749a474497aa7f8ae4b7b",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C3-gangneung-combined-diseases-2.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/raw/C3-gangneung-combined-diseases-2.json"
+    },
+    {
+      "source": "docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C2-busan-two-companions-2.json",
+      "sha256": "07c5fc242f3e310b9b519333259b1ca82081f929935b10ba3eea904e42026b3a",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/evidence/p2-selection-recovery-stage2-20261011T114549Z/raw/C2-busan-two-companions-2.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-20261011T114549Z/raw/C2-busan-two-companions-2.json"
+    },
+    {
+      "source": "docs/ai/p2-selection-recovery-stage2-evidence/selection-recovery-reselect-tools.json",
+      "sha256": "e74fe1f5cce2f54bbcd4c5f50caeae6145fa710c51e5c443fad84f85a636d682",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/p2-selection-recovery-stage2-evidence/selection-recovery-reselect-tools.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-evidence/selection-recovery-reselect-tools.json"
+    },
+    {
+      "source": "docs/ai/p2-selection-recovery-stage2-evidence/final-format-compile.log",
+      "sha256": "1ba7da3de87168a49a2a4c7144954703a5dfad3692a1cdda1d9ca39a28acb7da",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/p2-selection-recovery-stage2-evidence/final-format-compile.log",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-evidence/final-format-compile.log"
+    },
+    {
+      "source": "docs/ai/p2-selection-recovery-stage2-evidence/s10-green.log",
+      "sha256": "176dac6cb2bfa5e483cf5e2835e9827fa51ee00bc0f098653eea8df4c92937c8",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/p2-selection-recovery-stage2-evidence/s10-green.log",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-evidence/s10-green.log"
+    },
+    {
+      "source": "docs/ai/p2-selection-recovery-stage2-evidence/full-test-final.log",
+      "sha256": "28117285c0fa2635d2010be00bb2dc5ab23c14743841982a2c0be4fce93cd951",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/p2-selection-recovery-stage2-evidence/full-test-final.log",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-evidence/full-test-final.log"
+    },
+    {
+      "source": "docs/ai/p2-selection-recovery-stage2-evidence/selection-recovery-content.json",
+      "sha256": "97a102cc6c3f124d4c03428a5909e88f7aead9aa147c5435498e9558432fc18d",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/p2-selection-recovery-stage2-evidence/selection-recovery-content.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-evidence/selection-recovery-content.json"
+    },
+    {
+      "source": "docs/ai/p2-selection-recovery-stage2-evidence/selection-recovery-tools.json",
+      "sha256": "1e9dee048baff04af03d9d1b3a55c54693cad7b669184e0313bca6cae010955c",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/p2-selection-recovery-stage2-evidence/selection-recovery-tools.json",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-evidence/selection-recovery-tools.json"
+    },
+    {
+      "source": "docs/ai/p2-selection-recovery-stage2-evidence/edit-red.xml",
+      "sha256": "64eb16944109c8a351ee8e694d0a12c22adf521d35420d38f9b92fa1417cdec7",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/p2-selection-recovery-stage2-evidence/edit-red.xml",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-evidence/edit-red.xml"
+    },
+    {
+      "source": "docs/ai/p2-selection-recovery-stage2-evidence/s5-red.log",
+      "sha256": "a30764af549f622d2b520044a7e3c096327a8d19b45e67bbd05ec67691563d9d",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/p2-selection-recovery-stage2-evidence/s5-red.log",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-evidence/s5-red.log"
+    },
+    {
+      "source": "docs/ai/p2-selection-recovery-stage2-evidence/implementation.patch",
+      "sha256": "67b1dec1b8d2f2ee3741ec370227138ef7dfc649412e13197cbb032972eb63f4",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/p2-selection-recovery-stage2-evidence/implementation.patch",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-evidence/implementation.patch"
+    },
+    {
+      "source": "docs/ai/p2-selection-recovery-stage2-evidence/s10-red.xml",
+      "sha256": "d2793b273e2bf7db1b10769914edeb84fe1f23d379ae6ddce3b6238fbf44afe1",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/p2-selection-recovery-stage2-evidence/s10-red.xml",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-evidence/s10-red.xml"
+    },
+    {
+      "source": "docs/ai/p2-selection-recovery-stage2-evidence/edit-green.log",
+      "sha256": "988924d3fd621722615d37f71abb85719c9180944daba2052cba859a406d206a",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/p2-selection-recovery-stage2-evidence/edit-green.log",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-evidence/edit-green.log"
+    },
+    {
+      "source": "docs/ai/p2-selection-recovery-stage2-evidence/edit-red.log",
+      "sha256": "dc3afaf0d1e045f4bdc6ae847b48865b89a6624fbd30b27ad8c446c8fc7c98d4",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/p2-selection-recovery-stage2-evidence/edit-red.log",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-evidence/edit-red.log"
+    },
+    {
+      "source": "docs/ai/p2-selection-recovery-stage2-evidence/s1-red.log",
+      "sha256": "e6b9bd1b81bd362967b8ff1614e7359ed86c440a1cf5aa5badcecb75dd6e1786",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/p2-selection-recovery-stage2-evidence/s1-red.log",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-evidence/s1-red.log"
+    },
+    {
+      "source": "docs/ai/p2-selection-recovery-stage2-evidence/s5-red.xml",
+      "sha256": "afe12a39cd34ee75298026f4e5aaa046f8dd9987310d72de16208f16827e14f5",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/p2-selection-recovery-stage2-evidence/s5-red.xml",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-evidence/s5-red.xml"
+    },
+    {
+      "source": "docs/ai/p2-selection-recovery-stage2-evidence/TEST-com.planb.unit.global.ai.tool.PlanTourismToolTest.xml",
+      "sha256": "452b43935fbeb469ec633325c6145b9012ab19364c0b8615e5121777a4591e9d",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/p2-selection-recovery-stage2-evidence/TEST-com.planb.unit.global.ai.tool.PlanTourismToolTest.xml",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-evidence/TEST-com.planb.unit.global.ai.tool.PlanTourismToolTest.xml"
+    },
+    {
+      "source": "docs/ai/p2-selection-recovery-stage2-evidence/s10-red.log",
+      "sha256": "38387c9d7a9b025afff057fe05af0cdf19822208ea61ac95a1fe532144d3fa1b",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/p2-selection-recovery-stage2-evidence/s10-red.log",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-evidence/s10-red.log"
+    },
+    {
+      "source": "docs/ai/p2-selection-recovery-stage2-evidence/TEST-com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest.xml",
+      "sha256": "e79bfca0e394e8896e55e28fbe3b05306f04b077f30cc8b21ac615aa59b9b3a1",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/p2-selection-recovery-stage2-evidence/TEST-com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest.xml",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-evidence/TEST-com.planb.unit.domain.travel.service.PlanSelectionRecoveryContractTest.xml"
+    },
+    {
+      "source": "docs/ai/p2-selection-recovery-stage2-evidence/s1-green.log",
+      "sha256": "1987b1baf9d4a9805a59f9e0e4d0acf1e01781af08513ae2991198142324cf1a",
+      "desktop": "/Users/wooju-kang/Desktop/planB/docs/ai/p2-selection-recovery-stage2-evidence/s1-green.log",
+      "archive": "/Users/wooju-kang/Desktop/개발/Yeoro 프로젝트 모음/리팩토링 문서/텍스트 문서/p2-selection-recovery-stage2-evidence/s1-green.log"
+    }
+  ]
+}

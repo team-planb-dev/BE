@@ -1,0 +1,1416 @@
+{
+  "phase": "P2-4C",
+  "before": {
+    "runId": "2026-10-08T05-45-48.083415Z",
+    "generationRuns": 12,
+    "pass": 12,
+    "outcomes": {
+      "PASS": 12
+    },
+    "durationMsMedian": 19986.0,
+    "caseDurationMsMedian": {
+      "C1-seoul-single-disease": 21739,
+      "C2-busan-two-companions": 15170,
+      "C3-gangneung-combined-diseases": 20022,
+      "C4-gyeongju-two-companions-combined": 19950
+    },
+    "repeatDurationMsMedian": {
+      "1": 49958.5,
+      "2": 17322.0,
+      "3": 15070.0
+    },
+    "llmCalls": 61,
+    "successLlmCalls": 61,
+    "plannedPlaceIncluded": 12,
+    "crossDayDuplicatePlaces": 0,
+    "allergenKeywordHits": 0,
+    "restaurantSlots": 72,
+    "nutritionFilled": 36,
+    "cafeRestSlots": 11,
+    "attractionTags": 72,
+    "menuSourceMatched": 72,
+    "menuSourceChecked": 72,
+    "totalTravelMinutesMedian": 300.0,
+    "perRun": [
+      {
+        "caseId": "C1-seoul-single-disease",
+        "repeat": 1,
+        "outcome": "PASS",
+        "failure": null,
+        "durationMs": 57475,
+        "seed": 1,
+        "quality": {
+          "plannedPlaceIncluded": true,
+          "mustHaveSlots": 1,
+          "crossDayDuplicatePlaces": 0,
+          "allergenHits": 0,
+          "cafeRestSlots": 0,
+          "attractionTags": 6,
+          "totalTravelMinutes": 448,
+          "restaurantSlots": 6,
+          "nutritionFilled": 4
+        },
+        "menuSourceChecked": 6,
+        "menuSourceMatched": 6,
+        "llmCalls": 9,
+        "tokens": 61732,
+        "stages": {
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 39070.489541
+          },
+          "flow=create,outcome=success,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 5423.718625
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 68.298208
+          },
+          "flow=create,outcome=success,stage=nutrition_enrichment": {
+            "count": 1.0,
+            "amount": 3879.78625
+          },
+          "flow=create,outcome=success,stage=nutrition_lookup": {
+            "count": 1.0,
+            "amount": 3873.660708
+          },
+          "flow=create,outcome=success,stage=persistence": {
+            "count": 1.0,
+            "amount": 145.274458
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 12731.64775
+          },
+          "flow=create,outcome=success,stage=reselect": {
+            "count": 1.0,
+            "amount": 12000.489584
+          }
+        }
+      },
+      {
+        "caseId": "C1-seoul-single-disease",
+        "repeat": 2,
+        "outcome": "PASS",
+        "failure": null,
+        "durationMs": 21739,
+        "seed": 2,
+        "quality": {
+          "plannedPlaceIncluded": true,
+          "mustHaveSlots": 1,
+          "crossDayDuplicatePlaces": 0,
+          "allergenHits": 0,
+          "cafeRestSlots": 2,
+          "attractionTags": 6,
+          "totalTravelMinutes": 561,
+          "restaurantSlots": 6,
+          "nutritionFilled": 4
+        },
+        "menuSourceChecked": 6,
+        "menuSourceMatched": 6,
+        "llmCalls": 5,
+        "tokens": 58056,
+        "stages": {
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 19969.797957999996
+          },
+          "flow=create,outcome=success,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 1596.2234159999998
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 16.189959
+          },
+          "flow=create,outcome=success,stage=nutrition_enrichment": {
+            "count": 1.0,
+            "amount": 5.118666999999732
+          },
+          "flow=create,outcome=success,stage=nutrition_lookup": {
+            "count": 2.0,
+            "amount": 8.901957999999922
+          },
+          "flow=create,outcome=success,stage=persistence": {
+            "count": 1.0,
+            "amount": 141.81504199999998
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 7.683582999999999
+          }
+        }
+      },
+      {
+        "caseId": "C1-seoul-single-disease",
+        "repeat": 3,
+        "outcome": "PASS",
+        "failure": null,
+        "durationMs": 14970,
+        "seed": 3,
+        "quality": {
+          "plannedPlaceIncluded": true,
+          "mustHaveSlots": 1,
+          "crossDayDuplicatePlaces": 0,
+          "allergenHits": 0,
+          "cafeRestSlots": 0,
+          "attractionTags": 6,
+          "totalTravelMinutes": 499,
+          "restaurantSlots": 6,
+          "nutritionFilled": 4
+        },
+        "menuSourceChecked": 6,
+        "menuSourceMatched": 6,
+        "llmCalls": 5,
+        "tokens": 57404,
+        "stages": {
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 13470.884999999995
+          },
+          "flow=create,outcome=success,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 1375.220374999999
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 12.026499999999999
+          },
+          "flow=create,outcome=success,stage=nutrition_enrichment": {
+            "count": 1.0,
+            "amount": 3.8624589999999444
+          },
+          "flow=create,outcome=success,stage=nutrition_lookup": {
+            "count": 1.0,
+            "amount": 3.729833000000326
+          },
+          "flow=create,outcome=success,stage=persistence": {
+            "count": 1.0,
+            "amount": 85.47862500000002
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 18.94554099999914
+          }
+        }
+      },
+      {
+        "caseId": "C2-busan-two-companions",
+        "repeat": 1,
+        "outcome": "PASS",
+        "failure": null,
+        "durationMs": 38454,
+        "seed": 101,
+        "quality": {
+          "plannedPlaceIncluded": true,
+          "mustHaveSlots": 1,
+          "crossDayDuplicatePlaces": 0,
+          "allergenHits": 0,
+          "cafeRestSlots": 1,
+          "attractionTags": 6,
+          "totalTravelMinutes": 262,
+          "restaurantSlots": 6,
+          "nutritionFilled": 2
+        },
+        "menuSourceChecked": 6,
+        "menuSourceMatched": 6,
+        "llmCalls": 5,
+        "tokens": 51296,
+        "stages": {
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 29496.977792000005
+          },
+          "flow=create,outcome=success,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 8231.154750000002
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 24.60737499999999
+          },
+          "flow=create,outcome=success,stage=nutrition_enrichment": {
+            "count": 1.0,
+            "amount": 7800.66575
+          },
+          "flow=create,outcome=success,stage=nutrition_lookup": {
+            "count": 3.0,
+            "amount": 11684.873999
+          },
+          "flow=create,outcome=success,stage=persistence": {
+            "count": 1.0,
+            "amount": 109.42741699999999
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 579.0279170000013
+          }
+        }
+      },
+      {
+        "caseId": "C2-busan-two-companions",
+        "repeat": 2,
+        "outcome": "PASS",
+        "failure": null,
+        "durationMs": 13083,
+        "seed": 102,
+        "quality": {
+          "plannedPlaceIncluded": true,
+          "mustHaveSlots": 1,
+          "crossDayDuplicatePlaces": 0,
+          "allergenHits": 0,
+          "cafeRestSlots": 1,
+          "attractionTags": 6,
+          "totalTravelMinutes": 240,
+          "restaurantSlots": 6,
+          "nutritionFilled": 2
+        },
+        "menuSourceChecked": 6,
+        "menuSourceMatched": 6,
+        "llmCalls": 4,
+        "tokens": 44481,
+        "stages": {
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 12521.447583000001
+          },
+          "flow=create,outcome=success,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 401.00308399999994
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 17.08125000000001
+          },
+          "flow=create,outcome=success,stage=nutrition_enrichment": {
+            "count": 1.0,
+            "amount": 4.432791999999608
+          },
+          "flow=create,outcome=success,stage=nutrition_lookup": {
+            "count": 3.0,
+            "amount": 7.688000000000102
+          },
+          "flow=create,outcome=success,stage=persistence": {
+            "count": 1.0,
+            "amount": 121.04925000000003
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 17.108667000000423
+          }
+        }
+      },
+      {
+        "caseId": "C2-busan-two-companions",
+        "repeat": 3,
+        "outcome": "PASS",
+        "failure": null,
+        "durationMs": 15170,
+        "seed": 103,
+        "quality": {
+          "plannedPlaceIncluded": true,
+          "mustHaveSlots": 1,
+          "crossDayDuplicatePlaces": 0,
+          "allergenHits": 0,
+          "cafeRestSlots": 1,
+          "attractionTags": 6,
+          "totalTravelMinutes": 280,
+          "restaurantSlots": 6,
+          "nutritionFilled": 3
+        },
+        "menuSourceChecked": 6,
+        "menuSourceMatched": 6,
+        "llmCalls": 5,
+        "tokens": 51367,
+        "stages": {
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 14611.896500000003
+          },
+          "flow=create,outcome=success,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 428.5503329999992
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 19.997332999999998
+          },
+          "flow=create,outcome=success,stage=nutrition_enrichment": {
+            "count": 1.0,
+            "amount": 3.3052500000012515
+          },
+          "flow=create,outcome=success,stage=nutrition_lookup": {
+            "count": 2.0,
+            "amount": 5.790457999999489
+          },
+          "flow=create,outcome=success,stage=persistence": {
+            "count": 1.0,
+            "amount": 82.82270899999992
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 20.23833299999933
+          }
+        }
+      },
+      {
+        "caseId": "C3-gangneung-combined-diseases",
+        "repeat": 1,
+        "outcome": "PASS",
+        "failure": null,
+        "durationMs": 51893,
+        "seed": 201,
+        "quality": {
+          "plannedPlaceIncluded": true,
+          "mustHaveSlots": 1,
+          "crossDayDuplicatePlaces": 0,
+          "allergenHits": 0,
+          "cafeRestSlots": 2,
+          "attractionTags": 6,
+          "totalTravelMinutes": 320,
+          "restaurantSlots": 6,
+          "nutritionFilled": 1
+        },
+        "menuSourceChecked": 6,
+        "menuSourceMatched": 6,
+        "llmCalls": 5,
+        "tokens": 44368,
+        "stages": {
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 43018.695791000006
+          },
+          "flow=create,outcome=success,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 8513.867957999999
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 9.29249999999999
+          },
+          "flow=create,outcome=success,stage=nutrition_enrichment": {
+            "count": 1.0,
+            "amount": 7809.624707999999
+          },
+          "flow=create,outcome=success,stage=nutrition_lookup": {
+            "count": 3.0,
+            "amount": 11713.569207
+          },
+          "flow=create,outcome=success,stage=persistence": {
+            "count": 1.0,
+            "amount": 114.9759160000001
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 230.2713330000006
+          }
+        }
+      },
+      {
+        "caseId": "C3-gangneung-combined-diseases",
+        "repeat": 2,
+        "outcome": "PASS",
+        "failure": null,
+        "durationMs": 20022,
+        "seed": 202,
+        "quality": {
+          "plannedPlaceIncluded": true,
+          "mustHaveSlots": 1,
+          "crossDayDuplicatePlaces": 0,
+          "allergenHits": 0,
+          "cafeRestSlots": 2,
+          "attractionTags": 6,
+          "totalTravelMinutes": 463,
+          "restaurantSlots": 6,
+          "nutritionFilled": 4
+        },
+        "menuSourceChecked": 6,
+        "menuSourceMatched": 6,
+        "llmCalls": 4,
+        "tokens": 39202,
+        "stages": {
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 19253.069791999995
+          },
+          "flow=create,outcome=success,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 672.3912080000009
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 12.177666000000016
+          },
+          "flow=create,outcome=success,stage=nutrition_enrichment": {
+            "count": 1.0,
+            "amount": 0.1535409999996773
+          },
+          "flow=create,outcome=success,stage=persistence": {
+            "count": 1.0,
+            "amount": 77.03887499999996
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 0.9871249999996508
+          }
+        }
+      },
+      {
+        "caseId": "C3-gangneung-combined-diseases",
+        "repeat": 3,
+        "outcome": "PASS",
+        "failure": null,
+        "durationMs": 14345,
+        "seed": 203,
+        "quality": {
+          "plannedPlaceIncluded": true,
+          "mustHaveSlots": 1,
+          "crossDayDuplicatePlaces": 0,
+          "allergenHits": 0,
+          "cafeRestSlots": 0,
+          "attractionTags": 6,
+          "totalTravelMinutes": 369,
+          "restaurantSlots": 6,
+          "nutritionFilled": 4
+        },
+        "menuSourceChecked": 6,
+        "menuSourceMatched": 6,
+        "llmCalls": 5,
+        "tokens": 43285,
+        "stages": {
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 13659.238042000012
+          },
+          "flow=create,outcome=success,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 582.0601669999996
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 12.312040999999994
+          },
+          "flow=create,outcome=success,stage=nutrition_enrichment": {
+            "count": 1.0,
+            "amount": 0.17091599999912432
+          },
+          "flow=create,outcome=success,stage=persistence": {
+            "count": 1.0,
+            "amount": 83.61920799999996
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 1.347541999999521
+          }
+        }
+      },
+      {
+        "caseId": "C4-gyeongju-two-companions-combined",
+        "repeat": 1,
+        "outcome": "PASS",
+        "failure": null,
+        "durationMs": 48024,
+        "seed": 301,
+        "quality": {
+          "plannedPlaceIncluded": true,
+          "mustHaveSlots": 1,
+          "crossDayDuplicatePlaces": 0,
+          "allergenHits": 0,
+          "cafeRestSlots": 0,
+          "attractionTags": 6,
+          "totalTravelMinutes": 140,
+          "restaurantSlots": 6,
+          "nutritionFilled": 3
+        },
+        "menuSourceChecked": 6,
+        "menuSourceMatched": 6,
+        "llmCalls": 5,
+        "tokens": 47499,
+        "stages": {
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 43531.60829099998
+          },
+          "flow=create,outcome=success,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 4244.181500000002
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 18.101541999999995
+          },
+          "flow=create,outcome=success,stage=nutrition_enrichment": {
+            "count": 1.0,
+            "amount": 3902.1820000000007
+          },
+          "flow=create,outcome=success,stage=nutrition_lookup": {
+            "count": 2.0,
+            "amount": 3904.163625000001
+          },
+          "flow=create,outcome=success,stage=persistence": {
+            "count": 1.0,
+            "amount": 101.58895799999993
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 123.01370900000074
+          }
+        }
+      },
+      {
+        "caseId": "C4-gyeongju-two-companions-combined",
+        "repeat": 2,
+        "outcome": "PASS",
+        "failure": null,
+        "durationMs": 14622,
+        "seed": 302,
+        "quality": {
+          "plannedPlaceIncluded": true,
+          "mustHaveSlots": 1,
+          "crossDayDuplicatePlaces": 0,
+          "allergenHits": 0,
+          "cafeRestSlots": 2,
+          "attractionTags": 6,
+          "totalTravelMinutes": 154,
+          "restaurantSlots": 6,
+          "nutritionFilled": 2
+        },
+        "menuSourceChecked": 6,
+        "menuSourceMatched": 6,
+        "llmCalls": 4,
+        "tokens": 40853,
+        "stages": {
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 14151.681375000015
+          },
+          "flow=create,outcome=success,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 353.22316699999647
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 22.061791999999997
+          },
+          "flow=create,outcome=success,stage=nutrition_enrichment": {
+            "count": 1.0,
+            "amount": 3.1633750000000873
+          },
+          "flow=create,outcome=success,stage=nutrition_lookup": {
+            "count": 3.0,
+            "amount": 5.166456999999355
+          },
+          "flow=create,outcome=success,stage=persistence": {
+            "count": 1.0,
+            "amount": 76.49079200000006
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 12.115499999999884
+          }
+        }
+      },
+      {
+        "caseId": "C4-gyeongju-two-companions-combined",
+        "repeat": 3,
+        "outcome": "PASS",
+        "failure": null,
+        "durationMs": 19950,
+        "seed": 303,
+        "quality": {
+          "plannedPlaceIncluded": true,
+          "mustHaveSlots": 1,
+          "crossDayDuplicatePlaces": 0,
+          "allergenHits": 0,
+          "cafeRestSlots": 0,
+          "attractionTags": 6,
+          "totalTravelMinutes": 156,
+          "restaurantSlots": 6,
+          "nutritionFilled": 3
+        },
+        "menuSourceChecked": 6,
+        "menuSourceMatched": 6,
+        "llmCalls": 5,
+        "tokens": 48334,
+        "stages": {
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 19301.563416999998
+          },
+          "flow=create,outcome=success,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 304.2539170000018
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 13.770624999999995
+          },
+          "flow=create,outcome=success,stage=nutrition_enrichment": {
+            "count": 1.0,
+            "amount": 24.96875
+          },
+          "flow=create,outcome=success,stage=nutrition_lookup": {
+            "count": 1.0,
+            "amount": 24.671416999997746
+          },
+          "flow=create,outcome=success,stage=persistence": {
+            "count": 1.0,
+            "amount": 310.3839170000001
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 13.190999999998894
+          }
+        }
+      }
+    ],
+    "nutritionFilledRatio": 0.5,
+    "menuSourceMatchRatio": 1.0,
+    "inputOutputTokensMedian": 47916.5,
+    "tokenCompleteRuns": 12,
+    "reselectionStages": 1.0,
+    "tools": {
+      "error=none,gen_ai.operation.name=execute_tool,gen_ai.system=spring_ai,spring.ai.kind=tool_call,spring.ai.tool.definition.name=evaluateFoodNutrition,spring.ai.tool.type=function": 57.0,
+      "error=none,gen_ai.operation.name=execute_tool,gen_ai.system=spring_ai,spring.ai.kind=tool_call,spring.ai.tool.definition.name=getRestaurantDetail,spring.ai.tool.type=function": 61.0,
+      "error=none,gen_ai.operation.name=execute_tool,gen_ai.system=spring_ai,spring.ai.kind=tool_call,spring.ai.tool.definition.name=getRoute,spring.ai.tool.type=function": 48.0,
+      "error=none,gen_ai.operation.name=execute_tool,gen_ai.system=spring_ai,spring.ai.kind=tool_call,spring.ai.tool.definition.name=searchAttractionsByRegion,spring.ai.tool.type=function": 12.0,
+      "error=none,gen_ai.operation.name=execute_tool,gen_ai.system=spring_ai,spring.ai.kind=tool_call,spring.ai.tool.definition.name=searchRestaurantsByLocation,spring.ai.tool.type=function": 74.0,
+      "error=none,gen_ai.operation.name=execute_tool,gen_ai.system=spring_ai,spring.ai.kind=tool_call,spring.ai.tool.definition.name=findPlaceWithRoute,spring.ai.tool.type=function": 20.0
+    },
+    "kor2Responses": {
+      "endpoint=areaBasedList2,outcome=ok": 4.0,
+      "endpoint=areaCode2,outcome=ok": 42.0,
+      "endpoint=detailIntro2,outcome=ok": 33.0,
+      "endpoint=searchKeyword2,outcome=ok": 28.0
+    },
+    "kor2Cache": {
+      "endpoint=attractions,result=miss": 4.0,
+      "endpoint=detailIntro2,result=miss": 33.0,
+      "endpoint=restaurants,result=hit": 50.0,
+      "endpoint=restaurants,result=miss": 24.0,
+      "endpoint=searchKeyword2,result=miss": 4.0,
+      "endpoint=attractions,result=hit": 8.0,
+      "endpoint=detailIntro2,result=hit": 59.0,
+      "endpoint=searchKeyword2,result=hit": 8.0
+    },
+    "retry": {},
+    "attractionSlots": 72,
+    "tagsPerAttractionSlot": 1.0
+  },
+  "after": {
+    "runId": "2026-10-10T10-17-17.413692Z",
+    "generationRuns": 12,
+    "pass": 11,
+    "outcomes": {
+      "PASS": 11,
+      "API_FAILURE": 1
+    },
+    "durationMsMedian": 23889,
+    "caseDurationMsMedian": {
+      "C1-seoul-single-disease": 23889,
+      "C2-busan-two-companions": 16806,
+      "C3-gangneung-combined-diseases": 23995,
+      "C4-gyeongju-two-companions-combined": 31206.5
+    },
+    "repeatDurationMsMedian": {
+      "1": 50752.0,
+      "2": 23889,
+      "3": 14322.0
+    },
+    "llmCalls": 60,
+    "successLlmCalls": 57,
+    "plannedPlaceIncluded": 11,
+    "crossDayDuplicatePlaces": 0,
+    "allergenKeywordHits": 1,
+    "restaurantSlots": 66,
+    "nutritionFilled": 33,
+    "cafeRestSlots": 6,
+    "attractionTags": 71,
+    "menuSourceMatched": 66,
+    "menuSourceChecked": 66,
+    "totalTravelMinutesMedian": 291,
+    "perRun": [
+      {
+        "caseId": "C1-seoul-single-disease",
+        "repeat": 1,
+        "outcome": "PASS",
+        "failure": null,
+        "durationMs": 94453,
+        "seed": 1,
+        "quality": {
+          "plannedPlaceIncluded": true,
+          "mustHaveSlots": 1,
+          "crossDayDuplicatePlaces": 0,
+          "allergenHits": 0,
+          "cafeRestSlots": 0,
+          "attractionTags": 6,
+          "totalTravelMinutes": 426,
+          "restaurantSlots": 6,
+          "nutritionFilled": 5
+        },
+        "menuSourceChecked": 6,
+        "menuSourceMatched": 6,
+        "llmCalls": 22,
+        "tokens": 225093,
+        "stages": {
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 58465.684833
+          },
+          "flow=create,outcome=success,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 1292.686375
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 55.880459
+          },
+          "flow=create,outcome=success,stage=nutrition_enrichment": {
+            "count": 1.0,
+            "amount": 2.891333
+          },
+          "flow=create,outcome=success,stage=persistence": {
+            "count": 1.0,
+            "amount": 124.119292
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 34488.7995
+          },
+          "flow=create,outcome=success,stage=reselect": {
+            "count": 5.0,
+            "amount": 31652.554417
+          }
+        }
+      },
+      {
+        "caseId": "C1-seoul-single-disease",
+        "repeat": 2,
+        "outcome": "PASS",
+        "failure": null,
+        "durationMs": 23889,
+        "seed": 2,
+        "quality": {
+          "plannedPlaceIncluded": true,
+          "mustHaveSlots": 1,
+          "crossDayDuplicatePlaces": 0,
+          "allergenHits": 0,
+          "cafeRestSlots": 0,
+          "attractionTags": 6,
+          "totalTravelMinutes": 471,
+          "restaurantSlots": 6,
+          "nutritionFilled": 5
+        },
+        "menuSourceChecked": 6,
+        "menuSourceMatched": 6,
+        "llmCalls": 6,
+        "tokens": 67189,
+        "stages": {
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 14987.311209
+          },
+          "flow=create,outcome=success,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 1288.127083
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 27.88799999999999
+          },
+          "flow=create,outcome=success,stage=nutrition_enrichment": {
+            "count": 1.0,
+            "amount": 0.30820800000000004
+          },
+          "flow=create,outcome=success,stage=persistence": {
+            "count": 1.0,
+            "amount": 71.168917
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 7508.563000000002
+          },
+          "flow=create,outcome=success,stage=reselect": {
+            "count": 1.0,
+            "amount": 4516.189375000002
+          }
+        }
+      },
+      {
+        "caseId": "C1-seoul-single-disease",
+        "repeat": 3,
+        "outcome": "PASS",
+        "failure": null,
+        "durationMs": 18414,
+        "seed": 3,
+        "quality": {
+          "plannedPlaceIncluded": true,
+          "mustHaveSlots": 1,
+          "crossDayDuplicatePlaces": 0,
+          "allergenHits": 0,
+          "cafeRestSlots": 0,
+          "attractionTags": 6,
+          "totalTravelMinutes": 414,
+          "restaurantSlots": 6,
+          "nutritionFilled": 5
+        },
+        "menuSourceChecked": 6,
+        "menuSourceMatched": 6,
+        "llmCalls": 3,
+        "tokens": 39549,
+        "stages": {
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 12748.846833000003
+          },
+          "flow=create,outcome=success,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 5558.411792000001
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 11.913500000000013
+          },
+          "flow=create,outcome=success,stage=nutrition_enrichment": {
+            "count": 1.0,
+            "amount": 4106.073583
+          },
+          "flow=create,outcome=success,stage=nutrition_lookup": {
+            "count": 1.0,
+            "amount": 4105.549666
+          },
+          "flow=create,outcome=success,stage=persistence": {
+            "count": 1.0,
+            "amount": 81.32537500000001
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 7.101249999999709
+          }
+        }
+      },
+      {
+        "caseId": "C2-busan-two-companions",
+        "repeat": 1,
+        "outcome": "PASS",
+        "failure": null,
+        "durationMs": 40306,
+        "seed": 101,
+        "quality": {
+          "plannedPlaceIncluded": true,
+          "mustHaveSlots": 1,
+          "crossDayDuplicatePlaces": 0,
+          "allergenHits": 0,
+          "cafeRestSlots": 0,
+          "attractionTags": 7,
+          "totalTravelMinutes": 266,
+          "restaurantSlots": 6,
+          "nutritionFilled": 2
+        },
+        "menuSourceChecked": 6,
+        "menuSourceMatched": 6,
+        "llmCalls": 3,
+        "tokens": 35232,
+        "stages": {
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 34932.711209
+          },
+          "flow=create,outcome=success,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 4976.431749999999
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 15.045209
+          },
+          "flow=create,outcome=success,stage=nutrition_enrichment": {
+            "count": 1.0,
+            "amount": 4509.349416
+          },
+          "flow=create,outcome=success,stage=nutrition_lookup": {
+            "count": 1.0,
+            "amount": 4509.085375
+          },
+          "flow=create,outcome=success,stage=persistence": {
+            "count": 1.0,
+            "amount": 88.50662499999999
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 288.112083
+          }
+        }
+      },
+      {
+        "caseId": "C2-busan-two-companions",
+        "repeat": 2,
+        "outcome": "PASS",
+        "failure": null,
+        "durationMs": 16806,
+        "seed": 102,
+        "quality": {
+          "plannedPlaceIncluded": true,
+          "mustHaveSlots": 1,
+          "crossDayDuplicatePlaces": 0,
+          "allergenHits": 0,
+          "cafeRestSlots": 2,
+          "attractionTags": 6,
+          "totalTravelMinutes": 241,
+          "restaurantSlots": 6,
+          "nutritionFilled": 2
+        },
+        "menuSourceChecked": 6,
+        "menuSourceMatched": 6,
+        "llmCalls": 4,
+        "tokens": 48575,
+        "stages": {
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 16248.494707999984
+          },
+          "flow=create,outcome=success,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 445.1294160000016
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 15.383666999999988
+          },
+          "flow=create,outcome=success,stage=nutrition_enrichment": {
+            "count": 1.0,
+            "amount": 5.92645900000025
+          },
+          "flow=create,outcome=success,stage=nutrition_lookup": {
+            "count": 1.0,
+            "amount": 5.687250000000859
+          },
+          "flow=create,outcome=success,stage=persistence": {
+            "count": 1.0,
+            "amount": 86.69175000000001
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 5.075957999993989
+          }
+        }
+      },
+      {
+        "caseId": "C2-busan-two-companions",
+        "repeat": 3,
+        "outcome": "PASS",
+        "failure": null,
+        "durationMs": 10280,
+        "seed": 103,
+        "quality": {
+          "plannedPlaceIncluded": true,
+          "mustHaveSlots": 1,
+          "crossDayDuplicatePlaces": 0,
+          "allergenHits": 1,
+          "cafeRestSlots": 0,
+          "attractionTags": 7,
+          "totalTravelMinutes": 310,
+          "restaurantSlots": 6,
+          "nutritionFilled": 3
+        },
+        "menuSourceChecked": 6,
+        "menuSourceMatched": 6,
+        "llmCalls": 3,
+        "tokens": 34577,
+        "stages": {
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 9545.956417000009
+          },
+          "flow=create,outcome=success,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 598.731416999999
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 13.977834000000016
+          },
+          "flow=create,outcome=success,stage=nutrition_enrichment": {
+            "count": 1.0,
+            "amount": 4.0023329999985435
+          },
+          "flow=create,outcome=success,stage=nutrition_lookup": {
+            "count": 2.0,
+            "amount": 7.282626000000164
+          },
+          "flow=create,outcome=success,stage=persistence": {
+            "count": 1.0,
+            "amount": 107.94095800000002
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 7.938458000004175
+          }
+        }
+      },
+      {
+        "caseId": "C3-gangneung-combined-diseases",
+        "repeat": 1,
+        "outcome": "PASS",
+        "failure": null,
+        "durationMs": 48434,
+        "seed": 201,
+        "quality": {
+          "plannedPlaceIncluded": true,
+          "mustHaveSlots": 1,
+          "crossDayDuplicatePlaces": 0,
+          "allergenHits": 0,
+          "cafeRestSlots": 2,
+          "attractionTags": 6,
+          "totalTravelMinutes": 291,
+          "restaurantSlots": 6,
+          "nutritionFilled": 2
+        },
+        "menuSourceChecked": 6,
+        "menuSourceMatched": 6,
+        "llmCalls": 3,
+        "tokens": 30596,
+        "stages": {
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 47552.67962500002
+          },
+          "flow=create,outcome=success,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 738.735917
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 12.801708999999988
+          },
+          "flow=create,outcome=success,stage=nutrition_enrichment": {
+            "count": 1.0,
+            "amount": 0.3584580000006099
+          },
+          "flow=create,outcome=success,stage=persistence": {
+            "count": 1.0,
+            "amount": 106.55087500000002
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 10.68541600000026
+          }
+        }
+      },
+      {
+        "caseId": "C3-gangneung-combined-diseases",
+        "repeat": 2,
+        "outcome": "PASS",
+        "failure": null,
+        "durationMs": 23995,
+        "seed": 202,
+        "quality": {
+          "plannedPlaceIncluded": true,
+          "mustHaveSlots": 1,
+          "crossDayDuplicatePlaces": 0,
+          "allergenHits": 0,
+          "cafeRestSlots": 1,
+          "attractionTags": 7,
+          "totalTravelMinutes": 331,
+          "restaurantSlots": 6,
+          "nutritionFilled": 2
+        },
+        "menuSourceChecked": 6,
+        "menuSourceMatched": 6,
+        "llmCalls": 3,
+        "tokens": 30370,
+        "stages": {
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 23345.211290999985
+          },
+          "flow=create,outcome=success,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 548.4920000000002
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 9.765000000000015
+          },
+          "flow=create,outcome=success,stage=nutrition_enrichment": {
+            "count": 1.0,
+            "amount": 0.13991700000042329
+          },
+          "flow=create,outcome=success,stage=persistence": {
+            "count": 1.0,
+            "amount": 84.69154199999991
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 1.7867499999993015
+          }
+        }
+      },
+      {
+        "caseId": "C3-gangneung-combined-diseases",
+        "repeat": 3,
+        "outcome": "PASS",
+        "failure": null,
+        "durationMs": 18364,
+        "seed": 203,
+        "quality": {
+          "plannedPlaceIncluded": true,
+          "mustHaveSlots": 1,
+          "crossDayDuplicatePlaces": 0,
+          "allergenHits": 0,
+          "cafeRestSlots": 1,
+          "attractionTags": 8,
+          "totalTravelMinutes": 274,
+          "restaurantSlots": 6,
+          "nutritionFilled": 2
+        },
+        "menuSourceChecked": 6,
+        "menuSourceMatched": 6,
+        "llmCalls": 3,
+        "tokens": 30232,
+        "stages": {
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 13766.817333000014
+          },
+          "flow=create,outcome=success,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 4471.579917000001
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 9.879790999999983
+          },
+          "flow=create,outcome=success,stage=nutrition_enrichment": {
+            "count": 1.0,
+            "amount": 3873.837458
+          },
+          "flow=create,outcome=success,stage=nutrition_lookup": {
+            "count": 1.0,
+            "amount": 3873.764041999999
+          },
+          "flow=create,outcome=success,stage=persistence": {
+            "count": 1.0,
+            "amount": 103.3085000000001
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 6.210124999997788
+          }
+        }
+      },
+      {
+        "caseId": "C4-gyeongju-two-companions-combined",
+        "repeat": 1,
+        "outcome": "PASS",
+        "failure": null,
+        "durationMs": 53070,
+        "seed": 301,
+        "quality": {
+          "plannedPlaceIncluded": true,
+          "mustHaveSlots": 1,
+          "crossDayDuplicatePlaces": 0,
+          "allergenHits": 0,
+          "cafeRestSlots": 0,
+          "attractionTags": 6,
+          "totalTravelMinutes": 144,
+          "restaurantSlots": 6,
+          "nutritionFilled": 3
+        },
+        "menuSourceChecked": 6,
+        "menuSourceMatched": 6,
+        "llmCalls": 4,
+        "tokens": 46104,
+        "stages": {
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 52552.54695799996
+          },
+          "flow=create,outcome=success,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 397.4036669999987
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 13.682874999999996
+          },
+          "flow=create,outcome=success,stage=nutrition_enrichment": {
+            "count": 1.0,
+            "amount": 0.254624999999578
+          },
+          "flow=create,outcome=success,stage=persistence": {
+            "count": 1.0,
+            "amount": 91.88329199999998
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 7.8626660000009
+          }
+        }
+      },
+      {
+        "caseId": "C4-gyeongju-two-companions-combined",
+        "repeat": 2,
+        "outcome": "API_FAILURE",
+        "failure": "{\"errorCode\":\"PLAN.EXCEPTION.INVALID_AI_PLACE\",\"message\":\"일정 장소 검증 실패: 이동시간 누락 또는 유효하지 않음\"}",
+        "durationMs": 12202,
+        "seed": 302,
+        "quality": null,
+        "menuSourceChecked": 0,
+        "menuSourceMatched": 0,
+        "llmCalls": 3,
+        "tokens": 33852,
+        "stages": {
+          "flow=create,outcome=failure,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 387.540542
+          },
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 11769.494875000033
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 17.35779100000002
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 13.288124999999127
+          }
+        }
+      },
+      {
+        "caseId": "C4-gyeongju-two-companions-combined",
+        "repeat": 3,
+        "outcome": "PASS",
+        "failure": null,
+        "durationMs": 9343,
+        "seed": 303,
+        "quality": {
+          "plannedPlaceIncluded": true,
+          "mustHaveSlots": 1,
+          "crossDayDuplicatePlaces": 0,
+          "allergenHits": 0,
+          "cafeRestSlots": 0,
+          "attractionTags": 6,
+          "totalTravelMinutes": 163,
+          "restaurantSlots": 6,
+          "nutritionFilled": 2
+        },
+        "menuSourceChecked": 6,
+        "menuSourceMatched": 6,
+        "llmCalls": 3,
+        "tokens": 31777,
+        "stages": {
+          "flow=create,outcome=success,stage=ai_response": {
+            "count": 1.0,
+            "amount": 8903.510666000016
+          },
+          "flow=create,outcome=success,stage=finish_plan": {
+            "count": 1.0,
+            "amount": 278.84370800000033
+          },
+          "flow=create,outcome=success,stage=health_snapshot": {
+            "count": 1.0,
+            "amount": 16.60858399999998
+          },
+          "flow=create,outcome=success,stage=nutrition_enrichment": {
+            "count": 1.0,
+            "amount": 3.1627079999998386
+          },
+          "flow=create,outcome=success,stage=nutrition_lookup": {
+            "count": 1.0,
+            "amount": 2.929374999999709
+          },
+          "flow=create,outcome=success,stage=persistence": {
+            "count": 1.0,
+            "amount": 125.66437500000006
+          },
+          "flow=create,outcome=success,stage=place_validation": {
+            "count": 1.0,
+            "amount": 12.038749999999709
+          }
+        }
+      }
+    ],
+    "nutritionFilledRatio": 0.5,
+    "menuSourceMatchRatio": 1.0,
+    "inputOutputTokensMedian": 35232,
+    "tokenCompleteRuns": 12,
+    "reselectionStages": 6.0,
+    "tools": {
+      "error=none,gen_ai.operation.name=execute_tool,gen_ai.system=spring_ai,spring.ai.kind=tool_call,spring.ai.tool.definition.name=evaluateFoodNutrition,spring.ai.tool.type=function": 83.0,
+      "error=none,gen_ai.operation.name=execute_tool,gen_ai.system=spring_ai,spring.ai.kind=tool_call,spring.ai.tool.definition.name=getRestaurantDetail,spring.ai.tool.type=function": 97.0,
+      "error=none,gen_ai.operation.name=execute_tool,gen_ai.system=spring_ai,spring.ai.kind=tool_call,spring.ai.tool.definition.name=getRoute,spring.ai.tool.type=function": 71.0,
+      "error=none,gen_ai.operation.name=execute_tool,gen_ai.system=spring_ai,spring.ai.kind=tool_call,spring.ai.tool.definition.name=findPlaceWithRoute,spring.ai.tool.type=function": 9.0
+    },
+    "kor2Responses": {
+      "endpoint=areaBasedList2,outcome=ok": 4.0,
+      "endpoint=areaCode2,outcome=ok": 42.0,
+      "endpoint=detailIntro2,outcome=ok": 39.0,
+      "endpoint=searchKeyword2,outcome=ok": 28.0
+    },
+    "kor2Cache": {
+      "endpoint=attractions,result=miss": 4.0,
+      "endpoint=detailIntro2,result=hit": 74.0,
+      "endpoint=detailIntro2,result=miss": 39.0,
+      "endpoint=restaurants,result=miss": 24.0,
+      "endpoint=searchKeyword2,result=miss": 4.0,
+      "endpoint=attractions,result=hit": 8.0,
+      "endpoint=restaurants,result=hit": 48.0,
+      "endpoint=searchKeyword2,result=hit": 8.0
+    },
+    "retry": {},
+    "attractionSlots": 66,
+    "tagsPerAttractionSlot": 1.0757575757575757
+  },
+  "R0": {
+    "pass": 12,
+    "plannedPlaceIncluded": 12,
+    "nutritionFilled": 33,
+    "restaurantSlots": 73,
+    "menuSourceMatched": 73,
+    "menuSourceChecked": 73,
+    "cafeRestSlots": 4,
+    "attractionTags": 78,
+    "attractionSlots": 72,
+    "totalTravelMinutesMedian": 271,
+    "HIGH": "not measured",
+    "openingHoursMismatch": "not measured"
+  },
+  "adoptionGates": {
+    "passCountR0": true,
+    "hardViolationZero": false,
+    "plannedPlaceR0": true,
+    "medianAtMost70PercentOfP24A": false,
+    "tokensAtMost110PercentOfP24A": true,
+    "atMostOneSlowerCase": false
+  },
+  "watchMetrics": {
+    "nutritionRatioDecreaseWithin10pp": true,
+    "menuMatchDecreaseWithin10pp": true,
+    "cafeRestAtLeastHalf": true,
+    "travelMinutesIncreaseWithin20Percent": true,
+    "HIGH": "not measured",
+    "openingHoursMismatch": "not measured",
+    "tagsPerAttractionSlotDecreaseWithin30Percent": true
+  },
+  "allMeasuredGatesPassed": false,
+  "slowerCases": [
+    "C1-seoul-single-disease",
+    "C2-busan-two-companions",
+    "C3-gangneung-combined-diseases",
+    "C4-gyeongju-two-companions-combined"
+  ],
+  "changePercent": {
+    "durationMsMedian": 19.528670069048324,
+    "inputOutputTokensMedian": -26.472092076842003
+  },
+  "limitations": [
+    "12 runs, actual APIs on different days, stochastic model and external latency; not isolated causality",
+    "First repeat cold Redis; later same-case cache reuse. Fixed candidate bounds change input distribution.",
+    "HIGH and opening-hours validation not measured in reference; not claimed passed",
+    "Grafana points are imported per-run observations at batch start timestamp; not live scrape, throughput, or server p95"
+  ]
+}

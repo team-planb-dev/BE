@@ -7,18 +7,30 @@ import com.planb.domain.travel.entity.constant.Transportation;
 import com.planb.global.client.kakaoMapService.KakaoMapServiceClient;
 import com.planb.global.client.kakaoMapService.dto.response.KakaoPlaceSearchResponse;
 import com.planb.global.client.kakaoMapService.dto.response.KakaoPublicTrafficRouteResponse;
+import com.planb.global.client.kakaoMapService.dto.response.KakaoRouteFailure;
 import com.planb.global.client.kakaoMapService.helper.KakaoMapRouteHelper;
 import com.planb.global.client.kakaoMapService.helper.KakaoPlaceSearchHelper;
 import com.planb.global.client.kakaoMapService.helper.KakaoSearchKeywordSanitizer;
 import com.planb.global.client.kakaoMobilityService.KakaoMobilityServiceClient;
 import com.planb.global.client.kakaoMobilityService.dto.response.KakaoCarRouteResponse;
 import com.planb.global.client.kakaoMobilityService.helper.KakaoMobilityRouteHelper;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.codec.CodecException;
+import org.springframework.core.io.buffer.DataBufferLimitException;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
+import reactor.netty.http.client.PrematureCloseException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.TimeoutException;
 
 @Slf4j
 @Component
@@ -32,6 +44,16 @@ public class KakaoMapServiceHandler {
     private final KakaoMobilityRouteHelper kakaoMobilityRouteHelper;
     private final KakaoSearchKeywordSanitizer kakaoSearchKeywordSanitizer;
     private final KakaoPlaceSearchHelper kakaoPlaceSearchHelper;
+    private final MeterRegistry meterRegistry;
+
+    // 공급자 오류 메시지의 로그·진단 보존 길이 상한
+    private static final int MAX_PROVIDER_MESSAGE_LENGTH = 120;
+
+    private static final int MAX_CAUSE_DEPTH = 10;
+
+    private static final JsonMapper ERROR_MAPPER = JsonMapper
+            .builder()
+            .build();
 
     // 카카오맵 API : 키워드 기반 장소 검색
     public Mono<KakaoPlaceSearchResponse> searchPlace(
@@ -128,6 +150,7 @@ public class KakaoMapServiceHandler {
     }
 
     // 확정 좌표 우선 사용과 좌표 누락 지점의 이름 검색
+    // 실패 시 단계·유형·공급자 응답을 담은 실패 결과 반환
     public Mono<KakaoRouteResult> getRoute(
             String origin,
             String destination,
@@ -150,68 +173,435 @@ public class KakaoMapServiceHandler {
                                 destinationX,
                                 destinationY
                         ))
-                .flatMap(points -> {
-                    List<String> start = points.getT1();
-                    List<String> end = points.getT2();
-
-                    return switch (transportation) {
-                        case TRANSIT -> getPublicTrafficRoute(
-                                start.get(0),
-                                start.get(1),
-                                end.get(0),
-                                end.get(1)
+                .flatMap(points -> route(
+                        origin,
+                        destination,
+                        transportation,
+                        new KakaoMapRouteHelper.RoutePoints(
+                                points
+                                        .getT1()
+                                        .get(0),
+                                points
+                                        .getT1()
+                                        .get(1),
+                                points
+                                        .getT2()
+                                        .get(0),
+                                points
+                                        .getT2()
+                                        .get(1)
                         )
-                                .map(response -> kakaoMapRouteHelper.makePublicTrafficRouteResult(
-                                        origin,
-                                        destination,
-                                        response,
-                                        new KakaoMapRouteHelper.RoutePoints(
-                                                start.get(0),
-                                                start.get(1),
-                                                end.get(0),
-                                                end.get(1)
-                                        )
-                                ));
-                        case CAR -> getCarRoute(
-                                start.get(0),
-                                start.get(1),
-                                end.get(0),
-                                end.get(1)
-                        )
-                                .map(response -> kakaoMobilityRouteHelper.makeCarRouteResult(
-                                        origin,
-                                        destination,
-                                        response
-                                ));
-                    };
-                })
-                .switchIfEmpty(Mono.error(new IllegalStateException("경로 조회 응답 없음")))
-                .map(route -> {
-                    if (route.travelMinutes() == null || route.travelMinutes() < 0) {
-                        throw new IllegalStateException("유효한 경로 이동시간 없음: " + route);
-                    }
-                    return route;
-                })
+                ))
+                .doOnNext(route -> recordRoute(
+                        transportation,
+                        "ok"
+                ))
                 .onErrorResume(exception -> {
+                    KakaoRouteFailure failure = exception instanceof RouteLookupException lookup
+                            ? lookup.failure
+                            : routeFailure(
+                                    KakaoRouteFailure.Stage.ROUTE,
+                                    exception,
+                                    null
+                            );
+
+                    // 좌표 검색 실패의 확정 입력 좌표 보존
+                    if (failure.stage() == KakaoRouteFailure.Stage.POINT_SEARCH) {
+                        failure = new KakaoRouteFailure(
+                                failure.stage(),
+                                failure.kind(),
+                                failure.httpStatus(),
+                                failure.providerCode(),
+                                failure.providerMessage(),
+                                failure.exceptionType(),
+                                originX,
+                                originY,
+                                destinationX,
+                                destinationY
+                        );
+                    }
+
+                    recordRoute(
+                            transportation,
+                            outcome(failure)
+                    );
+
                     log.warn(
-                            "[ROUTE LOOKUP FAILED] origin={}, destination={}, transportation={}, originX={}, originY={}, destinationX={}, destinationY={}",
+                            "[ROUTE LOOKUP FAILED] origin={}, destination={}, transportation={}, stage={}, kind={}, "
+                                    + "status={}, providerCode={}, providerMessage={}, exceptionType={}, "
+                                    + "requestStart={},{}, requestEnd={},{}",
                             origin,
                             destination,
                             transportation,
-                            originX,
-                            originY,
-                            destinationX,
-                            destinationY,
-                            exception
+                            failure.stage(),
+                            failure.kind(),
+                            failure.httpStatus(),
+                            failure.providerCode(),
+                            failure.providerMessage(),
+                            failure.exceptionType(),
+                            failure.startX(),
+                            failure.startY(),
+                            failure.endX(),
+                            failure.endY()
                     );
 
                     return Mono.just(new KakaoRouteResult(
+                            origin,
+                            destination,
+                            null,
+                            null,
+                            failure
+                    ));
+                });
+    }
+
+    // 확정 좌표의 이동수단별 경로 요청과 유효 이동시간 확인
+    private Mono<KakaoRouteResult> route(
+            String origin,
+            String destination,
+            Transportation transportation,
+            KakaoMapRouteHelper.RoutePoints points
+    ) {
+
+        Mono<KakaoRouteResult> route = switch (transportation) {
+            case TRANSIT -> getPublicTrafficRoute(
+                    points.startX(),
+                    points.startY(),
+                    points.endX(),
+                    points.endY()
+            )
+                    .map(response -> {
+                        try {
+                            return kakaoMapRouteHelper.makePublicTrafficRouteResult(
                                     origin,
                                     destination,
+                                    response,
+                                    points
+                            );
+                        } catch (IllegalStateException exception) {
+                            throw noResult(
+                                    response.status(),
                                     null,
-                                    null
-                            ));
-                });
+                                    points,
+                                    exception
+                            );
+                        }
+                    });
+
+            case CAR -> getCarRoute(
+                    points.startX(),
+                    points.startY(),
+                    points.endX(),
+                    points.endY()
+            )
+                    .map(response -> {
+                        try {
+                            return kakaoMobilityRouteHelper.makeCarRouteResult(
+                                    origin,
+                                    destination,
+                                    response
+                            );
+                        } catch (IllegalStateException exception) {
+                            KakaoCarRouteResponse.Route first = response.routes() == null || response
+                                    .routes()
+                                    .isEmpty()
+                                    ? null
+                                    : response
+                                            .routes()
+                                            .getFirst();
+
+                            throw noResult(
+                                    first == null || first.result_code() == null
+                                            ? null
+                                            : String.valueOf(first.result_code()),
+                                    first == null
+                                            ? null
+                                            : first.result_msg(),
+                                    points,
+                                    exception
+                            );
+                        }
+                    });
+        };
+
+        return route
+                .switchIfEmpty(Mono.error(new IllegalStateException("경로 조회 응답 없음")))
+                .map(result -> {
+                    if (result.travelMinutes() == null || result.travelMinutes() < 0) {
+                        throw new RouteLookupException(new KakaoRouteFailure(
+                                KakaoRouteFailure.Stage.ROUTE,
+                                KakaoRouteFailure.Kind.INVALID_MINUTES,
+                                null,
+                                null,
+                                null,
+                                null,
+                                points.startX(),
+                                points.startY(),
+                                points.endX(),
+                                points.endY()
+                        ));
+                    }
+
+                    return result;
+                })
+                .onErrorMap(
+                        exception -> !(exception instanceof RouteLookupException),
+                        exception -> new RouteLookupException(routeFailure(
+                                KakaoRouteFailure.Stage.ROUTE,
+                                exception,
+                                points
+                        ))
+                );
+    }
+
+    // 경로 조회 시도 결과(좌표 검색 단계 포함), 논리 구간 결과와 별도 계수
+    private void recordRoute(
+            Transportation transportation,
+            String outcome
+    ) {
+
+        Counter
+                .builder("planb.external.kakao.route")
+                .tag(
+                        "transportation",
+                        transportation.name()
+                )
+                .tag(
+                        "outcome",
+                        outcome
+                )
+                .register(meterRegistry)
+                .increment();
+    }
+
+    // 고정 범위의 단계·유형·HTTP 상태 결과값
+    private static String outcome(KakaoRouteFailure failure) {
+
+        String stage = failure.stage() == KakaoRouteFailure.Stage.ROUTE
+                ? "route"
+                : "point_search";
+
+        return failure.kind() == KakaoRouteFailure.Kind.HTTP_ERROR
+                ? stage + "_http_" + failure.httpStatus()
+                : stage + "_" + failure
+                        .kind()
+                        .name()
+                        .toLowerCase(Locale.ROOT);
+    }
+
+    // 200 응답 경로 없음, 공급자 상태·결과 코드 보존
+    private static RouteLookupException noResult(
+            String providerCode,
+            String providerMessage,
+            KakaoMapRouteHelper.RoutePoints points,
+            IllegalStateException exception
+    ) {
+
+        return new RouteLookupException(new KakaoRouteFailure(
+                KakaoRouteFailure.Stage.ROUTE,
+                KakaoRouteFailure.Kind.NO_RESULT,
+                null,
+                providerCode,
+                providerMessage == null ? null : safeMessage(providerMessage),
+                exception
+                        .getClass()
+                        .getSimpleName(),
+                points.startX(),
+                points.startY(),
+                points.endX(),
+                points.endY()
+        ));
+    }
+
+    // 예외 유형별 실패 분류, 응답 본문은 공급자 코드·제한 길이 메시지만 보존
+    // 2xx 본문 단계 오류는 HTTP 오류가 아닌 원인 기준 분류
+    private static KakaoRouteFailure routeFailure(
+            KakaoRouteFailure.Stage stage,
+            Throwable exception,
+            KakaoMapRouteHelper.RoutePoints points
+    ) {
+
+        KakaoRouteFailure.Kind kind;
+        Integer status = null;
+        String code = null;
+        String message = null;
+
+        if (hasCause(
+                exception,
+                TimeoutException.class
+        )
+                || hasCause(
+                        exception,
+                        io.netty.handler.timeout.TimeoutException.class
+                )) {
+            kind = KakaoRouteFailure.Kind.TIMEOUT;
+        } else if (exception instanceof WebClientResponseException response
+                && response
+                        .getStatusCode()
+                        .isError()) {
+            kind = KakaoRouteFailure.Kind.HTTP_ERROR;
+            status = response
+                    .getStatusCode()
+                    .value();
+
+            ProviderError error = providerError(response.getResponseBodyAsString());
+
+            code = error.code();
+            message = error.message();
+        } else if (exception instanceof CodecException
+                || hasCause(
+                        exception,
+                        DataBufferLimitException.class
+                )) {
+            kind = KakaoRouteFailure.Kind.DECODE;
+        } else if (exception instanceof WebClientRequestException
+                || hasCause(
+                        exception,
+                        PrematureCloseException.class
+                )) {
+            kind = KakaoRouteFailure.Kind.CONNECTION;
+        } else if (exception instanceof IllegalArgumentException) {
+            kind = KakaoRouteFailure.Kind.MISSING_POINT;
+        } else if (exception instanceof IllegalStateException) {
+            kind = KakaoRouteFailure.Kind.NO_RESULT;
+        } else {
+            kind = KakaoRouteFailure.Kind.OTHER;
+        }
+
+        return new KakaoRouteFailure(
+                stage,
+                kind,
+                status,
+                code,
+                message,
+                rootCause(exception)
+                        .getClass()
+                        .getSimpleName(),
+                points == null ? null : points.startX(),
+                points == null ? null : points.startY(),
+                points == null ? null : points.endX(),
+                points == null ? null : points.endY()
+        );
+    }
+
+    private static boolean hasCause(
+            Throwable exception,
+            Class<? extends Throwable> type
+    ) {
+
+        Throwable current = exception;
+
+        // 순환 원인 대비 탐색 깊이 상한
+        for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {
+            if (type.isInstance(current)) {
+                return true;
+            }
+
+            current = current.getCause();
+        }
+
+        return false;
+    }
+
+    // 래핑 예외 아래의 실제 원인
+    private static Throwable rootCause(Throwable exception) {
+
+        Throwable current = exception;
+
+        for (int depth = 0; current.getCause() != null && depth < MAX_CAUSE_DEPTH; depth++) {
+            current = current.getCause();
+        }
+
+        return current;
+    }
+
+    // 공통 오류 형식(code·msg), 로컬 API 형식(errorType·message), 비JSON·알 수 없는 구조는 코드 없이 제한 길이 메시지
+    private static ProviderError providerError(String body) {
+
+        if (body == null || body.isBlank()) {
+            return new ProviderError(
+                    null,
+                    null
+            );
+        }
+
+        try {
+            JsonNode node = ERROR_MAPPER.readTree(body);
+
+            if (node != null && node.isObject()) {
+                JsonNode code = node.has("code")
+                        ? node.get("code")
+                        : node.get("errorType");
+                JsonNode message = node.has("msg")
+                        ? node.get("msg")
+                        : node.get("message");
+
+                return new ProviderError(
+                        code == null || !code.isValueNode()
+                                ? null
+                                : code.asString(),
+                        message == null || !message.isValueNode()
+                                ? null
+                                : safeMessage(message.asString())
+                );
+            }
+        } catch (RuntimeException exception) {
+            // 비JSON 본문의 제한 길이 메시지 보존
+        }
+
+        return new ProviderError(
+                null,
+                safeMessage(body)
+        );
+    }
+
+    // 인증값 마스킹·공백 정리·길이 제한
+    private static String safeMessage(String message) {
+
+        String masked = message
+                .replaceAll(
+                        "(?i)(KakaoAK|Bearer)\\s+\\S+",
+                        "$1 <REDACTED>"
+                )
+                .replaceAll(
+                        "\\s+",
+                        " "
+                )
+                .strip();
+
+        return masked.length() <= MAX_PROVIDER_MESSAGE_LENGTH
+                ? masked
+                : masked.substring(
+                        0,
+                        MAX_PROVIDER_MESSAGE_LENGTH
+                );
+    }
+
+    private record ProviderError(
+
+            String code,
+            String message
+    ) {
+    }
+
+    // 단계별 실패 정보 전달용 내부 예외, stack trace 미생성
+    private static final class RouteLookupException extends RuntimeException {
+
+        private final transient KakaoRouteFailure failure;
+
+        private RouteLookupException(KakaoRouteFailure failure) {
+
+            super(
+                    failure
+                            .kind()
+                            .name(),
+                    null,
+                    false,
+                    false
+            );
+
+            this.failure = failure;
+        }
     }
 
     private Mono<List<String>> routeCoordinates(
@@ -220,18 +610,27 @@ public class KakaoMapServiceHandler {
             String y
     ) {
 
-        return Mono.defer(() -> {
-            if (x != null && !x.isBlank() && y != null && !y.isBlank()) {
-                return Mono.just(List.of(x, y));
-            }
-            if (name == null || name.isBlank()) {
-                return Mono.error(new IllegalArgumentException("경로 조회 지점의 이름과 좌표 누락"));
-            }
-            return searchPlace(name)
-                    .map(response -> kakaoMapRouteHelper.getFirstPlace(response, name))
-                    .map(place -> List.of(place.x(), place.y()))
-                    .switchIfEmpty(Mono.error(new IllegalStateException("경로 조회 지점 검색 결과 없음: " + name)));
-        });
+        return Mono
+                .defer(() -> {
+                    if (x != null && !x.isBlank() && y != null && !y.isBlank()) {
+                        return Mono.just(List.of(x, y));
+                    }
+                    if (name == null || name.isBlank()) {
+                        return Mono.error(new IllegalArgumentException("경로 조회 지점의 이름과 좌표 누락"));
+                    }
+                    return searchPlace(name)
+                            .map(response -> kakaoMapRouteHelper.getFirstPlace(response, name))
+                            .map(place -> List.of(place.x(), place.y()))
+                            .switchIfEmpty(Mono.error(new IllegalStateException("경로 조회 지점 검색 결과 없음: " + name)));
+                })
+                .onErrorMap(
+                        exception -> !(exception instanceof RouteLookupException),
+                        exception -> new RouteLookupException(routeFailure(
+                                KakaoRouteFailure.Stage.POINT_SEARCH,
+                                exception,
+                                null
+                        ))
+                );
     }
 
     // 실제 장소(카페 또는 TourAPI에서 검색되지 않는 관광지) 존재 확인
@@ -247,11 +646,37 @@ public class KakaoMapServiceHandler {
             String previousLatitude
     ) {
 
+        return findPlaceWithRoute(
+                keyword,
+                previousLocation,
+                transportation,
+                excludeNames,
+                categoryCode,
+                previousLongitude,
+                previousLatitude,
+                false
+        );
+    }
+
+    public Mono<PlaceWithRouteResult> findPlaceWithRoute(
+            String keyword,
+            String previousLocation,
+            Transportation transportation,
+            List<String> excludeNames,
+            String categoryCode,
+            String previousLongitude,
+            String previousLatitude,
+            boolean parksOnly
+    ) {
+
         return searchPlace(keyword)
                 .map(response -> kakaoPlaceSearchHelper.filterByCategory(
                         response,
                         categoryCode
                 ))
+                .map(response -> parksOnly
+                        ? kakaoPlaceSearchHelper.filterParks(response, excludeNames)
+                        : response)
                 .filter(kakaoPlaceSearchHelper::hasResult)
                 .filter(response -> !kakaoPlaceSearchHelper.isExcluded(response, excludeNames))
                 .flatMap(response ->

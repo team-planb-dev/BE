@@ -1,6 +1,5 @@
 package com.planb.ai.client;
 
-import com.planb.ai.mcp.PlanTourismTool;
 import com.planb.ai.prompt.AiPrompt;
 import com.planb.global.config.exception.AiFailure;
 import com.planb.global.config.exception.domain.AiOrchestrationException;
@@ -167,8 +166,6 @@ public class OpenAiClient {
             Function<T, List<String>> validation,
             Object... tools
     ) {
-
-        resetCandidates(tools);
 
         Set<String> invalidResponses = new HashSet<>();
 
@@ -428,15 +425,6 @@ public class OpenAiClient {
         }
 
         return List.copyOf(uniqueFailures);
-    }
-
-    private void resetCandidates(Object... tools) {
-
-        for (Object tool : tools) {
-            if (tool instanceof PlanTourismTool planTool) {
-                planTool.resetCandidates();
-            }
-        }
     }
 
     // NULLABLE_SCHEDULE_FIELDS null 허용 처리 + date/time format 제거된 스키마 문자열 반환

@@ -1,0 +1,11 @@
+{
+  "url": "http://localhost:3000/d/p24c-actual-api/8fd838a",
+  "uid": "p24c-actual-api",
+  "datasource": "p24c-actual",
+  "prometheus": "http://localhost:9091",
+  "source": "actual API JSONL imported observations, not live load test",
+  "time": {
+    "from": "2026-10-08T05:45:00Z",
+    "to": "2026-10-10T10:25:11.043454+00:00"
+  }
+}

@@ -1,0 +1,1130 @@
+{
+  "uid": "p2-selection-stage2",
+  "title": "Part 2 후속 2단계 품질 검증 — #179",
+  "tags": [
+    "PlanB",
+    "Part 2",
+    "quality",
+    "actual-api"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 41,
+  "version": 1,
+  "refresh": "",
+  "editable": true,
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "Part 2 후속 2단계 — 실제 API 품질 관측",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 5
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**#177 최종 메뉴 수정 → #179 공원 자격·실패 슬롯 복구** · 각 4지역 × 3회 · 실제 OpenAI·TourAPI·외부 API 호출\n\n평가 JSONL과 반환 응답을 후처리하여 Prometheus에 가져온 **관찰 데이터**. 실시간 앱 scrape·k6 부하·운영 p95와 구분. 실행마다 새 Redis, 회차 간 캐시 재사용. 서로 다른 시각·비결정적 모델·공급자 데이터로 인과·통계 유의성 확정 불가. 지연·token은 보조 지표. 실제 편집·STOMP 미측정."
+      }
+    },
+    {
+      "id": 2,
+      "type": "text",
+      "title": "판정 — 측정 범위 한정",
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 5
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "- passCountAtLeastR0MinusOne: **통과**\n- allergenKeywordProxyZero: **통과**\n- crossDayDuplicatePlacesZero: **통과**\n- plannedPlaceAtLeastR0MinusOne: **통과**\n\nR0 누적 품질 gate와 직전 #177 관측을 구분. 감시 지표 미충족: 없음(측정한 감시 기준 5개 충족). 전체 품질 개선 완료·운영 채택·배포 판정은 별개. HIGH·실제 영업·재료 안전성 미측정. 실제 생성 평가에 편집 결과를 포함하지 않음."
+      }
+    },
+    {
+      "id": 3,
+      "type": "bargauge",
+      "title": "생성 구조 검사 통과 / 12",
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (phase) (last_over_time(planb_stage2_quality_pass[30d]))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "bargauge",
+      "title": "지정 장소 포함 실행 (성공 응답)",
+      "gridPos": {
+        "x": 8,
+        "y": 10,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (phase) (last_over_time(planb_stage2_quality_plannedPlaceIncluded{outcome=\"PASS\"}[30d]))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "type": "bargauge",
+      "title": "날짜 간 장소 중복",
+      "gridPos": {
+        "x": 16,
+        "y": 10,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (phase) (last_over_time(planb_stage2_quality_crossDayDuplicatePlaces{outcome=\"PASS\"}[30d]))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "type": "bargauge",
+      "title": "알레르기 키워드 적중 — 성분 확정 아님",
+      "gridPos": {
+        "x": 0,
+        "y": 15,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (phase) (last_over_time(planb_stage2_quality_allergenHits{outcome=\"PASS\"}[30d]))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "type": "bargauge",
+      "title": "기존 메뉴 출처 proxy 일치율 — 부분 문자열",
+      "gridPos": {
+        "x": 8,
+        "y": 15,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (phase) (last_over_time(planb_stage2_quality_menu_matched{outcome=\"PASS\"}[30d])) / sum by (phase) (last_over_time(planb_stage2_quality_menu_checked{outcome=\"PASS\"}[30d]))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 8,
+      "type": "bargauge",
+      "title": "필수 식사 존재 — 첫 아침·마지막 저녁 면제",
+      "gridPos": {
+        "x": 16,
+        "y": 15,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "last_over_time(planb_stage2_raw_required_meals_present[30d]) / last_over_time(planb_stage2_raw_required_meals_expected[30d])",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 9,
+      "type": "bargauge",
+      "title": "복약 deterministic 계약 충족일 비율",
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "last_over_time(planb_stage2_raw_medication_days_matched[30d]) / last_over_time(planb_stage2_raw_medication_days_checked[30d])",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 10,
+      "type": "bargauge",
+      "title": "필수 식사 슬롯 시작시각 ±30분 — 관찰 지표",
+      "gridPos": {
+        "x": 8,
+        "y": 20,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "last_over_time(planb_stage2_raw_required_meals_on_time[30d]) / last_over_time(planb_stage2_raw_required_meals_evaluable_slots[30d])",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 11,
+      "type": "bargauge",
+      "title": "식사시각 태그 불일치",
+      "gridPos": {
+        "x": 16,
+        "y": 20,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "last_over_time(planb_stage2_raw_meal_tag_mismatches[30d])",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 12,
+      "type": "bargauge",
+      "title": "필수 필드 오류 슬롯",
+      "gridPos": {
+        "x": 0,
+        "y": 25,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "last_over_time(planb_stage2_raw_place_field_invalid_slots[30d])",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 13,
+      "type": "bargauge",
+      "title": "영양 채움 proxy — carbohydrate 숫자",
+      "gridPos": {
+        "x": 8,
+        "y": 25,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (phase) (last_over_time(planb_stage2_quality_nutritionFilled{outcome=\"PASS\"}[30d])) / sum by (phase) (last_over_time(planb_stage2_quality_restaurantSlots{outcome=\"PASS\"}[30d]))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 14,
+      "type": "bargauge",
+      "title": "영양 3필드 숫자 — 정확성 검증 아님",
+      "gridPos": {
+        "x": 16,
+        "y": 25,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "last_over_time(planb_stage2_raw_all_nutrition_fields_filled[30d]) / last_over_time(planb_stage2_raw_restaurant_slots[30d])",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 15,
+      "type": "bargauge",
+      "title": "이동시간 누락·음수 슬롯",
+      "gridPos": {
+        "x": 0,
+        "y": 30,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "last_over_time(planb_stage2_raw_route_invalid_slots[30d])",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 16,
+      "type": "bargauge",
+      "title": "candidateId 누락·형식 오류 슬롯",
+      "gridPos": {
+        "x": 8,
+        "y": 30,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "last_over_time(planb_stage2_raw_identity_invalid_slots[30d])",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 17,
+      "type": "bargauge",
+      "title": "CAFE_REST 슬롯 수",
+      "gridPos": {
+        "x": 16,
+        "y": 30,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (phase) (last_over_time(planb_stage2_quality_cafeRestSlots{outcome=\"PASS\"}[30d]))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 18,
+      "type": "bargauge",
+      "title": "메뉴 문자열 중복 — 후처리 proxy",
+      "gridPos": {
+        "x": 0,
+        "y": 35,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "last_over_time(planb_stage2_raw_duplicate_menu_proxy[30d])",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 19,
+      "type": "bargauge",
+      "title": "PARK_WALK 슬롯 수 — 원본 분류 검증 아님",
+      "gridPos": {
+        "x": 8,
+        "y": 35,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "last_over_time(planb_stage2_raw_park_walk_slots[30d])",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 20,
+      "type": "bargauge",
+      "title": "슬롯 재선택 단계 수 — 전체 시도",
+      "gridPos": {
+        "x": 16,
+        "y": 35,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "last_over_time(planb_stage2_raw_reselection_stages[30d])",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 21,
+      "type": "bargauge",
+      "title": "앱 교정 시도 수 — 전체 시도",
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "last_over_time(planb_stage2_raw_correction_attempts[30d])",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 22,
+      "type": "bargauge",
+      "title": "전체 생성 시도의 모델 호출 수 — 보조",
+      "gridPos": {
+        "x": 8,
+        "y": 40,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (phase) (last_over_time(planb_stage2_quality_llm_calls[30d]))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 23,
+      "type": "bargauge",
+      "title": "성공 응답 시간 중앙값 — 보조",
+      "gridPos": {
+        "x": 16,
+        "y": 40,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "quantile by (phase) (0.5,last_over_time(planb_stage2_quality_duration_seconds{outcome=\"PASS\"}[30d]))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 24,
+      "type": "bargauge",
+      "title": "성공 일정 이동시간 합계 중앙값 — 분",
+      "gridPos": {
+        "x": 0,
+        "y": 45,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "last_over_time(planb_stage2_raw_travel_minutes_median[30d])",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 25,
+      "type": "bargauge",
+      "title": "성공 응답 입출력 token 중앙값 — 보조",
+      "gridPos": {
+        "x": 8,
+        "y": 45,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "last_over_time(planb_stage2_raw_tokens_median[30d])",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 26,
+      "type": "text",
+      "title": "분모와 증거 한계",
+      "gridPos": {
+        "x": 0,
+        "y": 50,
+        "w": 24,
+        "h": 8
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "원본 필드·비율 분모: #177 성공 11회, 22일, 식사 66슬롯, 필수 식사 44종/44평가 슬롯 → #179 성공 12회, 24일, 식사 72슬롯, 필수 식사 48종/48평가 슬롯. 영양 30/66 → 33/72, 복약 22/22일 → 24/24일. 실패 응답은 결과 필드 비율에서 제외, 호출·교정·재선택은 전체 각 12회. 식사 존재는 종류, 정시 비율은 평가 슬롯으로 별도 분모.\n\n이번 공원 슬롯은 양쪽 0건이며 공원 선택 개선 실측 증거 없음.\n\n공원 자격·국소 복구·부분 편집 보존은 결정적 테스트로 검증. API 응답 raw에는 원본 분류와 상세 메뉴 trace가 없어 **공원 정답률·strict 출처·정상 슬롯 보존을 독립 재증명 불가**. PARK_WALK 수는 선택 수이며 정답 수 아님. 메뉴 일치율은 양방향 부분 문자열 proxy. 알레르기 키워드 0도 실제 재료 안전성 보장 아님. 식사 ±30분은 관찰이며 이동 제약으로 늦은 무태그 식사를 곧바로 위반으로 판정하지 않음. `saved=false`는 생성 후 확정 대기 상태."
+      }
+    }
+  ],
+  "time": {
+    "from": "2026-10-11T03:02:33.798400+00:00",
+    "to": "2026-10-11T11:55:56.761723+00:00"
+  },
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  }
+}

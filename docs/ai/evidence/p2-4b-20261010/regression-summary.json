@@ -1,0 +1,15 @@
+{
+  "command": "./gradlew test",
+  "scope": "external tag excluded by Gradle; unit, slice, integration and stub tests",
+  "state": "uncommitted candidate on branch 172",
+  "result": "BUILD SUCCESSFUL",
+  "test_suites": 136,
+  "tests": 888,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "review_score": 8,
+  "review_rounds": 4,
+  "actual_api_gate": "subsequent real API 12 runs failed; see actual-api-run-manifest.json",
+  "actual_api_runs_at_regression_time": 0
+}

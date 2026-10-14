@@ -12,6 +12,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.MediaType;
 import org.springframework.messaging.converter.JacksonJsonMessageConverter;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompFrameHandler;
 import org.springframework.messaging.simp.stomp.StompHeaders;
 import org.springframework.messaging.simp.stomp.StompSession;
@@ -36,11 +38,13 @@ import com.planb.integration.domain.user.dto.LoginResult;
 import tools.jackson.databind.ObjectMapper;
 
 import java.lang.reflect.Type;
+import java.time.Instant;
 
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.startsWith;
@@ -97,6 +101,9 @@ public class ChatIntegrationTest extends IntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     @LocalServerPort
     private int port;
@@ -502,6 +509,153 @@ public class ChatIntegrationTest extends IntegrationTest {
 
         session.disconnect();
         stompClient.stop();
+    }
+
+    @Test
+    @DisplayName("기본 Java STOMP 클라이언트의 텍스트 버퍼 8192자 초과 시 연결 종료 특성")
+    void receivesPublishedMessagesBySize() throws Exception {
+
+        // Tomcat 클라이언트 기본 텍스트 버퍼는 바이트가 아닌 문자 수 8192 기준
+        // 한글 7000자(약 21KB)는 수신, ASCII 9000자(약 9KB)는 종료
+        Delivery korean = publishAndReceive("가".repeat(7_000));
+
+        Delivery ascii = publishAndReceive("a".repeat(9_000));
+
+        assertThat(korean.received())
+                .isNotNull();
+        assertThat(ascii.received())
+                .isNull();
+
+        // 한도 초과의 클라이언트 측 연결 종료 형태, 실측 STOMP 편집 종료와 같은 형태
+        assertThat(ascii.failureType())
+                .isEqualTo("ConnectionLostException");
+        assertThat(ascii.connectedAfter())
+                .isFalse();
+    }
+
+    private record Delivery(
+
+            SendChatMessageResponse received,
+            String failureType,
+            boolean connectedAfter
+    ) {
+    }
+
+    // 구독 후 서버 TALK 발행, 수신·전송 오류·연결 상태 기록
+    private Delivery publishAndReceive(String message) throws Exception {
+
+        TestUser testUser = createAuthenticatedUser();
+
+        Long roomId = createChatRoom(
+                testUser.accessToken(),
+                "stomp-probe-room-" + createUniqueValue()
+        );
+
+        addChatRoomMember(
+                testUser.accessToken(),
+                roomId,
+                testUser.userId()
+        );
+
+        WebSocketStompClient stompClient = createStompClient();
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+
+        StompHeaders connectHeaders = new StompHeaders();
+
+        connectHeaders.add(
+                "Authorization",
+                testUser.accessToken()
+        );
+
+        StompSession session = stompClient
+                .connectAsync(
+                        "ws://localhost:" + port + "/ws-stomp",
+                        new WebSocketHttpHeaders(),
+                        connectHeaders,
+                        new StompSessionHandlerAdapter() {
+
+                            @Override
+                            public void handleTransportError(
+                                    StompSession session,
+                                    Throwable exception
+                            ) {
+
+                                failure.compareAndSet(
+                                        null,
+                                        exception
+                                );
+                            }
+
+                            @Override
+                            public void handleException(
+                                    StompSession session,
+                                    StompCommand command,
+                                    StompHeaders headers,
+                                    byte[] payload,
+                                    Throwable exception
+                            ) {
+
+                                failure.compareAndSet(
+                                        null,
+                                        exception
+                                );
+                            }
+                        }
+                )
+                .get(
+                        5,
+                        TimeUnit.SECONDS
+                );
+
+        BlockingQueue<SendChatMessageResponse> messages = new LinkedBlockingQueue<>();
+
+        subscribe(
+                session,
+                roomId,
+                messages
+        );
+
+        awaitMessageType(
+                messages,
+                MessageType.ENTER
+        );
+
+        messagingTemplate.convertAndSend(
+                CHAT_SUBSCRIPTION_PREFIX + roomId,
+                new SendChatMessageResponse(
+                        MessageType.TALK,
+                        roomId,
+                        1L,
+                        "AI 비서",
+                        message,
+                        null,
+                        Instant.now()
+                )
+        );
+
+        SendChatMessageResponse received = awaitMessageType(
+                messages,
+                MessageType.TALK
+        );
+
+        boolean connectedAfter = session.isConnected();
+
+        if (connectedAfter) {
+            session.disconnect();
+        }
+
+        stompClient.stop();
+
+        return new Delivery(
+                received,
+                failure.get() == null
+                        ? null
+                        : failure
+                                .get()
+                                .getClass()
+                                .getSimpleName(),
+                connectedAfter
+        );
     }
 
     @Test

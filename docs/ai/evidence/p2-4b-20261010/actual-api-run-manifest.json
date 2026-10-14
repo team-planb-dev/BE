@@ -1,0 +1,43 @@
+{
+  "phase": "P2-4B",
+  "issue": 172,
+  "branch": "172-perf-move-deterministic-travel-generation-tools-to-java",
+  "base_commit": "2a99375f1316b2652bf6965e61e2f21a4665afde",
+  "execution_state": "uncommitted candidate; tracked diff and untracked source hashes identify executed code",
+  "tracked_diff_sha256": "415b79300f788fd7e6ee9e6c8f780a692512104dffe5fcbae0dbf4e998b1d5f8",
+  "untracked_source": [
+    {
+      "path": "src/main/java/com/planb/ai/handler/GenerationRestaurantCandidates.java",
+      "sha256": "d9d1362e187b940b8de591b876ca28259ad893d0e9bffb68b236ccceace150db"
+    },
+    {
+      "path": "src/main/java/com/planb/ai/mcp/GenerationTourismTool.java",
+      "sha256": "849d9ee2ed83f0fa0f12195bc7a59e3b949e415ce0300dbea094f2b7096fc14f"
+    },
+    {
+      "path": "src/test/java/com/planb/unit/ai/handler/GenerationRestaurantCandidatesTest.java",
+      "sha256": "70ee363dc0b719cd06c1d220d4599db66f4f32446cd9e5925bd810be2582d238"
+    },
+    {
+      "path": "src/test/java/com/planb/unit/global/ai/tool/GenerationTourismToolTest.java",
+      "sha256": "b4bc0932707d69ce77a559db567b76eadde325e383a361d1c84859de6d245f20"
+    }
+  ],
+  "model": "gpt-5.6-terra",
+  "reasoning_effort": "none",
+  "command": "P2_GENERATION_ONLY=true ./gradlew externalTest --rerun-tasks --tests \"*TravelLlmQualityBaselineTest\" --console=plain",
+  "authorized_generation_runs": 12,
+  "edit_runs": 0,
+  "database": "isolated Testcontainers MySQL and Redis",
+  "started_date": "2026-10-10",
+  "status": "finished; not adopted",
+  "runId": "2026-10-10T05-06-33.686876Z",
+  "executed_generation_runs": 12,
+  "generation_pass": 9,
+  "junit_tests": 12,
+  "junit_failures": 0,
+  "junit_skipped": 0,
+  "gradle_exit": 0,
+  "adoption_gate": "failed primary quality and latency gates",
+  "source_identity_verified_after_run": true
+}

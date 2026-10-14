@@ -81,6 +81,18 @@ public record EditPlanPrompt(
                   editRequest의 키워드(예: 음식 이름, "카페", "관광지")와 직접 관련된
                   CourseType의 슬롯만 변경 대상으로 판단합니다.
 
+                [STEP 1-1. Java가 확정한 변경 대상]
+
+                - user JSON의 editTargets가 비어 있지 않으면 Java가 확정한 변경 대상입니다.
+                  이 목록의 일차·슬롯만 변경하며, 목록 밖 슬롯을 바꿔도 Java가 currentPlan 값으로 되돌립니다.
+                - slot=ATTRACTION이고 placeName이 비어 있으면 그 일차의 MUST_HAVE를 제외한 관광 장소만 바꿉니다.
+                  같은 일차의 식사·카페·MUST_HAVE는 그대로 유지합니다.
+                - placeName이 있으면 그 장소 하나만 바꿉니다.
+                - menuOnly=true이고 sameRestaurantMenus가 비어 있지 않으면 음식점을 바꾸지 않습니다.
+                  candidateId는 sameRestaurantCandidateId를 그대로 쓰고, 메뉴는 sameRestaurantMenus 중 하나를
+                  문자열 그대로 고르며, 건강 조건은 evaluateFoodNutrition으로 평가합니다.
+                - menuOnly=true이고 sameRestaurantMenus가 비어 있을 때만 같은 식사에 다른 음식점을 고를 수 있습니다.
+
                 [STEP 2. 변경 대상과 유지 대상 분리]
 
                 - currentPlan.planDays의 모든 PlanDay, 모든 schedule을 순회하며

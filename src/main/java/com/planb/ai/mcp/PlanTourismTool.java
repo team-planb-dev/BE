@@ -227,16 +227,28 @@ public class PlanTourismTool {
         // 카카오의 전국 동명 장소 재검색 방지를 위한 확정 좌표 사용
         PlaceCandidateContext.Candidate previous = candidates.findByName(previousLocation);
 
-        PlaceWithRouteResult result = tourismTool
-                .findPlaceWithRoute(
-                        keyword,
-                        previousLocation,
-                        transportation,
-                        excludeNames,
-                        categoryCode,
-                        previous == null ? null : previous.longitude(),
-                        previous == null ? null : previous.latitude()
-                );
+        PlaceWithRouteResult result = courseType == CourseType.PARK_WALK
+                ? tourismTool
+                        .findPlaceWithRoute(
+                                keyword,
+                                previousLocation,
+                                transportation,
+                                excludeNames,
+                                categoryCode,
+                                previous == null ? null : previous.longitude(),
+                                previous == null ? null : previous.latitude(),
+                                true
+                        )
+                : tourismTool
+                        .findPlaceWithRoute(
+                                keyword,
+                                previousLocation,
+                                transportation,
+                                excludeNames,
+                                categoryCode,
+                                previous == null ? null : previous.longitude(),
+                                previous == null ? null : previous.latitude()
+                        );
 
         candidates.record(result);
 
@@ -244,7 +256,8 @@ public class PlanTourismTool {
     }
 
     @Tool(description = """
-            이번 호출의 검색 결과로 확정한 두 장소 사이의 이동시간 조회.
+            이번 호출의 검색 후보 두 곳의 순서·선택 비교용 이동시간 조회.
+            모든 구간의 사전 호출은 필수가 아니며, 최종 일정의 이동시간은 Java에서 별도로 확인합니다.
             originCandidateId와 destinationCandidateId에는 장소명이 아니라
             searchAttractionsByRegion, searchRestaurantsByLocation 또는 findPlaceWithRoute가 반환한 candidateId를 전달합니다.
             후보 ID가 없거나 이번 호출에서 검색하지 않은 후보이면 이동시간을 반환하지 않습니다.
@@ -283,12 +296,18 @@ public class PlanTourismTool {
     }
 
     // candidateId 접두사의 Tool 내부 제거
-    @Tool(description = "TourAPI 음식점 상세 조회. 후보의 candidateId를 그대로 전달")
+    @Tool(description = "TourAPI 음식점 상세 조회. 후보의 candidateId를 그대로 전달. "
+            + "firstmenu·treatmenu의 실제 메뉴 하나만 선택. 괄호 내부 표현 보존, "
+            + "괄호 밖 구분자만 메뉴 분리, 괄호 짝이 맞지 않는 필드 제외")
     public Kor2RestaurantIntroResponse getRestaurantDetail(String contentId) {
 
-        return tourismTool.getRestaurantDetail(
+        Kor2RestaurantIntroResponse response = tourismTool.getRestaurantDetail(
                 PlaceCandidateContext.contentId(contentId)
         );
+
+        candidates.recordRestaurantDetail(contentId, response);
+
+        return response;
     }
 
     @Tool(description = "질환별 음식 영양 평가")

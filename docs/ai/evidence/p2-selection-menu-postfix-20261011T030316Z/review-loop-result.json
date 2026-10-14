@@ -1,0 +1,48 @@
+{
+  "scope": "Actual API remeasurement aggregation, interpretation and Grafana evidence",
+  "qualityGate": 9,
+  "rounds": [
+    {
+      "round": 1,
+      "score": 9.4,
+      "critical": 0,
+      "important": 0,
+      "minor": 0
+    },
+    {
+      "round": 2,
+      "score": 9.5,
+      "critical": 0,
+      "important": 0,
+      "minor": 0
+    }
+  ],
+  "reviewerChangedFiles": false,
+  "additionalApiCalls": 0,
+  "notReviewed": "No real ingredient safety, opening hours or actual edit API validation",
+  "placeTypeDiagnosisAndAdoptionReassessment": {
+    "scope": "Place-type failure diagnosis and per-issue adoption reassessment",
+    "qualityGate": 9,
+    "rounds": [
+      {
+        "round": 1,
+        "score": 9.2,
+        "critical": 0,
+        "important": 0,
+        "minor": 1,
+        "finding": "Reproducer argument layout; corrected and rerun"
+      },
+      {
+        "round": 2,
+        "score": 9.3,
+        "critical": 0,
+        "important": 0,
+        "minor": 1,
+        "finding": "Final archive reproducer synchronization; addressed by final byte equality check"
+      }
+    ],
+    "additionalPaidApiCalls": 0,
+    "productionChanges": 0,
+    "notReviewed": "No new actual generation/edit batch, ingredient safety, opening-hours or travel walking causality validation"
+  }
+}

@@ -1,0 +1,24 @@
+
+> Task :compileJava
+Note: /private/tmp/planb-stage2-179/src/main/java/com/planb/ai/client/OpenAiClient.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :processResources UP-TO-DATE
+> Task :classes
+
+> Task :compileTestJava
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: /private/tmp/planb-stage2-179/src/test/java/com/planb/unit/ai/handler/TravelRecommendHandlerContractTest.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+> Task :processTestResources UP-TO-DATE
+> Task :testClasses
+Java HotSpot(TM) 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+> Task :test
+
+[Incubating] Problems report is available at: file:///private/tmp/planb-stage2-179/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 6s
+5 actionable tasks: 3 executed, 2 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.2.1/userguide/configuration_cache_enabling.html

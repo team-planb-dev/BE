@@ -32,6 +32,7 @@ import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchRespons
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -132,7 +133,7 @@ public class TravelRecommendHandler {
                         )
                 );
 
-        // 재시도 초기화나 모델의 관광지 검색 생략과 무관하게 후속 보충 단계에 고정 후보 전달
+        // 모델의 관광지 검색 생략과 무관한 후속 보충 단계의 고정 후보 전달
         plannedPlaces.forEach(candidates::pin);
 
         // PlanService 검증 직전의 관광지 개수·빈 슬롯 단일 보정
@@ -172,6 +173,72 @@ public class TravelRecommendHandler {
                 );
 
         return response;
+    }
+
+    // 메뉴만 바꾸는 대상의 기존 음식점 원본과 상세 메뉴 조회, 같은 이름·좌표 후보만 인정
+    public Optional<PlaceCandidateContext.Candidate> findRestaurant(
+            TravelPlanContext context,
+            String name,
+            String longitude,
+            String latitude,
+            PlaceCandidateContext candidates
+    ) {
+
+        PlanTourismTool tool = new PlanTourismTool(
+                tourismTool,
+                candidates
+        );
+
+        Optional<PlaceCandidateContext.Candidate> found = tool
+                .searchRestaurantsByLocation(
+                        name,
+                        context
+                                .createTravelRequest()
+                                .locationDo(),
+                        context
+                                .createTravelRequest()
+                                .locationSigungu()
+                )
+                .stream()
+                .filter(candidate -> candidate
+                        .candidateId()
+                        .startsWith("tour:"))
+                .filter(candidate -> PlaceCandidateContext
+                        .normalizeName(candidate.name())
+                        .equals(PlaceCandidateContext.normalizeName(name)))
+                .filter(candidate -> near(
+                        candidate.longitude(),
+                        candidate.latitude(),
+                        longitude,
+                        latitude
+                ))
+                .findFirst();
+
+        found.ifPresent(candidate -> tool.getRestaurantDetail(candidate.candidateId()));
+
+        return found;
+    }
+
+    private static boolean near(
+            String longitude,
+            String latitude,
+            String otherLongitude,
+            String otherLatitude
+    ) {
+
+        try {
+            double longitudeGap = Math.abs(
+                    Double.parseDouble(longitude) - Double.parseDouble(otherLongitude)
+            );
+
+            double latitudeGap = Math.abs(
+                    Double.parseDouble(latitude) - Double.parseDouble(otherLatitude)
+            );
+
+            return longitudeGap < 0.0005 && latitudeGap < 0.0005;
+        } catch (NullPointerException | NumberFormatException exception) {
+            return false;
+        }
     }
 
     // 사용자 요청의 전체 날짜 재구성 범위 해석
@@ -314,6 +381,8 @@ public class TravelRecommendHandler {
                             unusedAttractionCandidateCount(response, candidates)
                     )
             );
+
+            // 메뉴 출처 오류의 최종 슬롯 검증·국소 재선택 위임
 
             return failures;
         };

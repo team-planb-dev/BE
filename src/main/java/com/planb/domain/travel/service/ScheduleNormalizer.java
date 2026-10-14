@@ -20,6 +20,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -57,7 +58,10 @@ public class ScheduleNormalizer {
                 response
                         .planDays()
                         .stream()
-                        .map(day -> normalizeScheduleTimes(day, healthContexts))
+                        .map(day -> normalizeScheduleTimes(
+                                day,
+                                healthContexts
+                        ))
                         .toList());
     }
 
@@ -77,8 +81,7 @@ public class ScheduleNormalizer {
         int movableStartIndex = 0;
 
         for (CreatePlanAiResponse.PlanScheduleDetail schedule : day.schedules()) {
-            if (schedule == null || schedule.startTime() == null || schedule.stayMinutes() == null
-                    || schedule.stayMinutes() <= 0 || !planPlaceResolver.requiresPlace(schedule)) {
+            if (!normalizedPlace(schedule)) {
                 schedules.add(schedule);
 
                 continue;
@@ -109,12 +112,23 @@ public class ScheduleNormalizer {
 
                     // 식사시간 충족이 가능한 경우에만 앞 장소 이동
                     // 앞 장소 이동 불가 시 일정 생성 유지와 가장 이른 시각 배치
-                    if (tryShiftPreviousPlaces(
+                    boolean shifted = tryShiftPreviousPlaces(
                             schedules,
                             movableStartIndex,
                             shiftMinutes,
                             previousMealEnd
-                    )) {
+                    );
+
+                    if (!shifted) {
+                        shifted = tryShiftPreviousMeal(
+                                schedules,
+                                movableStartIndex,
+                                shiftMinutes,
+                                healthContexts
+                        );
+                    }
+
+                    if (shifted) {
                         previousPlaceEnd = previousPlaceEnd.minusMinutes(shiftMinutes);
                         earliestStart = previousPlaceEnd.plusMinutes(schedule.travelMinutes());
                     }
@@ -207,7 +221,8 @@ public class ScheduleNormalizer {
     }
 
     // 식사시간 충족을 위한 직전 식사 이후 장소 이동
-    // 이동 불가 시 변경 없이 false 반환, 실패 판정은 호출부 책임
+    // 앞 장소 종료·이동시간 이후, 원래 시각 이전 범위에서 마지막 장소 종료를 shiftMinutes만큼 앞당김
+    // 가장 이른 배치로 가능 여부 판정 후 뒤에서부터 필요한 만큼만 당김, 불가 시 변경 없이 false
     private boolean tryShiftPreviousPlaces(
             List<CreatePlanAiResponse.PlanScheduleDetail> schedules,
             int fromIndex,
@@ -215,63 +230,260 @@ public class ScheduleNormalizer {
             LocalTime previousMealEnd
     ) {
 
-        int firstPlaceIndex = -1;
+        List<Integer> places = new ArrayList<>();
 
         for (int index = fromIndex; index < schedules.size(); index++) {
             CreatePlanAiResponse.PlanScheduleDetail schedule = schedules.get(index);
 
-            if (schedule != null && planPlaceResolver.requiresPlace(schedule)) {
-                firstPlaceIndex = index;
-                break;
-            }
-        }
-
-        if (firstPlaceIndex < 0) {
-            return false;
-        }
-
-        CreatePlanAiResponse.PlanScheduleDetail firstPlace = schedules.get(firstPlaceIndex);
-
-        LocalTime shiftedFirstStart = firstPlace
-                .startTime()
-                .minusMinutes(shiftMinutes);
-
-        // 자정을 넘겨 되감긴 경우
-        if (shiftedFirstStart.isAfter(firstPlace.startTime())) {
-            return false;
-        }
-
-        if (previousMealEnd != null) {
-            LocalTime earliestStart = previousMealEnd.plusMinutes(
-                    firstPlace.travelMinutes() == null
-                            ? 0
-                            : firstPlace.travelMinutes()
-            );
-
-            if (shiftedFirstStart.isBefore(earliestStart)) {
-                return false;
-            }
-        }
-
-        for (int index = firstPlaceIndex; index < schedules.size(); index++) {
-            CreatePlanAiResponse.PlanScheduleDetail schedule = schedules.get(index);
-
-            if (schedule == null || !planPlaceResolver.requiresPlace(schedule)) {
+            if (!normalizedPlace(schedule)) {
                 continue;
             }
 
-            schedules.set(
+            if (schedule.travelMinutes() != null && schedule.travelMinutes() < 0) {
+                return false;
+            }
+
+            places.add(index);
+        }
+
+        if (places.isEmpty()) {
+            return false;
+        }
+
+        CreatePlanAiResponse.PlanScheduleDetail last = schedules.get(places.getLast());
+
+        LocalTime targetEnd = last
+                .endTime()
+                .minusMinutes(shiftMinutes);
+
+        // 자정을 넘겨 되감긴 경우
+        if (targetEnd.isAfter(last.endTime())) {
+            return false;
+        }
+
+        // 가장 이른 배치의 마지막 장소 종료로 가능 여부 판정
+        LocalTime earliestEnd = previousMealEnd;
+
+        List<LocalTime> earliestStarts = new ArrayList<>();
+
+        for (int index : places) {
+            CreatePlanAiResponse.PlanScheduleDetail schedule = schedules.get(index);
+
+            LocalTime start = schedule
+                    .startTime()
+                    .minusMinutes(shiftMinutes);
+
+            if (start.isAfter(schedule.startTime())) {
+                return false;
+            }
+
+            if (earliestEnd != null) {
+                LocalTime earliest = earliestEnd.plusMinutes(travelOf(schedule));
+
+                if (start.isBefore(earliest)) {
+                    start = earliest;
+                }
+            }
+
+            if (start.isAfter(schedule.startTime())) {
+                start = schedule.startTime();
+            }
+
+            earliestStarts.add(start);
+
+            earliestEnd = start.plusMinutes(schedule.stayMinutes());
+        }
+
+        if (earliestEnd.isAfter(targetEnd)) {
+            return false;
+        }
+
+        // 뒤 장소부터 다음 장소 시작·이동시간을 지키는 가장 늦은 시각으로 배치
+        List<CreatePlanAiResponse.PlanScheduleDetail> moved = new ArrayList<>(schedules);
+
+        LocalTime nextStart = null;
+        int nextTravel = 0;
+
+        for (int position = places.size() - 1; position >= 0; position--) {
+            int index = places.get(position);
+            CreatePlanAiResponse.PlanScheduleDetail schedule = schedules.get(index);
+
+            LocalTime end = nextStart == null
+                    ? targetEnd
+                    : nextStart.minusMinutes(nextTravel);
+
+            LocalTime start = end.minusMinutes(schedule.stayMinutes());
+
+            if (start.isAfter(schedule.startTime())) {
+                start = schedule.startTime();
+            }
+
+            // 이동시간 누락 등으로 앞 일정과 겹치는 배치 거부
+            if (start.isBefore(earliestStarts.get(position))) {
+                return false;
+            }
+
+            moved.set(
                     index,
                     withScheduleTimes(
                             schedule,
-                            schedule
-                                    .startTime()
-                                    .minusMinutes(shiftMinutes),
-                            schedule
-                                    .endTime()
-                                    .minusMinutes(shiftMinutes)
+                            start,
+                            start.plusMinutes(schedule.stayMinutes())
                     )
             );
+
+            nextStart = start;
+            nextTravel = travelOf(schedule);
+        }
+
+        schedules.clear();
+        schedules.addAll(moved);
+
+        return true;
+    }
+
+    private static int travelOf(CreatePlanAiResponse.PlanScheduleDetail schedule) {
+
+        return schedule.travelMinutes() == null
+                ? 0
+                : schedule.travelMinutes();
+    }
+
+    // 허용 창·앞 장소 이동시간을 유지한 직전 식사의 최소 앞당김
+    // 사이 장소의 여유 압축과 함께 충족되는 가장 작은 앞당김 선택
+    private boolean tryShiftPreviousMeal(
+            List<CreatePlanAiResponse.PlanScheduleDetail> schedules,
+            int fromIndex,
+            long shiftMinutes,
+            List<TravelHealthContext> healthContexts
+    ) {
+
+        if (fromIndex == 0 || shiftMinutes <= 0) {
+            return false;
+        }
+
+        int mealIndex = fromIndex - 1;
+        CreatePlanAiResponse.PlanScheduleDetail meal = schedules.get(mealIndex);
+        MealTimeRange range = mealTimeRange(meal.scheduleType(), healthContexts);
+
+        if (range == null || !normalizedPlace(meal)) {
+            return false;
+        }
+
+        boolean placesBetween = schedules
+                .subList(fromIndex, schedules.size())
+                .stream()
+                .anyMatch(this::normalizedPlace);
+
+        Optional<CreatePlanAiResponse.PlanScheduleDetail> precedingPlace = schedules
+                .subList(0, mealIndex)
+                .stream()
+                .filter(this::normalizedPlace)
+                .reduce((first, second) -> second);
+
+        // 사이 장소 부재 시 식사 자체의 shiftMinutes 앞당김
+        long firstShift = placesBetween ? 1 : shiftMinutes;
+        long lastShift = placesBetween ? MEAL_TIME_TOLERANCE_MINUTES * 2 : shiftMinutes;
+
+        for (long mealShift = firstShift; mealShift <= lastShift; mealShift++) {
+            if (meal
+                    .startTime()
+                    .toSecondOfDay() < mealShift * 60) {
+                return false;
+            }
+
+            LocalTime shiftedMealStart = meal
+                    .startTime()
+                    .minusMinutes(mealShift);
+
+            if (shiftedMealStart.isBefore(range.earliest())) {
+                return false;
+            }
+
+            if (shiftedMealStart.isAfter(range.latest())) {
+                continue;
+            }
+
+            if (precedingPlace.isPresent()) {
+                LocalTime end = precedingPlace
+                        .get()
+                        .endTime();
+                int travel = travelOf(meal);
+
+                if (end == null || travel < 0
+                        || end.toSecondOfDay() + travel * 60L > shiftedMealStart.toSecondOfDay()) {
+                    return false;
+                }
+            }
+
+            CreatePlanAiResponse.PlanScheduleDetail shiftedMeal = withScheduleTimes(
+                    meal,
+                    shiftedMealStart,
+                    shiftedMealStart.plusMinutes(meal.stayMinutes())
+            );
+
+            // 직전 식사가 아침·점심이라 앞당길수록 연동 복약의 자정 초과 위험만 증가
+            if (!mealMedicationFitsDay(shiftedMeal, healthContexts)) {
+                return false;
+            }
+
+            List<CreatePlanAiResponse.PlanScheduleDetail> shifted = new ArrayList<>(schedules);
+            shifted.set(mealIndex, shiftedMeal);
+
+            if (!placesBetween || tryShiftPreviousPlaces(
+                    shifted,
+                    fromIndex,
+                    shiftMinutes,
+                    shiftedMeal.endTime()
+            )) {
+                schedules.clear();
+                schedules.addAll(shifted);
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // 앞당긴 식사의 연동 복약 전체 구간에 대한 자정 미초과
+    private boolean mealMedicationFitsDay(
+            CreatePlanAiResponse.PlanScheduleDetail meal,
+            List<TravelHealthContext> healthContexts
+    ) {
+
+        long mealStartSeconds = meal
+                .startTime()
+                .toSecondOfDay();
+
+        for (TravelHealthContext context : healthContexts) {
+            for (TravelHealthContext.MedicationInfoContext medication : context.medicationInfos()) {
+                if (medication.medicationBasis() != MedicationBasis.WITH_MEAL
+                        && medication.medicationBasis() != MedicationBasis.UNKNOWN) {
+                    continue;
+                }
+
+                for (TravelHealthContext.MedicationInfoContext.MealMedicationRuleContext rule
+                        : medication.mealMedicationRules()) {
+                    if (rule.mealTiming() == MealTiming.REGARDLESS_OF_MEAL
+                            || scheduleType(rule.relatedMeal()) != meal.scheduleType()) {
+                        continue;
+                    }
+
+                    long intervalSeconds = rule.intervalMinutes() == null ? 0 : rule.intervalMinutes() * 60L;
+                    long medicationStart = switch (rule.mealTiming()) {
+                        case BEFORE_MEAL -> mealStartSeconds - intervalSeconds;
+                        case AFTER_MEAL -> mealStartSeconds
+                                + meal.stayMinutes() * 60L + intervalSeconds;
+                        case DURING_MEAL -> mealStartSeconds;
+                        case REGARDLESS_OF_MEAL -> throw new IllegalStateException("식사 무관 복약");
+                    };
+
+                    if (medicationStart < 0 || medicationStart + 10 * 60 >= 24 * 60 * 60) {
+                        return false;
+                    }
+                }
+            }
         }
 
         return true;
@@ -393,6 +605,37 @@ public class ScheduleNormalizer {
         return new CreatePlanAiResponse(fixedPlanDays);
     }
 
+    // 최종 식사 기준 복약 알림 배치, 이동·장소 체류 중첩 허용
+    public CreatePlanAiResponse finalizeMedicationSchedules(
+            CreatePlanAiResponse response,
+            List<TravelHealthContext> healthContexts
+    ) {
+
+        return ensureMedicationSchedules(response, healthContexts);
+    }
+
+    // 시간표 정규화 대상 장소 슬롯
+    private boolean normalizedPlace(CreatePlanAiResponse.PlanScheduleDetail schedule) {
+
+        return schedule != null
+                && schedule.startTime() != null
+                && schedule.stayMinutes() != null
+                && schedule.stayMinutes() > 0
+                && planPlaceResolver.requiresPlace(schedule);
+    }
+
+    // 식사 기준의 일정 유형
+    private static ScheduleType scheduleType(RelatedMeal relatedMeal) {
+
+        return switch (relatedMeal) {
+            case BREAKFAST -> ScheduleType.BREAKFAST;
+
+            case LUNCH -> ScheduleType.LUNCH;
+
+            case DINNER -> ScheduleType.DINNER;
+        };
+    }
+
     // 하루치 AI MEDICATION 슬롯을 제거하고 실제 식사시간 또는 등록 식사시간 기준으로 교체
     private CreatePlanAiResponse.PlanDayDetail fixDayMedicationSchedules(
             CreatePlanAiResponse.PlanDayDetail planDay,
@@ -409,9 +652,6 @@ public class ScheduleNormalizer {
         Map<ScheduleType, MealWindow> dayMealTimes =
                 dayMealTimes(nonMedicationSchedules);
 
-        List<CreatePlanAiResponse.PlanScheduleDetail> placeSlots =
-                nonMealPlaceSlots(nonMedicationSchedules);
-
         List<CreatePlanAiResponse.PlanScheduleDetail> medicationSchedules =
                 healthContexts
                         .stream()
@@ -420,7 +660,6 @@ public class ScheduleNormalizer {
                                 dayMealTimes
                         )
                                 .stream())
-                        .map(medication -> moveOutOfPlaceSlots(medication, placeSlots))
                         .collect(Collectors.groupingBy(CreatePlanAiResponse.PlanScheduleDetail::startTime))
                         .values()
                         .stream()
@@ -438,55 +677,6 @@ public class ScheduleNormalizer {
                 planDay.dayNumber(),
                 planDay.date(),
                 mergedSchedules
-        );
-    }
-
-    /**
-     * 복약 시간과의 겹침을 검사할 장소 슬롯
-     */
-    private List<CreatePlanAiResponse.PlanScheduleDetail> nonMealPlaceSlots(
-            List<CreatePlanAiResponse.PlanScheduleDetail> nonMedicationSchedules
-    ) {
-
-        return nonMedicationSchedules
-                .stream()
-                .filter(Objects::nonNull)
-                .filter(schedule -> !MEAL_SCHEDULE_TYPES.contains(schedule.scheduleType()))
-                .filter(schedule -> schedule.startTime() != null
-                        && schedule.endTime() != null)
-                .sorted(Comparator.comparing(CreatePlanAiResponse.PlanScheduleDetail::startTime))
-                .toList();
-    }
-
-    /**
-     * 장소 시간대와 겹치는 복약의 종료 후 배치
-     */
-    private CreatePlanAiResponse.PlanScheduleDetail moveOutOfPlaceSlots(
-            CreatePlanAiResponse.PlanScheduleDetail medication,
-            List<CreatePlanAiResponse.PlanScheduleDetail> placeSlots
-    ) {
-
-        LocalTime startTime = medication.startTime();
-
-        for (CreatePlanAiResponse.PlanScheduleDetail place : placeSlots) {
-            if (!startTime.isBefore(place.startTime())
-                    && startTime.isBefore(place.endTime())) {
-                startTime = place.endTime();
-            }
-        }
-
-        if (startTime.equals(medication.startTime())) {
-            return medication;
-        }
-
-        return medicationSchedule(
-                startTime,
-                medication
-                        .medication()
-                        .intervalMinutes(),
-                medication
-                        .medication()
-                        .description()
         );
     }
 
@@ -648,14 +838,7 @@ public class ScheduleNormalizer {
             Map<ScheduleType, MealWindow> dayMealTimes
     ) {
 
-        ScheduleType scheduleType =
-                switch (relatedMeal) {
-                    case BREAKFAST -> ScheduleType.BREAKFAST;
-
-                    case LUNCH -> ScheduleType.LUNCH;
-
-                    case DINNER -> ScheduleType.DINNER;
-                };
+        ScheduleType scheduleType = scheduleType(relatedMeal);
 
         TravelHealthContext.MealInfoContext mealInfo =
                 healthContext.mealInfo();

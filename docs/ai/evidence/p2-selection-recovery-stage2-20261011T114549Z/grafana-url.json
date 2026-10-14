@@ -1,0 +1,6 @@
+{
+  "url": "http://localhost:3000/d/p2-selection-stage2/5a24d2d?from=2026-10-11T03%3A02%3A33.798400%2B00%3A00&to=2026-10-11T11%3A55%3A56.761723%2B00%3A00&timezone=browser&orgId=1",
+  "uid": "p2-selection-stage2",
+  "dataKind": "imported actual API evaluation; not live scrape or k6",
+  "retention": "dedicated local Prometheus 30d; permanent OpenMetrics and dashboard JSON retained"
+}

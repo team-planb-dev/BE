@@ -32,6 +32,8 @@ import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroRespo
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -61,12 +63,32 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class TravelRecommendHandlerContractTest {
 
-    @Test
+    @ParameterizedTest
+    @ValueSource(strings = {"막국수", "교동쌈밥 한정식 (A, B, C)"})
     @DisplayName("생성 선택 응답의 candidateId를 검증된 장소 정보로 변환")
-    void createsPlanFromCandidateSelection() {
+    void createsPlanFromCandidateSelection(String selectedMenu) {
 
         PlaceCandidateContext candidates = new PlaceCandidateContext();
         candidates.record(restaurantItem("456", "춘천식당"));
+
+        candidates.recordRestaurantDetail("tour:456", new Kor2RestaurantIntroResponse(
+                new Kor2RestaurantIntroResponse.Response(
+                        new Kor2RestaurantIntroResponse.Header("0000", "OK"),
+                        new Kor2RestaurantIntroResponse.Body(
+                                new Kor2RestaurantIntroResponse.Items(List.of(
+                                        new Kor2RestaurantIntroResponse.Item(
+                                                "456",
+                                                "39",
+                                                "교동쌈밥 한정식 (A, B, C)",
+                                                "막국수"
+                                        )
+                                )),
+                                1,
+                                1,
+                                1
+                        )
+                )
+        ));
 
         CreatePlanSelection selection = new CreatePlanSelection(List.of(
                 new CreatePlanSelection.PlanDaySelection(
@@ -80,7 +102,7 @@ class TravelRecommendHandlerContractTest {
                                 60,
                                 Set.of(),
                                 new CreatePlanSelection.RestaurantSelection(
-                                        "막국수",
+                                        selectedMenu,
                                         "막국수"
                                 ),
                                 "tour:456"
@@ -117,7 +139,9 @@ class TravelRecommendHandlerContractTest {
 
         assertThat(slot.locationName()).isEqualTo("춘천식당");
         assertThat(slot.candidateId()).isEqualTo("tour:456");
-        assertThat(slot.restaurantDetail().menuName()).isEqualTo("막국수");
+        assertThat(slot.restaurantDetail().menuName()).isEqualTo(selectedMenu);
+        assertThat(capturedPlanValidation().apply(selection))
+                .noneMatch(failure -> failure.contains("음식점"));
     }
 
     @Mock
@@ -288,6 +312,220 @@ class TravelRecommendHandlerContractTest {
                     assertThat(candidate.name())
                             .isEqualTo("춘천식당");
                 });
+    }
+
+    @Test
+    @DisplayName("메뉴만 변경 대상의 기존 음식점을 공백 무시 이름·근접 좌표로 찾고 상세 메뉴 기록")
+    void findsCurrentRestaurantByNameAndCoordinates() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+
+        when(tourismTool.searchRestaurantsByLocation(
+                "할매국밥",
+                mealAppliedContext()
+                        .createTravelRequest()
+                        .locationDo(),
+                mealAppliedContext()
+                        .createTravelRequest()
+                        .locationSigungu()
+        ))
+                .thenReturn(restaurantSearch(List.of(
+                        restaurantItem(
+                                "21",
+                                "할매국밥 2호점"
+                        ),
+                        restaurantItem(
+                                "20",
+                                "할매 국밥"
+                        )
+                )));
+
+        when(tourismTool.getRestaurantDetail("20"))
+                .thenReturn(intro(
+                        "20",
+                        "돼지국밥, 순대국밥"
+                ));
+
+        assertThat(handler()
+                .findRestaurant(
+                        mealAppliedContext(),
+                        "할매국밥",
+                        "126.9001",
+                        "37.5001",
+                        candidates
+                ))
+                .hasValueSatisfying(candidate -> assertThat(candidate.candidateId())
+                        .isEqualTo("tour:20"));
+
+        assertThat(candidates.restaurantMenus(
+                "tour:20",
+                () -> null
+        ))
+                .containsExactly(
+                        "돼지국밥",
+                        "순대국밥"
+                );
+    }
+
+    @Test
+    @DisplayName("같은 이름이라도 좌표가 먼 음식점은 기존 음식점으로 인정하지 않음")
+    void ignoresSameNameRestaurantFarAway() {
+
+        when(tourismTool.searchRestaurantsByLocation(
+                any(),
+                any(),
+                any()
+        ))
+                .thenReturn(restaurantSearch(List.of(restaurantItem(
+                        "20",
+                        "할매국밥"
+                ))));
+
+        assertThat(handler()
+                .findRestaurant(
+                        mealAppliedContext(),
+                        "할매국밥",
+                        "127.5",
+                        "37.5",
+                        new PlaceCandidateContext()
+                ))
+                .isEmpty();
+
+        verify(
+                tourismTool,
+                org.mockito.Mockito.never()
+        )
+                .getRestaurantDetail(any());
+    }
+
+    private Kor2KeywordSearchResponse restaurantSearch(List<Kor2KeywordSearchResponse.Item> items) {
+
+        return new Kor2KeywordSearchResponse(new Kor2KeywordSearchResponse.Response(
+                null,
+                new Kor2KeywordSearchResponse.Body(
+                        new Kor2KeywordSearchResponse.Items(items),
+                        items.size(),
+                        1,
+                        items.size()
+                )
+        ));
+    }
+
+    private Kor2RestaurantIntroResponse intro(
+            String contentId,
+            String menus
+    ) {
+
+        return new Kor2RestaurantIntroResponse(new Kor2RestaurantIntroResponse.Response(
+                new Kor2RestaurantIntroResponse.Header(
+                        "0000",
+                        "OK"
+                ),
+                new Kor2RestaurantIntroResponse.Body(
+                        new Kor2RestaurantIntroResponse.Items(List.of(new Kor2RestaurantIntroResponse.Item(
+                                contentId,
+                                "39",
+                                menus,
+                                null
+                        ))),
+                        1,
+                        1,
+                        1
+                )
+        ));
+    }
+
+    @Test
+    @DisplayName("초기 생성의 메뉴 출처 오류를 최종 슬롯 검증으로 전달")
+    void delegatesGenerationMenuSourceValidationToSlotRecovery() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+        candidates.record(restaurantItem("456", "춘천식당"));
+        CreatePlanSelection selection = new CreatePlanSelection(List.of(
+                new CreatePlanSelection.PlanDaySelection(
+                        1,
+                        LocalDate.of(2030, 1, 1),
+                        List.of(new CreatePlanSelection.ScheduleSelection(
+                                ScheduleType.LUNCH,
+                                CourseType.RESTAURANT,
+                                LocalTime.of(12, 0),
+                                LocalTime.of(13, 0),
+                                60,
+                                Set.of(),
+                                new CreatePlanSelection.RestaurantSelection("막국수", "막국수"),
+                                "tour:456"
+                        ))
+                )
+        ));
+
+        when(tourismTool.findPlannedPlaces(any(), eq("서울"), eq("종로구")))
+                .thenReturn(List.of());
+        doReturn(selection)
+                .when(openAiClient)
+                .call(
+                        any(AiPrompt.class),
+                        eq(createPlanSelectionConverter),
+                        any(Function.class),
+                        any(Object[].class)
+                );
+
+        handler().createPlanByAi(travelPlanContext(WalkType.ACTIVE), candidates);
+
+        assertThat(capturedPlanValidation().apply(selection))
+                .allSatisfy(failure -> assertThat(failure)
+                        .doesNotContain("메뉴"))
+                .anySatisfy(failure -> assertThat(failure)
+                        .contains("여행 일수"));
+    }
+
+    @Test
+    @DisplayName("카카오 FD6의 기존 생성 메뉴 계약 유지")
+    void keepsKakaoMealCompatibility() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+        candidates.record(new PlaceWithRouteResult(
+                true,
+                "춘천식당",
+                "춘천시",
+                "127.73",
+                "37.88",
+                null,
+                "kakao:456",
+                "FD6",
+                "음식점"
+        ));
+        CreatePlanSelection selection = new CreatePlanSelection(List.of(
+                new CreatePlanSelection.PlanDaySelection(
+                        1,
+                        LocalDate.of(2030, 1, 1),
+                        List.of(new CreatePlanSelection.ScheduleSelection(
+                                ScheduleType.LUNCH,
+                                CourseType.RESTAURANT,
+                                LocalTime.of(12, 0),
+                                LocalTime.of(13, 0),
+                                60,
+                                Set.of(),
+                                new CreatePlanSelection.RestaurantSelection("막국수", "막국수"),
+                                "kakao:456"
+                        ))
+                )
+        ));
+
+        when(tourismTool.findPlannedPlaces(any(), eq("서울"), eq("종로구")))
+                .thenReturn(List.of());
+        doReturn(selection)
+                .when(openAiClient)
+                .call(
+                        any(AiPrompt.class),
+                        eq(createPlanSelectionConverter),
+                        any(Function.class),
+                        any(Object[].class)
+                );
+
+        handler().createPlanByAi(travelPlanContext(WalkType.ACTIVE), candidates);
+
+        assertThat(capturedPlanValidation().apply(selection))
+                .noneMatch(failure -> failure.contains("음식점"));
     }
 
     private Function<CreatePlanSelection, List<String>> capturedPlanValidation() {

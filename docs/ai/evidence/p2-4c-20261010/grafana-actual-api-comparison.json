@@ -1,0 +1,593 @@
+{
+  "uid": "p24c-actual-api",
+  "title": "P2-4C 실제 API 전후 비교 — P2-4A 기준",
+  "tags": [
+    "PlanB",
+    "P2-4C",
+    "actual-api"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 41,
+  "version": 1,
+  "refresh": "",
+  "editable": true,
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "실제 API 12회 관찰 — P2-4A 기준 독립 비교",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**실제 OpenAI·TourAPI 호출 결과** · 각 단계 4개 지역 × 3회 · P2-4B 변경 제외\n\nJSONL 결과를 OpenMetrics로 가져온 관찰값입니다. 실시간 앱 scrape·k6 부하·운영 p95가 아닙니다. 차트 시각은 batch 시작 시각이며 요청별 시작 시각이 아닙니다. 첫 회차 캐시 미적중, 이후 회차 캐시 재사용. 날짜·모델 비결정성·공급자 지연 영향 포함. 단계 시간은 부모·자식이 중첩되어 전부 합산할 수 없습니다."
+      }
+    },
+    {
+      "id": 2,
+      "type": "bargauge",
+      "title": "성공 생성 시간 중앙값",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 8,
+        "h": 6
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "quantile by (phase) (0.5,last_over_time(planb_actual_experiment_duration_seconds{outcome=\"PASS\"}[7d]))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "bargauge",
+      "title": "성공 생성 token 중앙값",
+      "gridPos": {
+        "x": 8,
+        "y": 4,
+        "w": 8,
+        "h": 6
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "quantile by (phase) (0.5,last_over_time(planb_actual_experiment_tokens{outcome=\"PASS\"}[7d]))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "bargauge",
+      "title": "일정 생성 통과 수 / 12",
+      "gridPos": {
+        "x": 16,
+        "y": 4,
+        "w": 8,
+        "h": 6
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (phase) (last_over_time(planb_actual_experiment_success[7d]))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "type": "bargauge",
+      "title": "지역별 성공 시간 중앙값",
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "quantile by (phase,case) (0.5,last_over_time(planb_actual_experiment_duration_seconds{outcome=\"PASS\"}[7d]))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}} · {{case}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "type": "bargauge",
+      "title": "각 실행 시간 — 실패 포함",
+      "gridPos": {
+        "x": 12,
+        "y": 10,
+        "w": 12,
+        "h": 12
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "last_over_time(planb_actual_experiment_duration_seconds[7d])",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}} · {{case}} · R{{repeat}} · {{outcome}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "type": "bargauge",
+      "title": "모델 호출 합계 — 실패 포함",
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 6,
+        "h": 6
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (phase) (last_over_time(planb_actual_experiment_llm_calls[7d]))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 8,
+      "type": "bargauge",
+      "title": "CAFE_REST 슬롯 합계",
+      "gridPos": {
+        "x": 6,
+        "y": 19,
+        "w": 6,
+        "h": 6
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (phase) (last_over_time(planb_actual_experiment_quality{metric=\"cafeRestSlots\"}[7d]))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 9,
+      "type": "bargauge",
+      "title": "식사 영양 채움 비율",
+      "gridPos": {
+        "x": 12,
+        "y": 22,
+        "w": 12,
+        "h": 6
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (phase) (last_over_time(planb_actual_experiment_quality{metric=\"nutritionFilled\"}[7d])) / sum by (phase) (last_over_time(planb_actual_experiment_quality{metric=\"restaurantSlots\"}[7d]))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 10,
+      "type": "bargauge",
+      "title": "기록된 요청의 단계 누적시간 평균 — 실패 포함",
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "avg by (phase,stage) (sum by (phase,case,repeat,stage) (last_over_time(planb_actual_experiment_stage_seconds[7d])))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}} · {{stage}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 11,
+      "type": "bargauge",
+      "title": "알레르기 키워드 추정 적중 — 성분 확정 아님",
+      "gridPos": {
+        "x": 0,
+        "y": 38,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (phase) (last_over_time(planb_actual_experiment_quality{metric=\"allergenHits\"}[7d]))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 12,
+      "type": "bargauge",
+      "title": "날짜 간 장소 중복",
+      "gridPos": {
+        "x": 8,
+        "y": 38,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (phase) (last_over_time(planb_actual_experiment_quality{metric=\"crossDayDuplicatePlaces\"}[7d]))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 13,
+      "type": "bargauge",
+      "title": "지정 장소 포함 실행",
+      "gridPos": {
+        "x": 16,
+        "y": 38,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "p24c-actual"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (phase) (last_over_time(planb_actual_experiment_quality{metric=\"plannedPlaceIncluded\"}[7d]))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{phase}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    }
+  ],
+  "time": {
+    "from": "2026-10-08T05:45:00Z",
+    "to": "2026-10-10T10:25:11.043454+00:00"
+  },
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  }
+}

@@ -13,6 +13,7 @@ import com.planb.ai.mcp.TourismTool;
 import com.planb.ai.prompt.AiPrompt;
 import com.planb.global.config.exception.AiFailure;
 import com.planb.global.config.exception.domain.AiOrchestrationException;
+import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 import java.util.List;
@@ -80,6 +81,190 @@ class OpenAiClientTest {
     private final Logger clientLogger = (Logger) LoggerFactory.getLogger(OpenAiClient.class);
 
     private final ListAppender<ILoggingEvent> logs = new ListAppender<>();
+
+    @Test
+    @DisplayName("AI 호출 입구에서 선조회 음식점 후보와 상세 메뉴 보존")
+    void keepsPrefetchedRestaurantAtCallEntry() {
+
+        PlaceCandidateContext candidates = prefetchedRestaurant();
+        PlanTourismTool tool = new PlanTourismTool(mock(TourismTool.class), candidates);
+
+        when(chatClient
+                .prompt()
+                .system(prompt.system())
+                .user(prompt.user())
+                .tools(tool)
+                .options(any())
+                .call()
+                .content())
+                .thenReturn("raw");
+        when(outputConverter.convert("raw"))
+                .thenReturn(new TestDto("ok"));
+
+        assertEquals(new TestDto("ok"), openAiClient.call(
+                prompt,
+                outputConverter,
+                tool
+        ));
+        assertNotNull(candidates.find("tour:9"));
+        assertEquals(
+                List.of("비빔밥", "공깃밥"),
+                candidates.restaurantMenus("tour:9", () -> null)
+        );
+    }
+
+    @Test
+    @DisplayName("파싱 재시도 후에도 호출 전 선조회 후보와 상세 메뉴 보존")
+    void keepsPrefetchedRestaurantAcrossParsingRetry() {
+
+        PlaceCandidateContext candidates = prefetchedRestaurant();
+        PlanTourismTool tool = new PlanTourismTool(mock(TourismTool.class), candidates);
+
+        when(chatClient
+                .prompt()
+                .system(prompt.system())
+                .user(prompt.user())
+                .tools(tool)
+                .options(any())
+                .call()
+                .content())
+                .thenReturn("raw");
+        when(outputConverter.convert("raw"))
+                .thenThrow(new IllegalArgumentException("invalid JSON"))
+                .thenReturn(new TestDto("ok"));
+
+        assertEquals(new TestDto("ok"), openAiClient.call(
+                prompt,
+                outputConverter,
+                tool
+        ));
+        assertNotNull(candidates.find("tour:9"));
+        assertEquals(
+                List.of("비빔밥", "공깃밥"),
+                candidates.restaurantMenus("tour:9", () -> null)
+        );
+        verify(outputConverter, times(2))
+                .convert("raw");
+    }
+
+    private PlaceCandidateContext prefetchedRestaurant() {
+
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+        candidates.record(new PlaceWithRouteResult(
+                true,
+                "스텁 음식점 01",
+                "서울",
+                "126.9750",
+                "37.5650",
+                null,
+                "tour:9",
+                "39",
+                "음식점"
+        ));
+        candidates.recordRestaurantDetail("tour:9", new Kor2RestaurantIntroResponse(
+                new Kor2RestaurantIntroResponse.Response(
+                        new Kor2RestaurantIntroResponse.Header("0000", "OK"),
+                        new Kor2RestaurantIntroResponse.Body(
+                                new Kor2RestaurantIntroResponse.Items(List.of(
+                                        new Kor2RestaurantIntroResponse.Item(
+                                                "9",
+                                                "39",
+                                                "비빔밥",
+                                                "공깃밥"
+                                        )
+                                )),
+                                1,
+                                1,
+                                1
+                        )
+                )
+        ));
+
+        return candidates;
+    }
+
+    @Test
+    @DisplayName("JSON 메뉴 배열 교정 안내로 괄호 메뉴 원문 재선택")
+    void correctsFragmentToWholeMenuUsingJsonArray() {
+
+        String menu = "교동쌈밥 한정식 (A, B, C)";
+        PlaceCandidateContext candidates = new PlaceCandidateContext();
+        candidates.record(new PlaceWithRouteResult(
+                true,
+                "교동쌈밥",
+                "경주시",
+                "129.21",
+                "35.83",
+                null,
+                "tour:9",
+                "39",
+                "음식점"
+        ));
+        candidates.recordRestaurantDetail("tour:9", new Kor2RestaurantIntroResponse(
+                new Kor2RestaurantIntroResponse.Response(
+                        new Kor2RestaurantIntroResponse.Header("0000", "OK"),
+                        new Kor2RestaurantIntroResponse.Body(
+                                new Kor2RestaurantIntroResponse.Items(List.of(
+                                        new Kor2RestaurantIntroResponse.Item(
+                                                "9",
+                                                "39",
+                                                menu,
+                                                ""
+                                        )
+                                )),
+                                1,
+                                1,
+                                1
+                        )
+                )
+        ));
+
+        when(chatClient
+                .prompt()
+                .system(prompt.system())
+                .user(prompt.user())
+                .tools()
+                .options(any())
+                .call()
+                .content())
+                .thenReturn("raw-fragment");
+        when(chatClient
+                .prompt()
+                .system(prompt.system())
+                .user(contains("선택 가능 메뉴(JSON 배열): [\"교동쌈밥 한정식 (A, B, C)\"]"))
+                .tools()
+                .options(any())
+                .call()
+                .content())
+                .thenReturn("raw-whole-menu");
+        when(outputConverter.convert("raw-fragment"))
+                .thenReturn(new TestDto("B"));
+        when(outputConverter.convert("raw-whole-menu"))
+                .thenReturn(new TestDto(menu));
+
+        Function<TestDto, List<String>> validation = response -> {
+            String failure = candidates.restaurantMenuFailure("tour:9", response.value());
+
+            return failure == null ? List.of() : List.of(failure);
+        };
+
+        TestDto result = openAiClient.call(
+                prompt,
+                outputConverter,
+                validation
+        );
+
+        assertEquals(menu, result.value());
+        assertEquals(
+                1,
+                meterRegistry
+                        .get("planb.ai.retry")
+                        .tag("stage", "correction")
+                        .tag("outcome", "success")
+                        .timer()
+                        .count()
+        );
+    }
 
     @BeforeEach
     void schemaForMockConverter() {

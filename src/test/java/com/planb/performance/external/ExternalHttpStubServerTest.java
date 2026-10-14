@@ -480,7 +480,8 @@ class ExternalHttpStubServerTest {
                 new KakaoMapRouteHelper(),
                 new KakaoMobilityRouteHelper(),
                 new KakaoSearchKeywordSanitizer(),
-                new KakaoPlaceSearchHelper()
+                new KakaoPlaceSearchHelper(),
+                new SimpleMeterRegistry()
         );
 
         food = new FoodNtrCpntHandler(

@@ -41,6 +41,7 @@ import com.planb.domain.travel.entity.constant.TravelStyle;
 import com.planb.domain.travel.entity.constant.TravelTheme;
 import com.planb.domain.travel.repository.TravelRepository;
 import com.planb.domain.travel.service.NutritionService;
+import com.planb.domain.travel.service.PlanEditCacheService;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.integration.domain.chat.helper.ChatIntegrationTestSupport;
 import com.planb.integration.domain.chat.helper.StompTestClientHelper;
@@ -53,6 +54,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -119,6 +121,9 @@ public class ChatAiEditPlanIntegrationTest
 
     @Autowired
     private TravelRepository travelRepository;
+
+    @Autowired
+    private PlanEditCacheService planEditCacheService;
 
     @MockitoBean
     private TravelRecommendHandler travelRecommendHandler;
@@ -365,6 +370,363 @@ public class ChatAiEditPlanIntegrationTest
         } finally {
             stompHelper.disconnect(session);
             stompHelper.stop(stompClient);
+        }
+    }
+
+    @Test
+    @DisplayName("8192자를 넘는 실측 크기 수정 미리보기의 STOMP 수신과 연결 유지")
+    void talkDeliversPreviewLargerThanDefaultClientTextBuffer() throws Exception {
+
+        // given
+        stubCreatePlan();
+
+        TestUser testUser =
+                createAuthenticatedUser();
+
+        Long travelId =
+                createTravel(
+                        testUser.accessToken(),
+                        "대형 미리보기 여행-" + createUniqueValue()
+                );
+
+        Long roomId =
+                findOrCreateTravelChatRoom(
+                        testUser.accessToken(),
+                        travelId
+                );
+
+        // 실측 미리보기 약 18K자 수준의 변경 내역
+        stubEditPlan(
+                IntStream
+                        .range(
+                                0,
+                                90
+                        )
+                        .mapToObj(index -> index + "번째 변경 사유 " + "a".repeat(180))
+                        .toList(),
+                true
+        );
+
+        WebSocketStompClient stompClient =
+                stompHelper.createStompClient();
+
+        StompSession session = null;
+
+        try {
+            session =
+                    stompHelper.connect(
+                            stompClient,
+                            testUser.accessToken()
+                    );
+
+            BlockingQueue<SendChatMessageResponse> messages =
+                    new LinkedBlockingQueue<>();
+
+            stompHelper.subscribe(
+                    session,
+                    roomId,
+                    messages
+            );
+
+            stompHelper.drainMessagesMatching(
+                    messages,
+                    message -> message.type() == MessageType.ENTER
+                            || AI_BOT_NICKNAME.equals(message.senderNickname())
+            );
+
+            // when
+            session.send(
+                    CHAT_SEND_PREFIX
+                            + roomId
+                            + "/send",
+                    new SendChatMessageRequest(
+                            MessageType.TALK,
+                            "카페를 스타벅스로 바꿔줘"
+                    )
+            );
+
+            SendChatMessageResponse response =
+                    stompHelper.awaitMessage(
+                            messages,
+                            message -> AI_BOT_NICKNAME.equals(message.senderNickname())
+                    );
+
+            // then
+            assertThat(response)
+                    .isNotNull();
+
+            assertThat(response
+                            .editPreview()
+                            .after()
+                            .changes())
+                    .hasSize(90);
+
+            assertThat(session.isConnected())
+                    .isTrue();
+
+        } finally {
+            stompHelper.disconnect(session);
+            stompHelper.stop(stompClient);
+        }
+    }
+
+    @Test
+    @DisplayName("현재 동작 특성: 처리 중 TALK의 CANCEL이 먼저 응답되고 늦은 미리보기가 캐시를 다시 생성")
+    void cancelDuringTalkLeavesLatePreviewCached() throws Exception {
+
+        // 정책 결정 후 기대값 반전 대상(P2-6B 정책 질문), 바람직한 동작 확정 아님
+
+        // given
+        stubCreatePlan();
+
+        TestUser testUser =
+                createAuthenticatedUser();
+
+        Long travelId =
+                createTravel(
+                        testUser.accessToken(),
+                        "처리 중 취소 여행-" + createUniqueValue()
+                );
+
+        Long roomId =
+                findOrCreateTravelChatRoom(
+                        testUser.accessToken(),
+                        travelId
+                );
+
+        stubSlowEditPlan(
+                1_500,
+                List.of("느린 편집 결과")
+        );
+
+        WebSocketStompClient stompClient =
+                stompHelper.createStompClient();
+
+        StompSession session = null;
+
+        try {
+            session =
+                    stompHelper.connect(
+                            stompClient,
+                            testUser.accessToken()
+                    );
+
+            BlockingQueue<SendChatMessageResponse> messages =
+                    new LinkedBlockingQueue<>();
+
+            stompHelper.subscribe(
+                    session,
+                    roomId,
+                    messages
+            );
+
+            stompHelper.drainMessagesMatching(
+                    messages,
+                    message -> message.type() == MessageType.ENTER
+                            || AI_BOT_NICKNAME.equals(message.senderNickname())
+            );
+
+            // when
+            session.send(
+                    CHAT_SEND_PREFIX
+                            + roomId
+                            + "/send",
+                    new SendChatMessageRequest(
+                            MessageType.TALK,
+                            "카페를 스타벅스로 바꿔줘"
+                    )
+            );
+
+            Thread.sleep(300);
+
+            session.send(
+                    CHAT_SEND_PREFIX
+                            + roomId
+                            + "/send",
+                    new SendChatMessageRequest(
+                            MessageType.CANCEL,
+                            null
+                    )
+            );
+
+            SendChatMessageResponse first =
+                    stompHelper.awaitMessage(
+                            messages,
+                            message -> AI_BOT_NICKNAME.equals(message.senderNickname())
+                    );
+
+            SendChatMessageResponse second =
+                    stompHelper.awaitMessage(
+                            messages,
+                            message -> AI_BOT_NICKNAME.equals(message.senderNickname())
+                    );
+
+            // then
+            assertThat(first)
+                    .isNotNull();
+
+            assertThat(second)
+                    .isNotNull();
+
+            assertThat(first.type())
+                    .isEqualTo(MessageType.CANCEL);
+
+            assertThat(second.editPreview())
+                    .isNotNull();
+
+            assertThat(planEditCacheService.findEditResult(travelId))
+                    .isPresent();
+
+        } finally {
+            stompHelper.disconnect(session);
+            stompHelper.stop(stompClient);
+            planEditCacheService.deleteEditResult(travelId);
+        }
+    }
+
+    @Test
+    @DisplayName("현재 동작 특성: 늦게 끝난 이전 TALK 결과가 나중 TALK의 캐시를 덮어씀")
+    void slowerEarlierTalkOverwritesLaterPreviewCache() throws Exception {
+
+        // 정책 결정 후 기대값 반전 대상(P2-6B 정책 질문), 바람직한 동작 확정 아님
+
+        // given
+        stubCreatePlan();
+
+        TestUser testUser =
+                createAuthenticatedUser();
+
+        Long travelId =
+                createTravel(
+                        testUser.accessToken(),
+                        "편집 경합 여행-" + createUniqueValue()
+                );
+
+        Long roomId =
+                findOrCreateTravelChatRoom(
+                        testUser.accessToken(),
+                        travelId
+                );
+
+        when(travelRecommendHandler.editPlanByAi(
+                any(PlanEditContext.class),
+                any(PlaceCandidateContext.class)
+        ))
+                .thenAnswer(invocation -> {
+                    PlanEditContext context =
+                            invocation.getArgument(0);
+
+                    boolean first = context
+                            .editRequest()
+                            .startsWith("첫");
+
+                    if (first) {
+                        Thread.sleep(1_500);
+                    }
+
+                    recordPlanCandidates(
+                            invocation.getArgument(1),
+                            EDITED_CAFE_NAME,
+                            EDITED_CAFE_CANDIDATE_ID
+                    );
+
+                    return editPlanAiResponse(
+                            List.of(first ? "첫 요청 결과" : "두 번째 요청 결과"),
+                            true
+                    );
+                });
+
+        WebSocketStompClient stompClient =
+                stompHelper.createStompClient();
+
+        StompSession session = null;
+
+        try {
+            session =
+                    stompHelper.connect(
+                            stompClient,
+                            testUser.accessToken()
+                    );
+
+            BlockingQueue<SendChatMessageResponse> messages =
+                    new LinkedBlockingQueue<>();
+
+            stompHelper.subscribe(
+                    session,
+                    roomId,
+                    messages
+            );
+
+            stompHelper.drainMessagesMatching(
+                    messages,
+                    message -> message.type() == MessageType.ENTER
+                            || AI_BOT_NICKNAME.equals(message.senderNickname())
+            );
+
+            // when
+            session.send(
+                    CHAT_SEND_PREFIX
+                            + roomId
+                            + "/send",
+                    new SendChatMessageRequest(
+                            MessageType.TALK,
+                            "첫 요청: 카페를 바꿔줘"
+                    )
+            );
+
+            Thread.sleep(300);
+
+            session.send(
+                    CHAT_SEND_PREFIX
+                            + roomId
+                            + "/send",
+                    new SendChatMessageRequest(
+                            MessageType.TALK,
+                            "두 번째 요청: 카페를 바꿔줘"
+                    )
+            );
+
+            SendChatMessageResponse first =
+                    stompHelper.awaitMessage(
+                            messages,
+                            message -> AI_BOT_NICKNAME.equals(message.senderNickname())
+                    );
+
+            SendChatMessageResponse second =
+                    stompHelper.awaitMessage(
+                            messages,
+                            message -> AI_BOT_NICKNAME.equals(message.senderNickname())
+                    );
+
+            // then
+            assertThat(first)
+                    .isNotNull();
+
+            assertThat(second)
+                    .isNotNull();
+
+            assertThat(first
+                            .editPreview()
+                            .after()
+                            .changes())
+                    .contains("두 번째 요청 결과");
+
+            assertThat(second
+                            .editPreview()
+                            .after()
+                            .changes())
+                    .contains("첫 요청 결과");
+
+            assertThat(planEditCacheService
+                            .findEditResult(travelId)
+                            .orElseThrow()
+                            .changes())
+                    .contains("첫 요청 결과");
+
+        } finally {
+            stompHelper.disconnect(session);
+            stompHelper.stop(stompClient);
+            planEditCacheService.deleteEditResult(travelId);
         }
     }
 
@@ -1175,6 +1537,32 @@ public class ChatAiEditPlanIntegrationTest
                     );
 
                     return baseCreatePlanAiResponse();
+                });
+    }
+
+    // 처리 시간이 긴 AI 편집 stub
+    private void stubSlowEditPlan(
+            long delayMillis,
+            List<String> changes
+    ) {
+
+        when(travelRecommendHandler.editPlanByAi(
+                any(PlanEditContext.class),
+                any(PlaceCandidateContext.class)
+        ))
+                .thenAnswer(invocation -> {
+                    Thread.sleep(delayMillis);
+
+                    recordPlanCandidates(
+                            invocation.getArgument(1),
+                            EDITED_CAFE_NAME,
+                            EDITED_CAFE_CANDIDATE_ID
+                    );
+
+                    return editPlanAiResponse(
+                            changes,
+                            true
+                    );
                 });
     }
 
