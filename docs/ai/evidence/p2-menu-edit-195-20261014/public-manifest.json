@@ -1,0 +1,26 @@
+{
+  "issue": 195,
+  "mode": "paid",
+  "approvedEditRequests": 3,
+  "approvedNewGenerations": 0,
+  "automaticPaidReruns": 0,
+  "model": "gpt-5.6-terra",
+  "reasoning": "none",
+  "baseCommit": "caedb0a8491bd9de80c7c7a5fff8ec45fa09f7ab",
+  "startedAt": "2026-10-14T07:36:14.967402+00:00",
+  "completedAt": "2026-10-14T07:38:01.177251+00:00",
+  "exitCode": 0,
+  "sourcesUnchanged": true,
+  "junit": {
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "startedAttempts": 3,
+  "recordedAttempts": 3,
+  "seedHashes": {
+    "seed-plan.json": "21e9edb6a89d42711ccce9f9a3c480dd0516fd08ca1645df3734ffac9c390172",
+    "seed-health.json": "cd24a34e0c13a072760e203f7d16c970f06fcfebb3ed2ab2239430b9a7c403ec"
+  }
+}

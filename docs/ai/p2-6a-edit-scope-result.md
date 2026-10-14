@@ -163,3 +163,68 @@ V1 RED 확인 → 초기화 최소 제거 → V1 GREEN 순서. V1′·V2 추가 
 P0 초기화 결함만 해결. **2026-10-13 실측 실패의 실제 원인은 UNKNOWN 유지**. 동일 입력의 통제된 재현과 당시 모델 응답의 인과는 구분. P0′·P1·P1′·P2~P6 경로는 잔존·미검증이며 메뉴만 변경 전체 해결 또는 품질 개선 완료로 표현하지 않음.
 
 선조회 이름 검색의 전체 결과가 현재 요청의 허용 후보에 남는 부수 범위도 유지. 같은 음식점의 대체 메뉴가 확인된 경우 음식점 유지 검증은 기존대로 적용. 허용 후보의 추가 축소·후보 사실 복사는 별도 정책 결정 후 진행.
+
+
+## 9. M2 관측·M3 메뉴 편집 실측 — #195 (2026-10-14)
+
+M1/P0 main 반영: PR #194, commit `a6271bf`. 동기화 전 main `e2b5a05`·dev `caedb0a` 차이 46 commit·178파일(운영 Java31·테스트/fixture27·문서/증거120). #177/#179/#180 및 서브 Issue #181~183, #190/#192는 종료. 미채택 실험 #172/#173은 실제 품질 미달 근거로 `not planned` 종료, draft #174/#175 미병합 유지. 배포 상태 GitHub `success` 확인, 배포 앱의 실제 품질 별도 미검증.
+
+### 9-1. M2 변경·무료 검증
+
+- 기존 `PlanService`에 선조회 found/not_found/lookup_error/unmatched/not_applicable, 대상 조립 ai_match/java_restore, 첫 검증 pass/preserved/failure, 재선택 시도·fallback 증거 추가
+- 원시 재선택 ID는 `TravelRecommendHandler`에서 null 변환 전에 기록. 메뉴·ID는 로그에만 사용, 사용자/장소/메뉴 값의 metric 태그 추가 없음
+- 등록 알레르기 사유는 로그에서 고정 `등록 알레르기 충돌`로 마스킹. 재선택 프롬프트·예외·기존 정책의 원래 사유는 유지
+- 기존 `planb.travel.plan.stage`의 flow=edit, stage=scope_classification/candidate_prefetch/ai_response/place_validation/day_rebuild/finish_plan 보강. reselect·nutrition_enrichment는 기존 그대로. 부모·자식 Timer를 모두 합산하지 않음
+- Java 복원은 AI 원문 응답으로 표현하지 않음. wholeDays 제외는 로그 조건에만 적용, 슬롯 조립 불변
+- 정상 실제 client 관측, 재선택/fallback·미검색 원시 ID, 알레르기 로그 비노출 RED→GREEN 확인. Java 복원·원본 예외와 failure timer 추가 검증
+- 연결 계약 112건 통과. 최종 전체 무료 회귀 1,078건 실패·오류·skip 0. 등록 알레르기 마스킹 이전 전체 회귀도 별도 보존하되 최종 채택 증거와 구분
+- 리뷰: 1차 M2 8점(알레르기 INFO 노출) → 2차 M2 9점/러너 8점(예상 밖 실패 중단 경계) → 3차 둘 다 9점, 4차 실측 원본·집계·문서 대조9점. 최종 Critical·Important·Minor 0. 유료 호출 전 seed preflight 별도
+
+### 9-2. M3 실행 전 고정 조건
+
+- 사용자 승인: 이번 메뉴 편집 3요청. LLM completion·Tool 호출 3건이라는 뜻이 아니며, 내부 호출·token은 별도 계수
+- 기존 2026-10-13 저장 일정·건강 seed와 같은 요청: `2일차 점심 메뉴를 다른 것으로 바꿔줘. 1일차는 그대로 유지해줘.`. Testcontainers MySQL·Redis 격리, 실제 provider 사용, 모델 gpt-5.6-terra·reasoning none·random seed1
+- 새 AI 일정 생성 없음. 같은 seed를 요청마다 새 테스트 사용자에게 저장, REST MockMvc 편집 preview→원본 보존 확인→cancel→원본·cache 확인. 첫 요청 cold cache, 이후 cache 재사용
+- 3회 순차, 자동 유료 재실행 없음. 준비·호출·단언·증거 저장 또는 예상 밖 API 오류 발생 시 이후 요청 중단. 예상 도메인 거부는 품질 실패로 분모에 포함. 전체 paid batch 상한20분
+- 측정 실행 전에 무료 seedOnly 1건으로 저장 원본·LLM 호출0 확인. API 키 값·JWT 출력 금지
+- A 선조회, B 조립 출처·ID·메뉴, C 명시적 첫 검증, D 재선택/fallback, E 최종 요청 반영/허용 변경/처리 불가/거부/실패를 요청별 분리
+- 품질 확인: 실제 메뉴 변경, 대체 메뉴가 있을 때 같은 음식점 유지, 대상 밖 장소/메뉴 보존, preview/cancel DB 보호, 출처 guard 통과. 동의·영양성분·HIGH·영업시간 정확성은 이 실험의 검증 대상 아님
+- 비교는 과거 실패 1건과 현재 최대3건. 날짜·소표본·모델·provider/cache 차이를 명시하고 통계적 품질 개선이나 과거 실패의 P0 인과 확정으로 확대하지 않음
+
+### 9-3. 현재 상태·증거
+
+M2 최종 무료 검증·독립 리뷰 완료. M3 free preflight 1건 통과·기록 LLM 호출0, 승인 실제 편집3건 완료. 런타임 source SHA 불변, 신규 AI 생성0·유료 재실행0. 러너 조건문 서식만 정리, 선택·중단 계약 불변. XML·원본 JSON·건강 seed·러너 source·로그는 Git 제외, 집계/manifest만 필요 시 추적.
+
+- M2 증거: 보관 디렉터리 `p2-menu-edit-195-20261014/m2-free/`
+- M3 증거: 작업 트리 `docs/ai/evidence/p2-menu-edit-195-20261014/`, 동일 보관 사본
+
+
+### 9-4. 실제 결과·과거 실패 비교
+
+| 항목 | 2026-10-13 기존 1건 | 2026-10-14 M3 3건 |
+|---|---|---|
+| 요청 반영 | 0/1, `EDIT_NOT_APPLIED` | **3/3** |
+| 음식점·메뉴 | 청아라 생선구이·고등어구이, 변경 미반영 | 같은 음식점에서 **고등어구이 → 갈치구이** 3/3 |
+| 같은 음식점 증거 | 원본 보존 | 이름·주소 동일 proxy 3/3, 현재 guide `tour:2823094`와 반환 ID 일치 3/3 |
+| 대상 밖 장소·메뉴 | 원본 보호, 변경 미반영 | **39/39**(요청마다13개), 날짜별 순서·유형·이름·주소·메뉴 비교 |
+| preview/cancel 원본·cache | 보호 | 원본 보호3/3·cancel 성공3/3·cache 삭제3/3 |
+| LLM 호출 | 실패 요청7회 | 3·2·3회, 총8회 |
+| 최초 대상 검증 | 사유 미보존·UNKNOWN | 2일차 LUNCH **pass 3/3** |
+| 재선택·fallback | 재선택 뒤 원래 메뉴 선택, 거부. 최초 원인은 UNKNOWN | 대상·다른 슬롯 재선택0·fallback0 |
+| 요청 시간 | 실패35.961초 | 성공33.623·19.817·20.625초, 중앙값20.625초 |
+
+시간은 성공·실패 및1건·3건 분포가 달라 개선율/gate로 사용하지 않음. 이번 핵심 관찰은 원문 대체 메뉴 반영·같은 음식점·대상 밖 선택·저장 보호의 동시 충족이며, 3건 성공으로 모든 메뉴 편집의 품질 완료를 선언하지 않음.
+
+A~E: 세 요청 모두 A found·다른 메뉴3개·guide `tour:2823094`, B ai_match·같은 ID·갈치구이, C 첫 검증 pass, D 재선택/fallback 없음, E 요청 반영. 최초 실패 후 우연히 복구된 결과와 구분. 출처 근거는 현재 Java candidate/menu guard 수락·INFO 관측이며 공급자 상세 원문을 독립 재조회한 검증은 아님.
+
+- 실측 JUnit3건 실패/오류/skip0과 메뉴 품질3/3을 별도 확인. Gradle 성공만으로 품질을 판정하지 않음
+- 같은 seed 반복3회, 서로 다른 지역/사용자 시나리오 표본 아님. 같은 시점의 유료 변경 전 그룹 없음, 모델 비결정성·provider·cache 변화 존재
+- M1 결정적 RED→GREEN은 초기화 결함의 근거, 과거 실측1건의 실제 원인은 UNKNOWN 유지
+- 현재 menuOnly 잔여 실패는 미재현. P0′·P1·P1′·P2~P6를 모두 해결/불가능으로 선언하지 않음. 후속 후보 복사·재선택 입력·fallback 정책은 M4/M5 결정 대상
+- 실제 STOMP 추가 호출·운영 request 품질·영양성분/HIGH/원재료 진실·영업시간은 이 batch 미평가
+- `quality-summary.json`·`public-manifest.json`은 집계/실행 정보, 원본 JSON·seed·앱/Gradle 로그·XML·실험 source는 보관 사본 및 미추적 evidence로 분리
+
+
+### 9-5. 최종 증거 대조·반영 범위
+
+독립 review-loop 4차9/10, Critical·Important·Minor0. 실측 원본3건·과거1건·source hash391개·최종 무료XML1078건·보관 사본을 독립 대조. 실측 당시 운영 소스와 publication 소스 동일, 실행 runner는 source 사본을 evidence에 보존 후 Git 대상에서 제외. 코드·연결 회귀·본 결과 문서·집계/공개manifest만 dev 반영 대상. 신규 main sync·배포 없음.
