@@ -614,6 +614,141 @@ class PlanSelectionRecoveryContractTest {
                 .hasSize(3);
     }
 
+    @Test
+    @DisplayName("실제 AI 호출의 선조회 후보로 메뉴만 변경과 대상 밖 장소 보존")
+    void editsMenuUsingPrefetchedRestaurantWithoutToolSearch() throws Exception {
+
+        enqueueContent("{\"rebuildDayNumbers\":[],\"preserveOtherDays\":true,\"densityReductionDayNumbers\":[],"
+                + "\"editTargets\":[{\"dayNumber\":1,\"slot\":\"LUNCH\",\"placeName\":null,\"menuOnly\":true}]}");
+        EditPlanAiResponse edited = new EditPlanAiResponse(
+                "수정 일정",
+                List.of(new CreatePlanAiResponse.PlanDayDetail(
+                        1,
+                        date,
+                        List.of(proposedEditSlot(
+                                ScheduleType.LUNCH,
+                                "tour:910001",
+                                "공깃밥",
+                                12
+                        ))
+                )),
+                List.of("점심 메뉴 변경"),
+                true
+        );
+        var tree = mapper.valueToTree(edited);
+        var slot = (com.fasterxml.jackson.databind.node.ObjectNode) tree
+                .path("planDays")
+                .get(0)
+                .path("schedules")
+                .get(0);
+        slot.put("scheduleType", "LUNCH");
+        slot.put("courseType", "RESTAURANT");
+        enqueueContent(mapper.writeValueAsString(tree));
+
+        GetAiPlanResponse.PlanScheduleDetail oldLunch = new GetAiPlanResponse.PlanScheduleDetail(
+                ScheduleType.LUNCH,
+                CourseType.RESTAURANT,
+                LocalTime.of(12, 0),
+                LocalTime.of(13, 0),
+                "스텁 음식점 01",
+                "서울특별시 종로구 스텁로 01",
+                "126.9750",
+                "37.5650",
+                null,
+                null,
+                60,
+                0,
+                Set.of(),
+                null,
+                new GetAiPlanResponse.RestaurantDetail(
+                        "비빔밥",
+                        null,
+                        null,
+                        null,
+                        null,
+                        "서울특별시 종로구 스텁로 01",
+                        "126.9750",
+                        "37.5650",
+                        null
+                )
+        );
+        GetAiPlanResponse.PlanScheduleDetail untouched = savedSlot(
+                ScheduleType.ACTIVITY,
+                "보존 관광지",
+                null,
+                14
+        );
+        GetAiPlanResponse.PlanScheduleDetail secondUntouched = savedSlot(
+                ScheduleType.ACTIVITY,
+                "두 번째 보존 관광지",
+                null,
+                16
+        );
+        GetAiPlanResponse current = new GetAiPlanResponse(
+                "기존 일정",
+                TravelStyle.LESS_WALK,
+                TravelTheme.NATURE,
+                List.of(),
+                List.of(),
+                Set.of(),
+                List.of(new GetAiPlanResponse.PlanDayDetail(
+                        1,
+                        date,
+                        List.of(oldLunch, untouched, secondUntouched)
+                ))
+        );
+        TravelPlanContext generation = context();
+        EditPlanAiResponse result = service.makeEditPlanByAi(new PlanEditContext(
+                generation.createTravelRequest(),
+                generation.healthContexts(),
+                current,
+                "1일차 점심은 음식점 그대로 두고 메뉴만 다른 것으로 변경"
+        ));
+
+        assertThat(ai
+                .requests()
+                .get(1))
+                .contains("tour:910001", "공깃밥");
+        assertThat(result
+                .planDays()
+                .getFirst()
+                .schedules())
+                .hasSize(3)
+                .satisfies(slots -> {
+                    assertThat(slots
+                            .getFirst()
+                            .candidateId())
+                            .isEqualTo("tour:910001");
+                    assertThat(slots
+                            .getFirst()
+                            .locationName())
+                            .isEqualTo(oldLunch.locationName());
+                    assertThat(slots
+                            .getFirst()
+                            .restaurantDetail()
+                            .menuName())
+                            .isEqualTo("공깃밥");
+                    assertThat(slots.get(1))
+                            .usingRecursiveComparison()
+                            .ignoringFields("candidateId", "travelMinutes")
+                            .isEqualTo(untouched);
+                    assertThat(slots
+                            .get(1)
+                            .travelMinutes())
+                            .isEqualTo(15);
+                    assertThat(slots.get(2))
+                            .usingRecursiveComparison()
+                            .ignoringFields("candidateId", "travelMinutes")
+                            .isEqualTo(secondUntouched);
+                    assertThat(slots
+                            .get(2)
+                            .travelMinutes())
+                            .isEqualTo(15);
+                });
+        assertThat(ai.requests())
+                .hasSize(2);
+    }
+
     private CreatePlanAiResponse.PlanScheduleDetail proposedEditSlot(
             ScheduleType type,
             String candidateId,
