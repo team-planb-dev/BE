@@ -158,6 +158,7 @@ LangGraph4j 채택·실행 호환성·품질 개선은 미확정. Java안과 엔
 - 현재 테스트는 실제 `Mono.delay(120ms)` 뒤 Timer 누적100ms 이상 검사. `lookupNutrition`은 `doFinally`에서 Timer 종료, downstream은 `collectList().block()`로 완료 대기. 완료 신호와 Timer 기록의 순서 경합 가능성은 코드상 가설이며 역사적 원인 확정 아님
 - 따라서 테스트 skip·조건 완화·sleep 추가·무작정 rerun으로 해결 처리하지 않은 결산. 원인 미확정+현 CI gate 유지+재발 절차의 방침 기록으로 M6 처리
 - 재발 시 실패 XML/stacktrace·commit·실행 범위·원래 시도를 보존하고 병합 보류. 원인·귀속·수정 범위를 사용자에게 보고하고 확인을 받은 뒤 후속 dev PR 진행. 같은 변경 귀속은 해당 Issue, 무관한 변경은 별도 Issue. sync 브랜치 직접 수정·재실행만으로 통과 판정 금지
+- 후속 갱신(2026-10-15, #202): 과거 실패를 특정(2026-10-12 2회: 1회차는 보존 로그로 `MeterNotFoundException at PlanServiceTest.java:2070` 확인, 2회차는 같은 테스트 실패만 확인). `doFinally`가 하류 완료 뒤 실행되는 Reactor 계약으로 결정적 재현(RED 5/5→GREEN 3/3) 후 하류 전달 전 1회 기록으로 수정. 과거 두 실행의 실제 스레드 순서는 직접 관측 불가. 상세: `p2-followup-5-timer-flaky-result.md`
 
 이번 결산은 문서·증거 변경만 포함. 기존 통과 증거를 새 코드 실행으로 표현하지 않고, 문서 PR의 CI 상태는 publication 기록으로 별도 보존.
 

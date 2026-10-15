@@ -54,7 +54,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -1707,8 +1708,18 @@ public class PlanService {
 
             Timer.Sample sample = Timer.start(meterRegistry);
 
-            // 하류 전달 전 결과 확정과 다른 메뉴 실패로 인한 취소 구분
-            AtomicReference<String> outcome = new AtomicReference<>("cancelled");
+            // 성공·실패·다른 메뉴 실패로 인한 취소 중 처음 하나만 기록
+            AtomicBoolean recorded = new AtomicBoolean();
+
+            Consumer<String> stopOnce = outcome -> {
+                if (recorded.compareAndSet(false, true)) {
+                    sample.stop(stageTimer(
+                            flow,
+                            "nutrition_lookup",
+                            outcome
+                    ));
+                }
+            };
 
             // 조회 호출의 동기 예외 기록
             return Mono
@@ -1719,13 +1730,10 @@ public class PlanService {
                             menuName,
                             result
                     ))
-                    .doOnSuccess(ignored -> outcome.set("success"))
-                    .doOnError(ignored -> outcome.set("failure"))
-                    .doFinally(ignored -> sample.stop(stageTimer(
-                            flow,
-                            "nutrition_lookup",
-                            outcome.get()
-                    )));
+                    // doFinally는 하류 완료 뒤 실행되어 다른 스레드에서 끝난 조회의 기록이 호출 반환보다 늦을 수 있으므로 하류 전달 전 기록
+                    .doOnSuccess(ignored -> stopOnce.accept("success"))
+                    .doOnError(ignored -> stopOnce.accept("failure"))
+                    .doOnCancel(() -> stopOnce.accept("cancelled"));
         });
     }
 
