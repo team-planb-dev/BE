@@ -6,6 +6,7 @@ import com.planb.global.client.kor2Service.properties.Kor2ServiceProperties;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.codec.DecodingException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -154,7 +155,90 @@ class Kor2ServiceTestClient {
     }
 
     @Test
-    @DisplayName("JSON이 아닌 게이트웨이 오류 본문은 decode_error로 기록")
+    @DisplayName("2xx 게이트웨이 오류 XML은 반환 코드로 기록하고 기존 디코딩 실패 유형으로 전파")
+    void recordsGatewayReasonCodeOfSuccessStatus() {
+
+        AtomicInteger calls = new AtomicInteger();
+
+        Kor2ServiceClient client = client(
+                List.of(gatewayXml(
+                        HttpStatus.OK,
+                        "23",
+                        "LIMITED_NUMBER_OF_SERVICE_REQUESTS_PER_SECOND_EXCEEDS_ERROR"
+                )),
+                calls
+        );
+
+        StepVerifier
+                .create(client.get(
+                        SEARCH_URI,
+                        Kor2KeywordSearchResponse.class
+                ))
+                .expectErrorSatisfies(error -> assertThat(error)
+                        .isInstanceOf(DecodingException.class)
+                        .hasMessageContaining("returnReasonCode=23"))
+                .verify();
+
+        assertThat(calls.get())
+                .isEqualTo(1);
+        assertThat(count("searchKeyword2", "gateway_23"))
+                .isEqualTo(1.0);
+    }
+
+    @Test
+    @DisplayName("text/xml 2xx 게이트웨이 오류도 반환 코드로 기록")
+    void recordsGatewayReasonCodeOfXmlContentType() {
+
+        Kor2ServiceClient client = client(List.of(gatewayXml(
+                HttpStatus.OK,
+                MediaType.TEXT_XML,
+                "22",
+                "LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS_ERROR"
+        )));
+
+        StepVerifier
+                .create(client.get(
+                        SEARCH_URI,
+                        Kor2KeywordSearchResponse.class
+                ))
+                .expectError(DecodingException.class)
+                .verify();
+
+        assertThat(count("searchKeyword2", "gateway_22"))
+                .isEqualTo(1.0);
+    }
+
+    @Test
+    @DisplayName("오류 상태의 게이트웨이 오류 XML은 상태와 반환 코드를 함께 기록")
+    void recordsGatewayReasonCodeOfErrorStatus() {
+
+        AtomicInteger calls = new AtomicInteger();
+
+        Kor2ServiceClient client = client(
+                List.of(gatewayXml(
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "22",
+                        "LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS_ERROR"
+                )),
+                calls
+        );
+
+        StepVerifier
+                .create(client.get(
+                        SEARCH_URI,
+                        Kor2KeywordSearchResponse.class
+                ))
+                .expectError(WebClientResponseException.InternalServerError.class)
+                .verify();
+
+        assertThat(calls.get())
+                .isEqualTo(1);
+        assertThat(count("searchKeyword2", "http_500_gateway_22"))
+                .isEqualTo(1.0);
+    }
+
+    @Test
+    @DisplayName("게이트웨이 형식이 아닌 해석 불가 본문은 decode_error로 기록")
     void recordsDecodeError() {
 
         Kor2ServiceClient client = client(List.of(ClientResponse
@@ -163,7 +247,7 @@ class Kor2ServiceTestClient {
                         HttpHeaders.CONTENT_TYPE,
                         MediaType.APPLICATION_JSON_VALUE
                 )
-                .body("<OpenAPI_ServiceResponse><cmmMsgHeader><returnReasonCode>23</returnReasonCode></cmmMsgHeader></OpenAPI_ServiceResponse>")
+                .body("<html>temporary error</html>")
                 .build()));
 
         StepVerifier
@@ -171,7 +255,7 @@ class Kor2ServiceTestClient {
                         SEARCH_URI,
                         Kor2KeywordSearchResponse.class
                 ))
-                .expectError()
+                .expectError(DecodingException.class)
                 .verify();
 
         assertThat(count("searchKeyword2", "decode_error"))
@@ -223,6 +307,49 @@ class Kor2ServiceTestClient {
                         {"response":{"header":{"resultCode":"%s","resultMsg":"OK"},
                         "body":{"items":"","numOfRows":0,"pageNo":1,"totalCount":0}}}
                         """.formatted(resultCode))
+                .build();
+    }
+
+    // 공공데이터포털 게이트웨이 오류 형식(TourAPI 활용매뉴얼 v4.4 예시 구조)
+    private ClientResponse gatewayXml(
+            HttpStatus status,
+            String reasonCode,
+            String authMessage
+    ) {
+
+        return gatewayXml(
+                status,
+                MediaType.APPLICATION_JSON,
+                reasonCode,
+                authMessage
+        );
+    }
+
+    private ClientResponse gatewayXml(
+            HttpStatus status,
+            MediaType contentType,
+            String reasonCode,
+            String authMessage
+    ) {
+
+        return ClientResponse
+                .create(status)
+                .header(
+                        HttpHeaders.CONTENT_TYPE,
+                        contentType.toString()
+                )
+                .body("""
+                        <OpenAPI_ServiceResponse>
+                            <cmmMsgHeader>
+                                <errMsg>SERVICE ERROR</errMsg>
+                                <returnAuthMsg>%s</returnAuthMsg>
+                                <returnReasonCode>%s</returnReasonCode>
+                            </cmmMsgHeader>
+                        </OpenAPI_ServiceResponse>
+                        """.formatted(
+                        authMessage,
+                        reasonCode
+                ))
                 .build();
     }
 
