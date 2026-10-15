@@ -1,6 +1,7 @@
 package com.planb.integration.domain.chat;
 
 import com.jayway.jsonpath.JsonPath;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.planb.domain.health.dto.request.AddCompanionRequest;
 import com.planb.domain.health.entity.constant.DiseaseType;
 import com.planb.domain.health.entity.constant.WalkType;
@@ -133,6 +134,27 @@ public class ChatAiEditPlanIntegrationTest
 
     @MockitoBean
     private NutritionService nutritionService;
+
+    @Autowired
+    private com.planb.domain.travel.service.PlanEditRequestService editRequestService;
+
+    @Autowired
+    private com.planb.domain.travel.service.PlanEditService editService;
+
+    @Autowired
+    private com.planb.domain.travel.service.TravelService travelService;
+
+    @org.springframework.test.context.bean.override.mockito.MockitoSpyBean
+    private com.planb.domain.travel.service.PlanDayService planDayService;
+
+    @org.springframework.test.context.bean.override.mockito.MockitoSpyBean
+    private com.planb.domain.travel.repository.PlanEditCacheRepository editCacheRepository;
+
+    @Autowired
+    private com.planb.domain.travel.facade.TravelFacade travelFacade;
+
+    @org.springframework.test.context.bean.override.mockito.MockitoSpyBean
+    private com.planb.query.travel.service.TravelQueryService travelQueryService;
 
     private StompTestClientHelper stompHelper;
 
@@ -470,11 +492,11 @@ public class ChatAiEditPlanIntegrationTest
         }
     }
 
-    @Test
-    @DisplayName("현재 동작 특성: 처리 중 TALK의 CANCEL이 먼저 응답되고 늦은 미리보기가 캐시를 다시 생성")
-    void cancelDuringTalkLeavesLatePreviewCached() throws Exception {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    @DisplayName("처리 중 취소 뒤 늦은 미리보기와 실패 응답 차단")
+    void cancelDuringTalkSuppressesLatePreview(boolean fails) throws Exception {
 
-        // 정책 결정 후 기대값 반전 대상(P2-6B 정책 질문), 바람직한 동작 확정 아님
 
         // given
         stubCreatePlan();
@@ -494,10 +516,20 @@ public class ChatAiEditPlanIntegrationTest
                         travelId
                 );
 
-        stubSlowEditPlan(
-                1_500,
-                List.of("느린 편집 결과")
-        );
+        java.util.concurrent.CountDownLatch started = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.CountDownLatch release = new java.util.concurrent.CountDownLatch(1);
+        when(travelRecommendHandler.editPlanByAi(any(PlanEditContext.class), any(PlaceCandidateContext.class)))
+                .thenAnswer(invocation -> {
+                    started.countDown();
+                    if (!release.await(10, java.util.concurrent.TimeUnit.SECONDS)) {
+                        throw new IllegalStateException("Test release timeout");
+                    }
+                    if (fails) {
+                        throw new IllegalStateException("Simulated upstream failure");
+                    }
+                    recordPlanCandidates(invocation.getArgument(1), EDITED_CAFE_NAME, EDITED_CAFE_CANDIDATE_ID);
+                    return editPlanAiResponse(List.of("느린 편집 결과"), true);
+                });
 
         WebSocketStompClient stompClient =
                 stompHelper.createStompClient();
@@ -537,7 +569,7 @@ public class ChatAiEditPlanIntegrationTest
                     )
             );
 
-            Thread.sleep(300);
+            assertThat(started.await(10, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
 
             session.send(
                     CHAT_SEND_PREFIX
@@ -555,6 +587,10 @@ public class ChatAiEditPlanIntegrationTest
                             message -> AI_BOT_NICKNAME.equals(message.senderNickname())
                     );
 
+            assertThat(first).isNotNull();
+            assertThat(first.type()).isEqualTo(MessageType.CANCEL);
+            release.countDown();
+
             SendChatMessageResponse second =
                     stompHelper.awaitMessage(
                             messages,
@@ -566,29 +602,26 @@ public class ChatAiEditPlanIntegrationTest
                     .isNotNull();
 
             assertThat(second)
-                    .isNotNull();
+                    .isNull();
 
             assertThat(first.type())
                     .isEqualTo(MessageType.CANCEL);
 
-            assertThat(second.editPreview())
-                    .isNotNull();
-
             assertThat(planEditCacheService.findEditResult(travelId))
-                    .isPresent();
+                    .isEmpty();
 
         } finally {
+            release.countDown();
             stompHelper.disconnect(session);
             stompHelper.stop(stompClient);
-            planEditCacheService.deleteEditResult(travelId);
+            editRequestService.cancel(travelId, null);
         }
     }
 
     @Test
-    @DisplayName("현재 동작 특성: 늦게 끝난 이전 TALK 결과가 나중 TALK의 캐시를 덮어씀")
-    void slowerEarlierTalkOverwritesLaterPreviewCache() throws Exception {
+    @DisplayName("늦게 끝난 이전 TALK의 발행 차단과 최신 요청 캐시 보존")
+    void slowerEarlierTalkCannotOverwriteCurrentPreview() throws Exception {
 
-        // 정책 결정 후 기대값 반전 대상(P2-6B 정책 질문), 바람직한 동작 확정 아님
 
         // given
         stubCreatePlan();
@@ -703,7 +736,7 @@ public class ChatAiEditPlanIntegrationTest
                     .isNotNull();
 
             assertThat(second)
-                    .isNotNull();
+                    .isNull();
 
             assertThat(first
                             .editPreview()
@@ -711,22 +744,16 @@ public class ChatAiEditPlanIntegrationTest
                             .changes())
                     .contains("두 번째 요청 결과");
 
-            assertThat(second
-                            .editPreview()
-                            .after()
-                            .changes())
-                    .contains("첫 요청 결과");
-
             assertThat(planEditCacheService
                             .findEditResult(travelId)
                             .orElseThrow()
                             .changes())
-                    .contains("첫 요청 결과");
+                    .contains("두 번째 요청 결과");
 
         } finally {
             stompHelper.disconnect(session);
             stompHelper.stop(stompClient);
-            planEditCacheService.deleteEditResult(travelId);
+            editRequestService.cancel(travelId, null);
         }
     }
 
@@ -1083,6 +1110,215 @@ public class ChatAiEditPlanIntegrationTest
             stompHelper.disconnect(session);
             stompHelper.stop(stompClient);
         }
+    }
+
+    @Test
+    @DisplayName("새 요청 완료 후 이전 요청의 미리보기와 취소 차단")
+    void newerPreviewSurvivesOldCompletionAndCancellation() throws Exception {
+
+        stubCreatePlan();
+        TestUser user = createAuthenticatedUser();
+        Long travelId = createTravel(user.accessToken(), "요청 격리-" + createUniqueValue());
+        String previous = editRequestService.start(travelId);
+        String current = editRequestService.start(travelId);
+        EditPlanAiResponse preview = editPlanAiResponse(List.of("카페 변경"), true);
+        editRequestService.complete(travelId, current, preview);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                editRequestService.complete(travelId, previous, preview))
+                .isInstanceOf(com.planb.global.config.exception.domain.BaseException.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                editRequestService.cancel(travelId, previous))
+                .isInstanceOf(com.planb.global.config.exception.domain.BaseException.class);
+
+        assertThat(editService.findPreview(travelId).editRequestId())
+                .isEqualTo(current);
+        assertThat(editService.findPreview(travelId).after())
+                .isEqualTo(preview);
+    }
+
+    @Test
+    @DisplayName("일정 저장 실패 시 미리보기 보존과 동일 요청의 재확정")
+    void failedConfirmationPreservesPreviewForRetry() throws Exception {
+
+        stubCreatePlan();
+        TestUser user = createAuthenticatedUser();
+        Long travelId = createTravel(user.accessToken(), "확정 복구-" + createUniqueValue());
+        String requestId = editRequestService.start(travelId);
+        EditPlanAiResponse preview = editPlanAiResponse(List.of("카페 변경"), true);
+        editRequestService.complete(travelId, requestId, preview);
+        org.mockito.Mockito.doThrow(new IllegalStateException("write failed"))
+                .when(planDayService)
+                .deleteAllByPlan(org.mockito.ArgumentMatchers.any());
+
+        try {
+            org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                    travelService.confirmEditPlanInTransaction(travelId, requestId))
+                    .isInstanceOf(IllegalStateException.class);
+        } finally {
+            org.mockito.Mockito.reset(planDayService);
+        }
+
+        assertThat(editService.findPreview(travelId).after())
+                .isEqualTo(preview);
+        assertThat(travelService.confirmEditPlanInTransaction(travelId, requestId).planDays())
+                .isEqualTo(preview.planDays());
+        assertThat(travelService.confirmEditPlanInTransaction(travelId, requestId).planDays())
+                .isEqualTo(preview.planDays());
+
+        String nextRequest = editRequestService.start(travelId);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                travelService.confirmEditPlanInTransaction(travelId))
+                .isInstanceOf(com.planb.global.config.exception.domain.BaseException.class);
+        assertThat(travelService.confirmEditPlanInTransaction(travelId, requestId).planDays())
+                .isEqualTo(preview.planDays());
+        assertThat(travelRepository.findById(travelId).orElseThrow().getEditRequestId())
+                .isEqualTo(nextRequest);
+    }
+
+    @Test
+    @DisplayName("동시 확정의 단일 저장과 동일 요청 결과 반환")
+    void simultaneousConfirmationsMaterializeOnce() throws Exception {
+
+        stubCreatePlan();
+        TestUser user = createAuthenticatedUser();
+        Long travelId = createTravel(user.accessToken(), "동시 확정-" + createUniqueValue());
+        String requestId = editRequestService.start(travelId);
+        EditPlanAiResponse preview = editPlanAiResponse(List.of("카페 변경"), true);
+        editRequestService.complete(travelId, requestId, preview);
+        org.mockito.Mockito.clearInvocations(planDayService);
+        java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+
+        try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+            var first = executor.submit(() -> {
+                start.await();
+                return travelService.confirmEditPlanInTransaction(travelId, requestId);
+            });
+            var second = executor.submit(() -> {
+                start.await();
+                return travelService.confirmEditPlanInTransaction(travelId, requestId);
+            });
+            start.countDown();
+            assertThat(first.get(10, java.util.concurrent.TimeUnit.SECONDS).planDays().getFirst().schedules())
+                    .extracting(CreatePlanAiResponse.PlanScheduleDetail::locationName)
+                    .contains(EDITED_CAFE_NAME);
+            assertThat(second.get(10, java.util.concurrent.TimeUnit.SECONDS).planDays().getFirst().schedules())
+                    .extracting(CreatePlanAiResponse.PlanScheduleDetail::locationName)
+                    .contains(EDITED_CAFE_NAME);
+        }
+
+        org.mockito.Mockito.verify(planDayService, org.mockito.Mockito.times(1))
+                .deleteAllByPlan(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    @DisplayName("SQL 확정 후 Redis 실패의 저장 성공 유지와 DB 응답 복원")
+    void confirmedWriteSurvivesRedisCleanupFailure() throws Exception {
+
+        stubCreatePlan();
+        TestUser user = createAuthenticatedUser();
+        Long travelId = createTravel(user.accessToken(), "확정 후 캐시 실패-" + createUniqueValue());
+        String requestId = editRequestService.start(travelId);
+        EditPlanAiResponse preview = editPlanAiResponse(List.of("카페 변경"), true);
+        editRequestService.complete(travelId, requestId, preview);
+        org.mockito.Mockito.doThrow(new IllegalStateException("Redis unavailable"))
+                .when(editCacheRepository)
+                .saveConfirmedRequest(org.mockito.ArgumentMatchers.eq(travelId),
+                        org.mockito.ArgumentMatchers.eq(requestId),
+                        org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyLong());
+
+        try {
+            assertThat(travelService.confirmEditPlanInTransaction(travelId, requestId).planDays())
+                    .isEqualTo(preview.planDays());
+            var replay = travelService.confirmEditPlanInTransaction(travelId, requestId);
+            assertThat(replay.planDays().getFirst().schedules())
+                    .extracting(CreatePlanAiResponse.PlanScheduleDetail::locationName)
+                    .contains(EDITED_CAFE_NAME);
+        } finally {
+            org.mockito.Mockito.reset(editCacheRepository);
+        }
+    }
+
+    @Test
+    @DisplayName("소유권 조회 뒤 동시 REST 확정의 DB 복원 최신 일정")
+    void concurrentRestConfirmationReadsCommittedPlan() throws Exception {
+
+        stubCreatePlan();
+        TestUser user = createAuthenticatedUser();
+        Long travelId = createTravel(user.accessToken(), "REST 동시 확정-" + createUniqueValue());
+        String requestId = editRequestService.start(travelId);
+        editRequestService.complete(travelId, requestId, editPlanAiResponse(List.of("카페 변경"), true));
+        var ownersRead = new java.util.concurrent.CountDownLatch(2);
+        var firstCommitted = new java.util.concurrent.CountDownLatch(1);
+        var owners = new java.util.concurrent.atomic.AtomicInteger();
+        org.mockito.Mockito.doAnswer(invocation -> {
+            invocation.callRealMethod();
+            int order = owners.incrementAndGet();
+            ownersRead.countDown();
+            assertThat(ownersRead.await(10, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+            if (order == 2) {
+                assertThat(firstCommitted.await(10, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+            }
+            return null;
+        }).when(travelQueryService).validateOwner(org.mockito.ArgumentMatchers.eq(travelId), org.mockito.ArgumentMatchers.anyLong());
+        org.mockito.Mockito.doReturn(java.util.Optional.empty()).when(editCacheRepository)
+                .findConfirmedRequest(travelId, requestId);
+        var request = new com.planb.domain.travel.dto.request.GetAiPlanRequest(travelId, requestId);
+
+        try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+            var tasks = new java.util.ArrayList<java.util.concurrent.Future<com.planb.domain.travel.dto.response.CreatePlanResponse>>();
+            for (int i = 0; i < 2; i++) {
+                tasks.add(executor.submit(() -> {
+                    var result = travelFacade.confirmEditPlan(request, user.username());
+                    firstCommitted.countDown();
+                    return result;
+                }));
+            }
+            for (var task : tasks) {
+                assertThat(task.get(20, java.util.concurrent.TimeUnit.SECONDS).planDays().getFirst().schedules())
+                        .extracting(CreatePlanAiResponse.PlanScheduleDetail::locationName)
+                        .contains(EDITED_CAFE_NAME);
+            }
+        } finally {
+            org.mockito.Mockito.reset(travelQueryService, editCacheRepository);
+        }
+    }
+
+    @Test
+    @DisplayName("영양 참고 출처의 미리보기·SQL 조회·기존 일정 복원 보존")
+    void preservesNutritionReferenceAcrossCacheAndSql() throws Exception {
+
+        stubCreatePlan();
+        TestUser user = createAuthenticatedUser();
+        Long travelId = createTravel(user.accessToken(), "영양 출처-" + createUniqueValue());
+        String requestId = editRequestService.start(travelId);
+        EditPlanAiResponse original = editPlanAiResponse(List.of("카페 변경"), true);
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        var tree = mapper.valueToTree(original);
+        for (var slot : tree.path("planDays").get(0).path("schedules")) {
+            if (slot.path("restaurantDetail").isObject()) {
+                var restaurant = (com.fasterxml.jackson.databind.node.ObjectNode) slot.path("restaurantDetail");
+                restaurant.put("carbohydrate", 20.0);
+                restaurant.put("nutritionFoodName", "비빔밥");
+                restaurant.put("nutritionReferenceAmount", "100g");
+                restaurant.put("nutritionSource", "STANDARD_FOOD_FALLBACK");
+            }
+        }
+        EditPlanAiResponse preview = mapper.treeToValue(tree, EditPlanAiResponse.class);
+        editRequestService.complete(travelId, requestId, preview);
+        assertThat(editService.findPreview(travelId).after()).isEqualTo(preview);
+        travelService.confirmEditPlanInTransaction(travelId, requestId);
+        var stored = travelService.prepareEditContext(travelId, "조회").currentPlan();
+        var meal = stored.planDays().getFirst().schedules().stream()
+                .filter(slot -> slot.restaurantDetail() != null)
+                .findFirst().orElseThrow();
+        assertThat(meal.restaurantDetail().nutritionFoodName()).isEqualTo("비빔밥");
+        assertThat(meal.restaurantDetail().nutritionReferenceAmount()).isEqualTo("100g");
+        assertThat(meal.restaurantDetail().nutritionSource()).isEqualTo("STANDARD_FOOD_FALLBACK");
+        var restored = new com.planb.domain.travel.helper.PlanPlaceResolver().fromExisting(meal);
+        assertThat(restored.restaurantDetail().nutritionSource()).isEqualTo("STANDARD_FOOD_FALLBACK");
+        assertThat(restored.restaurantDetail().carbohydrate()).isEqualTo(20.0);
     }
 
     @Test

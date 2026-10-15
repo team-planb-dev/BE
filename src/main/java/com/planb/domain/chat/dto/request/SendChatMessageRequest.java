@@ -8,6 +8,13 @@ public record SendChatMessageRequest(
         MessageType type,
 
         @Schema(description = "TALK 유형의 자연어 메시지입니다. TALK일 때 필수입니다.", example = "첫째 날 카페를 다른 곳으로 바꿔 주세요.")
-        String message
+        String message,
+        @Schema(description = "확정·취소할 수정 요청 식별값, 생략 시 현재 요청")
+        String editRequestId
 ) {
+
+    public SendChatMessageRequest(MessageType type, String message) {
+        this(type, message, null);
+    }
+
 }

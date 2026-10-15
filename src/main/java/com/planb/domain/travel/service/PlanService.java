@@ -137,6 +137,8 @@ public class PlanService {
 
     private final MeterRegistry meterRegistry;
 
+    private final MealWindowRecoveryService mealWindowRecoveryService;
+
     public Plan createPlan(CreatePlanRequest createPlanRequest) {
 
         return Plan
@@ -284,7 +286,7 @@ public class PlanService {
         // 부분 변경 대상이 있는 편집의 확정 결과 기준 변경 내역
         List<String> targetChanges;
 
-        TravelPlanContext travelContext = new TravelPlanContext(context.createTravelRequest(), context.healthContexts());
+        TravelPlanContext travelContext = new TravelPlanContext(context.createTravelRequest(), context.healthContexts(), context.callBudget());
 
         List<NutritionEvaluationCollector.FoodNutritionEvaluation> evaluations;
 
@@ -795,7 +797,8 @@ public class PlanService {
                             candidates,
                             new TravelPlanContext(
                                     context.createTravelRequest(),
-                                    context.healthContexts()
+                                    context.healthContexts(),
+                                    context.callBudget()
                             ),
                             context.currentPlan(),
                             places,
@@ -1411,7 +1414,8 @@ public class PlanService {
                 candidates,
                 new TravelPlanContext(
                         context.createTravelRequest(),
-                        context.healthContexts()
+                        context.healthContexts(),
+                        context.callBudget()
                 ),
                 context.currentPlan(),
                 places,
@@ -1575,10 +1579,18 @@ public class PlanService {
                 currentPlan
         );
 
-        validateTravelMinutes(mealFixed);
+        CreatePlanAiResponse windowFixed = currentPlan == null
+                ? recordStage("create", "meal_window_recovery", () -> mealWindowRecoveryService.recover(
+                        mealFixed,
+                        context,
+                        candidates
+                ))
+                : mealFixed;
+
+        validateTravelMinutes(windowFixed);
 
         validateMealSlots(
-                mealFixed,
+                windowFixed,
                 context.healthContexts(),
                 currentPlan,
                 context
@@ -1594,16 +1606,17 @@ public class PlanService {
                         flow,
                         "nutrition_enrichment",
                         () -> enrichMissingNutritionEvaluations(
-                                mealFixed,
+                                windowFixed,
                                 context.healthContexts(),
                                 evaluations,
-                                flow
+                                flow,
+                                candidates
                         )
                 );
 
         // 최종 식사 기준 복약 알림 배치
         CreatePlanAiResponse medicationFixed = scheduleNormalizer.finalizeMedicationSchedules(
-                mealFixed,
+                windowFixed,
                 context.healthContexts()
         );
 
@@ -1621,7 +1634,8 @@ public class PlanService {
             CreatePlanAiResponse response,
             List<TravelHealthContext> healthContexts,
             List<NutritionEvaluationCollector.FoodNutritionEvaluation> evaluations,
-            String flow
+            String flow,
+            PlaceCandidateContext candidates
     ) {
 
         List<NutritionEvaluationCollector.FoodNutritionEvaluation> enriched =
@@ -1629,6 +1643,9 @@ public class PlanService {
 
         Set<String> evaluatedMenus = evaluations
                 .stream()
+                .filter(evaluation -> evaluation.result().status() != NutritionEvaluationStatus.UNAVAILABLE
+                        || candidates.standardFoodName(evaluation.foodName()) == null
+                        || Objects.equals(candidates.standardFoodName(evaluation.foodName()), evaluation.result().lookupName()))
                 .map(NutritionEvaluationCollector.FoodNutritionEvaluation::foodName)
                 .filter(menuName -> !isBlank(menuName))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
@@ -1667,7 +1684,8 @@ public class PlanService {
                         menuName -> lookupNutrition(
                                 menuName,
                                 diseaseTypes,
-                                flow
+                                flow,
+                                candidates.standardFoodName(menuName)
                         ),
                         nutritionLookupConcurrency
                 )
@@ -1681,7 +1699,8 @@ public class PlanService {
     private Mono<NutritionEvaluationCollector.FoodNutritionEvaluation> lookupNutrition(
             String menuName,
             List<DiseaseType> diseaseTypes,
-            String flow
+            String flow,
+            String standardFoodName
     ) {
 
         return Mono.defer(() -> {
@@ -1693,11 +1712,9 @@ public class PlanService {
 
             // 조회 호출의 동기 예외 기록
             return Mono
-                    .defer(() -> nutritionService
-                            .evaluateFoodNutrition(
-                                    menuName,
-                                    diseaseTypes
-                            ))
+                    .defer(() -> standardFoodName == null
+                            ? nutritionService.evaluateFoodNutrition(menuName, diseaseTypes)
+                            : nutritionService.evaluateFoodNutrition(menuName, standardFoodName, diseaseTypes))
                     .map(result -> new NutritionEvaluationCollector.FoodNutritionEvaluation(
                             menuName,
                             result
@@ -1710,6 +1727,25 @@ public class PlanService {
                             outcome.get()
                     )));
         });
+    }
+
+    public EditPlanAiResponse restoreEditResponse(GetAiPlanResponse currentPlan) {
+
+        List<CreatePlanAiResponse.PlanDayDetail> days = currentPlan
+                .planDays()
+                .stream()
+                .map(day -> new CreatePlanAiResponse.PlanDayDetail(
+                        day.dayNumber(),
+                        day.date(),
+                        day
+                                .schedules()
+                                .stream()
+                                .map(planPlaceResolver::fromExisting)
+                                .toList()
+                ))
+                .toList();
+
+        return new EditPlanAiResponse(currentPlan.planName(), days, List.of(), true);
     }
 
     private Timer stageTimer(
@@ -2575,7 +2611,10 @@ public class PlanService {
             String reason = result.reason();
 
             // 재선택 LLM 호출의 횟수·시간 계측, 기존 일정 유무로 생성·편집 구분
-            CreatePlanAiResponse.PlanScheduleDetail choice = recordStage(
+            CreatePlanAiResponse.PlanScheduleDetail choice;
+
+            try {
+                choice = recordStage(
                     existing == null ? "create" : "edit",
                     "reselect",
                     () -> travelRecommendHandler.reselectPlace(
@@ -2589,6 +2628,15 @@ public class PlanService {
                             retryCandidates
                     )
             );
+
+            } catch (com.planb.global.config.exception.domain.AiOrchestrationException failure) {
+                if (failure.getFailure() != com.planb.global.config.exception.AiFailure.RESPONSE_INVALID
+                        && failure.getFailure() != com.planb.global.config.exception.AiFailure.RESPONSE_REPEATED_INVALID) {
+                    throw failure;
+                }
+
+                choice = null;
+            }
 
             result = validateSelection(
                     planPlaceResolver.select(slot, choice),
@@ -2913,13 +2961,6 @@ public class PlanService {
         Double sodium = lookup == null ? null : lookup.sodium();
         Double fat = lookup == null ? null : lookup.fat();
 
-        if (Objects.equals(carbohydrate, restaurantDetail.carbohydrate())
-                && Objects.equals(sodium, restaurantDetail.sodium())
-                && Objects.equals(fat, restaurantDetail.fat())) {
-
-            return restaurantDetail;
-        }
-
         return new CreatePlanAiResponse.RestaurantDetail(
                 restaurantDetail.menuName(),
                 carbohydrate,
@@ -2929,7 +2970,10 @@ public class PlanService {
                 restaurantDetail.address(),
                 restaurantDetail.longitude(),
                 restaurantDetail.latitude(),
-                restaurantDetail.imageUrl()
+                restaurantDetail.imageUrl(),
+                lookup == null ? null : lookup.nutritionFoodName(),
+                lookup == null ? null : lookup.nutritionReferenceAmount(),
+                lookup == null ? null : lookup.nutritionSource()
         );
     }
 
@@ -3079,11 +3123,14 @@ public class PlanService {
                         restaurant.menuName(),
                         new NutritionEvaluationResult(
                                 List.of(),
-                                NutritionEvaluationStatus.AVAILABLE,
+                                NutritionEvaluationStatus.NOT_EVALUABLE,
                                 List.of(),
                                 restaurant.carbohydrate(),
                                 restaurant.sodium(),
-                                restaurant.fat()
+                                restaurant.fat(),
+                                restaurant.nutritionFoodName(),
+                                restaurant.nutritionReferenceAmount(),
+                                restaurant.nutritionSource()
                         )
                 ))
                 .toList();

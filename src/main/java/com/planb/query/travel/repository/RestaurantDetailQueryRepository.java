@@ -43,7 +43,13 @@ public class RestaurantDetailQueryRepository {
                                 restaurantDetail
                                         .latitude,
                                 restaurantDetail
-                                        .imageUrl
+                                        .imageUrl,
+                                restaurantDetail
+                                        .nutritionFoodName,
+                                restaurantDetail
+                                        .nutritionReferenceAmount,
+                                restaurantDetail
+                                        .nutritionSource
                         )
                 )
                 .from(restaurantDetail)

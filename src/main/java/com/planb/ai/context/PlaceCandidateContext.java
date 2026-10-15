@@ -35,6 +35,8 @@ public class PlaceCandidateContext {
 
     private final Map<String, Candidate> candidates = new ConcurrentHashMap<>();
 
+    private final Map<String, String> standardFoodNames = new ConcurrentHashMap<>();
+
     // 사용자 지정 장소로 고정한 관광지 후보 ID
     private final Set<String> pinnedIds = ConcurrentHashMap.newKeySet();
 
@@ -133,6 +135,20 @@ public class PlaceCandidateContext {
                 );
     }
 
+    public List<Candidate> searchedCandidates() {
+
+        return candidates
+                .values()
+                .stream()
+                .sorted(Comparator.comparing(Candidate::candidateId))
+                .toList();
+    }
+
+    public boolean hasRestaurantMenuSource(String candidateId) {
+
+        return restaurantMenus.containsKey(candidateId);
+    }
+
     public Candidate find(String id) {
 
         return id == null ? null : candidates.get(id);
@@ -162,9 +178,33 @@ public class PlaceCandidateContext {
         return matches.size() == 1 ? matches.getFirst() : null;
     }
 
+    public void recordStandardFoodName(String menuName, String standardFoodName) {
+
+        if (menuName == null || menuName.isBlank()) {
+            return;
+        }
+
+        if (standardFoodName == null || standardFoodName.isBlank()) {
+            standardFoodNames.remove(menuName.strip());
+        } else {
+            standardFoodNames.put(menuName.strip(), standardFoodName.strip());
+        }
+    }
+
+    public String standardFoodName(String menuName) {
+
+        return menuName == null ? null : standardFoodNames.get(menuName.strip());
+    }
+
+    public List<String> recordedRestaurantMenus(String candidateId) {
+
+        return restaurantMenus.getOrDefault(candidateId, List.of());
+    }
+
     public void clear() {
 
         candidates.clear();
+        standardFoodNames.clear();
         pinnedIds.clear();
         restaurantMenus.clear();
         completedRestaurantLookups.clear();

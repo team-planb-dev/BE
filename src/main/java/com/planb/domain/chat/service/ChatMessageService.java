@@ -25,6 +25,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ChatMessageService {
 
+    private final com.planb.domain.travel.service.PlanEditRequestService planEditRequestService;
+
     private final ChatMessageRepository chatMessageRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final ChatAiReplyMessageHelper chatAiReplyMessageHelper;
@@ -100,6 +102,18 @@ public class ChatMessageService {
         );
 
         publishMessage(roomId, response);
+    }
+
+    @Transactional
+    public void publishCurrentTalkReply(
+            Long roomId,
+            Long travelId,
+            java.util.Optional<EditPlanPreviewResponse> preview
+    ) {
+
+        preview
+                .filter(value -> planEditRequestService.isReadyCurrent(travelId, value.editRequestId()))
+                .ifPresent(value -> publishTalkReply(roomId, value));
     }
 
     @Transactional

@@ -127,7 +127,15 @@ class PlanServiceTest {
                 nutritionEvaluationCollector,
                 nutritionService,
                 new MissingSlotCompleter(mock(com.planb.ai.mcp.TourismTool.class)),
-                meterRegistry
+                meterRegistry,
+                new com.planb.domain.travel.service.MealWindowRecoveryService(
+                        planPlaceResolver,
+                        new ScheduleNormalizer(planPlaceResolver),
+                        new TravelMinutesResolver(
+                        kakaoMapServiceHandler,
+                        4
+                )
+                )
         );
 
         // travelMinutes 0인 슬롯의 재조회용 기본 응답
@@ -1643,8 +1651,16 @@ class PlanServiceTest {
                         nutritionEvaluationCollector,
                         nutritionService,
                         missingSlotCompleter,
-                        meterRegistry
-                );
+                        meterRegistry,
+                new com.planb.domain.travel.service.MealWindowRecoveryService(
+                        planPlaceResolver,
+                        new ScheduleNormalizer(planPlaceResolver),
+                        new TravelMinutesResolver(
+                                kakaoMapServiceHandler,
+                                4
+                        )
+                )
+        );
 
         when(
                 travelRecommendHandler

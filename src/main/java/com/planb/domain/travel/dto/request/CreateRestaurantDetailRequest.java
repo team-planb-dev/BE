@@ -11,8 +11,41 @@ public record CreateRestaurantDetailRequest(
         String address,
         String longitude,
         String latitude,
-        String imageUrl
+        String imageUrl,
+    String nutritionFoodName,
+    String nutritionReferenceAmount,
+    String nutritionSource
 ) {
+
+    public CreateRestaurantDetailRequest(
+            String menuName,
+            Double carbohydrate,
+            Double sodium,
+            Double fat,
+            String openTime,
+            String address,
+            String longitude,
+            String latitude,
+            String imageUrl
+    ) {
+
+        this(
+                menuName,
+                carbohydrate,
+                sodium,
+                fat,
+                openTime,
+                address,
+                longitude,
+                latitude,
+                imageUrl,
+                null,
+                null,
+                null
+        );
+    }
+
+
 
     public static CreateRestaurantDetailRequest from(
             CreatePlanAiResponse.RestaurantDetail restaurantDetail
@@ -27,7 +60,10 @@ public record CreateRestaurantDetailRequest(
                 restaurantDetail.address(),
                 restaurantDetail.longitude(),
                 restaurantDetail.latitude(),
-                restaurantDetail.imageUrl()
+                restaurantDetail.imageUrl(),
+                restaurantDetail.nutritionFoodName(),
+                restaurantDetail.nutritionReferenceAmount(),
+                restaurantDetail.nutritionSource()
         );
     }
 }

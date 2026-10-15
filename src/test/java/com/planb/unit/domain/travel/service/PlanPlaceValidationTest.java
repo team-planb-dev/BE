@@ -106,8 +106,16 @@ class PlanPlaceValidationTest {
             nutrition,
             nutritionService,
             new MissingSlotCompleter(tourismTool),
-            meterRegistry
-    );
+            meterRegistry,
+                new com.planb.domain.travel.service.MealWindowRecoveryService(
+                        helper,
+                        scheduleNormalizer,
+                        new TravelMinutesResolver(
+                    kakao,
+                    4
+            )
+                )
+        );
 
     private final LocalDate date = LocalDate.of(
             2026,

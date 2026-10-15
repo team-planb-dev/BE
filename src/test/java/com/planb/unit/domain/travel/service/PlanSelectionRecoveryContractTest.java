@@ -101,6 +101,11 @@ class PlanSelectionRecoveryContractTest {
     private OpenAiChatCompletionStub ai;
     private ExternalHttpStubServer external;
     private PlanService service;
+    private int kor2BoundaryCalls;
+    private boolean mealWindowScenario;
+    private boolean standardFallbackScenario;
+    private boolean standardLookupEmpty;
+    private final java.util.List<String> foodLookupNames = new java.util.ArrayList<>();
     private SimpleMeterRegistry registry;
     private final Logger serviceLogger = (Logger) LoggerFactory.getLogger(PlanService.class);
     private ListAppender<ILoggingEvent> editLogs;
@@ -131,7 +136,7 @@ class PlanSelectionRecoveryContractTest {
                         )
                 ),
                 new KakaoMobilityServiceClient(
-                        WebClient.builder(),
+                        WebClient.builder().exchangeFunction(this::mobilityBoundary),
                         new KakaoMobilityServiceProperties(
                                 external.baseUrl(ExternalHttpStubServer.Api.KAKAO_MOBILITY),
                                 "stub"
@@ -146,7 +151,7 @@ class PlanSelectionRecoveryContractTest {
         NutritionService nutrition = new NutritionService(
                 new FoodNtrCpntHandler(
                         new FoodNtrCpntClient(
-                                WebClient.builder(),
+                                WebClient.builder().exchangeFunction(this::nutritionBoundary),
                                 new FoodNtrCpntProperties(
                                         external.baseUrl(ExternalHttpStubServer.Api.FOOD_NUTRITION),
                                         "stub"
@@ -205,7 +210,12 @@ class PlanSelectionRecoveryContractTest {
                 collector,
                 nutrition,
                 new MissingSlotCompleter(tourism),
-                registry
+                registry,
+                new com.planb.domain.travel.service.MealWindowRecoveryService(
+                        resolver,
+                        new ScheduleNormalizer(resolver),
+                        new TravelMinutesResolver(kakao, 4)
+                )
         );
     }
 
@@ -216,6 +226,225 @@ class PlanSelectionRecoveryContractTest {
         external.close();
         serviceLogger.detachAppender(editLogs);
         editLogs.stop();
+    }
+
+    @Test
+    @DisplayName("생성 요청의 Tool 반복 중 모델 호출 상한 유지")
+    void stopsToolLoopAtRequestBudget() throws Exception {
+
+        ai.enqueueFixtures("selection-recovery-tools.json");
+        enqueueSelection(List.of(lunch("비빔밥")));
+        TravelPlanContext original = context();
+        TravelPlanContext bounded = new TravelPlanContext(
+                original.createTravelRequest(),
+                original.healthContexts(),
+                new com.planb.ai.context.AiCallBudget(1, 24, 128)
+        );
+
+        assertThatThrownBy(() -> service.makePlanByAi(bounded))
+                .isInstanceOf(AiOrchestrationException.class)
+                .satisfies(failure -> assertThat(((AiOrchestrationException) failure).getFailure())
+                        .isEqualTo(com.planb.global.config.exception.AiFailure.BUDGET_EXCEEDED));
+        assertThat(ai.requests()).hasSize(1);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"0,128", "24,0", "24,2"})
+    @DisplayName("Tool 실행 전 왕복·개수 상한과 추가 모델 요청 차단")
+    void stopsToolsBeforeCallbacks(int roundLimit, int toolLimit) throws Exception {
+
+        ai.enqueueFixtures("selection-recovery-tools.json");
+        TravelPlanContext original = context();
+        TravelPlanContext bounded = new TravelPlanContext(
+                original.createTravelRequest(),
+                original.healthContexts(),
+                new com.planb.ai.context.AiCallBudget(32, roundLimit, toolLimit)
+        );
+
+        assertThatThrownBy(() -> service.makePlanByAi(bounded))
+                .isInstanceOf(AiOrchestrationException.class)
+                .satisfies(failure -> assertThat(((AiOrchestrationException) failure).getFailure())
+                        .isEqualTo(com.planb.global.config.exception.AiFailure.BUDGET_EXCEEDED));
+        assertThat(ai.requests()).hasSize(1);
+        assertThat(external.requests(ExternalHttpStubServer.Api.FOOD_NUTRITION)).isEmpty();
+        assertThat(kor2BoundaryCalls).isZero();
+    }
+
+    @Test
+    @DisplayName("파싱 재시도의 요청 예산 공유와 추가 HTTP 요청 차단")
+    void parsingRetryKeepsSameBudget() throws Exception {
+
+        enqueueContent("{");
+        TravelPlanContext original = context();
+        TravelPlanContext bounded = new TravelPlanContext(
+                original.createTravelRequest(),
+                original.healthContexts(),
+                new com.planb.ai.context.AiCallBudget(1, 24, 128)
+        );
+
+        assertThatThrownBy(() -> service.makePlanByAi(bounded))
+                .isInstanceOf(AiOrchestrationException.class)
+                .satisfies(failure -> assertThat(((AiOrchestrationException) failure).getFailure())
+                        .isEqualTo(com.planb.global.config.exception.AiFailure.BUDGET_EXCEEDED));
+        assertThat(ai.requests()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("두 번째 Tool 왕복의 callback 실행 전 차단")
+    void stopsSecondToolRoundBeforeCallbacks() throws Exception {
+
+        ai.enqueueFixtures("selection-recovery-tools.json", "selection-recovery-reselect-tools.json");
+        TravelPlanContext original = context();
+        TravelPlanContext bounded = new TravelPlanContext(
+                original.createTravelRequest(),
+                original.healthContexts(),
+                new com.planb.ai.context.AiCallBudget(32, 1, 128)
+        );
+
+        assertThatThrownBy(() -> service.makePlanByAi(bounded))
+                .isInstanceOf(AiOrchestrationException.class)
+                .satisfies(failure -> assertThat(((AiOrchestrationException) failure).getFailure())
+                        .isEqualTo(com.planb.global.config.exception.AiFailure.BUDGET_EXCEEDED));
+        assertThat(ai.requests()).hasSize(2);
+        assertThat(kor2BoundaryCalls).isEqualTo(5); // 첫 Tool 3건과 지역 코드 조회 2건
+    }
+
+    @Test
+    @DisplayName("validation correction의 생성 요청 예산 공유")
+    void correctionKeepsSameBudget() throws Exception {
+
+        ai.enqueueFixtures("selection-recovery-tools.json");
+        enqueueContent("{\"planDays\":[]}");
+        TravelPlanContext original = context();
+        TravelPlanContext bounded = new TravelPlanContext(
+                original.createTravelRequest(),
+                original.healthContexts(),
+                new com.planb.ai.context.AiCallBudget(2, 24, 128)
+        );
+
+        assertThatThrownBy(() -> service.makePlanByAi(bounded))
+                .isInstanceOf(AiOrchestrationException.class)
+                .satisfies(failure -> assertThat(((AiOrchestrationException) failure).getFailure())
+                        .isEqualTo(com.planb.global.config.exception.AiFailure.BUDGET_EXCEEDED));
+        assertThat(ai.requests()).hasSize(2);
+    }
+
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    @DisplayName("Tool 조회 불가 뒤 표준명 보충과 동일 표준 재시도 차단")
+    void fillsNutritionAfterUnavailableTool(boolean alreadyTriedStandard) throws Exception {
+
+        standardFallbackScenario = true;
+        standardLookupEmpty = alreadyTriedStandard;
+        var tools = mapper.readTree(getClass().getResourceAsStream("/loadtest/openai/selection-recovery-tools.json"));
+        var calls = (com.fasterxml.jackson.databind.node.ArrayNode) tools
+                .path("choices").get(0).path("message").path("tool_calls");
+        var call = calls.addObject();
+        call.put("id", "nutrition");
+        call.put("type", "function");
+        call.putObject("function")
+                .put("name", "evaluateFoodNutrition")
+                .put("arguments", "{\"foodName\":\"특제 비빔밥\",\"standardFoodName\":"
+                        + (alreadyTriedStandard ? "\"비빔밥\"" : "null") + ",\"diseaseTypes\":[]}");
+        ai.enqueueFixture("selection-recovery-response.json", Map.of("response", mapper.writeValueAsString(tools)));
+        var original = lunch("특제 비빔밥");
+        enqueueSelection(List.of(new CreatePlanSelection.ScheduleSelection(
+                original.scheduleType(), original.courseType(), original.startTime(), original.endTime(),
+                original.stayMinutes(), original.tags(),
+                new CreatePlanSelection.RestaurantSelection(" 특제 비빔밥 ", "비빔밥"), original.candidateId()
+        )));
+
+        var response = service.makePlanByAi(context());
+        var restaurant = response.planDays().getFirst().schedules().stream()
+                .filter(slot -> slot.scheduleType() == ScheduleType.LUNCH)
+                .findFirst().orElseThrow().restaurantDetail();
+        assertThat(restaurant.menuName()).isEqualTo("특제 비빔밥");
+
+        if (alreadyTriedStandard) {
+            assertThat(foodLookupNames).containsExactly("특제 비빔밥", "비빔밥");
+            assertThat(restaurant.carbohydrate()).isNull();
+        } else {
+            assertThat(foodLookupNames).containsExactly("특제 비빔밥", "특제 비빔밥", "비빔밥");
+            assertThat(restaurant.carbohydrate()).isEqualTo(20.0);
+            assertThat(restaurant.nutritionFoodName()).isEqualTo("비빔밥");
+            assertThat(restaurant.nutritionReferenceAmount()).isEqualTo("100g");
+            assertThat(restaurant.nutritionSource()).isEqualTo("STANDARD_FOOD_FALLBACK");
+        }
+    }
+
+    @Test
+    @DisplayName("생성 선택의 표준 음식명 보존과 메뉴명 분리")
+    void keepsSelectedStandardFoodName() {
+
+        com.planb.ai.context.PlaceCandidateContext candidates = new com.planb.ai.context.PlaceCandidateContext();
+        CreatePlanSelection.ScheduleSelection original = lunch("특제 비빔밥");
+        CreatePlanSelection.ScheduleSelection selected = new CreatePlanSelection.ScheduleSelection(
+                original.scheduleType(),
+                original.courseType(),
+                original.startTime(),
+                original.endTime(),
+                original.stayMinutes(),
+                original.tags(),
+                new CreatePlanSelection.RestaurantSelection("특제 비빔밥", "비빔밥"),
+                original.candidateId()
+        );
+        CreatePlanAiResponse result = new PlanGenerationSelectionMapper().toResponse(
+                new CreatePlanSelection(List.of(new CreatePlanSelection.PlanDaySelection(
+                        1,
+                        date,
+                        List.of(selected)
+                ))),
+                candidates
+        );
+
+        assertThat(result.planDays().getFirst().schedules().getFirst().restaurantDetail().menuName())
+                .isEqualTo("특제 비빔밥");
+        assertThat(candidates.standardFoodName("특제 비빔밥"))
+                .isEqualTo("비빔밥");
+    }
+
+    @Test
+    @DisplayName("생성 finish의 점심 후보 복구 뒤 복약 간격 재산정")
+    void generationPipelineRepairsLunchThenRecalculatesMedication() throws Exception {
+
+        mealWindowScenario = true;
+        var tools = mapper.readTree(getClass().getResourceAsStream("/loadtest/openai/selection-recovery-tools.json"));
+        var calls = (com.fasterxml.jackson.databind.node.ArrayNode) tools.path("choices").get(0).path("message").path("tool_calls");
+        var call = calls.addObject();
+        call.put("id", "alternateDetail");
+        call.put("type", "function");
+        call.putObject("function").put("name", "getRestaurantDetail").put("arguments", "{\"contentId\":\"910002\"}");
+        var breakfastCall = calls.addObject();
+        breakfastCall.put("id", "breakfastDetail");
+        breakfastCall.put("type", "function");
+        breakfastCall.putObject("function").put("name", "getRestaurantDetail").put("arguments", "{\"contentId\":\"910003\"}");
+        ai.enqueueFixture("selection-recovery-response.json", Map.of("response", mapper.writeValueAsString(tools)));
+        enqueueSelection(List.of(new CreatePlanSelection.ScheduleSelection(
+                ScheduleType.BREAKFAST, CourseType.RESTAURANT, LocalTime.of(8, 0), LocalTime.of(9, 0),
+                60, Set.of(), new CreatePlanSelection.RestaurantSelection("칼국수", null), "tour:910003"
+        ), attraction("tour:900001", 11), lunch("비빔밥"), attraction("tour:900002", 14)));
+        var original = context();
+        var health = original.healthContexts().getFirst();
+        var rule = new TravelHealthContext.MedicationInfoContext.MealMedicationRuleContext(
+                com.planb.domain.health.entity.constant.RelatedMeal.LUNCH,
+                com.planb.domain.health.entity.constant.MealTiming.AFTER_MEAL,
+                30
+        );
+        var context = new TravelPlanContext(original.createTravelRequest(), List.of(new TravelHealthContext(
+                health.travelerName(), health.diseaseTypes(), health.walkType(), health.mealInfo(), health.foodInfos(),
+                List.of(new TravelHealthContext.MedicationInfoContext("시험 복약",
+                        com.planb.domain.health.entity.constant.MedicationBasis.WITH_MEAL, null, Set.of(rule)))
+        )));
+
+        var schedules = service.makePlanByAi(context).planDays().getFirst().schedules();
+        var lunch = schedules.stream().filter(slot -> slot.scheduleType() == ScheduleType.LUNCH).findFirst().orElseThrow();
+        var medication = schedules.stream().filter(slot -> slot.courseType() == CourseType.MEDICATION).findFirst().orElseThrow();
+        assertThat(lunch.candidateId()).isEqualTo("tour:910002");
+        assertThat(lunch.startTime()).isBetween(LocalTime.of(11, 30), LocalTime.of(12, 30));
+        assertThat(medication.startTime()).isEqualTo(lunch.endTime().plusMinutes(30));
+        assertThat(schedules).filteredOn(slot -> slot.courseType() == CourseType.ATTRACTION)
+                .extracting(CreatePlanAiResponse.PlanScheduleDetail::candidateId).containsExactly("tour:900001", "tour:900002");
+        assertThat(registry.get("planb.travel.plan.stage").tags("flow", "create", "stage", "meal_window_recovery", "outcome", "success").timer().count()).isEqualTo(1);
     }
 
     @Test
@@ -355,6 +584,27 @@ class PlanSelectionRecoveryContractTest {
                 .hasSize(4);
     }
 
+    @Test
+    @DisplayName("재선택 candidateId 누락의 검색 원본 유지와 제한 교정")
+    void correctsMissingReselectionIdWithoutLosingCandidates() throws Exception {
+
+        ai.enqueueFixtures("selection-recovery-tools.json");
+        enqueueSelection(List.of(lunch("출처 없는 메뉴")));
+        ai.enqueueFixtures("selection-recovery-reselect-tools.json");
+        enqueueContent("{\"selectedCandidateId\":null,\"restaurantDetail\":{\"menuName\":\"칼국수\"}}");
+        enqueueContent("{\"selectedCandidateId\":\"tour:910003\",\"restaurantDetail\":{\"menuName\":\"칼국수\"}}");
+
+        CreatePlanAiResponse response = service.makePlanByAi(context());
+
+        assertThat(response.planDays().getFirst().schedules())
+                .filteredOn(slot -> slot.scheduleType() == ScheduleType.LUNCH)
+                .singleElement()
+                .satisfies(slot -> assertThat(slot.candidateId()).isEqualTo("tour:910003"));
+        assertThat(ai.requests()).hasSize(5);
+        assertThat(ai.requests().getLast())
+                .contains("등록 후보 JSON", "tour:910003", "칼국수", "menuSourceRecorded");
+    }
+
     @ParameterizedTest
     @CsvSource({"tour:910003,출처 없는 메뉴", "tour:unknown,칼국수", "tour:900001,칼국수"})
     @DisplayName("유효하지 않은 메뉴·후보의 재선택 두 번 이후 생성 거부")
@@ -370,12 +620,16 @@ class PlanSelectionRecoveryContractTest {
             ai.enqueueFixtures("selection-recovery-reselect-tools.json");
             enqueueContent("{\"selectedCandidateId\":\"" + candidateId
                     + "\",\"restaurantDetail\":{\"menuName\":\"" + menu + "\"}}");
+            if ("tour:unknown".equals(candidateId)) {
+                enqueueContent("{\"selectedCandidateId\":\"" + candidateId
+                        + "\",\"restaurantDetail\":{\"menuName\":\"" + menu + "\"}}");
+            }
         }
 
         assertThatThrownBy(() -> service.makePlanByAi(context()))
                 .isInstanceOf(BaseException.class);
         assertThat(ai.requests())
-                .hasSize(6);
+                .hasSize("tour:unknown".equals(candidateId) ? 8 : 6);
     }
 
     @Test
@@ -889,7 +1143,46 @@ class PlanSelectionRecoveryContractTest {
         );
     }
 
+    private Mono<ClientResponse> mobilityBoundary(ClientRequest request) {
+
+        if (!mealWindowScenario) {
+            return org.springframework.web.reactive.function.client.ExchangeFunctions
+                    .create(new org.springframework.http.client.reactive.ReactorClientHttpConnector())
+                    .exchange(request);
+        }
+        String query = request.url().getQuery();
+        int duration = query.contains("origin=126.97") && query.contains("destination=126.975") ? 21600 : 900;
+        return Mono.just(ClientResponse.create(HttpStatus.OK)
+                .header("Content-Type", "application/json")
+                .body("{\"routes\":[{\"result_code\":0,\"summary\":{\"duration\":" + duration + "}}]}").build());
+    }
+
+    private Mono<ClientResponse> nutritionBoundary(ClientRequest request) {
+
+        if (!standardFallbackScenario) {
+            return org.springframework.web.reactive.function.client.ExchangeFunctions
+                    .create(new org.springframework.http.client.reactive.ReactorClientHttpConnector())
+                    .exchange(request);
+        }
+
+        String query = java.net.URLDecoder.decode(request.url().getRawQuery(), StandardCharsets.UTF_8);
+        String name = query.contains("FOOD_NM_KR=특제 비빔밥") ? "특제 비빔밥" : "비빔밥";
+        foodLookupNames.add(name);
+        String body = "{\"header\":{\"resultCode\":\"00\"},\"body\":{\"items\":[]}}";
+
+        if (!standardLookupEmpty && "비빔밥".equals(name)) {
+            body = "{\"header\":{\"resultCode\":\"00\"},\"body\":{\"items\":[{"
+                    + "\"DB_GRP_NM\":\"음식\",\"FOOD_NM_KR\":\"비빔밥\",\"SERVING_SIZE\":\"100g\",\"AMT_NUM6\":\"20\","
+                    + "\"AMT_NUM13\":\"400\",\"AMT_NUM4\":\"5\"}]}}";
+        }
+
+        return Mono.just(ClientResponse.create(HttpStatus.OK)
+                .header("Content-Type", "application/json").body(body).build());
+    }
+
     private Mono<ClientResponse> kor2Boundary(ClientRequest request) {
+
+        kor2BoundaryCalls++;
 
         String path = request
                 .url()
@@ -917,6 +1210,10 @@ class PlanSelectionRecoveryContractTest {
                     input.readAllBytes(),
                     StandardCharsets.UTF_8
             );
+
+            if (standardFallbackScenario && fixture.equals("detail-intro/910001.json")) {
+                body = body.replace("비빔밥", "특제 비빔밥");
+            }
 
             if ((lateMealScenario || partialEditScenario) && fixture.equals("restaurants.json")) {
                 var tree = mapper.readTree(body);
@@ -1042,7 +1339,7 @@ class PlanSelectionRecoveryContractTest {
                         List.of(),
                         WalkType.MINIMAL,
                         new TravelHealthContext.MealInfoContext(
-                                lateMealScenario ? LocalTime.of(8, 0) : null,
+                                lateMealScenario || mealWindowScenario ? LocalTime.of(8, 0) : null,
                                 LocalTime.of(12, 0),
                                 null
                         ),

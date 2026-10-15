@@ -153,6 +153,12 @@ class TravelFacadeTest {
     @Mock
     private RestaurantDetailQueryService restaurantDetailQueryService;
 
+    @Mock
+    private com.planb.domain.travel.service.PlanEditService planEditService;
+
+    @Mock
+    private com.planb.domain.travel.service.PlanEditRequestService planEditRequestService;
+
     @InjectMocks
     private TravelFacade travelFacade;
 
@@ -390,7 +396,7 @@ class TravelFacadeTest {
 
         when(userQueryService.findUserIdInCache(username))
                 .thenReturn(2L);
-        when(travelService.confirmEditPlan(1L))
+        when(travelService.confirmEditPlanInTransaction(1L, null))
                 .thenReturn(expected);
 
         CreatePlanResponse result = travelFacade.confirmEditPlan(request, username);
@@ -400,7 +406,7 @@ class TravelFacadeTest {
         verify(travelQueryService)
                 .validateOwner(1L, 2L);
         verify(travelService)
-                .confirmEditPlan(1L);
+                .confirmEditPlanInTransaction(1L, null);
     }
 
     @Test
@@ -412,7 +418,7 @@ class TravelFacadeTest {
 
         when(userQueryService.findUserIdInCache(username))
                 .thenReturn(2L);
-        when(travelService.confirmEditPlan(1L))
+        when(travelService.confirmEditPlanInTransaction(1L, null))
                 .thenThrow(new BaseException(PlanEditExceptionEnum.EDIT_RESULT_NOT_FOUND));
 
         assertThatThrownBy(() -> travelFacade.confirmEditPlan(request, username))
@@ -438,7 +444,7 @@ class TravelFacadeTest {
 
         when(userQueryService.findUserIdInCache(username))
                 .thenReturn(2L);
-        when(travelService.confirmEditPlan(1L))
+        when(travelService.confirmEditPlanInTransaction(1L, null))
                 .thenReturn(expected);
 
         CreatePlanResponse result = travelFacade.confirmEditPlan(request, username);
@@ -446,7 +452,7 @@ class TravelFacadeTest {
         assertThat(result)
                 .isSameAs(expected);
         verify(travelService)
-                .confirmEditPlan(1L);
+                .confirmEditPlanInTransaction(1L, null);
     }
 
     @Test
@@ -467,11 +473,11 @@ class TravelFacadeTest {
                 .isInstanceOf(ForbiddenException.class);
 
         verify(travelService, never())
-                .confirmEditPlan(1L);
+                .confirmEditPlanInTransaction(1L, null);
     }
 
     @Test
-    @DisplayName("수정 미리보기 취소 시 Redis 캐시만 삭제")
+    @DisplayName("수정 미리보기 취소 시 현재 요청 무효화")
     void cancelEditPlan() {
 
         String username = "testUser@example.com";
@@ -483,8 +489,8 @@ class TravelFacadeTest {
 
         verify(travelQueryService)
                 .validateOwner(1L, 2L);
-        verify(planEditCacheService)
-                .deleteEditResult(1L);
+        verify(planEditRequestService)
+                .cancel(1L, null);
     }
 
     @Test
@@ -503,8 +509,8 @@ class TravelFacadeTest {
         assertThatThrownBy(() -> travelFacade.cancelEditPlan(request, username))
                 .isInstanceOf(ForbiddenException.class);
 
-        verify(planEditCacheService, never())
-                .deleteEditResult(1L);
+        verify(planEditRequestService, never())
+                .cancel(1L, null);
     }
 
     @Test

@@ -100,8 +100,40 @@ public record CreatePlanAiResponse(
             String address,
             String longitude,
             String latitude,
-            String imageUrl
+            String imageUrl,
+            // 식약처 DB 참고값, 식당의 실제 제공량 미확인
+            String nutritionFoodName,
+            String nutritionReferenceAmount,
+            String nutritionSource
     ) {
+
+        public RestaurantDetail(
+                String menuName,
+                Double carbohydrate,
+                Double sodium,
+                Double fat,
+                String openTime,
+                String address,
+                String longitude,
+                String latitude,
+                String imageUrl
+        ) {
+
+            this(
+                    menuName,
+                    carbohydrate,
+                    sodium,
+                    fat,
+                    openTime,
+                    address,
+                    longitude,
+                    latitude,
+                    imageUrl,
+                    null,
+                    null,
+                    null
+            );
+        }
 
     }
 }

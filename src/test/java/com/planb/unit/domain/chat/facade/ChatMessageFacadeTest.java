@@ -59,6 +59,12 @@ class ChatMessageFacadeTest {
     @Mock
     private PlanEditCacheService planEditCacheService;
 
+    @Mock
+    private com.planb.domain.travel.service.PlanEditService planEditService;
+
+    @Mock
+    private com.planb.domain.travel.service.PlanEditRequestService planEditRequestService;
+
     @InjectMocks
     private ChatMessageFacade chatMessageFacade;
 
@@ -87,14 +93,8 @@ class ChatMessageFacadeTest {
         when(userQueryService.findUserIdInCache(username))
                 .thenReturn(50L);
 
-        when(travelService.prepareEditContext(travelId, request.message()))
-                .thenReturn(editContext);
-
-        when(planService.makeEditPlanByAi(editContext))
-                .thenReturn(editResponse);
-
-        when(planService.createEditPreviewResponse(editContext, editResponse))
-                .thenReturn(preview);
+        when(planEditService.makeChatPreview(travelId, request.message()))
+                .thenReturn(Optional.of(preview));
 
         // when
         chatMessageFacade.handleMessage(
@@ -110,8 +110,7 @@ class ChatMessageFacadeTest {
                 userQueryService,
                 travelQueryService,
                 travelService,
-                planService,
-                planEditCacheService
+                planEditService
         );
 
         inOrder
@@ -139,24 +138,11 @@ class ChatMessageFacadeTest {
                 .validateOwner(travelId, 50L);
 
         inOrder
-                .verify(travelService)
-                .prepareEditContext(travelId, request.message());
-
-        inOrder
-                .verify(planService)
-                .makeEditPlanByAi(editContext);
-
-        inOrder
-                .verify(planEditCacheService)
-                .saveEditResult(travelId, editResponse);
-
-        inOrder
-                .verify(planService)
-                .createEditPreviewResponse(editContext, editResponse);
-
+                .verify(planEditService)
+                .makeChatPreview(travelId, request.message());
         inOrder
                 .verify(chatMessageService)
-                .publishTalkReply(roomId, preview);
+                .publishCurrentTalkReply(roomId, travelId, Optional.of(preview));
     }
 
     @Test
@@ -262,7 +248,7 @@ class ChatMessageFacadeTest {
 
         inOrder
                 .verify(travelService)
-                .confirmEditPlanInTransaction(travelId);
+                .confirmEditPlanInTransaction(travelId, null);
 
         inOrder
                 .verify(chatMessageService)
@@ -304,7 +290,7 @@ class ChatMessageFacadeTest {
                 chatRoomQueryService,
                 userQueryService,
                 travelQueryService,
-                planEditCacheService
+                planEditRequestService
         );
 
         inOrder
@@ -324,8 +310,8 @@ class ChatMessageFacadeTest {
                 .validateOwner(travelId, 50L);
 
         inOrder
-                .verify(planEditCacheService)
-                .deleteEditResult(travelId);
+                .verify(planEditRequestService)
+                .cancel(travelId, null);
 
         inOrder
                 .verify(chatMessageService)
@@ -356,8 +342,7 @@ class ChatMessageFacadeTest {
         verifyNoInteractions(
                 chatRoomQueryService,
                 travelService,
-                planService,
-                planEditCacheService
+                planEditService
         );
     }
 
@@ -389,8 +374,7 @@ class ChatMessageFacadeTest {
         verifyNoInteractions(
                 chatRoomQueryService,
                 travelService,
-                planService,
-                planEditCacheService
+                planEditService
         );
     }
 
@@ -422,8 +406,7 @@ class ChatMessageFacadeTest {
         verifyNoInteractions(
                 chatRoomQueryService,
                 travelService,
-                planService,
-                planEditCacheService
+                planEditService
         );
     }
 }

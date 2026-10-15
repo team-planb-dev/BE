@@ -250,13 +250,40 @@ class TravelServiceTest {
     }
 
     @Test
+    @DisplayName("새 수정 요청 처리 중 이전 확정 응답 재전송 차단")
+    void pendingEditDoesNotReplayOldConfirmation() {
+
+        Travel travel = Travel
+                .builder()
+                .id(1L)
+                .build();
+        travel.beginEditRequest("previous");
+        travel.markEditConfirmed(java.time.Instant.now());
+        travel.beginEditRequest("current");
+
+        org.mockito.Mockito.lenient()
+                .when(travelRepository.findForEditUpdate(1L))
+                .thenReturn(Optional.of(travel));
+        org.mockito.Mockito.lenient()
+                .when(travelRepository.getReferenceById(1L))
+                .thenReturn(travel);
+        BaseException failure = assertThrows(
+                BaseException.class,
+                () -> travelService.confirmEditPlan(1L)
+        );
+
+        assertEquals(
+                PlanEditExceptionEnum.EDIT_RESULT_NOT_READY.getCode(),
+                failure.getErrorCode()
+        );
+    }
+
+    @Test
     @DisplayName("수정안 부재 시 일정 재저장 거부")
     void confirmEditPlanRejectsMissingResult() {
 
-        when(planEditCacheService.consumeEditResult(1L))
-                .thenReturn(Optional.empty());
-        when(planEditCacheService.findConfirmedResult(1L))
-                .thenReturn(Optional.empty());
+        when(travelRepository.findForEditUpdate(1L))
+                .thenReturn(Optional.of(Travel.builder().id(1L).build()));
 
         BaseException exception = assertThrows(
                 BaseException.class,
@@ -280,10 +307,8 @@ class TravelServiceTest {
                     java.util.function.Supplier<?> operation = invocation.getArgument(0);
                     return operation.get();
                 });
-        when(planEditCacheService.consumeEditResult(1L))
-                .thenReturn(Optional.empty());
-        when(planEditCacheService.findConfirmedResult(1L))
-                .thenReturn(Optional.empty());
+        when(travelRepository.findForEditUpdate(1L))
+                .thenReturn(Optional.of(Travel.builder().id(1L).build()));
 
         assertThrows(
                 BaseException.class,
@@ -310,9 +335,11 @@ class TravelServiceTest {
                 .travelName("부산 여행")
                 .build();
 
-        when(planEditCacheService.consumeEditResult(1L))
-                .thenReturn(Optional.empty());
-        when(planEditCacheService.findConfirmedResult(1L))
+        travel.beginEditRequest("request");
+        travel.markEditConfirmed(java.time.Instant.now());
+        when(travelRepository.findForEditUpdate(1L))
+                .thenReturn(Optional.of(travel));
+        when(planEditCacheService.findConfirmedRequest(1L, "request"))
                 .thenReturn(Optional.of(confirmed));
         when(travelRepository.getReferenceById(1L))
                 .thenReturn(travel);
@@ -356,7 +383,11 @@ class TravelServiceTest {
                 .id(1L)
                 .build();
 
-        when(planEditCacheService.consumeEditResult(1L))
+        travel.beginEditRequest("request");
+        travel.markEditPreviewReady();
+        when(travelRepository.findForEditUpdate(1L))
+                .thenReturn(Optional.of(travel));
+        when(planEditCacheService.findRequestResult(1L, "request"))
                 .thenReturn(Optional.of(editResult));
         when(planQueryService.getPlanByTravelId(1L))
                 .thenReturn(new PlanQueryResponse(
@@ -400,7 +431,7 @@ class TravelServiceTest {
                 .savePlan(plan);
         order
                 .verify(planEditCacheService)
-                .markConfirmedAfterCommit(1L, editResult);
+                .confirmRequestAfterCommit(1L, "request", editResult);
     }
 
     @Test

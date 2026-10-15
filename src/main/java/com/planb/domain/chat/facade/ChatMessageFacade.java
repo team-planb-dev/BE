@@ -11,6 +11,8 @@ import com.planb.domain.travel.dto.response.EditPlanPreviewResponse;
 import com.planb.domain.travel.service.PlanEditCacheService;
 import com.planb.domain.travel.service.PlanService;
 import com.planb.domain.travel.service.TravelService;
+import com.planb.domain.travel.service.PlanEditService;
+import com.planb.domain.travel.service.PlanEditRequestService;
 import com.planb.query.chat.service.ChatRoomQueryService;
 import com.planb.query.travel.service.TravelQueryService;
 import com.planb.query.user.service.UserQueryService;
@@ -29,8 +31,8 @@ public class ChatMessageFacade {
     private final UserQueryService userQueryService;
     private final TravelQueryService travelQueryService;
     private final TravelService travelService;
-    private final PlanService planService;
-    private final PlanEditCacheService planEditCacheService;
+    private final PlanEditService planEditService;
+    private final PlanEditRequestService planEditRequestService;
 
     /**
      * 메시지 유형에 맞는 채팅 처리 흐름을 선택
@@ -51,10 +53,12 @@ public class ChatMessageFacade {
             );
             case CONFIRM -> handleConfirm(
                     roomId,
+                    request.editRequestId(),
                     username
             );
             case CANCEL -> handleCancel(
                     roomId,
+                    request.editRequestId(),
                     username
             );
             default -> throw new IllegalArgumentException(
@@ -89,21 +93,13 @@ public class ChatMessageFacade {
 
         travelQueryService.validateOwner(travelId.get(), userId); // 여행 소유권 검증
 
-        PlanEditContext editContext = travelService.prepareEditContext(
+        Optional<EditPlanPreviewResponse> preview = planEditService.makeChatPreview(
                 travelId.get(),
                 request.message()
-        ); // 편집 정보 조회
+        ); // 현재 요청의 AI 미리보기 생성
 
-        EditPlanAiResponse editResponse = planService.makeEditPlanByAi(editContext); // AI 수정안 생성
+        chatMessageService.publishCurrentTalkReply(roomId, travelId.get(), preview); // 유효한 수정안 발행
 
-        planEditCacheService.saveEditResult(travelId.get(), editResponse); // 수정안 캐시 저장
-
-        EditPlanPreviewResponse preview = planService.createEditPreviewResponse(
-                editContext,
-                editResponse
-        ); // 수정 미리보기 생성
-
-        chatMessageService.publishTalkReply(roomId, preview); // AI 응답 발행
     }
 
     /**
@@ -111,6 +107,7 @@ public class ChatMessageFacade {
      */
     private void handleConfirm(
             Long roomId,
+            String requestId,
             String username
     ) {
 
@@ -120,7 +117,7 @@ public class ChatMessageFacade {
 
         travelQueryService.validateOwner(travelId, userId); // 여행 소유권 검증
 
-        travelService.confirmEditPlanInTransaction(travelId); // 수정안 확정
+        travelService.confirmEditPlanInTransaction(travelId, requestId); // 수정안 확정
 
         chatMessageService.publishConfirmReply(roomId); // 확정 응답 발행
     }
@@ -130,6 +127,7 @@ public class ChatMessageFacade {
      */
     private void handleCancel(
             Long roomId,
+            String requestId,
             String username
     ) {
 
@@ -139,7 +137,7 @@ public class ChatMessageFacade {
 
         travelQueryService.validateOwner(travelId, userId); // 여행 소유권 검증
 
-        planEditCacheService.deleteEditResult(travelId); // 수정안 취소
+        planEditRequestService.cancel(travelId, requestId); // 수정 요청 취소
 
         chatMessageService.publishCancelReply(roomId); // 취소 응답 발행
     }
