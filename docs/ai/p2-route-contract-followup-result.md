@@ -84,3 +84,10 @@
 - main 배포 환경은 변경 대상에서 제외. DAG 구조 개편은 Claude 교차검증 후 별도 결정
 
 - dev 통합 전 재실행: `./gradlew test --rerun --console=plain`, 143클래스·1073건, 실패0·오류0·건너뜀0, 4분19초. GitHub CI는 PR 생성 후 확인
+
+## 후속4 공급자 진단 갱신 (2026-10-15, #201)
+
+- 과거 2026-10-12 Kakao 대중교통 400의 근본 원인은 UNKNOWN 유지. 당시 본문 미기록, 이후 200·#199 생성 12/12는 과거 원인 판정 근거 아님
+- 현재 경로 실패 기록(상태·공급자 code·message·좌표·예외 유형 로그, 단계·유형·상태 meter)으로, 오류 본문에 `code`가 있으면(dapi 본문 형식 UNKNOWN) 다음 재발 시 쿼터(400/-10 또는 429, 공식 문서 상충)·유료 금액 한도(-11)·내부 오류(-1, -603)·점검(-7, -9798)·입력(-2, 응답 status) 구분 가능. 코드 변경 없음
+- 실측 하네스 meter 수집 대상에 `planb.external.kakao.route`, `planb.travel.route.segment` 추가. #199 실측은 이 meter를 수집하지 않아 경로 단계별 실패 수 미확인
+- 공공데이터포털 게이트웨이 오류(XML 전용) 반환 코드 보존은 TourAPI·식약처 client에 반영. 상세: `p2-followup-4-provider-ops-result.md`
