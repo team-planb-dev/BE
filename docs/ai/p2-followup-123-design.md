@@ -1,7 +1,7 @@
 # P2 후속 1~3 설계와 구현 진행
 
 기준: dev `bc6a7f12b2e1aabc94bf47d650056484b35ea33f`, Issue #199, 작업 브랜치 `codex/199-refactor-pre-dag-edit-policies-and-selection-quality`.
-상태: 구현·전체 무료 회귀 1,111건 통과. 독립 리뷰 수명/예산 9.3, 영양/재선택/점심 9.2, Critical/Important 0. 실제 API 사전 준비 진행, commit·push·PR·dev/main 병합 미실행.
+상태: 구현·전체 무료 회귀 1,111건 통과. 독립 리뷰 수명/예산 9.3, 영양/재선택/점심 9.2, Critical/Important 0. 실제 생성12·REST4·STOMP1·독립 영양8 검증 완료. dev PR #200으로 반영 진행, 병합 상태는 GitHub PR과 계획서v30 참조. main 자동 동기화 제외.
 
 ## 1. 위임된 권장 정책
 

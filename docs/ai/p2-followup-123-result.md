@@ -1,6 +1,6 @@
 # P2 DAG 전 후속 1~3 결과 — #199
 
-작성 기준: 2026-10-15. 기준 dev `bc6a7f1`, main `a6271bf`. 작업 브랜치 `codex/199-refactor-pre-dag-edit-policies-and-selection-quality`. 현재 구현·무료/실제 API 검증 완료, dev PR 준비. 코드 commit `fd2f69dca8af`. main·DAG 변경 없음.
+작성 기준: 2026-10-15. 기준 dev `bc6a7f1`, main `a6271bf`. 작업 브랜치 `codex/199-refactor-pre-dag-edit-policies-and-selection-quality`. 구현·무료/실제 API 검증 완료. 반영 PR [#200](https://github.com/team-planb-dev/BE/pull/200), 병합 상태는 PR과 계획서v30 참조. 코드 commit `fd2f69dca8af`. main·DAG 변경 없음.
 
 ## 1. 범위와 권장 정책
 
