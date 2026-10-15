@@ -6,6 +6,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum TravelExceptionEnum implements MessageCommInterface {
 
+    TRAVEL_NOT_FOUND("TRAVEL.EXCEPTION.TRAVEL_NOT_FOUND",
+            "여행을 찾을 수 없습니다."),
+
     COMPANION_REQUIRED("TRAVEL.EXCEPTION.COMPANION_REQUIRED",
             "이번 여행에 참여할 구성원을 한 명 이상 선택해야 합니다."),
 

@@ -2,6 +2,12 @@ package com.planb.ai.prompt;
 
 public record VerifiedPlacePrompt(AiPrompt delegate) implements AiPrompt {
     @Override
+    public com.planb.ai.context.AiCallBudget callBudget() {
+
+        return delegate.callBudget();
+    }
+
+    @Override
     public String system() {
 
         return delegate.system() + """

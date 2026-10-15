@@ -37,6 +37,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TravelFacade {
 
+    private final PlanEditService planEditService;
+    private final PlanEditRequestService planEditRequestService;
+
     /*
     User Domain Service
      */
@@ -55,7 +58,6 @@ public class TravelFacade {
     private final TravelService travelService;
     private final PlannedPlaceService plannedPlaceService;
     private final PlanService planService;
-    private final PlanEditCacheService planEditCacheService;
 
     /*
     Travel Query Service
@@ -203,25 +205,27 @@ public class TravelFacade {
 
         travelQueryService.validateOwner(travelId, userId); // 여행 소유권 검증
 
-        PlanEditContext editContext = travelService.prepareEditContext(
+        return planEditService.makePreview(
                 travelId,
                 editPlanRequest.editRequest()
-        ); // 편집 정보 조회
+        ); // 수정 요청 생성 및 미리보기 반환
 
-        EditPlanAiResponse editResponse = planService.makeEditPlanByAi(editContext); // AI 수정안 생성
+    }
 
-        planEditCacheService.saveEditResult(travelId, editResponse); // 수정안 캐시 저장
+    /**
+     * 재연결 후 현재 수정 미리보기 조회
+     */
+    public EditPlanPreviewResponse getEditPlanPreview(Long travelId, String username) {
 
-        return planService.createEditPreviewResponse(
-                editContext,
-                editResponse
-        ); // 수정 미리보기 반환
+        Long userId = userQueryService.findUserIdInCache(username); // 사용자 ID 조회
+        travelQueryService.validateOwner(travelId, userId); // 여행 소유권 검증
+
+        return planEditService.findPreview(travelId); // 현재 미리보기 조회
     }
 
     /**
      * 일정 수정안을 최종 일정으로 확정
      */
-    @Transactional
     public CreatePlanResponse confirmEditPlan(
             GetAiPlanRequest getAiPlanRequest,
             String username
@@ -233,7 +237,7 @@ public class TravelFacade {
 
         travelQueryService.validateOwner(travelId, userId); // 여행 소유권 검증
 
-        return travelService.confirmEditPlan(travelId); // 수정안 확정
+        return travelService.confirmEditPlanInTransaction(travelId, getAiPlanRequest.editRequestId()); // 수정안 확정
     }
 
     /**
@@ -251,7 +255,7 @@ public class TravelFacade {
 
         travelQueryService.validateOwner(travelId, userId); // 여행 소유권 검증
 
-        planEditCacheService.deleteEditResult(travelId); // 수정안 취소
+        planEditRequestService.cancel(travelId, getAiPlanRequest.editRequestId()); // 수정 요청 취소
     }
 
 

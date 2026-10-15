@@ -58,7 +58,15 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
     private static final String ADD_WITH_RECOMMEND_URL = "/api/v1/travel/add-with-recommend";
     private static final String ADD_COMPANION_URL = "/api/v1/health/add-traveler";
     private static final String EDIT_PREVIEW_URL = "/api/v1/travel/edit-plan/preview";
-    private static final int REPEATS = 3;
+    private static final int REPEATS = Integer.parseInt(
+            System.getenv().getOrDefault("P2_BASELINE_REPEATS", "3")
+    );
+
+    static {
+        if (REPEATS < 1 || REPEATS > 3) {
+            throw new IllegalArgumentException("P2_BASELINE_REPEATS는 1~3 범위 필수");
+        }
+    }
 
     // 실행 전후 태그별 차이를 기록할 meter
     private static final List<String> METERS = List.of(
@@ -211,6 +219,30 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
                             ),
                             List.of(DiseaseType.HIGH_BLOOD_PRESSURE)
                     )
+            ),
+            new GoldenCase(
+                    "C5-seoul-before-lunch",
+                    "서울",
+                    "종로구",
+                    "서울역",
+                    "경복궁",
+                    Transportation.TRANSIT,
+                    TravelStyle.MATCH_MEAL_TIME,
+                    TravelTheme.TASTE,
+                    List.of("설렁탕"),
+                    List.of(List.of(DiseaseType.DIABETES))
+            ),
+            new GoldenCase(
+                    "C6-seoul-three-meals-before-after",
+                    "서울",
+                    "종로구",
+                    "서울역",
+                    "경복궁",
+                    Transportation.TRANSIT,
+                    TravelStyle.MATCH_MEAL_TIME,
+                    TravelTheme.TASTE,
+                    List.of("설렁탕"),
+                    List.of(List.of(DiseaseType.DIABETES))
             )
     );
 
@@ -224,8 +256,11 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
 
     static Stream<Arguments> runs() {
 
+        boolean medicationOnly = Boolean.parseBoolean(System.getenv("P2_MEDICATION_PROFILES_ONLY"));
+
         return CASES
                 .stream()
+                .filter(goldenCase -> (goldenCase.id().startsWith("C5-") || goldenCase.id().startsWith("C6-")) == medicationOnly)
                 .flatMap(goldenCase -> IntStream
                         .rangeClosed(1, REPEATS)
                         .mapToObj(repeat -> Arguments.of(
@@ -267,7 +302,8 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
                             "동행인" + (index + 1),
                             goldenCase
                                     .companions()
-                                    .get(index)
+                                    .get(index),
+                            goldenCase.id()
                     )
             );
         }
@@ -769,7 +805,8 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
     private Long addCompanion(
             String accessToken,
             String travelerName,
-            List<DiseaseType> diseaseTypes
+            List<DiseaseType> diseaseTypes,
+            String caseId
     ) throws Exception {
 
         AddCompanionRequest request = new AddCompanionRequest(
@@ -800,13 +837,7 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
                                 "테스트 복약",
                                 MedicationBasis.WITH_MEAL,
                                 null,
-                                Set.of(
-                                        new MealMedicationRuleDetail(
-                                                RelatedMeal.LUNCH,
-                                                MealTiming.AFTER_MEAL,
-                                                30
-                                        )
-                                )
+                                medicationRules(caseId)
                         )
                 )
         );
@@ -830,5 +861,35 @@ class TravelLlmQualityBaselineTest extends TravelApiTestSupport {
                 accessToken,
                 travelerName
         );
+    }
+    // 실측 프로필별 원본 복약 규칙
+    private Set<MealMedicationRuleDetail> medicationRules(String caseId) {
+
+        if (caseId.startsWith("C5-")) {
+            return Set.of(new MealMedicationRuleDetail(
+                    RelatedMeal.LUNCH,
+                    MealTiming.BEFORE_MEAL,
+                    30
+            ));
+        }
+
+        if (caseId.startsWith("C6-")) {
+            return Stream
+                    .of(RelatedMeal.BREAKFAST, RelatedMeal.LUNCH, RelatedMeal.DINNER)
+                    .flatMap(meal -> Stream
+                            .of(MealTiming.BEFORE_MEAL, MealTiming.AFTER_MEAL)
+                            .map(timing -> new MealMedicationRuleDetail(
+                                    meal,
+                                    timing,
+                                    30
+                            )))
+                    .collect(java.util.stream.Collectors.toSet());
+        }
+
+        return Set.of(new MealMedicationRuleDetail(
+                RelatedMeal.LUNCH,
+                MealTiming.AFTER_MEAL,
+                30
+        ));
     }
 }

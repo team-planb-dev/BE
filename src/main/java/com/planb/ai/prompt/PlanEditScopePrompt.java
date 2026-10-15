@@ -6,6 +6,12 @@ import java.util.Objects;
 
 public record PlanEditScopePrompt(PlanEditContext context) implements AiPrompt {
     @Override
+    public com.planb.ai.context.AiCallBudget callBudget() {
+
+        return context.callBudget();
+    }
+
+    @Override
     public String system() {
 
         return """

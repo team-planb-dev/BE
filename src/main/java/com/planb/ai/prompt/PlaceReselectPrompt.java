@@ -13,6 +13,12 @@ public record PlaceReselectPrompt(
         Set<String> usedMenus
 ) implements AiPrompt {
     @Override
+    public com.planb.ai.context.AiCallBudget callBudget() {
+
+        return context.callBudget();
+    }
+
+    @Override
     public String system() {
 
         return "실패한 일정 슬롯 하나의 장소만 다시 검색해 선택합니다. 일정 유형/시간은 Java가 유지합니다. "
@@ -29,7 +35,7 @@ public record PlaceReselectPrompt(
     @Override
     public String user() {
 
-        return "여행/건강 조건: " + context + "\n대상 슬롯: " + slot + "\n실패 이유: " + reason
+        return "여행 조건: " + context.createTravelRequest() + "\n건강 조건: " + context.healthContexts() + "\n대상 슬롯: " + slot + "\n실패 이유: " + reason
                 + "\n제외 장소: " + usedPlaces + "\n제외 메뉴: " + usedMenus;
     }
 }

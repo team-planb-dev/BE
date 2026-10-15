@@ -22,10 +22,13 @@ spring:
 
   data:
     redis:
+      connect-timeout: 2s
+      timeout: 2s
       url: ${REDIS_URL:redis://localhost:6379}
 
   ai:
     openai:
+      max-retries: 0
       api-key: ${OPENAI_API_KEY}
       chat:
         model: ${OPENAI_MODEL}

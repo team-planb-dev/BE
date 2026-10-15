@@ -13,6 +13,12 @@ public record EditPlanPrompt(
 ) implements AiPrompt {
 
     @Override
+    public com.planb.ai.context.AiCallBudget callBudget() {
+
+        return planEditContext.callBudget();
+    }
+
+    @Override
     public String system() {
         return """
                 당신은 이미 생성되어 있는 여행 일정을 사용자의 자연어 수정 요청에 따라

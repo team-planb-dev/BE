@@ -3,6 +3,8 @@ package com.planb.domain.travel.service;
 import com.planb.ai.dto.response.EditPlanAiResponse;
 import com.planb.domain.travel.repository.PlanEditCacheRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import com.planb.domain.travel.repository.TravelRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -12,6 +14,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PlanEditCacheService {
 
     private static final long EDIT_CACHE_TTL_MS = Duration
@@ -24,70 +27,95 @@ public class PlanEditCacheService {
             .toMillis();
 
     private final PlanEditCacheRepository planEditCacheRepository;
+    private final TravelRepository travelRepository;
 
-    // 4단계(수정안 생성)에서 AI 응답 저장
-    public void saveEditResult(Long travelId, EditPlanAiResponse response) {
+    public void saveRequestResult(
+            Long travelId,
+            String requestId,
+            EditPlanAiResponse response
+    ) {
 
-        planEditCacheRepository.save(
+        planEditCacheRepository.saveRequest(
                 travelId,
+                requestId,
                 response,
                 EDIT_CACHE_TTL_MS
         );
     }
 
-    // 5단계(저장 확정)에서 조회
-    public Optional<EditPlanAiResponse> findEditResult(Long travelId) {
+    public Optional<EditPlanAiResponse> findRequestResult(Long travelId, String requestId) {
 
-        return planEditCacheRepository.findByTravelId(travelId);
+        return planEditCacheRepository.findRequest(travelId, requestId);
     }
 
-    // 5단계 저장 확정 시 수정안의 조회·소비
-    // 동일 여행의 동시 확정 요청 중 단일 수정안 소비
-    public Optional<EditPlanAiResponse> consumeEditResult(Long travelId) {
+    public Optional<EditPlanAiResponse> findConfirmedRequest(Long travelId, String requestId) {
 
-        return planEditCacheRepository.consumeByTravelId(travelId);
+        try {
+            return planEditCacheRepository.findConfirmedRequest(travelId, requestId);
+        } catch (RuntimeException failure) {
+            log.warn("[PLAN EDIT CACHE] confirmed result unavailable, travelId={}", travelId);
+            return Optional.empty();
+        }
     }
 
-    // 5단계 확정 완료 후 동일 응답 재전송용 표식 기록
-    public void markConfirmed(Long travelId, EditPlanAiResponse response) {
+    public void deleteRequestAfterCommit(Long travelId, String requestId) {
 
-        planEditCacheRepository.saveConfirmed(
-                travelId,
-                response,
-                CONFIRMED_TTL_MS
-        );
-    }
-
-    public void markConfirmedAfterCommit(
-            Long travelId,
-            EditPlanAiResponse response
-    ) {
-
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            markConfirmed(travelId, response);
+        if (requestId == null) {
             return;
         }
 
-        TransactionSynchronizationManager.registerSynchronization(
-                new TransactionSynchronization() {
-
-                    @Override
-                    public void afterCommit() {
-                        markConfirmed(travelId, response);
-                    }
-                }
-        );
+        afterCommit(() -> planEditCacheRepository.deleteRequest(travelId, requestId));
     }
 
-    // 기존 확정 요청의 재시도 판별
-    public Optional<EditPlanAiResponse> findConfirmedResult(Long travelId) {
+    public void confirmRequestAfterCommit(
+            Long travelId,
+            String requestId,
+            EditPlanAiResponse response
+    ) {
 
-        return planEditCacheRepository.findConfirmedByTravelId(travelId);
+        afterCommit(() -> {
+            planEditCacheRepository.saveConfirmedRequest(
+                    travelId,
+                    requestId,
+                    response,
+                    CONFIRMED_TTL_MS
+            );
+            planEditCacheRepository.deleteRequest(travelId, requestId);
+        });
     }
 
-    // 5단계(확정 완료 후)/6단계(원래대로 유지)에서 캐시 정리
-    public void deleteEditResult(Long travelId) {
+    private void afterCommit(Runnable operation) {
 
-        planEditCacheRepository.deleteByTravelId(travelId);
+        Runnable safeOperation = () -> {
+            try {
+                operation.run();
+            } catch (RuntimeException failure) {
+                // SQL 확정 상태를 Redis 정리 실패로 되돌리지 않는 계약
+                log.warn("[PLAN EDIT CACHE] post-commit cleanup failed");
+            }
+        };
+
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            safeOperation.run();
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                safeOperation.run();
+            }
+        });
     }
+
+
+    // 5단계(저장 확정)에서 조회
+    public Optional<EditPlanAiResponse> findEditResult(Long travelId) {
+
+        return travelRepository
+                .findById(travelId)
+                .filter(travel -> travel.isEditPreviewReady() && travel.getEditRequestId() != null)
+                .flatMap(travel -> findRequestResult(travelId, travel.getEditRequestId()));
+    }
+
 }

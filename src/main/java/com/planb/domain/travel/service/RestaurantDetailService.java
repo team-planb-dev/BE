@@ -51,6 +51,9 @@ public class RestaurantDetailService {
                 .imageUrl(
                         createRestaurantDetailRequest
                                 .imageUrl())
+                .nutritionFoodName(createRestaurantDetailRequest.nutritionFoodName())
+                .nutritionReferenceAmount(createRestaurantDetailRequest.nutritionReferenceAmount())
+                .nutritionSource(createRestaurantDetailRequest.nutritionSource())
                 .build();
     }
 

@@ -580,6 +580,8 @@ class NutritionServiceTest {
                                         .isEmpty()
                                 && result.carbohydrate() == 10.0
                                 && result.sodium() == 100.0
+                                && "칼국수".equals(result.nutritionFoodName())
+                                && "STANDARD_FOOD_FALLBACK".equals(result.nutritionSource())
                 )
                 .verifyComplete();
 
@@ -735,6 +737,26 @@ class NutritionServiceTest {
                 .expectNextMatches(result ->
                         result.status() == NutritionEvaluationStatus.UNAVAILABLE
                 )
+                .verifyComplete();
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"NaN", "Infinity", "-1", "미제공"})
+    @DisplayName("유효하지 않은 영양값의 null 보존과 다른 원본 수치 유지")
+    void preservesKnownFieldsWhenOneValueIsInvalid(String value) {
+
+        when(foodNtrCpntHandler.getFoodNutrition(any(FoodNtrCpntSearchRequest.class)))
+                .thenReturn(Mono.just(List.of(createItem(
+                        "비빔밥", value, "0", "0", "100", "0", "0", "0"
+                ))));
+
+        StepVerifier.create(nutritionService.evaluateFoodNutrition("비빔밥", List.of()))
+                .assertNext(result -> {
+                    org.assertj.core.api.Assertions.assertThat(result.carbohydrate()).isNull();
+                    org.assertj.core.api.Assertions.assertThat(result.sodium()).isEqualTo(100.0);
+                    org.assertj.core.api.Assertions.assertThat(result.status())
+                            .isEqualTo(NutritionEvaluationStatus.NOT_EVALUABLE);
+                })
                 .verifyComplete();
     }
 

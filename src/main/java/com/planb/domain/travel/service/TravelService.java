@@ -45,6 +45,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.Instant;
+import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import java.util.Optional;
@@ -241,26 +243,49 @@ public class TravelService {
 
     public CreatePlanResponse confirmEditPlan(Long travelId) {
 
-        Optional<EditPlanAiResponse> consumed =
-                planEditCacheService.consumeEditResult(travelId);
+        return confirmEditPlan(travelId, null);
+    }
 
-        if (consumed.isEmpty()) {
+    public CreatePlanResponse confirmEditPlan(Long travelId, String expectedRequestId) {
+
+        Travel travel = travelRepository
+                .findForEditUpdate(travelId)
+                .orElseThrow(() -> new BaseException(TravelExceptionEnum.TRAVEL_NOT_FOUND));
+        String requestId = travel.getEditRequestId();
+
+        if (canReplayConfirmation(travel, expectedRequestId)) {
             EditPlanAiResponse confirmed = planEditCacheService
-                    .findConfirmedResult(travelId)
-                    .orElseThrow(() -> new BaseException(
-                            PlanEditExceptionEnum.EDIT_RESULT_NOT_FOUND
-                    ));
+                    .findConfirmedRequest(travelId, travel.getConfirmedEditRequestId())
+                    .orElseGet(() -> planService.restoreEditResponse(loadCurrentPlan(travelId)));
 
             return confirmedResponse(travelId, confirmed);
         }
 
-        EditPlanAiResponse editResponse = consumed.get();
+        if (requestId == null) {
+            throw new BaseException(PlanEditExceptionEnum.EDIT_RESULT_NOT_FOUND);
+        }
+
+        if (expectedRequestId != null && !requestId.equals(expectedRequestId)) {
+            throw new BaseException(PlanEditExceptionEnum.EDIT_REQUEST_EXPIRED);
+        }
+
+        if (!travel.isEditPreviewReady()) {
+            throw new BaseException(PlanEditExceptionEnum.EDIT_RESULT_NOT_READY);
+        }
+
+        EditPlanAiResponse editResponse = planEditCacheService
+                .findRequestResult(travelId, requestId)
+                .orElseThrow(() -> new BaseException(PlanEditExceptionEnum.EDIT_RESULT_NOT_FOUND));
+
+        if (!editResponse.processable()) {
+            throw new BaseException(PlanEditExceptionEnum.EDIT_NOT_APPLIED);
+        }
+
         Plan plan = planService.findPlanById(
                 planQueryService
                         .getPlanByTravelId(travelId)
                         .planId()
         );
-
         List<PlanDay> existingDays = planDayService.findAllByPlan(plan);
         List<PlanSchedule> existingSchedules =
                 planScheduleService.findAllByPlanDayIn(existingDays);
@@ -272,17 +297,34 @@ public class TravelService {
         Set<RecommendationTag> tags = planService.aggregateTags(editResponse.planDays());
         plan.updateTags(tags);
         planService.savePlan(plan);
-
         materializePlanDays(plan, editResponse.planDays());
 
-        planEditCacheService.markConfirmedAfterCommit(travelId, editResponse);
+        travel.markEditConfirmed(Instant.now());
+        planEditCacheService.confirmRequestAfterCommit(travelId, requestId, editResponse);
 
         return confirmedResponse(travelId, editResponse);
     }
 
+    private boolean canReplayConfirmation(Travel travel, String expectedRequestId) {
+
+        if (travel.getConfirmedEditRequestId() == null || travel.getEditConfirmedAt() == null
+                || travel.getEditConfirmedAt().plus(Duration.ofMinutes(5)).isBefore(Instant.now())) {
+            return false;
+        }
+
+        return expectedRequestId == null
+                ? travel.getEditRequestId() == null
+                : expectedRequestId.equals(travel.getConfirmedEditRequestId());
+    }
+
     public CreatePlanResponse confirmEditPlanInTransaction(Long travelId) {
 
-        return travelTransactionService.write(() -> confirmEditPlan(travelId));
+        return confirmEditPlanInTransaction(travelId, null);
+    }
+
+    public CreatePlanResponse confirmEditPlanInTransaction(Long travelId, String expectedRequestId) {
+
+        return travelTransactionService.write(() -> confirmEditPlan(travelId, expectedRequestId));
     }
 
     private CreatePlanResponse confirmedResponse(

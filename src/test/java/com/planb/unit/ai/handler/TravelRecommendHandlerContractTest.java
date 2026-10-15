@@ -711,6 +711,7 @@ class TravelRecommendHandlerContractTest {
                 .call(
                 any(AiPrompt.class),
                 any(BeanOutputConverter.class),
+                any(java.util.function.Function.class),
                 any(Object[].class)
         );
 
@@ -745,6 +746,7 @@ class TravelRecommendHandlerContractTest {
                 .call(
                 any(AiPrompt.class),
                 any(BeanOutputConverter.class),
+                any(java.util.function.Function.class),
                 any(Object[].class)
         );
 
@@ -785,6 +787,7 @@ class TravelRecommendHandlerContractTest {
                 .call(
                 any(AiPrompt.class),
                 any(BeanOutputConverter.class),
+                any(java.util.function.Function.class),
                 any(Object[].class)
         );
 

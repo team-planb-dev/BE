@@ -76,7 +76,8 @@ public class NutritionService {
                                     .map(result -> evaluated(
                                             result,
                                             standardFoodName,
-                                            diseaseTypes
+                                            diseaseTypes,
+                                            "STANDARD_FOOD_FALLBACK"
                                     ));
                         }
 
@@ -84,7 +85,8 @@ public class NutritionService {
                                 evaluated(
                                         items,
                                         foodName,
-                                        diseaseTypes
+                                        diseaseTypes,
+                                        "MENU_NAME_LOOKUP"
                                 )
                         );
                     })
@@ -97,7 +99,11 @@ public class NutritionService {
                         );
 
                         return Mono.just(
-                                unavailable(diseaseTypes)
+                                unavailable(
+                                        diseaseTypes,
+                                        retried.get() ? standardFoodName : foodName,
+                                        retried.get() ? "STANDARD_FOOD_FALLBACK" : "MENU_NAME_LOOKUP"
+                                )
                         );
                     })
                     .doOnNext(result -> recordEvaluation(
@@ -212,11 +218,12 @@ public class NutritionService {
     private NutritionEvaluationResult evaluated(
             List<FoodNtrCpntResponse.Item> items,
             String foodName,
-            List<DiseaseType> diseaseTypes
+            List<DiseaseType> diseaseTypes,
+            String source
     ) {
 
         if (items.isEmpty()) {
-            return unavailable(diseaseTypes);
+            return unavailable(diseaseTypes, foodName, source);
         }
 
         FoodNtrCpntResponse.Item item =
@@ -225,21 +232,36 @@ public class NutritionService {
                         foodName
                 );
 
-        // 현재 응답에는 신뢰 가능한 1회분량이 없다. 기준량 수치는 보존하되
-        // 조회 불가 영양정보의 식사 임계값 평가·건강 태그 생성 제외
+        log.info(
+                "[NUTRITION LOOKUP RESULT] lookupName={}, matchedFoodName={}, referenceAmount={}, carbohydratePresent={}, sodiumPresent={}, fatPresent={}, status=NOT_EVALUABLE",
+                foodName,
+                item.foodName(),
+                item.servingSize(),
+                parseNutritionValue(item.carbohydrate()) != null,
+                parseNutritionValue(item.sodium()) != null,
+                parseNutritionValue(item.fat()) != null
+        );
+
+        // 식약처 기준량 보존과 1회분·질환별 평가 제외
         return new NutritionEvaluationResult(
                 List.copyOf(diseaseTypes),
                 NutritionEvaluationStatus.NOT_EVALUABLE,
                 List.of(),
                 parseNutritionValue(item.carbohydrate()),
                 parseNutritionValue(item.sodium()),
-                parseNutritionValue(item.fat())
+                parseNutritionValue(item.fat()),
+                item.foodName(),
+                item.servingSize(),
+                source,
+                foodName
         );
     }
 
     // 조회 실패 음식의 빈 영양 수치·평가
     private NutritionEvaluationResult unavailable(
-            List<DiseaseType> diseaseTypes
+            List<DiseaseType> diseaseTypes,
+            String lookupName,
+            String source
     ) {
 
         return new NutritionEvaluationResult(
@@ -248,7 +270,11 @@ public class NutritionService {
                 List.of(),
                 null,
                 null,
-                null
+                null,
+                null,
+                null,
+                source,
+                lookupName
         );
     }
 
@@ -280,8 +306,12 @@ public class NutritionService {
             return null;
         }
 
-        return Double.parseDouble(
-                value.trim()
-        );
+        try {
+            double parsed = Double.parseDouble(value.trim());
+
+            return Double.isFinite(parsed) && parsed >= 0 ? parsed : null;
+        } catch (NumberFormatException invalidValue) {
+            return null;
+        }
     }
 }

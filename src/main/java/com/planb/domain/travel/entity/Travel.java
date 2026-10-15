@@ -14,6 +14,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.Instant;
 import java.util.List;
 
 @Entity
@@ -118,6 +119,48 @@ public class Travel {
     )
     private String shareToken;
 
+
+    @Column(name = "edit_request_id", length = 36)
+    private String editRequestId;
+
+    @Convert(converter = BooleanToYNConverter.class)
+    @Column(name = "edit_preview_ready", nullable = false, length = 1)
+    private boolean editPreviewReady;
+
+    @Column(name = "confirmed_edit_request_id", length = 36)
+    private String confirmedEditRequestId;
+
+    @Column(name = "edit_confirmed_at")
+    private Instant editConfirmedAt;
+
+    public void beginEditRequest(String requestId) {
+
+        editRequestId = requestId;
+        editPreviewReady = false;
+    }
+
+    public boolean isCurrentEditRequest(String requestId) {
+
+        return requestId != null && requestId.equals(editRequestId);
+    }
+
+    public void markEditPreviewReady() {
+
+        editPreviewReady = true;
+    }
+
+    public void clearEditRequest() {
+
+        editRequestId = null;
+        editPreviewReady = false;
+    }
+
+    public void markEditConfirmed(Instant confirmedAt) {
+
+        confirmedEditRequestId = editRequestId;
+        editConfirmedAt = confirmedAt;
+        clearEditRequest();
+    }
 
     /**
      * 여행 일정의 저장 확정
