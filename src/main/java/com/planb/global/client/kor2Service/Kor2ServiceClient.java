@@ -1,6 +1,7 @@
 package com.planb.global.client.kor2Service;
 
 import com.planb.global.client.ApiClient;
+import com.planb.global.client.DataPortalGatewayException;
 import com.planb.global.client.kor2Service.properties.Kor2ServiceProperties;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -20,8 +21,8 @@ import java.util.Set;
 /**
  * TourAPI(KorService2) 호출과 응답 결과 계측
  *
- * 게이트웨이 한도 초과(일일 22, 초당 23)가 HTTP 상태와 본문 resultCode 중 어디로 오는지
- * 공식 문서에 없어 둘 다 기록. 짧은 시간 초과로 볼 수 있는 HTTP 429만 1회 재시도
+ * 게이트웨이 오류(일일 한도 22, 초당 한도 23 등)는 JSON 요청에도 XML로만 출력되고 HTTP 상태는 공식 문서에 없어
+ * 상태·본문 resultCode·XML returnReasonCode를 모두 기록. 짧은 시간 초과로 볼 수 있는 HTTP 429만 1회 재시도
  */
 @Slf4j
 @Component
@@ -43,7 +44,13 @@ public class Kor2ServiceClient
             MeterRegistry meterRegistry
     ) {
 
-        super(webClientBuilder, properties);
+        // 게이트웨이 오류 XML의 반환 코드 보존
+        super(
+                webClientBuilder.filter(
+                        DataPortalGatewayException.detector(MAX_IN_MEMORY_BYTES)
+                ),
+                properties
+        );
 
         this.meterRegistry = meterRegistry;
     }
@@ -123,10 +130,19 @@ public class Kor2ServiceClient
 
     private static String outcome(Throwable failure) {
 
+        if (failure instanceof DataPortalGatewayException gateway) {
+            return "gateway_" + gateway.reasonCode();
+        }
+
         if (failure instanceof WebClientResponseException response) {
+            String reasonCode = DataPortalGatewayException.reasonCode(
+                    response.getResponseBodyAsString()
+            );
+
             return "http_" + response
                     .getStatusCode()
-                    .value();
+                    .value()
+                    + (reasonCode == null ? "" : "_gateway_" + reasonCode);
         }
 
         if (failure instanceof DecodingException) {

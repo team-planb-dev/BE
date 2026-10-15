@@ -13,7 +13,7 @@ public abstract class ApiClient<P extends ApiProperties> {
 
     // Spring 기본값은 256KB다. 카카오 대중교통 경로는 장거리 구간에서 이를 넘겨
     // DataBufferLimitException에 따른 전체 응답 유실 방지
-    private static final int MAX_IN_MEMORY_BYTES = 2 * 1024 * 1024;
+    protected static final int MAX_IN_MEMORY_BYTES = 2 * 1024 * 1024;
 
     protected final WebClient webClient;
     protected P properties;
