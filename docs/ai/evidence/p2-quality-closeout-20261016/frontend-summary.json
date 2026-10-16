@@ -1,0 +1,27 @@
+{
+  "repository": "team-planb-dev/FE",
+  "devCommit": "98f7965ec60e87bca959cc7c59d3c60848213def",
+  "packageRange": "@stomp/stompjs:^7.3.0",
+  "automaticReconnectDelay": 0,
+  "previewRecoveryGetInInspectedConnectionPath": false,
+  "explicitEditRequestIdInInspectedConfirmCancelPath": false,
+  "productionDeploymentCommit": "UNKNOWN",
+  "files": [
+    {
+      "path": "package.json",
+      "sha256": "fd856346362490557177f30accabe891281cdb62fb343b4bcfbac91893133dc6"
+    },
+    {
+      "path": "src/api/chat.ts",
+      "sha256": "7390b5377f25511cf097e15ec80bad3a283209bc2a83ab2f20e829214d383d29"
+    },
+    {
+      "path": "src/api/stomp.ts",
+      "sha256": "931139fa55927adf6ba1173c07970fecf89dae45a098fc5d076dbbdaf4b0687f"
+    },
+    {
+      "path": "src/pages/Trip/useEditChat.ts",
+      "sha256": "ab83bcae3dde27e430cd30788abde3d591b1e3db8905ada96a63c04b600bcf26"
+    }
+  ]
+}

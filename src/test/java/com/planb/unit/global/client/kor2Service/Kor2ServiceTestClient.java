@@ -100,6 +100,73 @@ class Kor2ServiceTestClient {
     }
 
     @Test
+    @DisplayName("일일 한도 22는 HTTP 429여도 재시도 제외")
+    void doesNotRetryDailyQuotaEvenOnTooManyRequests() {
+
+        AtomicInteger calls = new AtomicInteger();
+
+        Kor2ServiceClient client = client(
+                List.of(gatewayXml(
+                        HttpStatus.TOO_MANY_REQUESTS,
+                        "22",
+                        "LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS_ERROR"
+                )),
+                calls
+        );
+
+        StepVerifier
+                .withVirtualTime(() -> client.get(
+                        SEARCH_URI,
+                        Kor2KeywordSearchResponse.class
+                ))
+                .expectSubscription()
+                .thenAwait(Duration.ofSeconds(1))
+                .expectError(WebClientResponseException.TooManyRequests.class)
+                .verify(Duration.ofSeconds(5));
+
+        assertThat(calls.get())
+                .isEqualTo(1);
+        assertThat(count("searchKeyword2", "http_429_gateway_22"))
+                .isEqualTo(1.0);
+    }
+
+    @Test
+    @DisplayName("초당 한도 23과 HTTP 429는 기존 한 번 재시도 유지")
+    void retainsSingleRetryForPerSecondQuotaOnTooManyRequests() {
+
+        AtomicInteger calls = new AtomicInteger();
+
+        Kor2ServiceClient client = client(
+                List.of(
+                        gatewayXml(
+                                HttpStatus.TOO_MANY_REQUESTS,
+                                "23",
+                                "LIMITED_NUMBER_OF_SERVICE_REQUESTS_PER_SECOND_EXCEEDS_ERROR"
+                        ),
+                        json(HttpStatus.OK, "0000")
+                ),
+                calls
+        );
+
+        StepVerifier
+                .withVirtualTime(() -> client.get(
+                        SEARCH_URI,
+                        Kor2KeywordSearchResponse.class
+                ))
+                .expectSubscription()
+                .thenAwait(Duration.ofSeconds(1))
+                .expectNextCount(1)
+                .verifyComplete();
+
+        assertThat(calls.get())
+                .isEqualTo(2);
+        assertThat(count("searchKeyword2", "http_429_gateway_23"))
+                .isEqualTo(1.0);
+        assertThat(count("searchKeyword2", "ok"))
+                .isEqualTo(1.0);
+    }
+
+    @Test
     @DisplayName("재시도 후에도 429면 예외 전파")
     void propagatesRepeatedTooManyRequests() {
 

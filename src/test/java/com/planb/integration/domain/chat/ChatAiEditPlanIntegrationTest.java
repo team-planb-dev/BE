@@ -288,6 +288,74 @@ public class ChatAiEditPlanIntegrationTest
     }
 
     @Test
+    @DisplayName("STOMP 연결 종료 후 재연결·재구독과 인증 GET의 같은 미리보기 복구")
+    void reconnectRetrievesSamePreviewAndResubscribes() throws Exception {
+
+        stubCreatePlan();
+        TestUser owner = createAuthenticatedUser();
+        Long travelId = createTravel(owner.accessToken(), "재연결 여행-" + createUniqueValue());
+        Long roomId = findOrCreateTravelChatRoom(owner.accessToken(), travelId);
+        stubEditPlan(List.of("카페 변경"), true);
+
+        WebSocketStompClient client = stompHelper.createStompClient();
+        StompSession first = null;
+        StompSession reconnected = null;
+
+        try {
+            first = stompHelper.connect(client, owner.accessToken());
+            BlockingQueue<SendChatMessageResponse> initial = new LinkedBlockingQueue<>();
+            stompHelper.subscribe(first, roomId, initial);
+            first.send(
+                    CHAT_SEND_PREFIX + roomId + "/send",
+                    new SendChatMessageRequest(MessageType.TALK, "카페를 스타벅스로 바꿔줘")
+            );
+            SendChatMessageResponse reply = stompHelper.awaitMessage(
+                    initial,
+                    message -> message.editPreview() != null
+            );
+            assertThat(reply).isNotNull();
+            String requestId = reply.editPreview().editRequestId();
+            assertThat(requestId).isNotBlank();
+            String originalSessionId = first.getSessionId();
+            stompHelper.disconnect(first);
+            assertThat(first.isConnected()).isFalse();
+
+            reconnected = stompHelper.connect(client, owner.accessToken());
+            assertThat(reconnected.isConnected()).isTrue();
+            assertThat(reconnected.getSessionId()).isNotEqualTo(originalSessionId);
+            BlockingQueue<SendChatMessageResponse> received = new LinkedBlockingQueue<>();
+            stompHelper.subscribe(reconnected, roomId, received);
+            SendChatMessageResponse presence = stompHelper.awaitMessageType(
+                    received,
+                    MessageType.ENTER
+            );
+            assertThat(presence).isNotNull();
+
+            MvcResult recovered = mockMvc
+                    .perform(get("/api/v1/travel/edit-plan/preview")
+                            .param("travelId", travelId.toString())
+                            .header("Authorization", owner.accessToken()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.data.editRequestId").value(requestId))
+                    .andReturn();
+            var recoveredTree = objectMapper.readTree(recovered.getResponse().getContentAsString());
+            assertThat(recoveredTree.path("data").path("after").path("processable").asBoolean()).isTrue();
+
+            TestUser stranger = createAuthenticatedUser();
+            mockMvc
+                    .perform(get("/api/v1/travel/edit-plan/preview")
+                            .param("travelId", travelId.toString())
+                            .header("Authorization", stranger.accessToken()))
+                    .andExpect(status().isForbidden());
+        } finally {
+            stompHelper.disconnect(first);
+            stompHelper.disconnect(reconnected);
+            stompHelper.stop(client);
+        }
+    }
+
+    @Test
     @DisplayName("TALK 발행 시 AI 수정 미리보기 응답이 봇 명의로 발행됨")
     void talkPublishesAiEditPreviewReply() throws Exception {
 
