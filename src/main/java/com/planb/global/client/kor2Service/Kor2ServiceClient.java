@@ -21,8 +21,7 @@ import java.util.Set;
 /**
  * TourAPI(KorService2) 호출과 응답 결과 계측
  *
- * 게이트웨이 오류(일일 한도 22, 초당 한도 23 등)는 JSON 요청에도 XML로만 출력되고 HTTP 상태는 공식 문서에 없어
- * 상태·본문 resultCode·XML returnReasonCode를 모두 기록. 짧은 시간 초과로 볼 수 있는 HTTP 429만 1회 재시도
+ * 게이트웨이 오류 코드 보존과 식별된 일일 한도 22를 제외한 HTTP 429 최대 1회 재시도
  */
 @Slf4j
 @Component
@@ -155,7 +154,11 @@ public class Kor2ServiceClient
     private static boolean tooManyRequests(Throwable failure) {
 
         return failure instanceof WebClientResponseException response
-                && response.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS;
+                && response.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS
+                // 일일 한도 22의 단기 재시도 제외
+                && !"22".equals(DataPortalGatewayException.reasonCode(
+                        response.getResponseBodyAsString()
+                ));
     }
 
     // 쿼리 제외 마지막 경로 조각 (예: searchKeyword2)
