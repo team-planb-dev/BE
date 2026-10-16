@@ -11,7 +11,8 @@ public record PlanEditContext(
         List<TravelHealthContext> healthContexts,
         GetAiPlanResponse currentPlan,
         String editRequest,
-        List<EditTargetGuide> editTargets
+        List<EditTargetGuide> editTargets,
+        @com.fasterxml.jackson.annotation.JsonIgnore AiCallBudget callBudget
 ) {
 
     public PlanEditContext(
@@ -26,8 +27,20 @@ public record PlanEditContext(
                 healthContexts,
                 currentPlan,
                 editRequest,
-                List.of()
+                List.of(),
+                new AiCallBudget()
         );
+    }
+
+    public PlanEditContext(
+            CreateTravelRequest request,
+            List<TravelHealthContext> healthContexts,
+            GetAiPlanResponse currentPlan,
+            String editRequest,
+            List<EditTargetGuide> editTargets
+    ) {
+
+        this(request, healthContexts, currentPlan, editRequest, editTargets, new AiCallBudget());
     }
 
     public PlanEditContext withEditTargets(List<EditTargetGuide> editTargets) {
@@ -37,7 +50,8 @@ public record PlanEditContext(
                 healthContexts,
                 currentPlan,
                 editRequest,
-                List.copyOf(editTargets)
+                List.copyOf(editTargets),
+                callBudget
         );
     }
 

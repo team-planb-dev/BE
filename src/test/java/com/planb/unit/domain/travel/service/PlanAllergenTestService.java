@@ -83,8 +83,16 @@ class PlanAllergenTestService {
             new NutritionEvaluationCollector(),
             nutritionService,
             new MissingSlotCompleter(mock(TourismTool.class)),
-            new SimpleMeterRegistry()
-    );
+            new SimpleMeterRegistry(),
+                new com.planb.domain.travel.service.MealWindowRecoveryService(
+                        resolver,
+                        new ScheduleNormalizer(resolver),
+                        new TravelMinutesResolver(
+                    kakao,
+                    4
+            )
+                )
+        );
 
     private final LocalDate date = LocalDate.of(
             2026,

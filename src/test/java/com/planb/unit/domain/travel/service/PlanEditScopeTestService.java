@@ -1,5 +1,11 @@
 package com.planb.unit.domain.travel.service;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.AfterEach;
+
 import com.planb.ai.context.PlaceCandidateContext;
 import com.planb.ai.context.PlanEditContext;
 import com.planb.ai.context.TravelHealthContext;
@@ -66,6 +72,18 @@ import static org.mockito.Mockito.when;
 // 편집 요청 범위 밖 원본 보존 계약
 class PlanEditScopeTestService {
 
+    private final Logger observationLogger = (Logger) LoggerFactory.getLogger(PlanService.class);
+    private final ListAppender<ILoggingEvent> observations = new ListAppender<>();
+    private final SimpleMeterRegistry registry = new SimpleMeterRegistry();
+
+    @AfterEach
+    void detachObservations() {
+
+        observationLogger.detachAppender(observations);
+        observations.stop();
+    }
+
+
     private final TravelRecommendHandler handler = mock(TravelRecommendHandler.class);
 
     private final KakaoMapServiceHandler kakao = mock(KakaoMapServiceHandler.class);
@@ -87,8 +105,16 @@ class PlanEditScopeTestService {
             new NutritionEvaluationCollector(),
             nutritionService,
             new MissingSlotCompleter(mock(TourismTool.class)),
-            new SimpleMeterRegistry()
-    );
+            registry,
+                new com.planb.domain.travel.service.MealWindowRecoveryService(
+                        resolver,
+                        new ScheduleNormalizer(resolver),
+                        new TravelMinutesResolver(
+                    kakao,
+                    4
+            )
+                )
+        );
 
     private final LocalDate date = LocalDate.of(
             2026,
@@ -98,6 +124,9 @@ class PlanEditScopeTestService {
 
     @BeforeEach
     void stubBoundaries() {
+
+        observations.start();
+        observationLogger.addAppender(observations);
 
         lenient()
                 .when(nutritionService.evaluateFoodNutrition(
@@ -597,6 +626,58 @@ class PlanEditScopeTestService {
         ));
 
         assertUnclear("5일차 저녁을 바꿔줘");
+    }
+
+    @Test
+    @DisplayName("AI 응답에서 빠진 대상의 Java 복원과 첫 검증 보존 구분")
+    void recordsRestoredTargetWhenAiOmitsIt() {
+
+        menuOnlyLunch();
+        when(handler.editPlanByAi(any(), any()))
+                .thenReturn(new EditPlanAiResponse(
+                        "부산",
+                        List.of(copyDay(original(), 0)),
+                        List.of(),
+                        true
+                ));
+
+        assertThatThrownBy(() -> service.makeEditPlanByAi(context("2일차 점심 메뉴를 다른 것으로 바꿔줘")))
+                .isInstanceOfSatisfying(
+                        BaseException.class,
+                        exception -> assertThat(exception.getErrorCode())
+                                .isEqualTo(PlanEditExceptionEnum.EDIT_NOT_APPLIED.getCode())
+                );
+        assertThat(observations.list)
+                .extracting(ILoggingEvent::getFormattedMessage)
+                .anySatisfy(message -> assertThat(message)
+                        .contains("[PLAN EDIT GUIDE]", "day=2", "condition=not_found"))
+                .anySatisfy(message -> assertThat(message)
+                        .contains("[PLAN EDIT ASSEMBLY]", "day=2", "slot=LUNCH", "source=java_restore"))
+                .anySatisfy(message -> assertThat(message)
+                        .contains("[PLAN EDIT FIRST VALIDATION]", "day=2", "slot=LUNCH", "result=preserved"));
+    }
+
+    @Test
+    @DisplayName("편집 AI 예외 원본 유지와 실패 단계 시간 기록")
+    void recordsFailedAiStageWithoutChangingException() {
+
+        IllegalStateException failure = new IllegalStateException("fixture failure");
+        when(handler.editPlanByAi(any(), any()))
+                .thenThrow(failure);
+
+        assertThatThrownBy(() -> service.makeEditPlanByAi(context("일정 수정")))
+                .isSameAs(failure);
+        assertThat(registry
+                .get("planb.travel.plan.stage")
+                .tags("flow", "edit", "stage", "ai_response", "outcome", "failure")
+                .timer()
+                .count())
+                .isEqualTo(1);
+        assertThat(registry
+                .find("planb.travel.plan.stage")
+                .tags("flow", "edit", "stage", "place_validation")
+                .timer())
+                .isNull();
     }
 
     @Test
@@ -1975,6 +2056,15 @@ class PlanEditScopeTestService {
                         any(),
                         any()
                 );
+
+        assertThat(observations.list)
+                .extracting(ILoggingEvent::getFormattedMessage)
+                .filteredOn(message -> message.contains("[PLAN SELECTION RECOVERY]"))
+                .isNotEmpty()
+                .allSatisfy(message -> assertThat(message)
+                        .contains("reason=등록 알레르기 충돌")
+                        .doesNotContain("등록 알레르기 새우"));
+
     }
 
     private void recordAllergenLunch(PlaceCandidateContext candidates) {

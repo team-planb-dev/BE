@@ -1,0 +1,202 @@
+{
+  "totals": {
+    "mealSlots": 72,
+    "fullSlots": 42,
+    "emptySlots": 30,
+    "tool_called": 24,
+    "tool_not_observed": 6
+  },
+  "cases": [
+    {
+      "case": "C1-seoul-single-disease",
+      "repeat": 1,
+      "emptySlots": 2,
+      "nutritionWarnings": 0,
+      "paths": {
+        "tool_called": 2
+      },
+      "javaNutritionLookupCount": 0
+    },
+    {
+      "case": "C1-seoul-single-disease",
+      "repeat": 2,
+      "emptySlots": 2,
+      "nutritionWarnings": 0,
+      "paths": {
+        "tool_called": 1,
+        "tool_not_observed": 1
+      },
+      "javaNutritionLookupCount": 2.0
+    },
+    {
+      "case": "C2-busan-two-companions",
+      "repeat": 1,
+      "emptySlots": 3,
+      "nutritionWarnings": 0,
+      "paths": {
+        "tool_called": 2,
+        "tool_not_observed": 1
+      },
+      "javaNutritionLookupCount": 1.0
+    },
+    {
+      "case": "C2-busan-two-companions",
+      "repeat": 2,
+      "emptySlots": 3,
+      "nutritionWarnings": 0,
+      "paths": {
+        "tool_not_observed": 2,
+        "tool_called": 1
+      },
+      "javaNutritionLookupCount": 2.0
+    },
+    {
+      "case": "C3-gangneung-combined-diseases",
+      "repeat": 1,
+      "emptySlots": 3,
+      "nutritionWarnings": 0,
+      "paths": {
+        "tool_called": 3
+      },
+      "javaNutritionLookupCount": 0
+    },
+    {
+      "case": "C3-gangneung-combined-diseases",
+      "repeat": 2,
+      "emptySlots": 3,
+      "nutritionWarnings": 0,
+      "paths": {
+        "tool_called": 3
+      },
+      "javaNutritionLookupCount": 0
+    },
+    {
+      "case": "C4-gyeongju-two-companions-combined",
+      "repeat": 1,
+      "emptySlots": 3,
+      "nutritionWarnings": 0,
+      "paths": {
+        "tool_called": 2,
+        "tool_not_observed": 1
+      },
+      "javaNutritionLookupCount": 1.0
+    },
+    {
+      "case": "C4-gyeongju-two-companions-combined",
+      "repeat": 2,
+      "emptySlots": 3,
+      "nutritionWarnings": 0,
+      "paths": {
+        "tool_called": 3
+      },
+      "javaNutritionLookupCount": 0
+    },
+    {
+      "case": "C5-seoul-before-lunch",
+      "repeat": 1,
+      "emptySlots": 2,
+      "nutritionWarnings": 0,
+      "paths": {
+        "tool_called": 2
+      },
+      "javaNutritionLookupCount": 1.0
+    },
+    {
+      "case": "C5-seoul-before-lunch",
+      "repeat": 2,
+      "emptySlots": 2,
+      "nutritionWarnings": 0,
+      "paths": {
+        "tool_called": 1,
+        "tool_not_observed": 1
+      },
+      "javaNutritionLookupCount": 2.0
+    },
+    {
+      "case": "C6-seoul-three-meals-before-after",
+      "repeat": 1,
+      "emptySlots": 2,
+      "nutritionWarnings": 0,
+      "paths": {
+        "tool_called": 2
+      },
+      "javaNutritionLookupCount": 0
+    },
+    {
+      "case": "C6-seoul-three-meals-before-after",
+      "repeat": 2,
+      "emptySlots": 2,
+      "nutritionWarnings": 0,
+      "paths": {
+        "tool_called": 2
+      },
+      "javaNutritionLookupCount": 0
+    }
+  ],
+  "inputs": [
+    {
+      "path": "generation/application.log",
+      "sha256": "b66528d504366e973ed11986b6450d91cc0995e554eb3c916188f96b3916ff8f"
+    },
+    {
+      "path": "generation/baseline/results-2026-10-15T00-12-43.731140Z.jsonl",
+      "sha256": "56951620e587a98fe0c8bdf920a2e4206969c54c3239ce3912f4f342dc08f563"
+    },
+    {
+      "path": "generation/baseline/2026-10-15T00-12-43.731140Z/C1-seoul-single-disease-1.json",
+      "sha256": "4baca03f85b85faee2746b343c82306a9ce144464fa491a1140242b14344ffed"
+    },
+    {
+      "path": "generation/baseline/2026-10-15T00-12-43.731140Z/C1-seoul-single-disease-2.json",
+      "sha256": "7a85ea2dd8a96b5a6fce165b8749f591176b7024410edf7b7ecc5e2460446db6"
+    },
+    {
+      "path": "generation/baseline/2026-10-15T00-12-43.731140Z/C2-busan-two-companions-1.json",
+      "sha256": "aa97d168fc9a566aa8b8866fbe242786f01b7d29573efa16faffd6917df1e58a"
+    },
+    {
+      "path": "generation/baseline/2026-10-15T00-12-43.731140Z/C2-busan-two-companions-2.json",
+      "sha256": "f340b2c0aef8cce0abe01a93dffeb0be0337f3521250873f14b5a81e724bc73d"
+    },
+    {
+      "path": "generation/baseline/2026-10-15T00-12-43.731140Z/C3-gangneung-combined-diseases-1.json",
+      "sha256": "c5891b53e4b0b6ad4396c95d830b392892f378971de70ade9855f8ee607f151a"
+    },
+    {
+      "path": "generation/baseline/2026-10-15T00-12-43.731140Z/C3-gangneung-combined-diseases-2.json",
+      "sha256": "08f0a02f0393a2f4b728fc93ffaf15b62b47e38a1e0a6a276c4b0ad5c27dbe16"
+    },
+    {
+      "path": "generation/baseline/2026-10-15T00-12-43.731140Z/C4-gyeongju-two-companions-combined-1.json",
+      "sha256": "7ac53ee686fa51968dcb4aad1dead6863672cd1f22c41e1b813003ef8124c05a"
+    },
+    {
+      "path": "generation/baseline/2026-10-15T00-12-43.731140Z/C4-gyeongju-two-companions-combined-2.json",
+      "sha256": "b33cf370b7ba931cf5c8319e67245b91ac6f8c3aa92472676f0f34612992bdec"
+    },
+    {
+      "path": "medication/application.log",
+      "sha256": "0adbec6f4139c768459f37359195a94dc322fd62e3bdcf5c171dcc98f9443562"
+    },
+    {
+      "path": "medication/baseline/results-2026-10-15T00-19-01.128011Z.jsonl",
+      "sha256": "a6dd51d66fe914baf207a05fc39d109e5d27386c58a6c39d60a0c2617ed05a80"
+    },
+    {
+      "path": "medication/baseline/2026-10-15T00-19-01.128011Z/C5-seoul-before-lunch-1.json",
+      "sha256": "93ee4665612b76d0a6fa29d1c9ee54f2edaf1876f96fab8830aca98b73bbdb6a"
+    },
+    {
+      "path": "medication/baseline/2026-10-15T00-19-01.128011Z/C5-seoul-before-lunch-2.json",
+      "sha256": "f37dfa72b08a76c2ae8360fd2af2223dc1e268279e019033e7822c2860692aee"
+    },
+    {
+      "path": "medication/baseline/2026-10-15T00-19-01.128011Z/C6-seoul-three-meals-before-after-1.json",
+      "sha256": "6477b0a90b9b2561faff46563029efdc3a8eea26b34ced8e6497aeeeb798f052"
+    },
+    {
+      "path": "medication/baseline/2026-10-15T00-19-01.128011Z/C6-seoul-three-meals-before-after-2.json",
+      "sha256": "892932aeb03e21a84df32bf01181fec51b8fa2414638f4e4247d4eb920fec5f2"
+    }
+  ]
+}

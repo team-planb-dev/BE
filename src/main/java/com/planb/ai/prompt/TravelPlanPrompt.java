@@ -13,6 +13,12 @@ public record TravelPlanPrompt(
 ) implements AiPrompt {
 
     @Override
+    public com.planb.ai.context.AiCallBudget callBudget() {
+
+        return travelPlanContext.callBudget();
+    }
+
+    @Override
     public String system() {
 
         int touristPlaceCount = travelPlanContext == null

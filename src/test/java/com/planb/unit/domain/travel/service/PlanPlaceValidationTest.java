@@ -1,5 +1,11 @@
 package com.planb.unit.domain.travel.service;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.AfterEach;
+
 import com.planb.ai.context.PlaceCandidateContext;
 import com.planb.ai.context.PlanEditContext;
 import com.planb.ai.context.TravelHealthContext;
@@ -60,6 +66,17 @@ import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 class PlanPlaceValidationTest {
+
+    private final Logger observationLogger = (Logger) LoggerFactory.getLogger(PlanService.class);
+    private final ListAppender<ILoggingEvent> observations = new ListAppender<>();
+
+    @AfterEach
+    void detachObservations() {
+
+        observationLogger.detachAppender(observations);
+        observations.stop();
+    }
+
     private final TravelRecommendHandler handler = mock(TravelRecommendHandler.class);
 
     private final KakaoMapServiceHandler kakao = mock(KakaoMapServiceHandler.class);
@@ -89,8 +106,16 @@ class PlanPlaceValidationTest {
             nutrition,
             nutritionService,
             new MissingSlotCompleter(tourismTool),
-            meterRegistry
-    );
+            meterRegistry,
+                new com.planb.domain.travel.service.MealWindowRecoveryService(
+                        helper,
+                        scheduleNormalizer,
+                        new TravelMinutesResolver(
+                    kakao,
+                    4
+            )
+                )
+        );
 
     private final LocalDate date = LocalDate.of(
             2026,
@@ -115,6 +140,9 @@ class PlanPlaceValidationTest {
 
     @BeforeEach
     void ordinaryEditScope() {
+
+        observations.start();
+        observationLogger.addAppender(observations);
 
         lenient()
                 .when(nutritionService.evaluateFoodNutrition(anyString(), anyList()))
@@ -2261,6 +2289,28 @@ class PlanPlaceValidationTest {
                 .reselectPlace(
                         any(),
                         any());
+
+        assertTrue(observations.list
+                .stream()
+                .map(ILoggingEvent::getFormattedMessage)
+                .anyMatch(message -> message.contains("[PLAN EDIT FIRST VALIDATION]")
+                        && message.contains("result=failure")));
+        assertTrue(observations.list
+                .stream()
+                .map(ILoggingEvent::getFormattedMessage)
+                .anyMatch(message -> message.contains("[PLAN SELECTION RECOVERY]")
+                        && message.contains("flow=edit")
+                        && message.contains("event=initial_failure")));
+        assertEquals(2, observations.list
+                .stream()
+                .map(ILoggingEvent::getFormattedMessage)
+                .filter(message -> message.contains("event=reselect") && message.contains("flow=edit"))
+                .count());
+        assertTrue(observations.list
+                .stream()
+                .map(ILoggingEvent::getFormattedMessage)
+                .anyMatch(message -> message.contains("event=fallback") && message.contains("result=restored")));
+
     }
 
     @Test

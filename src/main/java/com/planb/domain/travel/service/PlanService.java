@@ -54,7 +54,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -136,6 +137,8 @@ public class PlanService {
     private final MissingSlotCompleter missingSlotCompleter;
 
     private final MeterRegistry meterRegistry;
+
+    private final MealWindowRecoveryService mealWindowRecoveryService;
 
     public Plan createPlan(CreatePlanRequest createPlanRequest) {
 
@@ -284,7 +287,7 @@ public class PlanService {
         // 부분 변경 대상이 있는 편집의 확정 결과 기준 변경 내역
         List<String> targetChanges;
 
-        TravelPlanContext travelContext = new TravelPlanContext(context.createTravelRequest(), context.healthContexts());
+        TravelPlanContext travelContext = new TravelPlanContext(context.createTravelRequest(), context.healthContexts(), context.callBudget());
 
         List<NutritionEvaluationCollector.FoodNutritionEvaluation> evaluations;
 
@@ -292,7 +295,11 @@ public class PlanService {
         PlaceCandidateContext candidates = new PlaceCandidateContext();
 
         try {
-            PlanEditScope scope = travelRecommendHandler.classifyEditScope(context);
+            PlanEditScope scope = recordStage(
+                    "edit",
+                    "scope_classification",
+                    () -> travelRecommendHandler.classifyEditScope(context)
+            );
 
             rebuildDays = planEditValidator.rebuildDays(scope, context);
 
@@ -306,19 +313,31 @@ public class PlanService {
                     context
             );
 
-            List<PlanEditContext.EditTargetGuide> guides = targets
-                    .stream()
-                    .map(target -> targetGuide(
-                            context,
-                            travelContext,
-                            target,
-                            candidates
-                    ))
-                    .toList();
+            List<PlanEditScope.EditTarget> guideTargets = targets;
 
-            response = travelRecommendHandler.editPlanByAi(
-                    context.withEditTargets(guides),
-                    candidates
+            List<PlanEditContext.EditTargetGuide> guides = recordStage(
+                    "edit",
+                    "candidate_prefetch",
+                    () -> guideTargets
+                            .stream()
+                            .map(target -> targetGuide(
+                                    context,
+                                    travelContext,
+                                    target,
+                                    candidates
+                            ))
+                            .toList()
+            );
+
+            PlanEditContext aiContext = context.withEditTargets(guides);
+
+            response = recordStage(
+                    "edit",
+                    "ai_response",
+                    () -> travelRecommendHandler.editPlanByAi(
+                            aiContext,
+                            candidates
+                    )
             );
 
             // 처리 불가 응답은 부분 변경 대상 확인 제외
@@ -347,27 +366,37 @@ public class PlanService {
                             wholeDays
                     );
 
-            validated = preserveOtherDays
-                    ? validateRebuildTargets(
+            validated = recordStage(
+                    "edit",
+                    "place_validation",
+                    () -> preserveOtherDays
+                            ? validateRebuildTargets(
+                                    context,
+                                    proposed,
+                                    candidates,
+                                    rebuildDays,
+                                    densityReductionDays
+                            )
+                            : validatePlaces(
+                                    proposed,
+                                    candidates,
+                                    travelContext,
+                                    context.currentPlan(),
+                                    densityReductionDays
+                            )
+            );
+
+            CreatePlanAiResponse beforeRebuild = validated;
+
+            validated = recordStage(
+                    "edit",
+                    "day_rebuild",
+                    () -> ensureDaysRebuilt(
                             context,
-                            proposed,
-                            candidates,
+                            beforeRebuild,
                             rebuildDays,
                             densityReductionDays
                     )
-                    : validatePlaces(
-                            proposed,
-                            candidates,
-                            travelContext,
-                            context.currentPlan(),
-                            densityReductionDays
-                    );
-
-            validated = ensureDaysRebuilt(
-                    context,
-                    validated,
-                    rebuildDays,
-                    densityReductionDays
             );
 
             requireTargetsApplied(
@@ -407,18 +436,24 @@ public class PlanService {
         CreatePlanAiResponse toFinish = !preserveOtherDays ? validated
                 : new CreatePlanAiResponse(finishTargets(validated, rebuildDays));
 
-        CreatePlanAiResponse finished = finishPlan(
-                toFinish,
-                travelContext,
-                evaluations,
-                preserveOtherDays
-                        ? rebuildAnchor(context, rebuildDays)
-                        : RouteAnchor.from(context
+        List<NutritionEvaluationCollector.FoodNutritionEvaluation> finalEvaluations = evaluations;
+
+        CreatePlanAiResponse finished = recordStage(
+                "edit",
+                "finish_plan",
+                () -> finishPlan(
+                        toFinish,
+                        travelContext,
+                        finalEvaluations,
+                        preserveOtherDays
+                                ? rebuildAnchor(context, rebuildDays)
+                                : RouteAnchor.from(context
                                         .createTravelRequest()
                                         .decidedLocation()),
-                candidates,
-                densityReductionDays,
-                context.currentPlan()
+                        candidates,
+                        densityReductionDays,
+                        context.currentPlan()
+                )
         );
 
         CreatePlanAiResponse result = !preserveOtherDays
@@ -512,6 +547,15 @@ public class PlanService {
                         .findFirst();
 
         if (meal.isEmpty()) {
+            log.info(
+                    "[PLAN EDIT GUIDE] day={}, slot={}, condition={}, candidateId={}, otherMenus={}",
+                    target.dayNumber(),
+                    target.slot(),
+                    !target.menuOnlyRequested() || !isMealTarget(target.slot()) ? "not_applicable" : "unmatched",
+                    null,
+                    0
+            );
+
             return new PlanEditContext.EditTargetGuide(
                     target.dayNumber(),
                     target.slot(),
@@ -525,6 +569,7 @@ public class PlanService {
         GetAiPlanResponse.PlanScheduleDetail old = meal.get();
 
         Optional<PlaceCandidateContext.Candidate> restaurant;
+        String condition;
 
         try {
             restaurant = travelRecommendHandler.findRestaurant(
@@ -534,6 +579,7 @@ public class PlanService {
                     old.latitude(),
                     candidates
             );
+            condition = restaurant.isPresent() ? "found" : "not_found";
         } catch (WebClientException | CodecException exception) {
             // TourAPI 조회·응답 해석 실패는 같은 음식점 메뉴 후보 없음으로 처리, 요청 URL의 인증값 제외
             log.warn(
@@ -551,6 +597,7 @@ public class PlanService {
             );
 
             restaurant = Optional.empty();
+            condition = "lookup_error";
         }
 
         String currentMenu = old.restaurantDetail() == null
@@ -572,6 +619,17 @@ public class PlanService {
                         ))
                         .toList())
                 .orElse(List.of());
+
+        log.info(
+                "[PLAN EDIT GUIDE] day={}, slot={}, condition={}, candidateId={}, otherMenus={}",
+                target.dayNumber(),
+                target.slot(),
+                condition,
+                restaurant
+                        .map(PlaceCandidateContext.Candidate::candidateId)
+                        .orElse(null),
+                otherMenus.size()
+        );
 
         return new PlanEditContext.EditTargetGuide(
                 target.dayNumber(),
@@ -740,7 +798,8 @@ public class PlanService {
                             candidates,
                             new TravelPlanContext(
                                     context.createTravelRequest(),
-                                    context.healthContexts()
+                                    context.healthContexts(),
+                                    context.callBudget()
                             ),
                             context.currentPlan(),
                             places,
@@ -865,6 +924,20 @@ public class PlanService {
                 CreatePlanAiResponse.PlanScheduleDetail slot = replacement != null
                         ? replacement
                         : planPlaceResolver.fromExisting(old);
+
+                if (!wholeDays.contains(oldDay.dayNumber()) && targeted(old, dayTargets)) {
+                    log.info(
+                            "[PLAN EDIT ASSEMBLY] day={}, slot={}, index={}, source={}, candidateId={}, menu={}",
+                            oldDay.dayNumber(),
+                            old.scheduleType(),
+                            index,
+                            replacement == null ? "java_restore" : "ai_match",
+                            slot.candidateId(),
+                            slot.restaurantDetail() == null ? null : slot
+                                    .restaurantDetail()
+                                    .menuName()
+                    );
+                }
 
                 // 바뀐 장소 다음 구간, 날짜 경계의 다음 첫 장소 포함 이동시간 재계산
                 if (replacement == null && previousReplaced && planPlaceResolver.requiresPlace(slot)) {
@@ -1342,7 +1415,8 @@ public class PlanService {
                 candidates,
                 new TravelPlanContext(
                         context.createTravelRequest(),
-                        context.healthContexts()
+                        context.healthContexts(),
+                        context.callBudget()
                 ),
                 context.currentPlan(),
                 places,
@@ -1506,10 +1580,18 @@ public class PlanService {
                 currentPlan
         );
 
-        validateTravelMinutes(mealFixed);
+        CreatePlanAiResponse windowFixed = currentPlan == null
+                ? recordStage("create", "meal_window_recovery", () -> mealWindowRecoveryService.recover(
+                        mealFixed,
+                        context,
+                        candidates
+                ))
+                : mealFixed;
+
+        validateTravelMinutes(windowFixed);
 
         validateMealSlots(
-                mealFixed,
+                windowFixed,
                 context.healthContexts(),
                 currentPlan,
                 context
@@ -1525,16 +1607,17 @@ public class PlanService {
                         flow,
                         "nutrition_enrichment",
                         () -> enrichMissingNutritionEvaluations(
-                                mealFixed,
+                                windowFixed,
                                 context.healthContexts(),
                                 evaluations,
-                                flow
+                                flow,
+                                candidates
                         )
                 );
 
         // 최종 식사 기준 복약 알림 배치
         CreatePlanAiResponse medicationFixed = scheduleNormalizer.finalizeMedicationSchedules(
-                mealFixed,
+                windowFixed,
                 context.healthContexts()
         );
 
@@ -1552,7 +1635,8 @@ public class PlanService {
             CreatePlanAiResponse response,
             List<TravelHealthContext> healthContexts,
             List<NutritionEvaluationCollector.FoodNutritionEvaluation> evaluations,
-            String flow
+            String flow,
+            PlaceCandidateContext candidates
     ) {
 
         List<NutritionEvaluationCollector.FoodNutritionEvaluation> enriched =
@@ -1560,6 +1644,9 @@ public class PlanService {
 
         Set<String> evaluatedMenus = evaluations
                 .stream()
+                .filter(evaluation -> evaluation.result().status() != NutritionEvaluationStatus.UNAVAILABLE
+                        || candidates.standardFoodName(evaluation.foodName()) == null
+                        || Objects.equals(candidates.standardFoodName(evaluation.foodName()), evaluation.result().lookupName()))
                 .map(NutritionEvaluationCollector.FoodNutritionEvaluation::foodName)
                 .filter(menuName -> !isBlank(menuName))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
@@ -1598,7 +1685,8 @@ public class PlanService {
                         menuName -> lookupNutrition(
                                 menuName,
                                 diseaseTypes,
-                                flow
+                                flow,
+                                candidates.standardFoodName(menuName)
                         ),
                         nutritionLookupConcurrency
                 )
@@ -1612,35 +1700,60 @@ public class PlanService {
     private Mono<NutritionEvaluationCollector.FoodNutritionEvaluation> lookupNutrition(
             String menuName,
             List<DiseaseType> diseaseTypes,
-            String flow
+            String flow,
+            String standardFoodName
     ) {
 
         return Mono.defer(() -> {
 
             Timer.Sample sample = Timer.start(meterRegistry);
 
-            // 하류 전달 전 결과 확정과 다른 메뉴 실패로 인한 취소 구분
-            AtomicReference<String> outcome = new AtomicReference<>("cancelled");
+            // 성공·실패·다른 메뉴 실패로 인한 취소 중 처음 하나만 기록
+            AtomicBoolean recorded = new AtomicBoolean();
+
+            Consumer<String> stopOnce = outcome -> {
+                if (recorded.compareAndSet(false, true)) {
+                    sample.stop(stageTimer(
+                            flow,
+                            "nutrition_lookup",
+                            outcome
+                    ));
+                }
+            };
 
             // 조회 호출의 동기 예외 기록
             return Mono
-                    .defer(() -> nutritionService
-                            .evaluateFoodNutrition(
-                                    menuName,
-                                    diseaseTypes
-                            ))
+                    .defer(() -> standardFoodName == null
+                            ? nutritionService.evaluateFoodNutrition(menuName, diseaseTypes)
+                            : nutritionService.evaluateFoodNutrition(menuName, standardFoodName, diseaseTypes))
                     .map(result -> new NutritionEvaluationCollector.FoodNutritionEvaluation(
                             menuName,
                             result
                     ))
-                    .doOnSuccess(ignored -> outcome.set("success"))
-                    .doOnError(ignored -> outcome.set("failure"))
-                    .doFinally(ignored -> sample.stop(stageTimer(
-                            flow,
-                            "nutrition_lookup",
-                            outcome.get()
-                    )));
+                    // doFinally는 하류 완료 뒤 실행되어 다른 스레드에서 끝난 조회의 기록이 호출 반환보다 늦을 수 있으므로 하류 전달 전 기록
+                    .doOnSuccess(ignored -> stopOnce.accept("success"))
+                    .doOnError(ignored -> stopOnce.accept("failure"))
+                    .doOnCancel(() -> stopOnce.accept("cancelled"));
         });
+    }
+
+    public EditPlanAiResponse restoreEditResponse(GetAiPlanResponse currentPlan) {
+
+        List<CreatePlanAiResponse.PlanDayDetail> days = currentPlan
+                .planDays()
+                .stream()
+                .map(day -> new CreatePlanAiResponse.PlanDayDetail(
+                        day.dayNumber(),
+                        day.date(),
+                        day
+                                .schedules()
+                                .stream()
+                                .map(planPlaceResolver::fromExisting)
+                                .toList()
+                ))
+                .toList();
+
+        return new EditPlanAiResponse(currentPlan.planName(), days, List.of(), true);
     }
 
     private Timer stageTimer(
@@ -2137,7 +2250,9 @@ public class PlanService {
 
         for (CreatePlanAiResponse.PlanDayDetail day : response.planDays()) {
             for (CreatePlanAiResponse.PlanScheduleDetail slot : day.schedules()) {
-                if (validations.get(preservedIndex) == null) {
+                boolean preserved = validations.get(preservedIndex) != null;
+
+                if (!preserved) {
                     Validation validation = validateSelection(
                             slot,
                             candidates,
@@ -2158,6 +2273,17 @@ public class PlanService {
                                 usedMenus
                         );
                     }
+                }
+
+                if (existing != null) {
+                    log.info(
+                            "[PLAN EDIT FIRST VALIDATION] day={}, slot={}, result={}",
+                            day.dayNumber(),
+                            slot.scheduleType(),
+                            preserved ? "preserved" : validations
+                                    .get(preservedIndex)
+                                    .valid() ? "pass" : "failure"
+                    );
                 }
 
                 preservedIndex++;
@@ -2473,6 +2599,14 @@ public class PlanService {
             return validation.schedule();
         }
 
+        log.info(
+                "[PLAN SELECTION RECOVERY] flow={}, day={}, slot={}, event=initial_failure, reason={}",
+                existing == null ? "create" : "edit",
+                day.dayNumber(),
+                slot == null ? null : slot.scheduleType(),
+                selectionFailureForLog(validation.reason())
+        );
+
         if (slot == null) {
             throw invalidPlace(validation.reason());
         }
@@ -2485,7 +2619,10 @@ public class PlanService {
             String reason = result.reason();
 
             // 재선택 LLM 호출의 횟수·시간 계측, 기존 일정 유무로 생성·편집 구분
-            CreatePlanAiResponse.PlanScheduleDetail choice = recordStage(
+            CreatePlanAiResponse.PlanScheduleDetail choice;
+
+            try {
+                choice = recordStage(
                     existing == null ? "create" : "edit",
                     "reselect",
                     () -> travelRecommendHandler.reselectPlace(
@@ -2500,12 +2637,35 @@ public class PlanService {
                     )
             );
 
+            } catch (com.planb.global.config.exception.domain.AiOrchestrationException failure) {
+                if (failure.getFailure() != com.planb.global.config.exception.AiFailure.RESPONSE_INVALID
+                        && failure.getFailure() != com.planb.global.config.exception.AiFailure.RESPONSE_REPEATED_INVALID) {
+                    throw failure;
+                }
+
+                choice = null;
+            }
+
             result = validateSelection(
                     planPlaceResolver.select(slot, choice),
                     retryCandidates,
                     usedPlaces,
                     usedMenus,
                     context.healthContexts()
+            );
+
+            log.info(
+                    "[PLAN SELECTION RECOVERY] flow={}, day={}, slot={}, event=reselect, attempt={}, candidateId={}, menu={}, result={}, reason={}",
+                    existing == null ? "create" : "edit",
+                    day.dayNumber(),
+                    slot.scheduleType(),
+                    attempt + 1,
+                    choice == null ? null : choice.candidateId(),
+                    choice == null || choice.restaurantDetail() == null ? null : choice
+                            .restaurantDetail()
+                            .menuName(),
+                    result.valid() ? "pass" : "failure",
+                    selectionFailureForLog(result.reason())
             );
 
             if (result.valid()) {
@@ -2515,16 +2675,34 @@ public class PlanService {
 
         String finalReason = result.reason();
 
-        return verifiedFallback(
+        Optional<CreatePlanAiResponse.PlanScheduleDetail> fallback = verifiedFallback(
                 existing,
                 day,
                 slot,
                 usedPlaces,
                 usedMenus,
                 context.healthContexts()
-        )
+        );
+
+        log.info(
+                "[PLAN SELECTION RECOVERY] flow={}, day={}, slot={}, event=fallback, result={}, reason={}",
+                existing == null ? "create" : "edit",
+                day.dayNumber(),
+                slot.scheduleType(),
+                fallback.isPresent() ? "restored" : "unavailable",
+                selectionFailureForLog(finalReason)
+        );
+
+        return fallback
                 .orElseThrow(() -> invalidPlace("day=" + day.dayNumber() + ", time=" + slot.startTime()
                         + ", " + finalReason));
+    }
+
+    private String selectionFailureForLog(String reason) {
+
+        return reason != null && reason.startsWith("등록 알레르기 ")
+                ? "등록 알레르기 충돌"
+                : reason;
     }
 
     // 동일 날짜·시간·유형의 기존 슬롯만 구조·중복·알레르기 검증 후 원본 복원
@@ -2791,13 +2969,6 @@ public class PlanService {
         Double sodium = lookup == null ? null : lookup.sodium();
         Double fat = lookup == null ? null : lookup.fat();
 
-        if (Objects.equals(carbohydrate, restaurantDetail.carbohydrate())
-                && Objects.equals(sodium, restaurantDetail.sodium())
-                && Objects.equals(fat, restaurantDetail.fat())) {
-
-            return restaurantDetail;
-        }
-
         return new CreatePlanAiResponse.RestaurantDetail(
                 restaurantDetail.menuName(),
                 carbohydrate,
@@ -2807,7 +2978,10 @@ public class PlanService {
                 restaurantDetail.address(),
                 restaurantDetail.longitude(),
                 restaurantDetail.latitude(),
-                restaurantDetail.imageUrl()
+                restaurantDetail.imageUrl(),
+                lookup == null ? null : lookup.nutritionFoodName(),
+                lookup == null ? null : lookup.nutritionReferenceAmount(),
+                lookup == null ? null : lookup.nutritionSource()
         );
     }
 
@@ -2957,11 +3131,14 @@ public class PlanService {
                         restaurant.menuName(),
                         new NutritionEvaluationResult(
                                 List.of(),
-                                NutritionEvaluationStatus.AVAILABLE,
+                                NutritionEvaluationStatus.NOT_EVALUABLE,
                                 List.of(),
                                 restaurant.carbohydrate(),
                                 restaurant.sodium(),
-                                restaurant.fat()
+                                restaurant.fat(),
+                                restaurant.nutritionFoodName(),
+                                restaurant.nutritionReferenceAmount(),
+                                restaurant.nutritionSource()
                         )
                 ))
                 .toList();

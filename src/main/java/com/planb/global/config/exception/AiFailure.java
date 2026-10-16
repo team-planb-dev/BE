@@ -17,6 +17,12 @@ public enum AiFailure {
             "AI 호출에 실패했습니다."
     ),
 
+    BUDGET_EXCEEDED(
+            false,
+            AiExceptionEnum.AI_RESPONSE_REJECTED,
+            "요청의 AI 호출 상한을 초과했습니다."
+    ),
+
     // 빈 AI 응답 본문
     RESPONSE_EMPTY(
             true,

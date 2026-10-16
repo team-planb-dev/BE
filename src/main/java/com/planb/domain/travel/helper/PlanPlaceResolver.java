@@ -337,7 +337,10 @@ public class PlanPlaceResolver {
                 r.address(),
                 r.longitude(),
                 r.latitude(),
-                r.imageUrl()
+                r.imageUrl(),
+                r.nutritionFoodName(),
+                r.nutritionReferenceAmount(),
+                r.nutritionSource()
         );
 
         MedicationSchedule medication = old.medication() == null ? null : new MedicationSchedule(

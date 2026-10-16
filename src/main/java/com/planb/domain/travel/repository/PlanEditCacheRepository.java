@@ -18,70 +18,67 @@ public class PlanEditCacheRepository {
 
     private final RedisTemplate<String, EditPlanAiResponse> planEditRedisTemplate;
 
-    public void save(
+    public void saveRequest(
             Long travelId,
+            String requestId,
             EditPlanAiResponse response,
-            Long expiredMs
+            long expiredMs
     ) {
 
         planEditRedisTemplate
                 .opsForValue()
                 .set(
-                        KEY_PREFIX + travelId,
+                        requestKey(travelId, requestId),
                         response,
                         expiredMs,
                         TimeUnit.MILLISECONDS
                 );
     }
 
-    public Optional<EditPlanAiResponse> findByTravelId(Long travelId) {
+    public Optional<EditPlanAiResponse> findRequest(Long travelId, String requestId) {
 
-        EditPlanAiResponse response = planEditRedisTemplate
+        return Optional.ofNullable(planEditRedisTemplate
                 .opsForValue()
-                .get(KEY_PREFIX + travelId);
-
-        return Optional.ofNullable(response);
+                .get(requestKey(travelId, requestId)));
     }
 
-    // GETDEL의 원자적 소비를 통한 중복 확정 방지
-    // Redis 6.2 이상 필요
-    public Optional<EditPlanAiResponse> consumeByTravelId(Long travelId) {
+    public void deleteRequest(Long travelId, String requestId) {
 
-        EditPlanAiResponse response = planEditRedisTemplate
-                .opsForValue()
-                .getAndDelete(KEY_PREFIX + travelId);
-
-        return Optional.ofNullable(response);
+        planEditRedisTemplate.delete(requestKey(travelId, requestId));
     }
 
-    public void deleteByTravelId(Long travelId) {
-
-        planEditRedisTemplate.delete(KEY_PREFIX + travelId);
-    }
-
-    // 동일 응답 재전송을 위한 확정 완료 표식과 결과 값
-    public void saveConfirmed(
+    public void saveConfirmedRequest(
             Long travelId,
+            String requestId,
             EditPlanAiResponse response,
-            Long expiredMs
+            long expiredMs
     ) {
 
         planEditRedisTemplate
                 .opsForValue()
                 .set(
-                        CONFIRMED_KEY_PREFIX + travelId,
+                        confirmedKey(travelId, requestId),
                         response,
                         expiredMs,
                         TimeUnit.MILLISECONDS
                 );
     }
 
-    public Optional<EditPlanAiResponse> findConfirmedByTravelId(Long travelId) {
+    public Optional<EditPlanAiResponse> findConfirmedRequest(Long travelId, String requestId) {
 
-        EditPlanAiResponse response = planEditRedisTemplate
+        return Optional.ofNullable(planEditRedisTemplate
                 .opsForValue()
-                .get(CONFIRMED_KEY_PREFIX + travelId);
-
-        return Optional.ofNullable(response);
+                .get(confirmedKey(travelId, requestId)));
     }
+
+    private String requestKey(Long travelId, String requestId) {
+
+        return KEY_PREFIX + travelId + ":" + requestId;
+    }
+
+    private String confirmedKey(Long travelId, String requestId) {
+
+        return CONFIRMED_KEY_PREFIX + travelId + ":" + requestId;
+    }
+
 }

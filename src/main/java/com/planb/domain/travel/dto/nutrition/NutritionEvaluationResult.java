@@ -14,6 +14,59 @@ public record NutritionEvaluationResult(
         List<NutritionEvaluationDetail> evaluations,
         Double carbohydrate,
         Double sodium,
-        Double fat
+        Double fat,
+        String nutritionFoodName,
+        String nutritionReferenceAmount,
+        String nutritionSource,
+        String lookupName
 ) {
+
+    public NutritionEvaluationResult(
+            List<DiseaseType> diseaseTypes,
+            NutritionEvaluationStatus status,
+            List<NutritionEvaluationDetail> evaluations,
+            Double carbohydrate,
+            Double sodium,
+            Double fat,
+            String nutritionFoodName,
+            String nutritionReferenceAmount,
+            String nutritionSource
+    ) {
+
+        this(
+                diseaseTypes,
+                status,
+                evaluations,
+                carbohydrate,
+                sodium,
+                fat,
+                nutritionFoodName,
+                nutritionReferenceAmount,
+                nutritionSource,
+                null
+        );
+    }
+
+    public NutritionEvaluationResult(
+            List<DiseaseType> diseaseTypes,
+            NutritionEvaluationStatus status,
+            List<NutritionEvaluationDetail> evaluations,
+            Double carbohydrate,
+            Double sodium,
+            Double fat
+    ) {
+
+        this(
+                diseaseTypes,
+                status,
+                evaluations,
+                carbohydrate,
+                sodium,
+                fat,
+                null,
+                null,
+                null,
+                null
+        );
+    }
 }

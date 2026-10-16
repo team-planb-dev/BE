@@ -310,7 +310,13 @@ public class PlanTourismTool {
         return response;
     }
 
-    @Tool(description = "질환별 음식 영양 평가")
+    @Tool(description = """
+            식약처 식품 DB 영양 참고값과 기준 음식명·기준량 조회.
+            해당 식당의 조리법·실제 제공량 미확인으로 질환별 평가는 NOT_EVALUABLE.
+            조회 불가 시 UNAVAILABLE, 영양 수치·1회분·LOW/CHECK/HIGH 임의 추정 금지.
+            foodName은 원본 메뉴명, standardFoodName은 같은 음식의 알려진 일반 품목명.
+            표준명이 없으면 null, 동일 메뉴 조회 실패 시 다른 음식 이름으로 대체 금지.
+            """)
     public NutritionEvaluationResult evaluateFoodNutrition(
             String foodName,
             String standardFoodName,

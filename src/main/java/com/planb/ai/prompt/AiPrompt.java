@@ -5,6 +5,11 @@ package com.planb.ai.prompt;
  */
 public interface AiPrompt {
 
+    default com.planb.ai.context.AiCallBudget callBudget() {
+
+        return null;
+    }
+
     String system();
 
     String user();

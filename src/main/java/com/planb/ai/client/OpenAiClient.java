@@ -50,7 +50,10 @@ public class OpenAiClient {
             "imageUrl",
             "thumbNailImageUrl",
             "medication",
-            "restaurantDetail"
+            "restaurantDetail",
+            "nutritionFoodName",
+            "nutritionReferenceAmount",
+            "nutritionSource"
     );
 
     // strict schema에서 제거할 format 값, RFC3339 해석(타임존·밀리초 포함) 강제 방지
@@ -112,13 +115,26 @@ public class OpenAiClient {
             Object... tools
     ) {
 
-        return chatClient
-                .prompt()
-                .system(prompt.system())
-                .user(prompt.user())
+        return boundedPrompt(prompt, prompt.user())
                 .tools(tools)
                 .call()
                 .entity(responseType);
+    }
+
+    private ChatClient.ChatClientRequestSpec boundedPrompt(AiPrompt prompt, String user) {
+
+        ChatClient.ChatClientRequestSpec request = chatClient
+                .prompt()
+                .system(prompt.system())
+                .user(user);
+
+        if (prompt.callBudget() != null) {
+            request.advisors(advisor -> advisor
+                    .advisors(new AiCallBudgetAdvisor())
+                    .param(AiCallBudgetAdvisor.CONTEXT_KEY, prompt.callBudget()));
+        }
+
+        return request;
     }
 
     // 커스텀 OutputConverter 호출 (Tool 포함), 파싱 실패 시 1회 재시도
@@ -346,14 +362,10 @@ public class OpenAiClient {
 
         String schema = normalizeSchema(outputConverter.getJsonSchema());
 
-        String content = chatClient
-                .prompt()
-                .system(prompt.system())
-                .user(userPrompt(
-                        prompt,
-                        correctionFailures,
-                        previousResponse
-                ))
+        String content = boundedPrompt(
+                prompt,
+                userPrompt(prompt, correctionFailures, previousResponse)
+        )
                 .tools(tools)
                 .options(
                         OpenAiChatOptions

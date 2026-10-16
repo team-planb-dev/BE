@@ -295,6 +295,18 @@ public class TravelController {
                                                 .getUsername())));
     }
 
+    @GetMapping("/edit-plan/preview")
+    @Operation(summary = "현재 일정 수정 미리보기 조회")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<ApiResult<EditPlanPreviewResponse>> getEditPlanPreview(
+            @RequestParam Long travelId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+
+        return ResponseEntity
+                .ok(ApiResult.success(travelFacade.getEditPlanPreview(travelId, userDetails.getUsername())));
+    }
+
     @PostMapping("/edit-plan/confirm")
     @Operation(
             summary = "AI 일정 수정 확정",
@@ -302,9 +314,11 @@ public class TravelController {
                     미리보기로 생성해 임시 보관한 수정안을 실제 일정에 반영합니다.
                     미리보기를 먼저 생성해야 하며, 결과가 없거나 만료되었으면
                     `PLAN.EXCEPTION.EDIT_RESULT_NOT_FOUND`를 반환합니다.
-                    수정안은 조회와 동시에 소비되므로 같은 여행에 확정 요청이 동시에 들어와도
-                    일정은 한 번만 반영됩니다.
-                    확정 직후 같은 요청을 다시 보내면 일정을 다시 쓰지 않고 같은 응답을 돌려줍니다.
+                    확정은 여행 행 잠금으로 직렬화하며 DB 저장 성공 후 미리보기를 정리합니다.
+                    처리 중이면 `PLAN.EXCEPTION.EDIT_RESULT_NOT_READY`, 오래된 요청 식별값이면
+                    `PLAN.EXCEPTION.EDIT_REQUEST_EXPIRED`를 반환합니다.
+                    5분 내 같은 확정 식별값을 다시 보내면 재저장 없이 확정 일정을 반환합니다.
+                    캐시 장애 시 DB 일정으로 복원하므로 미저장 candidateId의 동일성은 보장하지 않습니다.
                     """
     )
     @SecurityRequirement(name = "JWT")

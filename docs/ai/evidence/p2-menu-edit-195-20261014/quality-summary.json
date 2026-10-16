@@ -1,0 +1,265 @@
+{
+  "issue": 195,
+  "phase": "P2-6A M2/M3",
+  "sourceState": "caedb0a + M2 uncommitted source digests in archived manifest",
+  "approvedRequests": 3,
+  "recordedRequests": 3,
+  "junit": {
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "sourceUnchanged": true,
+  "baseline": {
+    "date": "2026-10-13",
+    "attempts": 1,
+    "requestApplied": 0,
+    "errorCode": "PLAN.EXCEPTION.EDIT_NOT_APPLIED",
+    "durationMs": 35961,
+    "llmCalls": 7,
+    "actualCause": "UNKNOWN",
+    "rawSha256": "7823c00e9b7a8f1348a11fb6fc1d34bc9748189442c432613f278b2349a44eae"
+  },
+  "rows": [
+    {
+      "attempt": 1,
+      "previewSuccess": true,
+      "processable": true,
+      "requestApplied": true,
+      "sameRestaurantNameAddressProxy": true,
+      "targetCandidateId": "tour:2823094",
+      "beforeMenu": "고등어구이",
+      "afterMenu": "갈치구이",
+      "untargetedSelectionsTotal": 13,
+      "untargetedSelectionsEqual": true,
+      "storageProtected": true,
+      "cancelSucceeded": true,
+      "cacheCleared": true,
+      "durationMs": 33623,
+      "llmCalls": 3,
+      "inputTokens": 21891,
+      "outputTokens": 2848,
+      "reselectionEvents": 0,
+      "fallbackEvents": 0,
+      "firstValidation": [
+        "[PLAN EDIT FIRST VALIDATION] day=2, slot=LUNCH, result=pass"
+      ],
+      "axes": {
+        "A": [
+          "[PLAN EDIT GUIDE] day=2, slot=LUNCH, condition=found, candidateId=tour:2823094, otherMenus=3"
+        ],
+        "B": [
+          "[PLAN EDIT ASSEMBLY] day=2, slot=LUNCH, index=2, source=ai_match, candidateId=tour:2823094, menu=갈치구이"
+        ],
+        "C": [
+          "[PLAN EDIT FIRST VALIDATION] day=2, slot=LUNCH, result=pass"
+        ],
+        "D": [],
+        "E": "applied"
+      },
+      "stageMetrics": {
+        "flow=edit,outcome=success,stage=ai_response": {
+          "count": 1.0,
+          "amount": 24657.548167
+        },
+        "flow=edit,outcome=success,stage=candidate_prefetch": {
+          "count": 1.0,
+          "amount": 1139.044792
+        },
+        "flow=edit,outcome=success,stage=day_rebuild": {
+          "count": 1.0,
+          "amount": 0.206167
+        },
+        "flow=edit,outcome=success,stage=finish_plan": {
+          "count": 1.0,
+          "amount": 4777.549
+        },
+        "flow=edit,outcome=success,stage=nutrition_enrichment": {
+          "count": 1.0,
+          "amount": 4188.062708
+        },
+        "flow=edit,outcome=success,stage=nutrition_lookup": {
+          "count": 2.0,
+          "amount": 8340.057709
+        },
+        "flow=edit,outcome=success,stage=place_validation": {
+          "count": 1.0,
+          "amount": 23.420583
+        },
+        "flow=edit,outcome=success,stage=scope_classification": {
+          "count": 1.0,
+          "amount": 2926.462584
+        }
+      },
+      "rawSha256": "49dd2748f876119255e921eed028c527c9fd08d0b0a854fdb3f0344e540917c7",
+      "sameGuideCandidate": true
+    },
+    {
+      "attempt": 2,
+      "previewSuccess": true,
+      "processable": true,
+      "requestApplied": true,
+      "sameRestaurantNameAddressProxy": true,
+      "targetCandidateId": "tour:2823094",
+      "beforeMenu": "고등어구이",
+      "afterMenu": "갈치구이",
+      "untargetedSelectionsTotal": 13,
+      "untargetedSelectionsEqual": true,
+      "storageProtected": true,
+      "cancelSucceeded": true,
+      "cacheCleared": true,
+      "durationMs": 19817,
+      "llmCalls": 2,
+      "inputTokens": 11531,
+      "outputTokens": 2819,
+      "reselectionEvents": 0,
+      "fallbackEvents": 0,
+      "firstValidation": [
+        "[PLAN EDIT FIRST VALIDATION] day=2, slot=LUNCH, result=pass"
+      ],
+      "axes": {
+        "A": [
+          "[PLAN EDIT GUIDE] day=2, slot=LUNCH, condition=found, candidateId=tour:2823094, otherMenus=3"
+        ],
+        "B": [
+          "[PLAN EDIT ASSEMBLY] day=2, slot=LUNCH, index=2, source=ai_match, candidateId=tour:2823094, menu=갈치구이"
+        ],
+        "C": [
+          "[PLAN EDIT FIRST VALIDATION] day=2, slot=LUNCH, result=pass"
+        ],
+        "D": [],
+        "E": "applied"
+      },
+      "stageMetrics": {
+        "flow=edit,outcome=success,stage=ai_response": {
+          "count": 1.0,
+          "amount": 17464.10875
+        },
+        "flow=edit,outcome=success,stage=candidate_prefetch": {
+          "count": 1.0,
+          "amount": 10.478207999999995
+        },
+        "flow=edit,outcome=success,stage=day_rebuild": {
+          "count": 1.0,
+          "amount": 0.013000000000000012
+        },
+        "flow=edit,outcome=success,stage=finish_plan": {
+          "count": 1.0,
+          "amount": 419.7847090000005
+        },
+        "flow=edit,outcome=success,stage=nutrition_enrichment": {
+          "count": 1.0,
+          "amount": 10.034416999999848
+        },
+        "flow=edit,outcome=success,stage=nutrition_lookup": {
+          "count": 3.0,
+          "amount": 16.417083999998795
+        },
+        "flow=edit,outcome=success,stage=place_validation": {
+          "count": 1.0,
+          "amount": 3.1111249999999977
+        },
+        "flow=edit,outcome=success,stage=scope_classification": {
+          "count": 1.0,
+          "amount": 1875.5324170000004
+        }
+      },
+      "rawSha256": "8e3add62644c5d7a08befadfdf856cf6d9a249b1f48267fd33ac319be99527b2",
+      "sameGuideCandidate": true
+    },
+    {
+      "attempt": 3,
+      "previewSuccess": true,
+      "processable": true,
+      "requestApplied": true,
+      "sameRestaurantNameAddressProxy": true,
+      "targetCandidateId": "tour:2823094",
+      "beforeMenu": "고등어구이",
+      "afterMenu": "갈치구이",
+      "untargetedSelectionsTotal": 13,
+      "untargetedSelectionsEqual": true,
+      "storageProtected": true,
+      "cancelSucceeded": true,
+      "cacheCleared": true,
+      "durationMs": 20625,
+      "llmCalls": 3,
+      "inputTokens": 21891,
+      "outputTokens": 2848,
+      "reselectionEvents": 0,
+      "fallbackEvents": 0,
+      "firstValidation": [
+        "[PLAN EDIT FIRST VALIDATION] day=2, slot=LUNCH, result=pass"
+      ],
+      "axes": {
+        "A": [
+          "[PLAN EDIT GUIDE] day=2, slot=LUNCH, condition=found, candidateId=tour:2823094, otherMenus=3"
+        ],
+        "B": [
+          "[PLAN EDIT ASSEMBLY] day=2, slot=LUNCH, index=2, source=ai_match, candidateId=tour:2823094, menu=갈치구이"
+        ],
+        "C": [
+          "[PLAN EDIT FIRST VALIDATION] day=2, slot=LUNCH, result=pass"
+        ],
+        "D": [],
+        "E": "applied"
+      },
+      "stageMetrics": {
+        "flow=edit,outcome=success,stage=ai_response": {
+          "count": 1.0,
+          "amount": 19029.769291999997
+        },
+        "flow=edit,outcome=success,stage=candidate_prefetch": {
+          "count": 1.0,
+          "amount": 8.86479200000008
+        },
+        "flow=edit,outcome=success,stage=day_rebuild": {
+          "count": 1.0,
+          "amount": 0.020125000000000004
+        },
+        "flow=edit,outcome=success,stage=finish_plan": {
+          "count": 1.0,
+          "amount": 474.1855829999995
+        },
+        "flow=edit,outcome=success,stage=nutrition_enrichment": {
+          "count": 1.0,
+          "amount": 5.233541999999943
+        },
+        "flow=edit,outcome=success,stage=nutrition_lookup": {
+          "count": 2.0,
+          "amount": 9.504209000000628
+        },
+        "flow=edit,outcome=success,stage=place_validation": {
+          "count": 1.0,
+          "amount": 5.270750000000003
+        },
+        "flow=edit,outcome=success,stage=scope_classification": {
+          "count": 1.0,
+          "amount": 1063.9445829999995
+        }
+      },
+      "rawSha256": "f3a5325af35b596d876d0a27ad0dae4e3eaf830f36531f97f67121b52ce8fec9",
+      "sameGuideCandidate": true
+    }
+  ],
+  "totals": {
+    "requestApplied": 3,
+    "sameRestaurant": 3,
+    "untargetedSelections": 39,
+    "untargetedSelectionsPreserved": 39,
+    "storageProtected": 3,
+    "cacheCleared": 3,
+    "llmCalls": 8,
+    "reselectionEvents": 0,
+    "fallbackEvents": 0,
+    "medianDurationMs": 20625,
+    "sameGuideCandidate": 3
+  },
+  "limits": [
+    "Three same-seed repeats, not diverse users/scenarios; no statistical quality generalization",
+    "Historical actual cause remains UNKNOWN; no same-time paid before group",
+    "Actual STOMP, production request quality, nutrients/HIGH/ingredient truth/opening-hours not evaluated",
+    "Name/address and current guide candidate ID are proxy identity evidence; no persisted provider identity added",
+    "Existing candidate/menu guards are the provenance evidence; provider detail raw responses not independently replayed"
+  ]
+}

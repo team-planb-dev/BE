@@ -62,6 +62,13 @@ public class PlanGenerationSelectionMapper {
 
         Candidate candidate = candidates.find(slot.candidateId());
 
+        if (slot.restaurantDetail() != null) {
+            candidates.recordStandardFoodName(
+                    slot.restaurantDetail().menuName(),
+                    slot.restaurantDetail().standardFoodName()
+            );
+        }
+
         return new CreatePlanAiResponse.PlanScheduleDetail(
                 slot.scheduleType(),
                 slot.courseType(),

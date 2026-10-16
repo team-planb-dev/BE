@@ -1,6 +1,7 @@
 package com.planb.global.client.kor2Service;
 
 import com.planb.global.client.ApiClient;
+import com.planb.global.client.DataPortalGatewayException;
 import com.planb.global.client.kor2Service.properties.Kor2ServiceProperties;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -20,8 +21,7 @@ import java.util.Set;
 /**
  * TourAPI(KorService2) 호출과 응답 결과 계측
  *
- * 게이트웨이 한도 초과(일일 22, 초당 23)가 HTTP 상태와 본문 resultCode 중 어디로 오는지
- * 공식 문서에 없어 둘 다 기록. 짧은 시간 초과로 볼 수 있는 HTTP 429만 1회 재시도
+ * 게이트웨이 오류 코드 보존과 식별된 일일 한도 22를 제외한 HTTP 429 최대 1회 재시도
  */
 @Slf4j
 @Component
@@ -43,7 +43,13 @@ public class Kor2ServiceClient
             MeterRegistry meterRegistry
     ) {
 
-        super(webClientBuilder, properties);
+        // 게이트웨이 오류 XML의 반환 코드 보존
+        super(
+                webClientBuilder.filter(
+                        DataPortalGatewayException.detector(MAX_IN_MEMORY_BYTES)
+                ),
+                properties
+        );
 
         this.meterRegistry = meterRegistry;
     }
@@ -123,10 +129,19 @@ public class Kor2ServiceClient
 
     private static String outcome(Throwable failure) {
 
+        if (failure instanceof DataPortalGatewayException gateway) {
+            return "gateway_" + gateway.reasonCode();
+        }
+
         if (failure instanceof WebClientResponseException response) {
+            String reasonCode = DataPortalGatewayException.reasonCode(
+                    response.getResponseBodyAsString()
+            );
+
             return "http_" + response
                     .getStatusCode()
-                    .value();
+                    .value()
+                    + (reasonCode == null ? "" : "_gateway_" + reasonCode);
         }
 
         if (failure instanceof DecodingException) {
@@ -139,7 +154,11 @@ public class Kor2ServiceClient
     private static boolean tooManyRequests(Throwable failure) {
 
         return failure instanceof WebClientResponseException response
-                && response.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS;
+                && response.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS
+                // 일일 한도 22의 단기 재시도 제외
+                && !"22".equals(DataPortalGatewayException.reasonCode(
+                        response.getResponseBodyAsString()
+                ));
     }
 
     // 쿼리 제외 마지막 경로 조각 (예: searchKeyword2)

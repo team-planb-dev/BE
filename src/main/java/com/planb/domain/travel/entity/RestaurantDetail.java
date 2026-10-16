@@ -55,4 +55,13 @@ public class RestaurantDetail {
 
     // 식당 이미지
     private String imageUrl;
+
+    @Column(name = "nutrition_food_name")
+    private String nutritionFoodName;
+
+    @Column(name = "nutrition_reference_amount")
+    private String nutritionReferenceAmount;
+
+    @Column(name = "nutrition_source")
+    private String nutritionSource;
 }

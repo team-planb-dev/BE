@@ -1,5 +1,7 @@
 package com.planb.ai.handler;
 
+import lombok.extern.slf4j.Slf4j;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.planb.ai.client.OpenAiClient;
 import com.planb.ai.context.PlaceCandidateContext;
@@ -43,6 +45,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class TravelRecommendHandler {
 
     /*
@@ -305,6 +308,7 @@ public class TravelRecommendHandler {
                 .call(
                 new VerifiedPlacePrompt(prompt),
                 new BeanOutputConverter<>(PlaceReselectResponse.class),
+                (Function<PlaceReselectResponse, List<String>>) result -> reselectFailures(result, candidates),
                 new PlanTourismTool(
                                 tourismTool,
                                 candidates)
@@ -315,6 +319,9 @@ public class TravelRecommendHandler {
         }
 
         CreatePlanAiResponse.PlanScheduleDetail slot = prompt.slot();
+
+        log.info("[PLAN RESELECT RESPONSE] rawCandidateId={}, candidatePresent={}",
+                response.selectedCandidateId(), candidates.find(response.selectedCandidateId()) != null);
 
         String candidateId = candidates
                 .find(response.selectedCandidateId()) == null
@@ -341,7 +348,45 @@ public class TravelRecommendHandler {
         );
     }
 
-    // 날짜·관광지 개수 검증과 후보로 보충할 수 없는 부족분의 AI 교정
+    // 미검색 ID의 교정 입력에 Java 후보 사실 연결
+    private List<String> reselectFailures(
+            PlaceReselectResponse response,
+            PlaceCandidateContext candidates
+    ) {
+
+        String candidateId = response == null ? null : response.selectedCandidateId();
+        boolean found = candidates.find(candidateId) != null;
+        log.info("[PLAN RESELECT VALIDATION] rawCandidateId={}, candidatePresent={}", candidateId, found);
+
+        if (found) {
+            return List.of();
+        }
+
+        var choices = candidates
+                .searchedCandidates()
+                .stream()
+                .map(candidate -> java.util.Map.of(
+                        "candidateId", candidate.candidateId(),
+                        "name", java.util.Objects.toString(candidate.name(), ""),
+                        "type", java.util.Objects.toString(candidate.type(), ""),
+                        "menuSourceRecorded", candidates.hasRestaurantMenuSource(candidate.candidateId()),
+                        "menus", candidates.recordedRestaurantMenus(candidate.candidateId())
+                ))
+                .toList();
+
+        try {
+            return List.of(
+                    "selectedCandidateId는 검색 결과의 실제 ID 필수. 후보가 없거나 상세 메뉴 원본이 없으면 Tool 조회 선행.",
+                    "등록 후보 JSON: " + objectMapper.writeValueAsString(choices)
+            );
+        } catch (com.fasterxml.jackson.core.JsonProcessingException failure) {
+            throw new com.planb.global.config.exception.domain.AiOrchestrationException(
+                    com.planb.global.config.exception.AiFailure.CONTEXT_SERIALIZATION_FAILED,
+                    failure
+            );
+        }
+    }
+
     private Function<CreatePlanAiResponse, List<String>> validatePlan(
             TravelPlanContext context,
             PlaceCandidateContext candidates

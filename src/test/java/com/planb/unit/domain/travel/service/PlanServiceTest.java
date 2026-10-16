@@ -39,7 +39,10 @@ import com.planb.domain.travel.service.ScheduleNormalizer;
 import com.planb.domain.travel.service.TravelMinutesResolver;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
 import com.planb.global.config.exception.domain.BaseException;
+import io.micrometer.core.instrument.Clock;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.simple.SimpleConfig;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -52,6 +55,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -114,21 +118,7 @@ class PlanServiceTest {
 
         meterRegistry = new SimpleMeterRegistry();
 
-        planService = new PlanService(
-                planRepository,
-                planPlaceResolver,
-                new PlanEditValidator(),
-                new ScheduleNormalizer(planPlaceResolver),
-                travelRecommendHandler,
-                new TravelMinutesResolver(
-                        kakaoMapServiceHandler,
-                        4
-                ),
-                nutritionEvaluationCollector,
-                nutritionService,
-                new MissingSlotCompleter(mock(com.planb.ai.mcp.TourismTool.class)),
-                meterRegistry
-        );
+        planService = planService(meterRegistry);
 
         // travelMinutes 0인 슬롯의 재조회용 기본 응답
         // 기본 조회 실패 응답과 테스트별 필요한 값 덮어쓰기
@@ -1643,8 +1633,16 @@ class PlanServiceTest {
                         nutritionEvaluationCollector,
                         nutritionService,
                         missingSlotCompleter,
-                        meterRegistry
-                );
+                        meterRegistry,
+                new com.planb.domain.travel.service.MealWindowRecoveryService(
+                        planPlaceResolver,
+                        new ScheduleNormalizer(planPlaceResolver),
+                        new TravelMinutesResolver(
+                                kakaoMapServiceHandler,
+                                4
+                        )
+                )
+        );
 
         when(
                 travelRecommendHandler
@@ -2074,6 +2072,84 @@ class PlanServiceTest {
     }
 
     @Test
+    @DisplayName("다른 스레드에서 끝난 영양 조회도 일정 생성 반환 전에 단계 시간 기록")
+    void makePlanByAiRecordsLookupTimerBeforeReturning() {
+
+        CountDownLatch callerReturned = new CountDownLatch(1);
+
+        Thread caller = Thread.currentThread();
+
+        // 다른 스레드의 측정 종료 시각 읽기를 호출 반환 신호까지 붙잡아 반환 뒤 기록이면 반환 시점에 기록 0건
+        // 반환 전에 기록하는 구현은 신호가 오지 않으므로 대기 상한 뒤 진행
+        Clock gatedClock = new Clock() {
+
+            @Override
+            public long wallTime() {
+
+                return Clock.SYSTEM.wallTime();
+            }
+
+            @Override
+            public long monotonicTime() {
+
+                if (Thread.currentThread() != caller) {
+                    awaitQuietly(callerReturned);
+                }
+
+                return Clock.SYSTEM.monotonicTime();
+            }
+        };
+
+        SimpleMeterRegistry gatedRegistry = new SimpleMeterRegistry(
+                SimpleConfig.DEFAULT,
+                gatedClock
+        );
+
+        TravelPlanContext context = travelPlanContext();
+
+        givenMenus(context, "다른 스레드 메뉴");
+
+        // 조회 완료 신호를 호출 스레드가 아닌 별도 스레드에서 발생
+        when(nutritionService.evaluateFoodNutrition("다른 스레드 메뉴", List.of()))
+                .thenReturn(Mono.create(sink -> Thread
+                        .ofPlatform()
+                        .start(() -> sink.success(available(1.0)))));
+
+        long countAtReturn;
+
+        try {
+            planService(gatedRegistry).makePlanByAi(context);
+
+            Timer timer = gatedRegistry
+                    .find("planb.travel.plan.stage")
+                    .tag("flow", "create")
+                    .tag("stage", "nutrition_lookup")
+                    .tag("outcome", "success")
+                    .timer();
+
+            countAtReturn = timer == null ? 0L : timer.count();
+        } finally {
+            callerReturned.countDown();
+        }
+
+        assertEquals(
+                1L,
+                countAtReturn
+        );
+    }
+
+    private static void awaitQuietly(CountDownLatch latch) {
+
+        try {
+            latch.await(500, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException exception) {
+            Thread
+                    .currentThread()
+                    .interrupt();
+        }
+    }
+
+    @Test
     @DisplayName("동시에 처리한 두 일정 생성 요청의 영양값 혼합 없음")
     void makePlanByAiKeepsNutritionPerRequestUnderConcurrentRequests() throws Exception {
 
@@ -2122,6 +2198,33 @@ class PlanServiceTest {
                     carbohydrateByMenu(second.get())
             );
         }
+    }
+
+    private PlanService planService(MeterRegistry registry) {
+
+        return new PlanService(
+                planRepository,
+                planPlaceResolver,
+                new PlanEditValidator(),
+                new ScheduleNormalizer(planPlaceResolver),
+                travelRecommendHandler,
+                new TravelMinutesResolver(
+                        kakaoMapServiceHandler,
+                        4
+                ),
+                nutritionEvaluationCollector,
+                nutritionService,
+                new MissingSlotCompleter(mock(com.planb.ai.mcp.TourismTool.class)),
+                registry,
+                new com.planb.domain.travel.service.MealWindowRecoveryService(
+                        planPlaceResolver,
+                        new ScheduleNormalizer(planPlaceResolver),
+                        new TravelMinutesResolver(
+                                kakaoMapServiceHandler,
+                                4
+                        )
+                )
+        );
     }
 
     private void givenMenus(

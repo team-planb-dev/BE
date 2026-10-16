@@ -1,7 +1,15 @@
 package com.planb.ai.prompt;
 
-public record FoodRecommendPrompt(String location)
+public record FoodRecommendPrompt(
+        String location,
+        com.planb.ai.context.AiCallBudget callBudget
+)
         implements AiPrompt{
+
+    public FoodRecommendPrompt(String location) {
+
+        this(location, new com.planb.ai.context.AiCallBudget());
+    }
 
     @Override
     public String system() {
