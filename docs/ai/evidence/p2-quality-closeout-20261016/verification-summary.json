@@ -1,0 +1,58 @@
+{
+  "issue": 205,
+  "baseDev": "8787db6637e74865bc17111cb4424bca5aa55db9",
+  "mainUnchanged": "a6271bf8bce26436b250b426f50fa30bd61a7601",
+  "free": {
+    "classes": 145,
+    "tests": 1120,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "reconnect": {
+    "nativeSocketDisconnected": true,
+    "newSessionId": true,
+    "resubscribedPresenceReceived": true,
+    "samePreviewTokenGet": true,
+    "getTransport": "MockMvc",
+    "unauthorizedUserHttpStatus": 403,
+    "model": "mock",
+    "productionBrowserVerified": false
+  },
+  "actualCalls": {
+    "foodApi": 6,
+    "openAi": 0,
+    "tourApi": 0,
+    "kakao": 0,
+    "foodSearchHttpBeforeTlsFailure": 0
+  },
+  "draftPullRequests": [
+    {
+      "number": 174,
+      "state": "closed",
+      "merged": false,
+      "branchPreserved": true
+    },
+    {
+      "number": 175,
+      "state": "closed",
+      "merged": false,
+      "branchPreserved": true
+    }
+  ],
+  "remaining": [
+    "Historical nutrition causes UNKNOWN",
+    "Frontend reconnect/preview GET/token integration incomplete in inspected dev path",
+    "Production browser/proxy/account console not verified",
+    "Main sync and DAG not in scope"
+  ],
+  "review": {
+    "scores": [
+      9.2,
+      9.6
+    ],
+    "finalCritical": 0,
+    "finalImportant": 0,
+    "minorCorrectionsApplied": true
+  }
+}

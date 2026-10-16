@@ -1,0 +1,122 @@
+{
+  "endpoint": "getFoodNtrCpntDbInq02",
+  "apiCalls": 6,
+  "automaticRetries": 0,
+  "startedAt": "2026-10-16T04:55:07.960862+00:00",
+  "finishedAt": "2026-10-16T04:55:32.610425+00:00",
+  "request": {
+    "pageNo": 1,
+    "numOfRows": 100,
+    "DB_CLASS_NM": "품목대표"
+  },
+  "calls": [
+    {
+      "food": "불고기",
+      "startedAt": "2026-10-16T04:55:07.961105+00:00",
+      "httpStatus": 200,
+      "durationMs": 4154,
+      "sha256": "9cc0fbc3918d99c8a2bd8a709981fbc0cf2292caf8a3d237153dddafaaadd331",
+      "resultCode": "00",
+      "totalCount": 39,
+      "rows": 39,
+      "foodGroupRows": 30,
+      "exactNameRows": 0,
+      "referenceNameRowsCappedAtTwo": 0,
+      "filteredRows": 0,
+      "selectedBasis": [],
+      "diagnosis": "filtered_name_mismatch"
+    },
+    {
+      "food": "돼지국밥",
+      "startedAt": "2026-10-16T04:55:12.122378+00:00",
+      "httpStatus": 200,
+      "durationMs": 4209,
+      "sha256": "49dc4af7998e62d1231c10223e3114c184aa90ca07f9153ca02ec80ba880ea0b",
+      "resultCode": "00",
+      "totalCount": 0,
+      "rows": 0,
+      "foodGroupRows": 0,
+      "exactNameRows": 0,
+      "referenceNameRowsCappedAtTwo": 0,
+      "filteredRows": 0,
+      "selectedBasis": [],
+      "diagnosis": "empty_api_query"
+    },
+    {
+      "food": "공깃밥",
+      "startedAt": "2026-10-16T04:55:16.334091+00:00",
+      "httpStatus": 200,
+      "durationMs": 4106,
+      "sha256": "49dc4af7998e62d1231c10223e3114c184aa90ca07f9153ca02ec80ba880ea0b",
+      "resultCode": "00",
+      "totalCount": 0,
+      "rows": 0,
+      "foodGroupRows": 0,
+      "exactNameRows": 0,
+      "referenceNameRowsCappedAtTwo": 0,
+      "filteredRows": 0,
+      "selectedBasis": [],
+      "diagnosis": "empty_api_query"
+    },
+    {
+      "food": "갈치구이",
+      "startedAt": "2026-10-16T04:55:20.442139+00:00",
+      "httpStatus": 200,
+      "durationMs": 4046,
+      "sha256": "7851a45e9fa89074cbd750c57c535934d31e9418a1314b5ba39c23eec230710f",
+      "resultCode": "00",
+      "totalCount": 10,
+      "rows": 10,
+      "foodGroupRows": 10,
+      "exactNameRows": 3,
+      "referenceNameRowsCappedAtTwo": 2,
+      "filteredRows": 3,
+      "selectedBasis": [
+        "100mL",
+        "100mL",
+        "100mL"
+      ],
+      "diagnosis": "matched_reference_rows"
+    },
+    {
+      "food": "고등어구이",
+      "startedAt": "2026-10-16T04:55:24.489226+00:00",
+      "httpStatus": 200,
+      "durationMs": 4051,
+      "sha256": "da2e9a33050fac1f2eec760f65d51955302e11de59f58b9d4a9b07f8c8291368",
+      "resultCode": "00",
+      "totalCount": 13,
+      "rows": 13,
+      "foodGroupRows": 12,
+      "exactNameRows": 3,
+      "referenceNameRowsCappedAtTwo": 2,
+      "filteredRows": 3,
+      "selectedBasis": [
+        "100mL",
+        "100mL",
+        "100mL"
+      ],
+      "diagnosis": "matched_reference_rows"
+    },
+    {
+      "food": "비빔밥",
+      "startedAt": "2026-10-16T04:55:28.543472+00:00",
+      "httpStatus": 200,
+      "durationMs": 4064,
+      "sha256": "577d60ef034bbf97a145ee8ec8a4b575e5129f60ec5eb6f59f72f6adf170fa7d",
+      "resultCode": "00",
+      "totalCount": 33,
+      "rows": 33,
+      "foodGroupRows": 33,
+      "exactNameRows": 3,
+      "referenceNameRowsCappedAtTwo": 2,
+      "filteredRows": 3,
+      "selectedBasis": [
+        "100g",
+        "100g",
+        "100mL"
+      ],
+      "diagnosis": "matched_reference_rows"
+    }
+  ]
+}
