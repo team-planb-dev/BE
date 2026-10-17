@@ -27,6 +27,8 @@ public class PlaceCandidateContext {
 
     private static final String RESTAURANT_CONTENT_TYPE_ID = "39";
 
+    private static final int MAX_STORED_OPENING_HOURS = 255;
+
     private static final Pattern MENU_BOUNDARIES = Pattern.compile("[()]|[,/;|\\r\\n]|(?i:<br\\s*/?>)");
 
     private static final JsonMapper MENU_MAPPER = JsonMapper
@@ -42,6 +44,8 @@ public class PlaceCandidateContext {
 
     // 검색 음식점 ID별 상세 메뉴 원본
     private final Map<String, List<String>> restaurantMenus = new ConcurrentHashMap<>();
+
+    private final Map<String, String> restaurantOpeningHours = new ConcurrentHashMap<>();
 
     // 보충 조회의 정상 종료 여부, 메뉴 출처 확인 결과와 별도 보관
     private final Set<String> completedRestaurantLookups = ConcurrentHashMap.newKeySet();
@@ -207,6 +211,7 @@ public class PlaceCandidateContext {
         standardFoodNames.clear();
         pinnedIds.clear();
         restaurantMenus.clear();
+        restaurantOpeningHours.clear();
         completedRestaurantLookups.clear();
     }
 
@@ -281,6 +286,29 @@ public class PlaceCandidateContext {
                 .toList();
 
         restaurantMenus.put(id, menus);
+
+        List<String> hours = details
+                .stream()
+                .map(Kor2RestaurantIntroResponse.Item::opentimefood)
+                .filter(Objects::nonNull)
+                .filter(value -> !value.isBlank())
+                .distinct()
+                .toList();
+
+        // 상충 원문과 저장 컬럼 초과 원문의 영업시간 미확정
+        String openingHours = hours.size() == 1 ? hours.getFirst() : null;
+
+        if (openingHours != null
+                && openingHours.codePointCount(0, openingHours.length()) <= MAX_STORED_OPENING_HOURS) {
+            restaurantOpeningHours.put(id, openingHours);
+        } else {
+            restaurantOpeningHours.remove(id);
+        }
+    }
+
+    public String restaurantOpeningHours(String candidateId) {
+
+        return restaurantOpeningHours.get(candidateId);
     }
 
     /**
