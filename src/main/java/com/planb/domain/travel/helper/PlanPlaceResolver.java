@@ -122,7 +122,7 @@ public class PlanPlaceResolver {
                 restaurant.carbohydrate(),
                 restaurant.sodium(),
                 restaurant.fat(),
-                restaurant.openTime(),
+                candidates.restaurantOpeningHours(candidate.candidateId()),
                 candidate.address(),
                 candidate.longitude(),
                 candidate.latitude(),

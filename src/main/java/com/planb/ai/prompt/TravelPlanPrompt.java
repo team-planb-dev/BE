@@ -45,8 +45,8 @@ public record TravelPlanPrompt(
                   LOCAL_FOOD 슬롯에만 넣고, 다른 슬롯에서는 null입니다.
                 - restaurantDetail에는 menuName과 standardFoodName만 넣습니다.
                   이동시간·영양 수치·영업시간은 AI 응답에 포함하지 않습니다.
-                  Java가 이동시간과 영양 수치를 확정합니다. 현재 음식점 상세 Tool에는
-                  영업시간 필드가 없으므로 openTime은 확인되지 않은 값으로 남습니다.
+                  Java가 이동시간과 영양 수치, 음식점 상세 원문의 영업시간을 확정합니다.
+                  영업 근거가 없으면 미확인으로 남기며 방문 시각의 실제 영업을 추정하지 않습니다.
                 - 일부 선택적 슬롯을 확정하지 못하면 실제 Tool 확인을 거친 후 그 슬롯만 생략합니다.
                   필수 관광지 개수와 최종 식사 충족 여부는 Java가 검증·보정합니다.
 
