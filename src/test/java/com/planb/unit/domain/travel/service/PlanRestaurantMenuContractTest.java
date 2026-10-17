@@ -1,6 +1,7 @@
 package com.planb.unit.domain.travel.service;
 
 import com.planb.ai.context.PlaceCandidateContext;
+import com.planb.ai.dto.response.PlaceWithRouteResult;
 import com.planb.ai.dto.response.CreatePlanAiResponse.PlanScheduleDetail;
 import com.planb.ai.dto.response.CreatePlanAiResponse.RestaurantDetail;
 import com.planb.domain.travel.entity.constant.CourseType;
@@ -27,6 +28,186 @@ import static org.assertj.core.api.Assertions.assertThat;
 class PlanRestaurantMenuContractTest {
 
     private final PlanPlaceResolver resolver = new PlanPlaceResolver();
+
+    @ParameterizedTest
+    @ValueSource(strings = {"11:00~20:00", "점심 11:00~15:00<br>저녁 17:00~21:00"})
+    @DisplayName("AI 영업시간 대신 공급자 상세 원문 보존")
+    void preservesSupplierOpeningHours(String hours) {
+
+        PlaceCandidateContext source = candidates();
+        source.recordRestaurantDetail("tour:9", openingDetail("9", "00", hours));
+
+        assertThat(resolvedOpeningHours(source))
+                .isEqualTo(hours);
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"", "   "})
+    @DisplayName("공급자 영업시간 부재의 AI 추정값 제외")
+    void excludesUnverifiedOpeningHours(String hours) {
+
+        PlaceCandidateContext context = candidates();
+        context.recordRestaurantDetail("tour:9", openingDetail("9", "00", hours));
+
+        assertThat(resolvedOpeningHours(context))
+                .isNull();
+    }
+
+    @Test
+    @DisplayName("잘못된 상세 응답으로 기존 영업 근거 덮어쓰기 방지")
+    void ignoresUnrelatedOpeningEvidenceAndClearsRequestFacts() {
+
+        PlaceCandidateContext context = candidates();
+        context.recordRestaurantDetail("tour:9", openingDetail("9", "00", "11:00~20:00"));
+        context.recordRestaurantDetail("tour:9", openingDetail("10", "00", "24시간"));
+        context.recordRestaurantDetail("tour:9", openingDetail("9", "22", "24시간"));
+
+        assertThat(resolvedOpeningHours(context))
+                .isEqualTo("11:00~20:00");
+
+        context.clear();
+        context.record(restaurantItem());
+        context.recordRestaurantDetail("tour:9", openingDetail("9", "00", null));
+
+        assertThat(resolvedOpeningHours(context))
+                .isNull();
+    }
+
+    @Test
+    @DisplayName("상충하는 영업 원문과 새 빈 상세의 미확정 처리")
+    void excludesConflictingAndExpiredOpeningFacts() {
+
+        PlaceCandidateContext context = candidates();
+        Kor2RestaurantIntroResponse first = openingDetail("9", "00", "11:00~20:00");
+        var second = openingDetail("9", "00", "12:00~21:00");
+        var firstItem = first
+                .response()
+                .body()
+                .items()
+                .item()
+                .getFirst();
+        var secondItem = second
+                .response()
+                .body()
+                .items()
+                .item()
+                .getFirst();
+        var conflict = new Kor2RestaurantIntroResponse(new Kor2RestaurantIntroResponse.Response(
+                first.response().header(),
+                new Kor2RestaurantIntroResponse.Body(
+                        new Kor2RestaurantIntroResponse.Items(List.of(firstItem, secondItem)),
+                        2,
+                        1,
+                        2
+                )
+        ));
+        context.recordRestaurantDetail("tour:9", conflict);
+
+        assertThat(resolvedOpeningHours(context))
+                .isNull();
+
+        context.recordRestaurantDetail("tour:9", first);
+        context.recordRestaurantDetail("tour:9", openingDetail("9", "00", null));
+
+        assertThat(resolvedOpeningHours(context))
+                .isNull();
+        assertThat(firstItem.restdatefood())
+                .isEqualTo("매주 월요일");
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {255, 256})
+    @DisplayName("영업시간 저장 컬럼 경계와 초과 원문의 미확정 처리")
+    void respectsOpeningHoursStorageLimit(int length) {
+
+        PlaceCandidateContext context = candidates();
+        String hours = "😀".repeat(length);
+        context.recordRestaurantDetail("tour:9", openingDetail("9", "00", hours));
+
+        assertThat(resolvedOpeningHours(context))
+                .isEqualTo(length == 255 ? hours : null);
+    }
+
+    @Test
+    @DisplayName("영업 근거 없는 Kakao 음식점의 AI 영업시간 제외")
+    void excludesKakaoOpeningGuess() {
+
+        PlaceCandidateContext context = new PlaceCandidateContext();
+        context.record(new PlaceWithRouteResult(
+                true,
+                "춘천식당",
+                "강원특별자치도 춘천시",
+                "127.73",
+                "37.88",
+                5,
+                "kakao:9",
+                "FD6",
+                "음식점"
+        ));
+
+        PlanPlaceResolver.Validation result = resolver.validate(
+                meal("닭갈비", "24시간", "kakao:9"),
+                context,
+                Set.of(),
+                Set.of()
+        );
+
+        assertThat(result.valid())
+                .isTrue();
+        assertThat(result
+                .schedule()
+                .restaurantDetail()
+                .openTime())
+                .isNull();
+    }
+
+    private String resolvedOpeningHours(PlaceCandidateContext context) {
+
+        PlanPlaceResolver.Validation result = resolver.validate(
+                meal("닭갈비", "24시간"),
+                context,
+                Set.of(),
+                Set.of()
+        );
+
+        assertThat(result.valid())
+                .isTrue();
+
+        return result
+                .schedule()
+                .restaurantDetail()
+                .openTime();
+    }
+
+    private Kor2RestaurantIntroResponse openingDetail(
+            String id,
+            String code,
+            String hours
+    ) {
+
+        JsonMapper mapper = JsonMapper
+                .builder()
+                .build();
+        var item = mapper.createObjectNode();
+        item.put("contentid", id);
+        item.put("contenttypeid", "39");
+        item.put("firstmenu", "닭갈비");
+        item.put("opentimefood", hours);
+        item.put("restdatefood", "매주 월요일");
+        var root = mapper.createObjectNode();
+        var response = root.putObject("response");
+        response
+                .putObject("header")
+                .put("resultCode", code);
+        response
+                .putObject("body")
+                .putObject("items")
+                .putArray("item")
+                .add(item);
+
+        return mapper.treeToValue(root, Kor2RestaurantIntroResponse.class);
+    }
 
     @ParameterizedTest
     @NullSource
@@ -576,6 +757,20 @@ class PlanRestaurantMenuContractTest {
 
     private PlanScheduleDetail meal(String menu) {
 
+        return meal(menu, null);
+    }
+
+    private PlanScheduleDetail meal(String menu, String hours) {
+
+        return meal(menu, hours, "tour:9");
+    }
+
+    private PlanScheduleDetail meal(
+            String menu,
+            String hours,
+            String candidateId
+    ) {
+
         return new PlanScheduleDetail(
                 ScheduleType.LUNCH,
                 CourseType.RESTAURANT,
@@ -596,13 +791,13 @@ class PlanRestaurantMenuContractTest {
                         null,
                         null,
                         null,
-                        null,
+                        hours,
                         null,
                         null,
                         null,
                         null
                 ),
-                "tour:9"
+                candidateId
         );
     }
 }

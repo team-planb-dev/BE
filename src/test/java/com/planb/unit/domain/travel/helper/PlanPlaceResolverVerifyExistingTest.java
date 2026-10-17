@@ -42,6 +42,11 @@ class PlanPlaceResolverVerifyExistingTest {
 
         assertTrue(validation.valid());
 
+        assertEquals(stored.restaurantDetail().openTime(), validation
+                .schedule()
+                .restaurantDetail()
+                .openTime());
+
         assertEquals("까치장칼국수", validation
                         .schedule()
                         .locationName());
@@ -140,7 +145,7 @@ class PlanPlaceResolverVerifyExistingTest {
                         0.0,
                         0.0,
                         0.0,
-                        "",
+                        "07:00~20:00",
                         "강원특별자치도 강릉시 강릉대로313번길 62",
                         "128.9052237686",
                         "37.7686363338",

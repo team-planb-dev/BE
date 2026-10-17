@@ -2,6 +2,7 @@ package com.planb.unit.global.client.kor2Service;
 
 import com.planb.global.client.kor2Service.Kor2ResponseCache;
 import com.planb.global.client.kor2Service.dto.response.Kor2KeywordSearchResponse;
+import com.planb.global.client.kor2Service.dto.response.Kor2RestaurantIntroResponse;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -47,6 +48,102 @@ class Kor2ResponseTestCache {
                 redis,
                 meterRegistry
         );
+    }
+
+    @Test
+    @DisplayName("이전 4필드 음식점 캐시의 영업정보 미확정 복원")
+    void readsLegacyRestaurantDetailWithoutOpeningFacts() {
+
+        when(values.get("kor2:detailIntro2:9"))
+                .thenReturn("""
+                        {"response":{"header":{"resultCode":"00"},"body":{"items":{"item":[{
+                        "contentid":"9","contenttypeid":"39","firstmenu":"국밥","treatmenu":"공깃밥"
+                        }]}}}}
+                        """);
+
+        var result = cache
+                .cached(
+                        "detailIntro2",
+                        "9",
+                        Duration.ofDays(7),
+                        Kor2RestaurantIntroResponse.class,
+                        () -> Mono.error(new AssertionError("unexpected provider call"))
+                )
+                .block()
+                .response()
+                .body()
+                .items()
+                .item()
+                .getFirst();
+
+        assertThat(result.firstmenu())
+                .isEqualTo("국밥");
+        assertThat(result.opentimefood())
+                .isNull();
+        assertThat(result.restdatefood())
+                .isNull();
+    }
+
+    @Test
+    @DisplayName("새 음식점 캐시의 영업시간·쉬는날 직렬화 왕복 보존")
+    void roundTripsRestaurantOpeningFactsThroughCache() {
+
+        var source = JsonMapper
+                .builder()
+                .build()
+                .readValue("""
+                        {"response":{"header":{"resultCode":"00"},"body":{"items":{"item":[{
+                        "contentid":"9","contenttypeid":"39","firstmenu":"국밥","treatmenu":"공깃밥",
+                        "opentimefood":"11:00~20:00","restdatefood":"매주 월요일"
+                        }]}}}}
+                        """, Kor2RestaurantIntroResponse.class);
+        var cold = cache
+                .cached(
+                        "detailIntro2",
+                        "9",
+                        Duration.ofDays(7),
+                        Kor2RestaurantIntroResponse.class,
+                        () -> Mono.just(source)
+                )
+                .block();
+        ArgumentCaptor<String> json = ArgumentCaptor.forClass(String.class);
+        verify(values)
+                .set(
+                        eq("kor2:detailIntro2:9"),
+                        json.capture(),
+                        eq(Duration.ofDays(7))
+                );
+        when(values.get("kor2:detailIntro2:9"))
+                .thenReturn(json.getValue());
+        var hit = cache
+                .cached(
+                        "detailIntro2",
+                        "9",
+                        Duration.ofDays(7),
+                        Kor2RestaurantIntroResponse.class,
+                        () -> Mono.error(new AssertionError("unexpected provider call"))
+                )
+                .block();
+
+        assertThat(hit)
+                .isEqualTo(cold)
+                .isEqualTo(source);
+        assertThat(hit
+                .response()
+                .body()
+                .items()
+                .item()
+                .getFirst()
+                .opentimefood())
+                .isEqualTo("11:00~20:00");
+        assertThat(hit
+                .response()
+                .body()
+                .items()
+                .item()
+                .getFirst()
+                .restdatefood())
+                .isEqualTo("매주 월요일");
     }
 
     @Test
