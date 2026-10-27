@@ -1,468 +1,314 @@
 # Yeoro — Health-aware Travel Planning
 
-A Spring Boot backend for travel itineraries that consider registered meal times,
-medication reminders, dietary preferences and travel conditions. OpenAI selects
-from external place and menu candidates; Java resolves source facts, checks
-contracts, repairs eligible failures and controls persistence.
+A Spring Boot backend for domestic travel plans that combine companion profiles,
+registered meal and medication schedules, and travel preferences.
+**AI selects; Java verifies source facts, protects edit scope and controls storage.**
 
-This is a planning aid. Nutrition database values, allergy keyword checks and
-restaurant opening-hour text are not clinical advice or guarantees of ingredient
-safety, actual serving size or whether a venue is open at a particular time.
+| Project | Details |
+|---|---|
+| Development | 2026-07-28 – 2026-10-17 |
+| Competition | 2026 관광데이터 활용 공모전(웹·앱 구현 부문) |
+| Backend | Java 21 · Spring Boot 4.0.2 · Spring AI 2.0.0 · MySQL · Redis |
+| Frontend | React, maintained in a separate repository |
 
-> Architecture and dependency review: 2026-10-18, main code `81ccc61` (PR #221).
-> The React frontend is maintained in a separate repository.
+[Features](#features) · [Architecture](#architecture) · [Refactoring](#refactoring) ·
+[Getting started](#getting-started) · [API](#api-and-authentication) · [Tests](#tests-and-observation)
 
 ## Features
 
-- JWT authentication, refresh token rotation and Redis-backed authentication cache
-- Companion profiles with multiple conditions, meal settings and medication rules
-- Travel generation using region, dates, transportation and requested places
-- Candidate ID and source-menu validation, route recalculation, required meal slots
-  and registered medication reminders
-- Natural-language edits through REST or STOMP, with preview, confirm and cancel
-- Request-scoped edit tokens, stale-result rejection and authenticated preview lookup
-- Saved itinerary listing and public share links
-- Source nutrition values and reference amounts, with unavailable/unevaluable states
+- **Companion profiles:** health consent, dietary restrictions, meal times and medication rules
+- **Itinerary generation:** region, dates, transportation, requested places and selected companions
+- **Source checks:** candidate identity, place type, original menu, route duration and required slots
+- **Partial editing:** natural-language requests over REST or STOMP, with before/after previews
+- **Explicit confirmation:** confirm, cancel and discard stale edit results without replacing the original early
+- **Saved plans and sharing:** itinerary lists and token-based public views
 
-## System Architecture
+Nutrition values and opening-hour text are reference data. They do not establish
+ingredient safety, actual serving size, clinical suitability or whether a venue
+will be open at the planned visit time. Medication slots reflect registered rules;
+they are not push notifications or medical instructions.
 
-A single Spring MVC application, with blocking orchestration and JPA/JDBC
-persistence. Outbound public APIs use `WebClient`; Spring AI's OpenAI integration
-uses its own synchronous OkHttp path. Including WebFlux does not make the entire
-request nonblocking.
+## Architecture
+
+One Spring MVC application with JPA/JDBC persistence. External public APIs use
+`WebClient`; the Spring AI OpenAI integration uses a synchronous OkHttp path.
+The application retains blocking orchestration rather than a full WebFlux rewrite.
 
 ```mermaid
 flowchart TB
     Client["Web client · separate repository"]
-    subgraph App["Spring Boot backend"]
-        REST["REST · Spring MVC"]
-        JWT["Spring Security · JWT filters"]
-        WS["Native WebSocket · /ws-stomp"]
-        STOMP["STOMP interceptor · CONNECT JWT / room membership"]
-        FAC["Facade · business steps through Services"]
-        SERVICES["User / Health / Travel / Chat Services"]
-        PLAN["PlanService · selection / validation / limited recovery"]
-        AI["Spring AI ChatClient · OpenAiClient"]
-        TOOLS["Request-bound Java Tool objects"]
-        HTTP["External clients · WebClient"]
-        TX["TravelTransactionService · readOnly / write templates"]
-    end
-    SQL[("MySQL · itinerary and edit-request state")]
-    CACHE[("Redis · auth / preview / API response caches")]
+    REST["REST · JWT authentication"]
+    WS["STOMP · CONNECT authentication / room membership"]
+    Facade["Facade · business sequence through Services"]
+    Services["User / Health / Travel / Chat Services"]
+    Plan["PlanService · select / verify / recover"]
+    AI["Spring AI · OpenAiClient / local Java Tools"]
+    HTTP["Provider clients · WebClient"]
     LLM["OpenAI · synchronous OkHttp"]
-    PUBLIC["TourAPI / Kakao / MFDS"]
-    Client --> REST --> JWT --> FAC
-    Client --> WS --> STOMP --> FAC
-    FAC --> SERVICES
-    SERVICES --> PLAN
-    PLAN --> AI
+    Providers["TourAPI / Kakao / MFDS"]
+    SQL[("MySQL · domain data / edit-request state")]
+    Redis[("Redis · auth / previews / provider caches")]
+    Client --> REST --> Facade
+    Client --> WS --> Facade
+    Facade --> Services
+    Services --> Plan --> AI
     AI --> LLM
-    AI --> TOOLS
-    PLAN --> HTTP
-    TOOLS --> HTTP
-    HTTP --> PUBLIC
-    SERVICES --> TX --> SQL
-    SERVICES --> CACHE
-    HTTP --> CACHE
+    AI --> HTTP
+    Plan --> HTTP --> Providers
+    Services --> SQL
+    Services --> Redis
+    HTTP --> Redis
 ```
 
-The main AI path passes local Java Tool objects to `ChatClient.tools(...)`.
-MCP server/client dependencies are present, but `McpToolConfig` currently exports
-an empty tool-object list. The generation flow does **not** require a separate
-remote MCP server hop. The `ai/mcp` package name alone is not a deployment boundary.
+### Responsibility boundaries
 
-### Responsibility Boundaries
-
-| Component | Responsibility |
+| Owner | Responsibility |
 |---|---|
-| Facade | Business sequence and calls to domain/query Services |
-| `PlanService` and helpers | Candidate selection, menu/source checks, scope preservation, time normalization and bounded recovery |
-| `TravelTransactionService` | Short readOnly/write boundaries through `TransactionTemplate` |
-| `OpenAiClient` | Model interaction, structured conversion, correction/retry and request call-budget enforcement |
-| `PlaceCandidateContext` | Candidate identities, original menus and verified restaurant opening-hour evidence within a request |
-| MySQL | Users, health profiles, itineraries, chat and authoritative edit-request state |
-| Redis | Authentication, token-keyed previews and nutrition/TourAPI response caches |
+| Facade | Business order through domain/query Services |
+| `PlanService` and helpers | Candidate/menu checks, edit-scope preservation, time normalization and bounded recovery |
+| `OpenAiClient` | Structured model output, correction/retry and request call budgets |
+| `PlaceCandidateContext` | Request-local candidate identities, original menus and opening-hour evidence |
+| `TravelTransactionService` | Short readOnly/write transactions through `TransactionTemplate` |
+| MySQL / Redis | Authoritative domain/request state / temporary results and reusable provider responses |
 
-### Generation and Transaction Boundaries
+Tools are local Java objects passed to `ChatClient.tools(...)`. MCP dependencies
+and package names do not imply a remote MCP server hop; `McpToolConfig` currently
+exports an empty tool-object list. Graph/workflow adapters are local experiments,
+not part of this main branch.
+
+### Generation: snapshot → AI and verification → atomic write
 
 ```mermaid
 sequenceDiagram
-    participant C as REST client
     participant F as TravelFacade
     participant S as TravelService
-    participant T as TravelTransactionService
-    participant D as MySQL
     participant P as PlanService
-    participant E as Spring AI and public APIs
-    C->>F: Generate itinerary
-    F->>S: loadHealthContexts
-    S->>T: readOnly transaction
-    T->>D: Validate user and companion ownership
-    D-->>T: Health and medication records
-    T-->>S: Materialized health snapshot
-    S-->>F: Value records
-    F->>P: makePlanByAi
-    P->>E: Select candidates and obtain source facts
-    E-->>P: Model choices and provider responses
-    P->>P: Resolve facts, normalize and validate
-    P-->>F: Validated generated plan
-    F->>S: saveGeneratedPlan
-    S->>T: write transaction
-    T->>D: Recheck ownership and atomically save full plan
-    T-->>S: Response assembled before commit
-    S-->>F: Committed result
-    F-->>C: Generated itinerary
+    participant E as Model and public APIs
+    participant DB as MySQL
+    F->>S: Load companion contexts
+    S->>DB: Short readOnly transaction · ownership and records
+    S-->>F: Materialized value snapshot
+    F->>P: Generate itinerary outside a DB transaction
+    P->>E: Candidate selection and source lookups
+    E-->>P: Choices and provider facts
+    P->>P: Resolve, normalize and validate
+    P-->>F: Validated plan
+    F->>S: Save generated plan
+    S->>DB: Short write transaction · recheck ownership / save full plan
+    S-->>F: Committed response
 ```
 
-No database transaction spans the AI/network wait in this generation path.
-Travel, plan, days, schedules and restaurant details are written in one final
-transaction; a partial itinerary is not committed on failure. Health input uses
-the start-of-request snapshot. Entity/LAZY access stays inside the relevant
-transaction. Ordinary short CRUD operations can still use `@Transactional`.
+The database connection is not held throughout the AI/network wait. Travel,
+plan, days, schedules and restaurant details commit together; a failed final
+write does not leave a partial itinerary. Health settings use the request-start
+snapshot, with entity/LAZY access inside the relevant transaction.
 
-### Edit Preview Lifecycle
+Generation already persists the itinerary. The later `saved` flag marks the
+user's save decision; it is distinct from database persistence and edit previews.
+[Transaction implementation](src/main/java/com/planb/domain/travel/service/TravelTransactionService.java).
+
+<details>
+<summary><strong>Edit previews and data relationships</strong></summary>
 
 ```mermaid
-flowchart TD
-    A["Authenticated REST request or STOMP chat"] --> B["Owner check / start latest request UUID"]
-    B --> DB[("MySQL Travel row · UUID / ready / confirmation")]
-    B --> C["Load edit context → AI edit → scope/source validation"]
-    C --> D{"Still current?"}
-    D -->|No| X["Reject or suppress stale result"]
-    D -->|Yes| R[("Redis · token-keyed preview · 25 min")]
-    R --> E["Mark ready / return or publish preview"]
-    E --> G["Owner GET preview · token returned"]
-    E --> H["Confirm expected token"]
-    E --> I["Cancel or newer request"]
-    H --> J["Lock Travel row / validate token / atomic SQL update"]
-    J --> K["Commit → cache cleanup and short confirmation cache"]
-    I --> L["Invalidate request / discard late completion"]
+flowchart LR
+    Start["Owner check / latest request UUID"] --> Edit["AI edit / scope and source checks"]
+    Edit --> Current{"Still current?"}
+    Current -->|No| Stale["Reject or suppress stale result"]
+    Current -->|Yes| Preview["Redis preview · 25 min / SQL ready state"]
+    Preview --> Confirm["Confirm current request / atomic SQL update"]
+    Preview --> Cancel["Cancel or newer request / invalidate old result"]
+    Confirm --> Cleanup["Commit / cache cleanup"]
 ```
 
-Preview generation can update request metadata, but it does not replace the saved
-itinerary until confirmation. SQL rollback keeps the preview available; cache
-cleanup follows commit. Request invalidation is not a guarantee that an in-flight
-provider call is interrupted. SQL and Redis do not form a distributed transaction.
-Frontend reconnect/recovery behavior must be implemented by the client.
-
-### Tools and Source Contracts
-
-| Tool family | Purpose |
-|---|---|
-| `searchAttractionsByRegion`, `searchRestaurantsByLocation` | Candidate discovery |
-| `getRestaurantDetail` | Provider menu text, opening-hour text and rest-day text for a matching TourAPI restaurant |
-| `findPlaceWithRoute`, `getRoute` | Place resolution and transportation-specific route duration |
-| `evaluateFoodNutrition` | Nutrition lookup and evaluation with explicit `UNAVAILABLE` / `NOT_EVALUABLE` outcomes |
-
-Tool outputs inform model selection, but Java still checks identity, place type,
-menu ownership and required fields. Invalid results can be rejected or locally
-reselected; no claim that a prompt prevents all hallucinations.
-
-Newly resolved restaurants use verified TourAPI opening-hour text, or null when
-there is no acceptable evidence. Existing saved schedule fallback remains intact.
-Rest-day text is preserved in provider DTO/cache data, not added as a new public
-schedule field. Opening text is not an open-at-visit-time decision. Nutrition
-reference amounts are database bases, not assumed restaurant portions.
-
-### Database Schema
-
-Relationship overview with selected columns, based on Flyway **V1–V20**.
-Edit-request state belongs to `travel`; there is no separate SQL preview-body table.
-The migration files remain the authoritative complete schema.
+SQL owns the request UUID, readiness and confirmation state; Redis owns the
+preview body. Confirmation locks the Travel row and validates a supplied token;
+omitting it targets the current request.
+SQL rollback preserves the preview; cleanup follows commit. Invalidation does
+not guarantee interruption of an in-flight provider call, and SQL/Redis are not
+a distributed transaction. Owner-authenticated GET supports preview recovery;
+reconnection UI remains the client's responsibility.
 
 ```mermaid
 erDiagram
     users ||--o{ health : owns
     users ||--o{ travel : owns
-    users ||--o{ chat_room_member : joins
-    users ||--o{ chat_message : sends
-    health ||--o{ health_disease : manages
-    health ||--o{ food_info : registers
+    health ||--o{ food_info : restricts
     health ||--o{ medication_info : registers
     medication_info ||--o{ medication_meal_rule : schedules
     travel ||--o{ travel_health : includes
-    health ||--o{ travel_health : participates
-    travel ||--o{ planned_place : requests
-    travel ||--o{ travel_local_food : selects
-    travel ||--o{ travel_recommend_food : recommends
+    health ||--o{ travel_health : joins
     travel ||--o| plan : contains
-    plan ||--o{ plan_recommendation_tag : describes
     plan ||--o{ plan_day : contains
     plan_day ||--o{ plan_schedule : contains
-    plan_schedule ||--o{ plan_schedule_tag : describes
     plan_schedule ||--o| restaurant_detail : details
     travel o|--o| chat_room : associates
-    chat_room ||--o{ chat_room_member : contains
-    chat_room ||--o{ chat_message : contains
-    users {
-        bigint id PK
-        varchar username UK
-    }
-    health {
-        bigint health_id PK
-        bigint users_id FK
-        varchar sensitive_agree
-        time lunch_time
-    }
-    medication_meal_rule {
-        bigint medication_info_id FK
-        varchar related_meal
-        varchar meal_timing
-        int interval_minutes
-    }
-    travel {
-        bigint travel_id PK
-        bigint users_id FK
-        varchar edit_request_id
-        char edit_preview_ready
-        varchar confirmed_edit_request_id
-        datetime edit_confirmed_at
-    }
-    plan_schedule {
-        bigint plan_schedule_id PK
-        bigint plan_day_id FK
-        time start_time
-        time end_time
-        int travel_minutes
-        int medication_interval_minutes
-    }
-    restaurant_detail {
-        bigint id PK
-        bigint plan_schedule_id FK, UK
-        varchar menu_name
-        double carbohydrate
-        double sodium
-        double fat
-        varchar nutrition_food_name
-        varchar nutrition_reference_amount
-        varchar nutrition_source
-        varchar open_time
-    }
+    chat_room ||--o{ chat_room_member : includes
+    users ||--o{ chat_room_member : joins
+    chat_room ||--o{ chat_message : stores
 ```
 
-## Refactoring Results
+Conceptual relationships, not the complete SQL schema. Companion profiles are
+owned by an account; they are not independent login accounts or chat members.
+[Flyway V1–V20](src/main/resources/db/migration/) is the schema source of truth.
 
-### Part 1 — Resource Efficiency and Concurrent Requests
+</details>
 
-| Change | Local evidence | Adopted scope |
+## Refactoring
+
+### Part 1 — Resource efficiency
+
+| Change | Local observation | Adopted scope |
 |---|---|---|
-| Separate snapshot, AI wait and final write | At 3 req/s, p95 31.486 → 6.13 s; Hikari pending maximum 47 → 0 | Transaction boundaries in main |
-| Virtual threads for blocking request waits | Independent 36 req/s comparison: p95 10.05 → 6.12 s | Environment-controlled; YAML default is false, Railway activation recorded separately |
-| Bounded nutrition lookup concurrency | With two 4 s nutrition stubs, enrichment about 8 → 4 s | Code available; production default concurrency 1 |
-| Repeatable observation and verification | k6 + Prometheus + Grafana, CI and regression gates | Local observation stack and GitHub Actions |
+| Short generation transactions | 3 req/s: p95 **31.486 → 6.13 s**, Hikari pending maximum **47 → 0** | Snapshot / AI / final-write separation |
+| Virtual threads | Independent 36 req/s comparison: p95 **10.05 → 6.12 s** | Environment toggle; YAML default false |
+| Bounded nutrition lookups | Two 4 s nutrition stubs: enrichment about **8 → 4 s** | Code available; production concurrency default 1 |
 
-These are local controlled-stub results, not live OpenAI latency or production
-capacity guarantees. Virtual threads keep blocking code; they reduce platform
-thread occupancy while waiting, not the provider's response time. Database pool
-and external limits remain. [Part 1 report](docs/perf/refactoring-part1-report.md).
+Controlled-stub results, not production capacity or live OpenAI latency.
+Virtual threads reduce platform-thread occupancy during supported blocking waits;
+DB pool size and provider limits remain. Railway activation is recorded separately
+from the default YAML setting.
 
-### Part 2 — Source Fidelity, Editing and Failure Contracts
+Evidence: [transaction result](docs/perf/phase5a-transaction-result.md) ·
+[36 req/s comparison](docs/perf/phase5b-main-comparison.md) ·
+[nutrition experiment](docs/perf/phase5c-nutrition-grafana-result.md).
 
-- Java candidate identity/source restoration and requested-place checks
-- Original menu parsing and structured correction guidance
-- Fix for prefetched restaurant candidates being cleared at AI-call entry
-- Target-only editing, preview/cancel protection and stale-request handling
-- Registered medication intervals, approved allergy keyword checks and route-error classification
-- Provider opening-hour preservation instead of accepting AI-invented opening text
-- Nutrition source/reference fields, response caches and failure observability
+### Part 2 — Source fidelity and editing contracts
 
-The menu-only follow-up observed 3/3 applied edits and 39/39 untouched slots
-preserved. Another REST batch preserved 60/60 untouched slots across four edits.
-These are scoped samples, not a general quality percentage. The latest adopted
-opening-hour patch passed **1,132** default tests, with a subsequent **57** focused
-tests after test-only refinements; these runs are not additive.
+- Restore place facts from candidate IDs; validate menu ownership and requested places
+- Preserve prefetched restaurant candidates at AI-call entry
+- Limit edits to requested targets and protect original/stale results
+- Separate route-provider failures from invalid AI selections
+- Preserve verified opening-hour text and nutrition source/reference fields
 
-Java workflow and LangGraph4j comparisons remain **local, unadopted experiments**.
-Typed stage results, request state and recovery observability were verified, but
-limited live menu-only samples did not establish a quality advantage. No graph
-engine dependency or workflow replacement is included in this main code.
-[Part 2 report](docs/ai/refactoring-part2-report.md).
+A menu-only batch observed **3/3 applied edits and 39/39 untouched slots preserved**;
+a separate four-edit REST batch preserved **60/60 untouched slots**. These are
+scoped observations, not an overall quality score. The adopted opening-hour patch
+passed 1,132 default tests; a subsequent 57-test focused run is not additive.
 
-Some report/experiment documents remain local and untracked pending separate
-publication; a fresh clone may not contain every linked evidence document.
+Java workflow and LangGraph4j experiments verified explicit state and recovery
+contracts but did not establish a quality advantage in limited live samples.
+**Production adoption remains deferred.** Nutrition completeness, actual portions,
+ingredients and open-at-visit-time checks also remain limited.
 
-## Technical Specification
+Evidence: [editing contracts](docs/ai/p2-6a-edit-scope-result.md) ·
+[opening-hour source context](src/main/java/com/planb/ai/context/PlaceCandidateContext.java) ·
+[AI documentation index](docs/ai/README.md).
 
-Versions below are repository declarations or configured reference environments,
-not a claim about every managed service's current runtime version.
+## Getting started
 
-| Area | Implementation / version | Scope |
-|---|---|---|
-| Language / build | Java 21 toolchain, Gradle wrapper 9.2.1 | Docker build/runtime use Temurin 21 JDK/JRE |
-| Framework | Spring Boot 4.0.2 | Spring MVC / embedded servlet runtime |
-| HTTP clients | WebFlux `WebClient`, Spring AI OpenAI synchronous OkHttp integration | Outbound API and model paths are distinct |
-| AI | Spring AI BOM 2.0.0, OpenAI model from `OPENAI_MODEL` | Local Java tool callbacks; MCP starters also declared |
-| Security | Spring Security, JJWT 0.12.3 | REST filters and STOMP interceptors |
-| Persistence | JPA/Hibernate, MySQL Connector/J, QueryDSL Jakarta 5.0.0 | Blocking JDBC; MySQL 8.4 reference test setup |
-| Schema | Flyway core + MySQL support, V1–V20 | `ddl-auto: validate` in local/prod/test/loadtest, `none` in legacy dev; OSIV disabled |
-| Cache | Spring Data Redis, Redis 7.2 reference setup | Authentication, previews, provider responses |
-| API docs | SpringDoc WebMVC UI 3.0.3 | OpenAPI and Swagger UI |
-| Tests | JUnit Platform, Mockito, Reactor Test, Testcontainers | Default tests exclude `external` |
-| Testcontainers declarations | Core/JUnit integration 1.21.3; MySQL module 2.0.5 | Actual resolution may differ through dependency management |
-| Application metrics | Actuator, Micrometer, Prometheus registry | Separate management port |
-| Local load observation | k6, Prometheus 3.15.0, Grafana 12.4.12 | Compose/runner images pinned by digest |
-| CI / deployment | GitHub Actions build, Railway main deployment | Backend repository only |
-
-Managed library versions without an explicit pin are resolved by the Spring Boot /
-Spring AI BOMs. Check `./gradlew dependencies` for the effective graph. React client
-implementation and frontend dependency versions are outside this backend review.
-
-## Project Structure
-
-```text
-BE/
-├── .github/workflows/           # CI for dev/main PRs and pushes
-├── docs/
-│   ├── ai/                     # Source/selection/edit contracts and Part 2 reports
-│   ├── perf/                   # Load experiments and Part 1 reports
-│   └── convention/             # Backend and collaboration rules
-├── src/main/java/com/planb/
-│   ├── ai/                     # Client, prompts, handlers, contexts, Java tools
-│   ├── domain/                 # user / health / travel / chat
-│   ├── query/                  # Query services and QueryDSL read layer
-│   └── global/                 # External clients, security, WebSocket, config
-├── src/main/resources/
-│   ├── db/migration/           # Flyway V1–V20
-│   ├── application.yml
-│   └── application-common-*.yml
-├── src/main/generated/         # Generated QueryDSL Q classes
-├── src/test/java/com/planb/     # Unit / controller / slice / integration
-├── src/test/k6/                # Load scenarios
-├── src/test/observability/     # Compose, Prometheus, Grafana and runner
-├── Dockerfile
-└── build.gradle
-```
-
-The original Java package / Gradle module names remain `com.planb` / `plan_b`.
-
-## Getting Started
-
-### Requirements
-
-Java 21, Git, MySQL and Redis. Docker Desktop/Engine is also needed for the
-Testcontainers tests and container-based load-observation stack.
+Java 21, Git, a provisioned MySQL database/user and Redis are required.
+Docker is needed for Testcontainers and the local observation stack.
 
 ```bash
 git clone https://github.com/team-planb-dev/BE.git
 cd BE
 ```
 
-### Environment
+Provide environment variables through the shell or IntelliJ run configuration.
+**This configuration does not automatically load `.env`.** Keep credentials out of Git.
 
-Supply variables through the shell or IntelliJ run configuration. A `.env` file
-is **not automatically loaded** by this Gradle/Spring configuration; keep secrets
-out of Git and configure explicit loading in your local tooling if using one.
+<details>
+<summary><strong>Environment variables and declared versions</strong></summary>
 
 | Variables | Purpose |
 |---|---|
 | `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD` | JDBC MySQL URL and credentials |
-| `REDIS_URL` | Redis URL; local defaults to `redis://localhost:6379`, production requires a value |
+| `REDIS_URL` | Local default `redis://localhost:6379`; required in production |
 | `JWT_SECRET` | JWT signing secret |
-| `OPENAI_API_KEY`, `OPENAI_MODEL` | Model authentication and selected model |
-| `OPENAI_REASONING_EFFORT` | Optional, default `none` |
-| `KOR2_SERVICE_URL`, `KOR2_SERVICE_KEY` | TourAPI URL and key |
-| `KAKAO_MAP_API_BASE_URL`, `KAKAO_MOBILITY_API_BASE_URL`, `KAKAO_REST_API_KEY` | Kakao URLs and authentication |
-| `FOOD_NTR_CPNT_URL`, `FOOD_NTR_CPNT_KEY` | MFDS nutrition URL and key |
-| `SPRING_PROFILES_ACTIVE` | `local` default; `dev`, `prod`, `test`, `loadtest` groups available |
-| `PORT`, `MANAGEMENT_PORT` | Application 8080 / management 8081 defaults |
-| `SPRING_THREADS_VIRTUAL_ENABLED` | Default false; explicitly enable virtual threads per environment |
-| `NUTRITION_LOOKUP_CONCURRENCY` | Production profile default 1; higher values require deliberate provider-load decisions |
-| `EXTERNAL_HTTP_CONNECT_TIMEOUT`, `EXTERNAL_HTTP_READ_TIMEOUT` | Boot-managed client defaults 5 s / 15 s; provider paths may have additional timeouts |
+| `OPENAI_API_KEY`, `OPENAI_MODEL` | Model credentials and selection |
+| `OPENAI_REASONING_EFFORT` | Optional; default `none` |
+| `KOR2_SERVICE_URL`, `KOR2_SERVICE_KEY` | TourAPI base URL and key |
+| `KAKAO_MAP_API_BASE_URL`, `KAKAO_MOBILITY_API_BASE_URL`, `KAKAO_REST_API_KEY` | Kakao base URLs and key |
+| `FOOD_NTR_CPNT_URL`, `FOOD_NTR_CPNT_KEY` | MFDS base URL and key |
+| `SPRING_PROFILES_ACTIVE` | Default `local`; profile groups in `application.yml` |
+| `PORT`, `MANAGEMENT_PORT` | Defaults 8080 / 8081 |
+| `SPRING_THREADS_VIRTUAL_ENABLED` | Default false; enable explicitly per environment |
+| `NUTRITION_LOOKUP_CONCURRENCY` | Production profile default 1 |
+| `EXTERNAL_HTTP_CONNECT_TIMEOUT`, `EXTERNAL_HTTP_READ_TIMEOUT` | Boot client defaults 5 s / 15 s; individual paths may add timeouts |
 
-Create the database and user first; Flyway then applies schema migrations on
-startup. The legacy `dev` profile instead reads `db.url`, `db.username` and
-`db.password`, and sets `ddl-auto: none`; it does not share the full local/prod
-environment table above. Use `local` for the setup shown here. The test profile is normally
-configured by test infrastructure, not a shortcut for running the application.
+Use `local` for these instructions. Legacy `dev` reads `db.url`, `db.username`
+and `db.password` instead. The test profile is configured by test infrastructure.
+Flyway applies migrations at startup; `ddl-auto` is `validate` for local/prod/test/loadtest
+and `none` for legacy dev. OSIV is disabled.
 
-### Build and Run
+| Area | Repository declaration |
+|---|---|
+| Language / build | Java 21 · Gradle wrapper 9.2.1 |
+| Framework / AI | Spring Boot 4.0.2 · Spring AI BOM 2.0.0 |
+| HTTP / messaging | MVC · outbound WebClient · OpenAI synchronous OkHttp · native STOMP |
+| Security | Spring Security · JJWT 0.12.3 |
+| Persistence | JPA/Hibernate · MySQL Connector/J · QueryDSL Jakarta 5.0.0 · Flyway |
+| Cache | Spring Data Redis; MySQL 8.4 / Redis 7.2 reference test environments |
+| API documentation | SpringDoc WebMVC UI 3.0.3 |
+| Test declarations | JUnit Platform · Mockito · Reactor Test · Testcontainers core/JUnit 1.21.3, MySQL module 2.0.5 |
+| Observation | Actuator · Micrometer · k6 · Prometheus 3.15.0 · Grafana 12.4.12 |
+
+Declarations/reference environments are not managed-service runtime guarantees.
+BOM-managed effective versions are available through `./gradlew dependencies`.
+See [build.gradle](build.gradle) and [profile configuration](src/main/resources/).
+
+</details>
+
+With the variables configured and MySQL/Redis running:
 
 ```bash
-./gradlew clean build
 ./gradlew bootRun
 ```
 
-Or run the built application:
+Swagger UI: <http://localhost:8080/swagger-ui.html> · OpenAPI: <http://localhost:8080/v3/api-docs>.
+Build with `./gradlew clean build` when Docker is available, then run
+`java -jar build/libs/plan_b-0.0.1-SNAPSHOT.jar`. The original package/module names
+remain `com.planb` / `plan_b`.
 
-```bash
-java -jar build/libs/plan_b-0.0.1-SNAPSHOT.jar
-```
+## API and authentication
 
-Swagger UI: <http://localhost:8080/swagger-ui.html><br>
-OpenAPI: <http://localhost:8080/v3/api-docs>
-
-## API and Authentication
-
-| Route | Purpose |
+| Entry point | Purpose |
 |---|---|
-| `POST /login` | Authentication filter login |
-| `/api/v1/user`, `/api/v1/refresh/reissue` | User account and token lifecycle |
-| `/api/v1/health` | Companion health profiles |
-| `/api/v1/travel/add-with-recommend` | AI itinerary generation |
-| `/api/v1/travel/list`, `/get-ai-travel-plan`, `/save` | Travel routes under the same `/api/v1/travel` prefix |
-| `/api/v1/travel/share/issue`, `/shared/{shareToken}` | Share creation and public view under the same travel prefix |
-| `POST /api/v1/travel/edit-plan/preview` | Create an edit preview |
-| `GET /api/v1/travel/edit-plan/preview?travelId=...` | Owner lookup of the current preview |
-| `POST /api/v1/travel/edit-plan/confirm`, `/cancel` | Confirm/cancel under the edit-plan prefix |
-| `/api/v1/chat/room`, `/api/v1/chat/member` | Room and membership management |
+| `POST /login`, `/api/v1/refresh/reissue` | Login and token lifecycle |
+| `/api/v1/user`, `/api/v1/health` | Accounts and companion profiles |
+| `/api/v1/travel/add-with-recommend` | Generate an itinerary |
+| `/api/v1/travel/list`, `/get-ai-travel-plan`, `/save` | List/read/save under the travel prefix |
+| `/api/v1/travel/share/issue`, `/shared/{shareToken}` | Issue/read shares under the travel prefix |
+| `/api/v1/travel/edit-plan/preview`, `/confirm`, `/cancel` | Preview/confirm/cancel under the edit-plan prefix |
+| `/api/v1/chat/room`, `/api/v1/chat/member` | Rooms and membership |
 
-Native WebSocket endpoint: `/ws-stomp`. Send the JWT in the STOMP `CONNECT`
-`Authorization` header. Publish to `/pub/api/v1/chat/{roomId}/send` and subscribe to
-`/sub/api/v1/chat/{roomId}`. Room membership is checked for SEND and SUBSCRIBE;
-the HTTP handshake being permitted does not authorize chat access.
+Use [OpenAPI controllers](src/main/java/com/planb/domain/) and
+[SecurityConfig](src/main/java/com/planb/global/config/security/SecurityConfig.java)
+for exact methods, DTOs and public-route exceptions. REST normally requires JWT.
 
-REST endpoints require JWT except the configured login/sign-up/refresh/recovery,
-public sharing and API-documentation routes. See
-[`SecurityConfig`](src/main/java/com/planb/global/config/security/SecurityConfig.java)
-and OpenAPI DTOs for the exact contract, including optional edit tokens.
+Native WebSocket: `/ws-stomp`; authenticate in the STOMP `CONNECT` `Authorization`
+header, send to `/pub/api/v1/chat/{roomId}/send`, subscribe to
+`/sub/api/v1/chat/{roomId}`. SEND/SUBSCRIBE check room membership; editing also
+requires travel ownership. An allowed HTTP handshake does not authorize messages.
 
-## Tests
+## Tests and observation
 
 ```bash
 ./gradlew test
 ```
 
-Default tests exclude `@Tag("external")`. Unit/controller tests mock collaborators;
-slice/integration tests use Testcontainers and need a working Docker daemon.
-API keys are not needed for the default test suite.
-
-Live provider tests are a separate, metered operation:
+Default tests exclude `@Tag("external")` and require no provider keys.
+Slice/integration tests need Docker. Live provider tests are a separate metered operation:
 
 ```bash
 ./gradlew externalTest --tests 'com.planb.integration.domain.travel.TravelLlmQualityBaselineTest'
 ```
 
-They need the relevant environment and access to OpenAI/TourAPI/Kakao/MFDS.
-Use the declared evaluation protocol and record cache conditions, failures and
-sample denominators. Do not substitute local stub latency for actual model quality.
+Record scenarios, sample denominators, cache conditions and failures. Local
+stub latency does not measure live AI quality.
 
-## Metrics and Local Grafana
+<details>
+<summary><strong>Local k6 / Prometheus / Grafana</strong></summary>
 
-Actuator and Micrometer are enabled. The management server uses port 8081 by
-default, exposing only `health`, `metrics` and `prometheus`. It is separate from
-the public application port. Management requests still require authentication;
-port separation is not an operator-role policy. Keep the management port out of
-public routing. `health` is not configured as an anonymous public deployment probe.
-
-Metrics include JVM/HTTP/Hikari plus AI orchestration, stages, retries, nutrition
-and provider outcomes. Parent and child stage timers overlap; do not add all
-stage durations together. Application series are scoped by time range, while k6
-series carry `testid`.
-
-The **local** stack is in [`src/test/observability/`](src/test/observability/):
-Prometheus scrapes the app using a temporary JWT file, k6 sends remote-write
-series, and Grafana uses provisioned dashboards. Ports 9090/3000 bind to
-`127.0.0.1`; Prometheus retention is 2 days. This is not an installed production
-monitoring service.
-
-Start MySQL, Redis, the application with the `loadtest` profile and the stub server
-in separate processes. Keep the stub task running while exercising the app:
+The [observation guide](docs/perf/phase4a-observability.md) covers MySQL/Redis,
+the `loadtest` app and a separate stub process. Keep the stub running:
 
 ```bash
 OPENAI_STUB_DELAY_MS=3000 ./gradlew travelLoadTestStubs
 ```
 
-Then, in another terminal after the application is ready:
+Once the app is ready, run in another terminal:
 
 ```bash
 TESTID="local-$(date +%Y%m%d-%H%M%S)" \
@@ -472,57 +318,47 @@ PLAN_DURATION=60s \
 src/test/observability/run-observed-load.sh
 ```
 
-The runner creates the scraper token, starts Compose and prints the exact Grafana
-time-range link. Dashboard: <http://localhost:3000/d/travel-load>;
-Prometheus targets: <http://localhost:9090/targets>. Export measurement data and
-screenshots before retention expires; the dashboard definition JSON alone is not
-measurement evidence. The runner deletes the JWT on exit, after which a DOWN
-scrape target is expected. Stop Compose using the command printed by the runner.
-Detailed profile/setup instructions: [observation guide](docs/perf/phase4a-observability.md).
+The runner starts Compose and prints the measured Grafana time-range URL.
+Grafana: <http://localhost:3000/d/travel-load> · Prometheus: <http://localhost:9090/targets>.
+Both bind to loopback. Retention is 2 days; export values and screenshots before expiry.
+The runner removes its temporary scrape JWT on exit, so a later DOWN target is expected.
+Stop Compose with the command printed by the runner.
 
-Spring AI logging is INFO in the current configuration; external clients retain
-DEBUG configuration. No claim of centralized production log collection.
+This is a local stack, not production monitoring. Management defaults to port
+8081 with authenticated `health`, `metrics`, `prometheus`; keep it out of public
+routing. Port separation is not operator-role authorization, and `health` is not
+an anonymous deployment probe. Stage timers overlap and must not be summed.
+Application metrics use time ranges; k6 series carry `testid`.
 
-## CI and Deployment
+</details>
 
-```mermaid
-flowchart LR
-    B["Issue branch"] --> P["PR to dev"]
-    P --> CI["GitHub Actions · Java 21 · Gradle build and tests"]
-    CI --> D["Merge dev"]
-    D --> S["Sync PR to main · required build check"]
-    S --> M["Merge main"]
-    M --> R["Railway deployment from main"]
-```
+## CI, deployment and contribution
 
-[CI](.github/workflows/ci.yml) runs `./gradlew build` for dev/main PRs and pushes.
-The default test task excludes metered external tests. Failed jobs upload test
-reports; the build check gates protected-branch merges. Railway deploys main
-independently of the GitHub Actions job, rather than from a deploy step in CI.
+[GitHub Actions](.github/workflows/ci.yml) runs `./gradlew build` on dev/main PRs
+and pushes, including README-only changes. External tests are excluded.
+Railway deploys main separately from CI; the server being stopped does not change
+these repository triggers. Docker builds the Java 21 JAR without tests; CI is the build/test gate.
 
-The Dockerfile builds `bootJar` with a Java 21 JDK and runs it on a Java 21 JRE.
-Docker image build skips tests; the PR CI gate is the verification path. `PORT`
-controls the application listener. Production database migrations run at startup.
-Main merges change the deployment environment; publish only explicitly adopted
-scope, with a separate sync PR and deployment review.
+Normal changes follow Issue → branch → dev PR → main sync PR. Read the
+[repository templates](.github/ISSUE_TEMPLATE/) and
+[team convention](docs/convention/team-convention.md).
+Use `type : summary` commits, `#issue-number type : summary` PR/merge titles,
+owner/labels/type/Priority/Effort, and `Refs #N` for dev PRs. Close an issue explicitly
+when its accepted scope is merged into dev; a dev PR does not auto-close it.
+Main publication and server deployment require a separate decision.
 
-## Documentation and Contribution
+## Documentation and team
 
 - [AI contracts and evidence index](docs/ai/README.md)
+- [Performance experiments](docs/perf/)
 - [Backend convention](docs/convention/backend-convention.md)
-- [Part 1 report](docs/perf/refactoring-part1-report.md)
-- [Part 2 report](docs/ai/refactoring-part2-report.md)
 
-Use the repository Issue/PR/sync templates, English `type : summary` commit titles,
-`#issue-number type : summary` PR/merge titles, and `Refs #N` on dev-target PRs.
-Assign the owner, labels, Issue type, Priority and Effort. Close an issue explicitly
-when its accepted scope is merged into dev; do not rely on a dev PR to auto-close it.
-
-## Team
+Detailed portfolio reports are maintained locally and are not all part of a fresh clone.
+Architecture review: 2026-10-27, main code `81ccc61`; no graph engine in this main-code baseline.
 
 | Role | Name | GitHub |
-|------|------|--------|
-|PM|이승협|.|
-|Designer|조예원|.|
-| Backend | 강우주 | <a href="https://github.com/wooju-kang"><img src="https://github.com/KangWooJu.png?size=80" width="70"/></a> |
-| Frontend | 임성은 | <a href="https://github.com/sungeunlim03"><img src="https://github.com/sungeunlim03.png?size=80" width="70"/></a> |
+|---|---|---|
+| PM | 이승협 | — |
+| Designer | 조예원 | — |
+| Backend | 강우주 | [KangWooJu](https://github.com/KangWooJu) |
+| Frontend | 임성은 | [sungeunlim03](https://github.com/sungeunlim03) |
