@@ -41,6 +41,7 @@ import com.planb.domain.travel.dto.request.CreateTravelRequest;
 import com.planb.domain.travel.dto.request.EditPlanRequest;
 import com.planb.domain.travel.dto.request.GetAiPlanRequest;
 import com.planb.domain.travel.dto.response.EditPlanPreviewResponse;
+import com.planb.domain.travel.dto.response.ShareTravelResponse;
 import com.planb.domain.travel.entity.Travel;
 import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.DateType;
@@ -68,6 +69,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -171,7 +173,7 @@ public class ChatAiEditPlanIntegrationTest
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    @Autowired
+    @MockitoSpyBean
     private com.planb.domain.travel.service.TravelService travelService;
 
     @org.springframework.test.context.bean.override.mockito.MockitoSpyBean
@@ -1464,6 +1466,281 @@ public class ChatAiEditPlanIntegrationTest
                 .isEmpty();
     }
 
+    @Test
+    @DisplayName("동일 여행의 동시 최초 공유 발급과 두 응답 링크의 유효성")
+    void concurrentInitialShareIssuesOneUsableLink() throws Exception {
+
+        stubCreatePlan();
+        TestUser owner = createAuthenticatedUser();
+        Long travelId = createTravel(owner.accessToken(), "공유 동시 발급-" + createUniqueValue());
+        var request = new GetAiPlanRequest(travelId);
+        saveTravelHttp(owner, request);
+        TestUser foreign = createAuthenticatedUser();
+        mockMvc
+                .perform(post("/api/v1/travel/share/issue")
+                        .header("Authorization", foreign.accessToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+        assertThat(travelRepository.findById(travelId).orElseThrow().getShareToken())
+                .isNull();
+
+        CountDownLatch firstIssued = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicLong firstConnection = new AtomicLong();
+        doAnswer(invocation -> {
+            ShareTravelResponse response = (ShareTravelResponse) invocation.callRealMethod();
+            if (firstConnection.get() == 0) {
+                assertThat(response.shareToken())
+                        .isNotBlank();
+                assertThat(org.springframework.transaction.support.TransactionSynchronizationManager
+                        .isActualTransactionActive())
+                        .isTrue();
+                firstConnection.set(jdbcTemplate.queryForObject("SELECT CONNECTION_ID()", Long.class));
+                firstIssued.countDown();
+                assertThat(release.await(25, TimeUnit.SECONDS))
+                        .isTrue();
+            }
+            return response;
+        })
+                .when(travelService)
+                .issueShareLink(travelId);
+
+        String firstToken;
+        String secondToken;
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var first = executor.submit(() -> issueShare(owner, request));
+            try {
+                assertThat(firstIssued.await(10, TimeUnit.SECONDS))
+                        .isTrue();
+                var second = executor.submit(() -> issueShare(owner, request));
+                if (!waitsForTravelLock(second, firstConnection.get())) {
+                    String committedSecond = second.get(1, TimeUnit.SECONDS);
+                    assertThat(committedSecond.equals(travelRepository.findById(travelId).orElseThrow().getShareToken()))
+                            .as("첫 커밋 대기 중 두 번째 발급의 DB 반영")
+                            .isTrue();
+                }
+                release.countDown();
+                firstToken = first.get(10, TimeUnit.SECONDS);
+                secondToken = second.get(10, TimeUnit.SECONDS);
+            } finally {
+                release.countDown();
+            }
+        }
+
+        boolean firstUsable = isShareUsable(firstToken);
+        boolean secondUsable = isShareUsable(secondToken);
+        assertThat(firstToken.equals(secondToken))
+                .as("두 발급의 토큰 일치와 공개 조회 가능 여부: 첫째 %s, 둘째 %s", firstUsable, secondUsable)
+                .isTrue();
+        assertThat(firstUsable && secondUsable)
+                .isTrue();
+        assertThat(firstToken.equals(travelRepository.findById(travelId).orElseThrow().getShareToken()))
+                .isTrue();
+    }
+
+    @Test
+    @DisplayName("동시 저장 커밋 뒤 발급된 공유 링크 보존")
+    void lateSaveDoesNotClearIssuedShareLink() throws Exception {
+
+        stubCreatePlan();
+        TestUser owner = createAuthenticatedUser();
+        Long travelId = createTravel(owner.accessToken(), "저장과 공유 경합-" + createUniqueValue());
+        var request = new GetAiPlanRequest(travelId);
+        CountDownLatch firstSaved = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicLong connection = new AtomicLong();
+
+        doAnswer(invocation -> {
+            Object response = invocation.callRealMethod();
+            if (connection.get() == 0) {
+                connection.set(jdbcTemplate.queryForObject("SELECT CONNECTION_ID()", Long.class));
+                firstSaved.countDown();
+                assertThat(release.await(25, TimeUnit.SECONDS))
+                        .isTrue();
+            }
+            return response;
+        })
+                .when(travelService)
+                .markSaved(travelId);
+
+        String issuedToken;
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var first = executor.submit(() -> {
+                saveTravelHttp(owner, request);
+                return null;
+            });
+            try {
+                assertThat(firstSaved.await(10, TimeUnit.SECONDS))
+                        .isTrue();
+                var second = executor.submit(() -> {
+                    saveTravelHttp(owner, request);
+                    String token = issueShare(owner, request);
+                    assertThat(isShareUsable(token))
+                            .as("다른 저장 커밋 전 발급된 링크의 유효성")
+                            .isTrue();
+                    return token;
+                });
+                if (!waitsForTravelLock(second, connection.get())) {
+                    second.get(1, TimeUnit.SECONDS);
+                }
+
+                release.countDown();
+                first.get(10, TimeUnit.SECONDS);
+                issuedToken = second.get(10, TimeUnit.SECONDS);
+            } finally {
+                release.countDown();
+            }
+        }
+
+        assertThat(isShareUsable(issuedToken))
+                .as("두 저장 커밋 이후 이미 발급된 공유 링크의 유효성")
+                .isTrue();
+        assertThat(issuedToken.equals(travelRepository.findById(travelId).orElseThrow().getShareToken()))
+                .isTrue();
+    }
+
+    private boolean waitsForTravelLock(
+            Future<?> peer,
+            long blocker
+    ) throws Exception {
+
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (!peer.isDone() && System.nanoTime() < deadline) {
+            if (hasTravelLockWait(blocker)) {
+                return true;
+            }
+            Thread.sleep(30);
+        }
+        return false;
+    }
+
+    private void saveTravelHttp(
+            TestUser owner,
+            GetAiPlanRequest request
+    ) throws Exception {
+
+        mockMvc
+                .perform(post("/api/v1/travel/save")
+                        .header("Authorization", owner.accessToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    @DisplayName("같은 생성 입력의 독립 업무 보존")
+    void identicalIndependentGenerationsStayIndependent() throws Exception {
+
+        stubCreatePlan();
+        TestUser owner = createAuthenticatedUser();
+        String name = "독립 생성-" + createUniqueValue();
+
+        CreateTravelRequest identical = travelCreationFixture(owner.accessToken(), name);
+        Long first = createTravel(owner.accessToken(), identical);
+        Long second = createTravel(owner.accessToken(), identical);
+
+        assertThat(first)
+                .isNotEqualTo(second);
+        assertThat(scheduleIds(first))
+                .isNotEmpty()
+                .doesNotContainAnyElementsOf(scheduleIds(second));
+        assertThat(scheduleIds(second))
+                .isNotEmpty();
+    }
+
+    @Test
+    @DisplayName("확정 응답을 버린 뒤 동일 ID 재요청과 만료·권한 경계")
+    void discardedConfirmationResponseReplaysWithoutApplyingAgain() throws Exception {
+
+        stubCreatePlan();
+        TestUser owner = createAuthenticatedUser();
+        TestUser other = createAuthenticatedUser();
+        Long travelId = createTravel(owner.accessToken(), "확정 재응답-" + createUniqueValue());
+        Long otherTravelId = createTravel(owner.accessToken(), "다른 일정-" + createUniqueValue());
+        String requestId = editRequestService.start(travelId);
+        EditPlanAiResponse preview = editPlanAiResponse(List.of("재응답 검증"), true);
+        editRequestService.complete(travelId, requestId, preview);
+        GetAiPlanRequest request = new GetAiPlanRequest(travelId, requestId);
+        List<Long> originalSchedules = scheduleIds(travelId);
+
+        confirmHttp(owner, request)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+        List<Long> applied = scheduleIds(travelId);
+        assertThat(applied)
+                .isNotEmpty()
+                .doesNotContainAnyElementsOf(originalSchedules);
+        assertThat(travelRepository.findById(travelId).orElseThrow().getConfirmedEditRequestId())
+                .isEqualTo(requestId);
+
+        confirmHttp(owner, request)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+        confirmHttp(owner, new GetAiPlanRequest(travelId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+        confirmHttp(other, request)
+                .andExpect(status().isForbidden());
+        confirmHttp(owner, new GetAiPlanRequest(otherTravelId, requestId))
+                .andExpect(jsonPath("$.success").value(false));
+        assertThat(scheduleIds(travelId))
+                .isEqualTo(applied);
+        assertThat(jdbcTemplate.update(
+                "UPDATE travel SET edit_confirmed_at = CURRENT_TIMESTAMP - INTERVAL 10 MINUTE WHERE travel_id = ?",
+                travelId
+        ))
+                .isEqualTo(1);
+        confirmHttp(owner, request)
+                .andExpect(jsonPath("$.error.errorCode").value("PLAN.EXCEPTION.EDIT_RESULT_NOT_FOUND"));
+        assertThat(scheduleIds(travelId))
+                .isEqualTo(applied);
+    }
+
+    private org.springframework.test.web.servlet.ResultActions confirmHttp(
+            TestUser owner,
+            GetAiPlanRequest request
+    ) throws Exception {
+
+        return mockMvc
+                .perform(post("/api/v1/travel/edit-plan/confirm")
+                        .header("Authorization", owner.accessToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)));
+    }
+
+    private String issueShare(
+            TestUser owner,
+            GetAiPlanRequest request
+    ) throws Exception {
+
+        MvcResult result = mockMvc
+                .perform(post("/api/v1/travel/share/issue")
+                        .header("Authorization", owner.accessToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andReturn();
+        return objectMapper
+                .readTree(result.getResponse().getContentAsString())
+                .path("data")
+                .path("shareToken")
+                .asText();
+    }
+
+    private boolean isShareUsable(String token) throws Exception {
+
+        MvcResult result = mockMvc
+                .perform(get("/api/v1/travel/shared/{token}", token))
+                .andReturn();
+        return objectMapper
+                .readTree(result.getResponse().getContentAsString())
+                .path("success")
+                .asBoolean();
+    }
+
     private List<Long> scheduleIds(Long travelId) {
 
         return jdbcTemplate.queryForList(
@@ -1491,6 +1768,18 @@ public class ChatAiEditPlanIntegrationTest
 
     private void awaitTravelLockWait(long blocker) throws Exception {
 
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(8);
+        while (System.nanoTime() < deadline) {
+            if (hasTravelLockWait(blocker)) {
+                return;
+            }
+            Thread.sleep(50);
+        }
+        throw new AssertionError("같은 여행의 DB 잠금 대기 미관측");
+    }
+
+    private boolean hasTravelLockWait(long blocker) throws Exception {
+
         String query = """
                 SELECT COUNT(*)
                 FROM performance_schema.data_lock_waits w
@@ -1499,26 +1788,18 @@ public class ChatAiEditPlanIntegrationTest
                   ON l.ENGINE_LOCK_ID = w.REQUESTING_ENGINE_LOCK_ID
                 WHERE t.PROCESSLIST_ID = %d AND l.OBJECT_NAME = 'travel'
                 """.formatted(blocker);
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(8);
-
-        while (System.nanoTime() < deadline) {
-            var result = mysql.execInContainer(
-                    "mysql",
-                    "-uroot",
-                    "-p" + mysql.getPassword(),
-                    "--connect-timeout=2",
-                    "-N",
-                    "-e",
-                    query
-            );
-            assertThat(result.getExitCode())
-                    .isZero();
-            if (Long.parseLong(result.getStdout().strip()) > 0) {
-                return;
-            }
-            Thread.sleep(50);
-        }
-        throw new AssertionError("같은 여행의 DB 잠금 대기 미관측");
+        var result = mysql.execInContainer(
+                "mysql",
+                "-uroot",
+                "-p" + mysql.getPassword(),
+                "--connect-timeout=2",
+                "-N",
+                "-e",
+                query
+        );
+        assertThat(result.getExitCode())
+                .isZero();
+        return Long.parseLong(result.getStdout().strip()) > 0;
     }
 
     @Test
@@ -2072,72 +2353,64 @@ public class ChatAiEditPlanIntegrationTest
             String travelName
     ) throws Exception {
 
+        return createTravel(
+                accessToken,
+                travelCreationFixture(accessToken, travelName)
+        );
+    }
+
+    private CreateTravelRequest travelCreationFixture(
+            String accessToken,
+            String travelName
+    ) throws Exception {
+
         Long healthId = addCompanion(accessToken, travelName + " 동행인");
 
-        CreateTravelRequest createTravelRequest =
-                new CreateTravelRequest(
-                        travelName,
-                        "부산",
-                        "해운대구",
-                        LocalDate
-                                .now()
-                                .plusDays(7),
-                        DateType.DAY_TRIP,
-                        Transportation.TRANSIT,
-                        "해운대",
-                        List.of(
-                                new CreateTravelRequest.PlannedPlaceDetail(
-                                        "해운대해수욕장",
-                                        "부산광역시 해운대구"
-                                )
-                        ),
-                        TravelStyle.MATCH_MEAL_TIME,
-                        TravelTheme.TASTE,
-                        List.of("돼지국밥"),
-                        List.of(
-                                "밀면",
-                                "복국",
-                                "씨앗호떡",
-                                "어묵",
-                                "낙지볶음"
-                        ),
-                        List.of(healthId)
-                );
+        return new CreateTravelRequest(
+                travelName,
+                "부산",
+                "해운대구",
+                LocalDate
+                        .now()
+                        .plusDays(7),
+                DateType.DAY_TRIP,
+                Transportation.TRANSIT,
+                "해운대",
+                List.of(new CreateTravelRequest.PlannedPlaceDetail(
+                        "해운대해수욕장",
+                        "부산광역시 해운대구"
+                )),
+                TravelStyle.MATCH_MEAL_TIME,
+                TravelTheme.TASTE,
+                List.of("돼지국밥"),
+                List.of("밀면", "복국", "씨앗호떡", "어묵", "낙지볶음"),
+                List.of(healthId)
+        );
+    }
 
-        mockMvc
-                .perform(
-                        post(ADD_WITH_RECOMMEND_URL)
-                                .header(
-                                        "Authorization",
-                                        accessToken
-                                )
-                                .contentType(
-                                        MediaType.APPLICATION_JSON
-                                )
-                                .content(
-                                        objectMapper.writeValueAsString(
-                                                createTravelRequest
-                                        )
-                                )
-                )
-                .andExpect(status()
-                        .isOk())
-                .andExpect(
-                        jsonPath("$.success")
-                                .value(true)
-                );
+    private Long createTravel(
+            String accessToken,
+            CreateTravelRequest request
+    ) throws Exception {
 
-        Travel travel =
-                travelRepository
-                        .findAll()
-                        .stream()
-                        .filter(t -> t
-                                .getTravelName()
-                                .equals(travelName))
-                        .findFirst()
-                        .orElseThrow();
+        MvcResult result = mockMvc
+                .perform(post(ADD_WITH_RECOMMEND_URL)
+                        .header("Authorization", accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andReturn();
 
-        return travel.getId();
+        long travelId = objectMapper
+                .readTree(result.getResponse().getContentAsString())
+                .path("data")
+                .path("travelId")
+                .asLong();
+
+        assertThat(travelId)
+                .isPositive();
+        return travelId;
     }
 
     private void stubCreatePlan() {

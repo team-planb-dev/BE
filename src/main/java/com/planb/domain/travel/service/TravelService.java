@@ -512,7 +512,9 @@ public class TravelService {
 
     public SaveTravelResponse markSaved(Long travelId) {
 
-        Travel travel = findTravelById(travelId);
+        Travel travel = travelRepository
+                .findForEditUpdate(travelId)
+                .orElseThrow(() -> new BaseException(TravelExceptionEnum.TRAVEL_NOT_FOUND));
         travel.markSaved();
 
         return new SaveTravelResponse(travelId, travel.isSaved());
@@ -520,7 +522,9 @@ public class TravelService {
 
     public ShareTravelResponse issueShareLink(Long travelId) {
 
-        Travel travel = findTravelById(travelId);
+        Travel travel = travelRepository
+                .findForEditUpdate(travelId)
+                .orElseThrow(() -> new BaseException(TravelExceptionEnum.TRAVEL_NOT_FOUND));
 
         if (!travel.isSaved()) {
             throw new BaseException(TravelExceptionEnum.TRAVEL_NOT_SAVED);
