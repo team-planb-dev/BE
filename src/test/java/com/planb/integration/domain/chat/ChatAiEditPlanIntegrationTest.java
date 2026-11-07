@@ -13,6 +13,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
@@ -20,6 +21,8 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
 import com.planb.ai.context.PlaceCandidateContext;
 import com.planb.ai.context.PlanEditContext;
@@ -60,6 +63,7 @@ import com.planb.integration.domain.chat.helper.ChatIntegrationTestSupport;
 import com.planb.integration.domain.chat.helper.StompTestClientHelper;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -83,6 +87,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -172,6 +177,12 @@ public class ChatAiEditPlanIntegrationTest
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
+
+    @Autowired
+    private StringRedisTemplate redis;
 
     @MockitoSpyBean
     private com.planb.domain.travel.service.TravelService travelService;
@@ -1741,6 +1752,98 @@ public class ChatAiEditPlanIntegrationTest
                 .asBoolean();
     }
 
+    @Test
+    @DisplayName("Redis 저장 뒤 SQL 롤백의 미리보기 비공개와 잔여 키 만료")
+    void rolledBackReadyStateHidesExistingPreviewCache() throws Exception {
+
+        stubCreatePlan();
+        TestUser owner = createAuthenticatedUser();
+        Long travelId = createTravel(owner.accessToken(), "캐시 고립-" + createUniqueValue());
+        String requestId = editRequestService.start(travelId);
+        EditPlanAiResponse preview = editPlanAiResponse(List.of("롤백 미리보기"), true);
+        List<Long> originalSchedules = scheduleIds(travelId);
+
+        new TransactionTemplate(transactionManager)
+                .executeWithoutResult(status -> {
+                    editRequestService.complete(travelId, requestId, preview);
+                    assertThat(planEditCacheService.findRequestResult(travelId, requestId))
+                            .contains(preview);
+                    travelRepository.flush();
+                    assertThat(jdbcTemplate.queryForObject(
+                            "SELECT edit_preview_ready FROM travel WHERE travel_id = ?",
+                            String.class,
+                            travelId
+                    ))
+                            .isEqualTo("Y");
+                    status.setRollbackOnly();
+                });
+
+        assertThat(travelRepository.findById(travelId).orElseThrow().isEditPreviewReady())
+                .isFalse();
+        assertThat(planEditCacheService.findRequestResult(travelId, requestId))
+                .contains(preview);
+        assertThatThrownBy(() -> travelFacade.getEditPlanPreview(travelId, owner.username()))
+                .isInstanceOfSatisfying(BaseException.class, failure ->
+                        assertThat(failure.getErrorCode()).isEqualTo("PLAN.EXCEPTION.EDIT_RESULT_NOT_READY"));
+        assertThatThrownBy(() -> travelService.confirmEditPlanInTransaction(travelId, requestId))
+                .isInstanceOfSatisfying(BaseException.class, failure ->
+                        assertThat(failure.getErrorCode()).isEqualTo("PLAN.EXCEPTION.EDIT_RESULT_NOT_READY"));
+        assertThat(scheduleIds(travelId))
+                .isEqualTo(originalSchedules);
+
+        String fixtureKey = "plan-edit:" + travelId + ":" + requestId;
+        assertThat(redis.getExpire(fixtureKey, TimeUnit.MILLISECONDS))
+                .isPositive()
+                .isLessThanOrEqualTo(Duration.ofMinutes(25).toMillis());
+        assertThat(redis.expire(fixtureKey, Duration.ZERO))
+                .isTrue();
+        assertThat(planEditCacheService.findRequestResult(travelId, requestId))
+                .isEmpty();
+        assertThatThrownBy(() -> travelFacade.getEditPlanPreview(travelId, owner.username()))
+                .isInstanceOfSatisfying(BaseException.class, failure ->
+                        assertThat(failure.getErrorCode()).isEqualTo("PLAN.EXCEPTION.EDIT_RESULT_NOT_READY"));
+    }
+
+    @Test
+    @DisplayName("확정 뒤 미리보기 삭제 실패에서 기존 저장과 새 요청 유지")
+    void failedPreviewDeletionDoesNotUndoCommitOrReplaceNewRequest() throws Exception {
+
+        stubCreatePlan();
+        TestUser owner = createAuthenticatedUser();
+        Long travelId = createTravel(owner.accessToken(), "삭제 실패-" + createUniqueValue());
+        String oldId = editRequestService.start(travelId);
+        EditPlanAiResponse oldPreview = editPlanAiResponse(List.of("확정한 미리보기"), true);
+        editRequestService.complete(travelId, oldId, oldPreview);
+        List<Long> originalSchedules = scheduleIds(travelId);
+        doThrow(new IllegalStateException("injected Redis delete failure"))
+                .when(editCacheRepository)
+                .deleteRequest(travelId, oldId);
+
+        assertThat(travelService.confirmEditPlanInTransaction(travelId, oldId).planDays())
+                .isEqualTo(oldPreview.planDays());
+        verify(editCacheRepository)
+                .deleteRequest(travelId, oldId);
+        List<Long> applied = scheduleIds(travelId);
+        assertThat(applied)
+                .isNotEmpty()
+                .doesNotContainAnyElementsOf(originalSchedules);
+        assertThat(planEditCacheService.findRequestResult(travelId, oldId))
+                .contains(oldPreview);
+
+        String current = editRequestService.start(travelId);
+        EditPlanAiResponse currentPreview = editPlanAiResponse(List.of("새 미리보기"), true);
+        editRequestService.complete(travelId, current, currentPreview);
+        assertThat(travelService.confirmEditPlanInTransaction(travelId, oldId).planDays())
+                .isEqualTo(oldPreview.planDays());
+        assertThat(scheduleIds(travelId))
+                .isEqualTo(applied);
+        EditPlanPreviewResponse visible = travelFacade.getEditPlanPreview(travelId, owner.username());
+        assertThat(visible.editRequestId())
+                .isEqualTo(current);
+        assertThat(visible.after())
+                .isEqualTo(currentPreview);
+    }
+
     private List<Long> scheduleIds(Long travelId) {
 
         return jdbcTemplate.queryForList(
@@ -1809,10 +1912,17 @@ public class ChatAiEditPlanIntegrationTest
         stubCreatePlan();
         TestUser user = createAuthenticatedUser();
         Long travelId = createTravel(user.accessToken(), "확정 복구-" + createUniqueValue());
+        List<Long> originalSchedules = scheduleIds(travelId);
+        var original = travelFacade.getAiPlan(new GetAiPlanRequest(travelId), user.username());
         String requestId = editRequestService.start(travelId);
         EditPlanAiResponse preview = editPlanAiResponse(List.of("카페 변경"), true);
         editRequestService.complete(travelId, requestId, preview);
-        org.mockito.Mockito.doThrow(new IllegalStateException("write failed"))
+        doAnswer(invocation -> {
+            travelRepository.flush();
+            assertThat(scheduleIds(travelId))
+                    .isEmpty();
+            throw new IllegalStateException("write failed");
+        })
                 .when(planDayService)
                 .deleteAllByPlan(org.mockito.ArgumentMatchers.any());
 
@@ -1824,6 +1934,10 @@ public class ChatAiEditPlanIntegrationTest
             org.mockito.Mockito.reset(planDayService);
         }
 
+        assertThat(scheduleIds(travelId))
+                .isEqualTo(originalSchedules);
+        assertThat(travelFacade.getAiPlan(new GetAiPlanRequest(travelId), user.username()))
+                .isEqualTo(original);
         assertThat(editService.findPreview(travelId).after())
                 .isEqualTo(preview);
         assertThat(travelService.confirmEditPlanInTransaction(travelId, requestId).planDays())
@@ -1895,6 +2009,9 @@ public class ChatAiEditPlanIntegrationTest
         try {
             assertThat(travelService.confirmEditPlanInTransaction(travelId, requestId).planDays())
                     .isEqualTo(preview.planDays());
+            verify(editCacheRepository)
+                    .saveConfirmedRequest(eq(travelId), eq(requestId), eq(preview),
+                            org.mockito.ArgumentMatchers.anyLong());
             var replay = travelService.confirmEditPlanInTransaction(travelId, requestId);
             assertThat(replay.planDays().getFirst().schedules())
                     .extracting(CreatePlanAiResponse.PlanScheduleDetail::locationName)
