@@ -30,6 +30,8 @@ import com.planb.domain.travel.service.NutritionService;
 import com.planb.domain.travel.entity.constant.NutritionEvaluationStatus;
 import com.planb.global.client.kakaoMapService.dto.response.KakaoPlaceSearchResponse;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
+import com.planb.query.travel.dto.response.TravelConditionQueryResponse;
+import com.planb.query.travel.service.TravelQueryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,7 +41,9 @@ import org.springframework.http.MediaType;
 import org.mockito.ArgumentCaptor;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.test.web.servlet.MvcResult;
 import reactor.core.publisher.Mono;
 import tools.jackson.databind.JsonNode;
@@ -50,7 +54,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -77,6 +85,12 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
 
     @MockitoSpyBean
     private RestaurantDetailService restaurantDetailService;
+
+    @MockitoSpyBean
+    private TravelQueryService travelQueryService;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     @Autowired
     private TravelRepository travels;
@@ -928,6 +942,170 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         assertThat(first)
                 .isNotBlank()
                 .isEqualTo(second);
+    }
+
+    @Test
+    @DisplayName("공유 상세 조회 중 별도 쓰기 커밋 이후 단일 스냅샷 유지")
+    void sharedReadKeepsOneCommittedVersion() throws Exception {
+
+        stubCreate(true);
+        success(postApi("/add-with-recommend", request));
+        Long id = travelId();
+        success(postApi("/save", new GetAiPlanRequest(id)));
+        String token = success(postApi("/share/issue", new GetAiPlanRequest(id)))
+                .path("shareToken")
+                .asText();
+        Long scheduleId = jdbcTemplate.queryForObject(
+                """
+                SELECT MIN(ps.plan_schedule_id)
+                FROM plan_schedule ps
+                JOIN plan_day pd ON pd.plan_day_id = ps.plan_day_id
+                JOIN plan p ON p.plan_id = pd.plan_id
+                WHERE p.travel_id = ?
+                """,
+                Long.class,
+                id
+        );
+        TransactionTemplate writer = new TransactionTemplate(transactionManager);
+        writer.setTimeout(10);
+        JsonNode before = shared(token);
+
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            for (int iteration = 0; iteration < 100; iteration++) {
+                CountDownLatch headerRead = new CountDownLatch(1);
+                CountDownLatch writerCommitted = new CountDownLatch(1);
+                AtomicBoolean pauseOnce = new AtomicBoolean(true);
+                AtomicLong readerConnection = new AtomicLong();
+                doAnswer(invocation -> {
+                    TravelConditionQueryResponse header =
+                            (TravelConditionQueryResponse) invocation.callRealMethod();
+                    if (pauseOnce.getAndSet(false)) {
+                        assertThat(TransactionSynchronizationManager.isActualTransactionActive())
+                                .isTrue();
+                        assertThat(TransactionSynchronizationManager.isCurrentTransactionReadOnly())
+                                .isTrue();
+                        assertThat(jdbcTemplate.queryForObject(
+                                "SELECT @@session.transaction_isolation",
+                                String.class
+                        ))
+                                .isEqualTo("REPEATABLE-READ");
+                        assertThat(jdbcTemplate.queryForObject("SELECT @@autocommit", Integer.class))
+                                .isZero();
+                        readerConnection.set(jdbcTemplate.queryForObject("SELECT CONNECTION_ID()", Long.class));
+                        headerRead.countDown();
+                        assertThat(writerCommitted.await(15, TimeUnit.SECONDS))
+                                .isTrue();
+                    }
+                    return header;
+                })
+                        .when(travelQueryService)
+                        .getTravelConditionQueryResponse(id);
+
+                String nextStyle = iteration % 2 == 0
+                        ? "LESS_WALK"
+                        : "MATCH_MEAL_TIME";
+                String nextLocation = "동시 조회 검증 장소 " + iteration;
+                var reader = executor.submit(() -> shared(token));
+                try {
+                    assertThat(headerRead.await(15, TimeUnit.SECONDS))
+                            .isTrue();
+                    writer.executeWithoutResult(status -> {
+                        assertThat(jdbcTemplate.queryForObject("SELECT CONNECTION_ID()", Long.class))
+                                .isNotEqualTo(readerConnection.get());
+                        assertThat(jdbcTemplate.update(
+                                "UPDATE travel SET travel_style = ? WHERE travel_id = ?",
+                                nextStyle,
+                                id
+                        ))
+                                .isEqualTo(1);
+                        assertThat(jdbcTemplate.update(
+                                "UPDATE plan_schedule SET location_name = ? WHERE plan_schedule_id = ?",
+                                nextLocation,
+                                scheduleId
+                        ))
+                                .isEqualTo(1);
+                    });
+                } finally {
+                    writerCommitted.countDown();
+                }
+
+                assertThat(reader.get(15, TimeUnit.SECONDS))
+                        .isEqualTo(before);
+                JsonNode after = shared(token);
+                JsonNode travelStyle = after.path("travelStyle");
+                assertThat(travelStyle.isObject() ? travelStyle.path("code").asText() : travelStyle.asText())
+                        .isEqualTo(nextStyle);
+                boolean locationChanged = false;
+                for (JsonNode day : after.path("planDays")) {
+                    for (JsonNode schedule : day.path("schedules")) {
+                        locationChanged |= nextLocation.equals(schedule.path("locationName").asText());
+                    }
+                }
+                assertThat(locationChanged)
+                        .isTrue();
+                before = after;
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("AI 대기 중 동행인 동의 철회 시 기존 건강 스냅샷 유지")
+    void keepsCapturedHealthSnapshotAfterConsentRevocation() throws Exception {
+
+        doAnswer(invocation -> {
+            TravelPlanContext context = invocation.getArgument(0);
+            assertThat(TransactionSynchronizationManager.isActualTransactionActive())
+                    .isFalse();
+            assertThat(jdbcTemplate.update(
+                    "UPDATE health SET sensitive_agree = 'N' WHERE health_id = ?",
+                    selectedHealthId
+            ))
+                    .isEqualTo(1);
+            assertThat(context.healthContexts())
+                    .extracting(health -> health.travelerName())
+                    .containsExactly("동행인1");
+            return fixture(1, invocation.getArgument(1), false);
+        })
+                .when(handler)
+                .createPlanByAi(any(), any());
+
+        success(postApi("/add-with-recommend", request));
+
+        assertThat(healths.findById(selectedHealthId).orElseThrow().isSensitiveAgree())
+                .isFalse();
+        assertThat(travelHealths.findAllByTravelId(travelId()))
+                .hasSize(1);
+    }
+
+    @Test
+    @DisplayName("AI 대기 중 동행인 소유권 변경 시 저장 거부와 부분 저장 방지")
+    void rejectsCompanionOwnershipChangeBeforeWrite() throws Exception {
+
+        String otherUsername = createUniqueUsername();
+        createUser(otherUsername);
+        List<Long> before = counts();
+
+        doAnswer(invocation -> {
+            TravelPlanContext context = invocation.getArgument(0);
+            assertThat(context.healthContexts())
+                    .extracting(health -> health.travelerName())
+                    .containsExactly("동행인1");
+            assertThat(TransactionSynchronizationManager.isActualTransactionActive())
+                    .isFalse();
+            assertThat(jdbcTemplate.update(
+                    "UPDATE health SET users_id = (SELECT id FROM users WHERE username = ?) WHERE health_id = ?",
+                    otherUsername,
+                    selectedHealthId
+            ))
+                    .isEqualTo(1);
+            return fixture(1, invocation.getArgument(1), false);
+        })
+                .when(handler)
+                .createPlanByAi(any(), any());
+
+        assertError(postApi("/add-with-recommend", request), "TRAVEL.EXCEPTION.COMPANION_NOT_OWNED");
+        assertThat(counts())
+                .isEqualTo(before);
     }
 
     @Test
@@ -1868,6 +2046,18 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         return objectMapper.readTree(result
                         .getResponse()
                 .getContentAsString());
+    }
+
+    private JsonNode shared(String token) throws Exception {
+
+        MvcResult result = mockMvc
+                .perform(get("/api/v1/travel/shared/{token}", token))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        return success(objectMapper.readTree(
+                result.getResponse().getContentAsString()
+        ));
     }
 
     private JsonNode stored(Long id) throws Exception {

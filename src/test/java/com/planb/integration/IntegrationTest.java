@@ -27,7 +27,7 @@ public abstract class IntegrationTest {
     protected MockMvc mockMvc;
 
     @Container
-    static final MySQLContainer mysql =
+    protected static final MySQLContainer mysql =
             new MySQLContainer("mysql:8.4")
                     .withDatabaseName("test")
                     .withUsername("test")

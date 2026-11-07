@@ -8,9 +8,15 @@ import com.planb.domain.health.entity.constant.WalkType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MvcResult;
@@ -27,10 +33,14 @@ import com.planb.ai.dto.response.PlaceWithRouteResult;
 import com.planb.ai.dto.response.PlanEditScope;
 import com.planb.ai.handler.TravelRecommendHandler;
 import com.planb.domain.chat.dto.MessageType;
+import com.planb.domain.chat.service.ChatMessageService;
 import com.planb.domain.chat.dto.request.SendChatMessageRequest;
 import com.planb.domain.chat.dto.response.SendChatMessageResponse;
 import com.planb.domain.travel.dto.nutrition.NutritionEvaluationResult;
 import com.planb.domain.travel.dto.request.CreateTravelRequest;
+import com.planb.domain.travel.dto.request.EditPlanRequest;
+import com.planb.domain.travel.dto.request.GetAiPlanRequest;
+import com.planb.domain.travel.dto.response.EditPlanPreviewResponse;
 import com.planb.domain.travel.entity.Travel;
 import com.planb.domain.travel.entity.constant.CourseType;
 import com.planb.domain.travel.entity.constant.DateType;
@@ -44,6 +54,7 @@ import com.planb.domain.travel.repository.TravelRepository;
 import com.planb.domain.travel.service.NutritionService;
 import com.planb.domain.travel.service.PlanEditCacheService;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
+import com.planb.global.config.exception.domain.BaseException;
 import com.planb.integration.domain.chat.helper.ChatIntegrationTestSupport;
 import com.planb.integration.domain.chat.helper.StompTestClientHelper;
 import reactor.core.publisher.Mono;
@@ -52,16 +63,26 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.hamcrest.Matchers.hasItem;
@@ -135,11 +156,20 @@ public class ChatAiEditPlanIntegrationTest
     @MockitoBean
     private NutritionService nutritionService;
 
-    @Autowired
+    @MockitoSpyBean
     private com.planb.domain.travel.service.PlanEditRequestService editRequestService;
 
-    @Autowired
+    @MockitoSpyBean
     private com.planb.domain.travel.service.PlanEditService editService;
+
+    @Autowired
+    private ChatMessageService chatMessageService;
+
+    @MockitoSpyBean
+    private SimpMessagingTemplate messagingTemplate;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @Autowired
     private com.planb.domain.travel.service.TravelService travelService;
@@ -1203,6 +1233,292 @@ public class ChatAiEditPlanIntegrationTest
                 .isEqualTo(current);
         assertThat(editService.findPreview(travelId).after())
                 .isEqualTo(preview);
+    }
+
+    @Test
+    @DisplayName("현재 수정안 발행 중 동일 여행 잠금 대기와 독립 여행 진행")
+    void publicationSerializesSameTravelWithoutBlockingAnother() throws Exception {
+
+        stubCreatePlan();
+        TestUser owner = createAuthenticatedUser();
+        TestUser other = createAuthenticatedUser();
+        Long travelId = createTravel(owner.accessToken(), "발행 경합-" + createUniqueValue());
+        Long otherTravelId = createTravel(other.accessToken(), "독립 여행-" + createUniqueValue());
+        Long roomId = findOrCreateTravelChatRoom(owner.accessToken(), travelId);
+
+        String firstId = editRequestService.start(travelId);
+        EditPlanAiResponse first = editPlanAiResponse(List.of("먼저 발행"), true);
+        editRequestService.complete(travelId, firstId, first);
+        EditPlanPreviewResponse ready = editService.findPreview(travelId);
+        Long messageCount = countRoomMessages(roomId);
+
+        CountDownLatch locked = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicLong blocker = new AtomicLong();
+        doAnswer(invocation -> {
+            boolean current = (boolean) invocation.callRealMethod();
+            if (current) {
+                blocker.set(jdbcTemplate.queryForObject("SELECT CONNECTION_ID()", Long.class));
+                locked.countDown();
+                assertThat(release.await(25, TimeUnit.SECONDS))
+                        .isTrue();
+            }
+            return current;
+        })
+                .when(editRequestService)
+                .isReadyCurrent(travelId, firstId);
+
+        String secondId;
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var publishing = executor.submit(() ->
+                    chatMessageService.publishCurrentTalkReply(roomId, travelId, Optional.of(ready)));
+            try {
+                assertThat(locked.await(10, TimeUnit.SECONDS))
+                        .isTrue();
+                var sameTravel = executor.submit(() -> editRequestService.start(travelId));
+                awaitTravelLockWait(blocker.get());
+
+                var independent = executor.submit(() -> {
+                    String otherId = editRequestService.start(otherTravelId);
+                    EditPlanAiResponse otherPreview = editPlanAiResponse(List.of("독립 여행 변경"), true);
+                    editRequestService.complete(otherTravelId, otherId, otherPreview);
+                    return otherId;
+                });
+                String otherId = independent.get(10, TimeUnit.SECONDS);
+                EditPlanPreviewResponse independentPreview = editService.findPreview(otherTravelId);
+                assertThat(independentPreview.editRequestId())
+                        .isEqualTo(otherId);
+                assertThat(independentPreview.after().changes())
+                        .containsExactly("독립 여행 변경");
+                assertThat(sameTravel.isDone())
+                        .isFalse();
+
+                release.countDown();
+                publishing.get(10, TimeUnit.SECONDS);
+                secondId = sameTravel.get(10, TimeUnit.SECONDS);
+            } finally {
+                release.countDown();
+            }
+        }
+
+        assertThat(countRoomMessages(roomId))
+                .isEqualTo(messageCount + 1);
+        assertThat(travelRepository.findById(travelId).orElseThrow().getEditRequestId())
+                .isEqualTo(secondId);
+        chatMessageService.publishCurrentTalkReply(roomId, travelId, Optional.of(ready));
+        assertThat(countRoomMessages(roomId))
+                .isEqualTo(messageCount + 1);
+
+        ArgumentCaptor<SendChatMessageResponse> sent =
+                ArgumentCaptor.forClass(SendChatMessageResponse.class);
+        verify(messagingTemplate)
+                .convertAndSend(eq("/sub/api/v1/chat/" + roomId), sent.capture());
+        assertThat(sent.getValue().editPreview().editRequestId())
+                .isEqualTo(firstId);
+
+        List<Long> originalSchedules = scheduleIds(travelId);
+        EditPlanAiResponse second = editPlanAiResponse(List.of("최신 요청"), true);
+        editRequestService.complete(travelId, secondId, second);
+        assertThatThrownBy(() -> travelService.confirmEditPlanInTransaction(travelId, firstId))
+                .isInstanceOfSatisfying(BaseException.class, error ->
+                        assertThat(error.getErrorCode()).isEqualTo("PLAN.EXCEPTION.EDIT_REQUEST_EXPIRED"));
+        assertThat(editService.findPreview(travelId).after())
+                .isEqualTo(second);
+        assertThat(travelFacade.getAiPlan(new GetAiPlanRequest(travelId), owner.username()))
+                .isEqualTo(ready.before());
+        assertThat(scheduleIds(travelId))
+                .isEqualTo(originalSchedules);
+
+        editRequestService.cancel(travelId, secondId);
+        assertThatThrownBy(() -> travelService.confirmEditPlanInTransaction(travelId, secondId))
+                .isInstanceOfSatisfying(BaseException.class, error ->
+                        assertThat(error.getErrorCode()).isEqualTo("PLAN.EXCEPTION.EDIT_RESULT_NOT_FOUND"));
+        assertThat(travelFacade.getAiPlan(new GetAiPlanRequest(travelId), owner.username()))
+                .isEqualTo(ready.before());
+        assertThat(scheduleIds(travelId))
+                .isEqualTo(originalSchedules);
+    }
+
+    @Test
+    @DisplayName("늦은 REST 미리보기 응답과 현재 요청의 식별자 분리")
+    void delayedRestPreviewDoesNotReplaceCurrentRequest() throws Exception {
+
+        stubCreatePlan();
+        stubEditPlan(List.of("이전 미리보기"), true);
+        TestUser owner = createAuthenticatedUser();
+        Long travelId = createTravel(owner.accessToken(), "늦은 응답-" + createUniqueValue());
+        CountDownLatch ready = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicReference<String> oldId = new AtomicReference<>();
+        String message = "첫째 날 카페를 바꿔줘";
+
+        doAnswer(invocation -> {
+            EditPlanPreviewResponse preview = (EditPlanPreviewResponse) invocation.callRealMethod();
+            oldId.set(preview.editRequestId());
+            ready.countDown();
+            assertThat(release.await(15, TimeUnit.SECONDS))
+                    .isTrue();
+            return preview;
+        })
+                .when(editService)
+                .makePreview(travelId, message);
+
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var delayed = executor.submit(() -> mockMvc
+                    .perform(post("/api/v1/travel/edit-plan/preview")
+                            .header("Authorization", owner.accessToken())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new EditPlanRequest(travelId, message))))
+                    .andExpect(status().isOk())
+                    .andReturn());
+            try {
+                assertThat(ready.await(15, TimeUnit.SECONDS))
+                        .isTrue();
+                String current = editRequestService.start(travelId);
+                EditPlanAiResponse currentPreview = editPlanAiResponse(List.of("현재 미리보기"), true);
+                editRequestService.complete(travelId, current, currentPreview);
+
+                release.countDown();
+                var body = objectMapper.readTree(delayed.get(15, TimeUnit.SECONDS)
+                        .getResponse()
+                        .getContentAsString());
+                assertThat(body.path("data").path("editRequestId").asText())
+                        .isEqualTo(oldId.get())
+                        .isNotEqualTo(current);
+                assertThat(editService.findPreview(travelId).editRequestId())
+                        .isEqualTo(current);
+                assertThat(editService.findPreview(travelId).after())
+                        .isEqualTo(currentPreview);
+            } finally {
+                release.countDown();
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    @DisplayName("확정 선행 잠금에서 취소 거부 또는 신규 요청 보존")
+    void confirmationCommitsBeforeWaitingCancellationOrReplacement(boolean replace) throws Exception {
+
+        stubCreatePlan();
+        TestUser owner = createAuthenticatedUser();
+        Long travelId = createTravel(owner.accessToken(), "확정 선행-" + createUniqueValue());
+        String requestId = editRequestService.start(travelId);
+        EditPlanAiResponse preview = editPlanAiResponse(List.of("확정할 수정안"), true);
+        editRequestService.complete(travelId, requestId, preview);
+        List<Long> originalSchedules = scheduleIds(travelId);
+
+        CountDownLatch locked = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicLong blocker = new AtomicLong();
+        doAnswer(invocation -> {
+            blocker.set(jdbcTemplate.queryForObject("SELECT CONNECTION_ID()", Long.class));
+            locked.countDown();
+            assertThat(release.await(25, TimeUnit.SECONDS))
+                    .isTrue();
+            return invocation.callRealMethod();
+        })
+                .when(planDayService)
+                .deleteAllByPlan(any());
+
+        String nextId;
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var confirmation = executor.submit(() ->
+                    travelService.confirmEditPlanInTransaction(travelId, requestId));
+            try {
+                assertThat(locked.await(10, TimeUnit.SECONDS))
+                        .isTrue();
+                var competitor = executor.submit(() -> {
+                    if (replace) {
+                        return editRequestService.start(travelId);
+                    }
+
+                    assertThatThrownBy(() -> editRequestService.cancel(travelId, requestId))
+                            .isInstanceOfSatisfying(BaseException.class, error ->
+                                    assertThat(error.getErrorCode())
+                                            .isEqualTo("PLAN.EXCEPTION.EDIT_REQUEST_EXPIRED"));
+                    return null;
+                });
+                awaitTravelLockWait(blocker.get());
+
+                release.countDown();
+                assertThat(confirmation.get(10, TimeUnit.SECONDS).planDays())
+                        .isEqualTo(preview.planDays());
+                nextId = competitor.get(10, TimeUnit.SECONDS);
+            } finally {
+                release.countDown();
+            }
+        }
+
+        List<Long> appliedSchedules = scheduleIds(travelId);
+        assertThat(appliedSchedules)
+                .isNotEmpty()
+                .doesNotContainAnyElementsOf(originalSchedules);
+        assertThat(travelService.confirmEditPlanInTransaction(travelId, requestId).planDays())
+                .isEqualTo(preview.planDays());
+        assertThat(scheduleIds(travelId))
+                .isEqualTo(appliedSchedules);
+        assertThat(travelRepository.findById(travelId).orElseThrow().getEditRequestId())
+                .isEqualTo(nextId);
+        assertThat(planEditCacheService.findRequestResult(travelId, requestId))
+                .isEmpty();
+    }
+
+    private List<Long> scheduleIds(Long travelId) {
+
+        return jdbcTemplate.queryForList(
+                """
+                SELECT ps.plan_schedule_id
+                FROM plan_schedule ps
+                JOIN plan_day pd ON pd.plan_day_id = ps.plan_day_id
+                JOIN plan p ON p.plan_id = pd.plan_id
+                WHERE p.travel_id = ?
+                ORDER BY ps.plan_schedule_id
+                """,
+                Long.class,
+                travelId
+        );
+    }
+
+    private Long countRoomMessages(Long roomId) {
+
+        return jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM chat_message WHERE chat_room_id = ?",
+                Long.class,
+                roomId
+        );
+    }
+
+    private void awaitTravelLockWait(long blocker) throws Exception {
+
+        String query = """
+                SELECT COUNT(*)
+                FROM performance_schema.data_lock_waits w
+                JOIN performance_schema.threads t ON t.THREAD_ID = w.BLOCKING_THREAD_ID
+                JOIN performance_schema.data_locks l
+                  ON l.ENGINE_LOCK_ID = w.REQUESTING_ENGINE_LOCK_ID
+                WHERE t.PROCESSLIST_ID = %d AND l.OBJECT_NAME = 'travel'
+                """.formatted(blocker);
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(8);
+
+        while (System.nanoTime() < deadline) {
+            var result = mysql.execInContainer(
+                    "mysql",
+                    "-uroot",
+                    "-p" + mysql.getPassword(),
+                    "--connect-timeout=2",
+                    "-N",
+                    "-e",
+                    query
+            );
+            assertThat(result.getExitCode())
+                    .isZero();
+            if (Long.parseLong(result.getStdout().strip()) > 0) {
+                return;
+            }
+            Thread.sleep(50);
+        }
+        throw new AssertionError("같은 여행의 DB 잠금 대기 미관측");
     }
 
     @Test
