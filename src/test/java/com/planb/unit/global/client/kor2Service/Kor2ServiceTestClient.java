@@ -16,7 +16,16 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import com.sun.net.httpserver.HttpServer;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import reactor.netty.http.client.HttpClient;
+
+import java.net.InetSocketAddress;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -30,6 +39,118 @@ class Kor2ServiceTestClient {
     );
 
     private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+
+    @Test
+    @DisplayName("로컬 HTTP 429 복구·소진과 503·응답 타임아웃의 시도 예산")
+    void enforcesAttemptBudgetAcrossRealStubResponses() throws Exception {
+
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        AtomicInteger recoveredCalls = new AtomicInteger();
+        AtomicInteger exhaustedCalls = new AtomicInteger();
+        AtomicInteger unavailableCalls = new AtomicInteger();
+        AtomicInteger timeoutCalls = new AtomicInteger();
+        AtomicInteger invalidCalls = new AtomicInteger();
+        CountDownLatch releaseDelayedResponse = new CountDownLatch(1);
+        byte[] success = """
+                {"response":{"header":{"resultCode":"0000","resultMsg":"OK"},
+                "body":{"items":"","numOfRows":0,"pageNo":1,"totalCount":0}}}
+                """.getBytes(StandardCharsets.UTF_8);
+
+        try (var workers = Executors.newVirtualThreadPerTaskExecutor()) {
+            server.setExecutor(workers);
+            server.createContext("/", exchange -> {
+                try (exchange) {
+                    int status = switch (exchange.getRequestURI().getPath()) {
+                        case "/recover" -> recoveredCalls.incrementAndGet() == 1 ? 429 : 200;
+                        case "/exhaust" -> exhaustedCalls.incrementAndGet() <= 2 ? 429 : 200;
+                        case "/unavailable" -> unavailableCalls.incrementAndGet() == 1 ? 503 : 200;
+                        case "/timeout" -> {
+                            if (timeoutCalls.incrementAndGet() == 1) {
+                                try {
+                                    releaseDelayedResponse.await(5, TimeUnit.SECONDS);
+                                } catch (InterruptedException interrupted) {
+                                    Thread.currentThread().interrupt();
+                                }
+                            }
+                            yield 200;
+                        }
+                        default -> {
+                            invalidCalls.incrementAndGet();
+                            yield 400;
+                        }
+                    };
+                    if (status == 200) {
+                        exchange.getResponseHeaders().set("Content-Type", "application/json");
+                        exchange.sendResponseHeaders(200, success.length);
+                        exchange.getResponseBody().write(success);
+                    } else {
+                        exchange.getResponseHeaders().set("Retry-After", "20");
+                        exchange.sendResponseHeaders(status, -1);
+                    }
+                }
+            });
+            server.start();
+
+            try {
+                String base = "http://127.0.0.1:" + server.getAddress().getPort();
+                Kor2ServiceClient client = new Kor2ServiceClient(
+                        WebClient.builder().clientConnector(new ReactorClientHttpConnector(
+                                HttpClient.create().responseTimeout(Duration.ofSeconds(1))
+                        )),
+                        new Kor2ServiceProperties(base, "local-stub"),
+                        meterRegistry
+                );
+
+                readStub(client, base + "/recover");
+                assertThat(recoveredCalls.get())
+                        .isEqualTo(2);
+
+                org.assertj.core.api.Assertions.assertThatThrownBy(() -> readStub(client, base + "/exhaust"))
+                        .isInstanceOf(WebClientResponseException.TooManyRequests.class);
+                assertThat(exhaustedCalls.get())
+                        .isEqualTo(2);
+                readStub(client, base + "/exhaust");
+                assertThat(exhaustedCalls.get())
+                        .isEqualTo(3);
+
+                org.assertj.core.api.Assertions.assertThatThrownBy(() -> readStub(client, base + "/unavailable"))
+                        .isInstanceOf(WebClientResponseException.ServiceUnavailable.class);
+                assertThat(unavailableCalls.get())
+                        .isEqualTo(1);
+                readStub(client, base + "/unavailable");
+                assertThat(unavailableCalls.get())
+                        .isEqualTo(2);
+
+                org.assertj.core.api.Assertions.assertThatThrownBy(() -> readStub(client, base + "/timeout"))
+                        .hasRootCauseInstanceOf(io.netty.handler.timeout.ReadTimeoutException.class);
+                assertThat(timeoutCalls.get())
+                        .isEqualTo(1);
+                releaseDelayedResponse.countDown();
+                readStub(client, base + "/timeout");
+                assertThat(timeoutCalls.get())
+                        .isEqualTo(2);
+
+                org.assertj.core.api.Assertions.assertThatThrownBy(() -> readStub(client, base + "/invalid"))
+                        .isInstanceOf(WebClientResponseException.BadRequest.class);
+                assertThat(invalidCalls.get())
+                        .isEqualTo(1);
+            } finally {
+                releaseDelayedResponse.countDown();
+                server.stop(0);
+            }
+        }
+    }
+
+    private void readStub(
+            Kor2ServiceClient client,
+            String url
+    ) {
+
+        assertThat(client
+                .get(URI.create(url), Kor2KeywordSearchResponse.class)
+                .block(Duration.ofSeconds(5)))
+                .isNotNull();
+    }
 
     @Test
     @DisplayName("정상 응답은 endpoint별 ok로 기록")

@@ -30,29 +30,46 @@ import com.planb.domain.travel.service.NutritionService;
 import com.planb.domain.travel.entity.constant.NutritionEvaluationStatus;
 import com.planb.global.client.kakaoMapService.dto.response.KakaoPlaceSearchResponse;
 import com.planb.global.client.kakaoMapService.handler.KakaoMapServiceHandler;
+import com.planb.query.travel.dto.response.TravelConditionQueryResponse;
+import com.planb.query.travel.service.TravelQueryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.http.MediaType;
 import org.mockito.ArgumentCaptor;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.TransactionSystemException;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.test.web.servlet.MvcResult;
 import reactor.core.publisher.Mono;
 import tools.jackson.databind.JsonNode;
 
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -77,6 +94,12 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
 
     @MockitoSpyBean
     private RestaurantDetailService restaurantDetailService;
+
+    @MockitoSpyBean
+    private TravelQueryService travelQueryService;
+
+    @MockitoSpyBean
+    private PlatformTransactionManager transactionManager;
 
     @Autowired
     private TravelRepository travels;
@@ -358,6 +381,223 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
                 .isEqualTo(before);
         assertThat(foodCounts())
                 .isEqualTo(foodBefore);
+    }
+
+    @Test
+    @DisplayName("실제 MySQL 데드락 피해 트랜잭션의 독립 표식 롤백")
+    void mysqlDeadlockRollsBackEarlierVictimWrite() throws Exception {
+
+        createLockFixture();
+        CyclicBarrier cross = new CyclicBarrier(2);
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var first = executor.submit(() -> crossLocks(1, 2, 3, cross));
+            var second = executor.submit(() -> crossLocks(2, 1, 4, cross));
+
+            int firstCode = first.get(20, TimeUnit.SECONDS);
+            int secondCode = second.get(20, TimeUnit.SECONDS);
+            assertThat(List.of(firstCode, secondCode))
+                    .containsExactlyInAnyOrder(0, 1213);
+            assertThat(probeMarker(3))
+                    .isEqualTo(firstCode == 0 ? 1 : 0);
+            assertThat(probeMarker(4))
+                    .isEqualTo(secondCode == 0 ? 1 : 0);
+        } finally {
+            jdbcTemplate.execute("DROP TABLE p1_lock_fixture");
+        }
+    }
+
+    @Test
+    @DisplayName("MySQL 잠금 타임아웃 뒤 앞선 쓰기의 Spring 트랜잭션 롤백")
+    void mysqlLockTimeoutRollsBackEarlierWrite() throws Exception {
+
+        createLockFixture();
+        CountDownLatch held = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        TransactionTemplate tx = new TransactionTemplate(transactionManager);
+        tx.setTimeout(12);
+
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var blocker = executor.submit(() -> tx.executeWithoutResult(status -> {
+                updateProbeMarker(1);
+                held.countDown();
+                awaitLatch(release);
+            }));
+            try {
+                assertThat(held.await(10, TimeUnit.SECONDS))
+                        .isTrue();
+                assertThatThrownBy(() -> tx.executeWithoutResult(status -> {
+                    assertThat(jdbcTemplate.queryForObject(
+                            "SELECT @@innodb_rollback_on_timeout",
+                            Integer.class
+                    ))
+                            .isZero();
+                    Integer previous = jdbcTemplate.queryForObject(
+                            "SELECT @@session.innodb_lock_wait_timeout",
+                            Integer.class
+                    );
+                    jdbcTemplate.execute("SET SESSION innodb_lock_wait_timeout = 1");
+                    try {
+                        updateProbeMarker(3);
+                        updateProbeMarker(1);
+                    } finally {
+                        jdbcTemplate.execute("SET SESSION innodb_lock_wait_timeout = " + previous);
+                    }
+                }))
+                        .isInstanceOfSatisfying(DataAccessException.class, failure ->
+                                assertSqlFailure(failure, 1205, "40001"));
+                assertThat(probeMarker(3))
+                        .isZero();
+            } finally {
+                release.countDown();
+            }
+            blocker.get(15, TimeUnit.SECONDS);
+            assertThat(probeMarker(1))
+                    .isEqualTo(1);
+        } finally {
+            jdbcTemplate.execute("DROP TABLE p1_lock_fixture");
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    @DisplayName("커밋 경계 실패의 미저장과 응답 유실 모사의 단일 저장")
+    void failedCommitAcknowledgmentDoesNotRegenerate(boolean committed) throws Exception {
+
+        List<Long> before = counts();
+        AtomicBoolean targetWrite = new AtomicBoolean();
+        AtomicInteger injected = new AtomicInteger();
+        stubCreate(false);
+        doAnswer(invocation -> {
+            invocation.callRealMethod();
+            restaurants.flush();
+            targetWrite.set(true);
+            return null;
+        })
+                .when(restaurantDetailService)
+                .saveRestaurantDetailAll(any());
+        doAnswer(invocation -> {
+            TransactionStatus status = invocation.getArgument(0);
+            if (!status.isNewTransaction() || !targetWrite.getAndSet(false)) {
+                return invocation.callRealMethod();
+            }
+
+            injected.incrementAndGet();
+            if (!committed) {
+                Long connectionId = jdbcTemplate.queryForObject("SELECT CONNECTION_ID()", Long.class);
+                var kill = mysql.execInContainer(
+                        "mysql",
+                        "-uroot",
+                        "-p" + mysql.getPassword(),
+                        "--connect-timeout=2",
+                        "-e",
+                        "KILL CONNECTION " + connectionId
+                );
+                assertThat(kill.getExitCode())
+                        .isZero();
+            }
+
+            invocation.callRealMethod();
+            if (!committed) {
+                throw new AssertionError("연결 종료 후 물리 커밋 성공");
+            }
+            throw new TransactionSystemException("injected missing commit acknowledgment");
+        })
+                .when(transactionManager)
+                .commit(any(TransactionStatus.class));
+
+        assertError(postApi("/add-with-recommend", request), "BASE.EXCEPTION.EXCEPTION_ISSUED");
+        assertThat(injected.get())
+                .isEqualTo(1);
+        verify(handler, times(1))
+                .createPlanByAi(any(), any());
+        if (committed) {
+            assertThat(travels.count())
+                    .isEqualTo(before.getFirst() + 1);
+            assertThat(stored(travelId()).path("planDays").isEmpty())
+                    .isFalse();
+        } else {
+            assertThat(counts())
+                    .isEqualTo(before);
+        }
+    }
+
+    private void createLockFixture() {
+
+        jdbcTemplate.execute(
+                "CREATE TABLE p1_lock_fixture (id INT PRIMARY KEY, marker INT NOT NULL) ENGINE=InnoDB"
+        );
+        jdbcTemplate.update("INSERT INTO p1_lock_fixture VALUES (1,0),(2,0),(3,0),(4,0)");
+    }
+
+    private int crossLocks(
+            int first,
+            int second,
+            int sentinel,
+            CyclicBarrier cross
+    ) {
+
+        TransactionTemplate tx = new TransactionTemplate(transactionManager);
+        tx.setTimeout(12);
+        try {
+            tx.executeWithoutResult(status -> {
+                updateProbeMarker(sentinel);
+                updateProbeMarker(first);
+                try {
+                    cross.await(10, TimeUnit.SECONDS);
+                } catch (Exception failure) {
+                    throw new AssertionError("데드락 재현 순서 미충족", failure);
+                }
+                updateProbeMarker(second);
+            });
+            return 0;
+        } catch (DataAccessException failure) {
+            assertSqlFailure(failure, 1213, "40001");
+            return 1213;
+        }
+    }
+
+    private void assertSqlFailure(
+            DataAccessException failure,
+            int vendorCode,
+            String sqlState
+    ) {
+
+        assertThat(failure.getMostSpecificCause())
+                .isInstanceOfSatisfying(SQLException.class, sql -> {
+                    assertThat(sql.getErrorCode())
+                            .isEqualTo(vendorCode);
+                    assertThat(sql.getSQLState())
+                            .isEqualTo(sqlState);
+                });
+    }
+
+    private void updateProbeMarker(int id) {
+
+        assertThat(jdbcTemplate.update(
+                "UPDATE p1_lock_fixture SET marker = marker + 1 WHERE id = ?",
+                id
+        ))
+                .isEqualTo(1);
+    }
+
+    private Integer probeMarker(int id) {
+
+        return jdbcTemplate.queryForObject(
+                "SELECT marker FROM p1_lock_fixture WHERE id = ?",
+                Integer.class,
+                id
+        );
+    }
+
+    private static void awaitLatch(CountDownLatch latch) {
+
+        try {
+            assertThat(latch.await(15, TimeUnit.SECONDS))
+                    .isTrue();
+        } catch (InterruptedException failure) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError("대기 중 인터럽트", failure);
+        }
     }
 
     @Test
@@ -787,6 +1027,8 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         assertError(postApi("/add-with-recommend", request), "TRAVEL.EXCEPTION.COMPANION_NOT_OWNED");
         assertThat(counts())
                 .isEqualTo(before);
+        verify(handler, never())
+                .createPlanByAi(any(), any());
     }
 
     @Test
@@ -928,6 +1170,170 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         assertThat(first)
                 .isNotBlank()
                 .isEqualTo(second);
+    }
+
+    @Test
+    @DisplayName("공유 상세 조회 중 별도 쓰기 커밋 이후 단일 스냅샷 유지")
+    void sharedReadKeepsOneCommittedVersion() throws Exception {
+
+        stubCreate(true);
+        success(postApi("/add-with-recommend", request));
+        Long id = travelId();
+        success(postApi("/save", new GetAiPlanRequest(id)));
+        String token = success(postApi("/share/issue", new GetAiPlanRequest(id)))
+                .path("shareToken")
+                .asText();
+        Long scheduleId = jdbcTemplate.queryForObject(
+                """
+                SELECT MIN(ps.plan_schedule_id)
+                FROM plan_schedule ps
+                JOIN plan_day pd ON pd.plan_day_id = ps.plan_day_id
+                JOIN plan p ON p.plan_id = pd.plan_id
+                WHERE p.travel_id = ?
+                """,
+                Long.class,
+                id
+        );
+        TransactionTemplate writer = new TransactionTemplate(transactionManager);
+        writer.setTimeout(10);
+        JsonNode before = shared(token);
+
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            for (int iteration = 0; iteration < 100; iteration++) {
+                CountDownLatch headerRead = new CountDownLatch(1);
+                CountDownLatch writerCommitted = new CountDownLatch(1);
+                AtomicBoolean pauseOnce = new AtomicBoolean(true);
+                AtomicLong readerConnection = new AtomicLong();
+                doAnswer(invocation -> {
+                    TravelConditionQueryResponse header =
+                            (TravelConditionQueryResponse) invocation.callRealMethod();
+                    if (pauseOnce.getAndSet(false)) {
+                        assertThat(TransactionSynchronizationManager.isActualTransactionActive())
+                                .isTrue();
+                        assertThat(TransactionSynchronizationManager.isCurrentTransactionReadOnly())
+                                .isTrue();
+                        assertThat(jdbcTemplate.queryForObject(
+                                "SELECT @@session.transaction_isolation",
+                                String.class
+                        ))
+                                .isEqualTo("REPEATABLE-READ");
+                        assertThat(jdbcTemplate.queryForObject("SELECT @@autocommit", Integer.class))
+                                .isZero();
+                        readerConnection.set(jdbcTemplate.queryForObject("SELECT CONNECTION_ID()", Long.class));
+                        headerRead.countDown();
+                        assertThat(writerCommitted.await(15, TimeUnit.SECONDS))
+                                .isTrue();
+                    }
+                    return header;
+                })
+                        .when(travelQueryService)
+                        .getTravelConditionQueryResponse(id);
+
+                String nextStyle = iteration % 2 == 0
+                        ? "LESS_WALK"
+                        : "MATCH_MEAL_TIME";
+                String nextLocation = "동시 조회 검증 장소 " + iteration;
+                var reader = executor.submit(() -> shared(token));
+                try {
+                    assertThat(headerRead.await(15, TimeUnit.SECONDS))
+                            .isTrue();
+                    writer.executeWithoutResult(status -> {
+                        assertThat(jdbcTemplate.queryForObject("SELECT CONNECTION_ID()", Long.class))
+                                .isNotEqualTo(readerConnection.get());
+                        assertThat(jdbcTemplate.update(
+                                "UPDATE travel SET travel_style = ? WHERE travel_id = ?",
+                                nextStyle,
+                                id
+                        ))
+                                .isEqualTo(1);
+                        assertThat(jdbcTemplate.update(
+                                "UPDATE plan_schedule SET location_name = ? WHERE plan_schedule_id = ?",
+                                nextLocation,
+                                scheduleId
+                        ))
+                                .isEqualTo(1);
+                    });
+                } finally {
+                    writerCommitted.countDown();
+                }
+
+                assertThat(reader.get(15, TimeUnit.SECONDS))
+                        .isEqualTo(before);
+                JsonNode after = shared(token);
+                JsonNode travelStyle = after.path("travelStyle");
+                assertThat(travelStyle.isObject() ? travelStyle.path("code").asText() : travelStyle.asText())
+                        .isEqualTo(nextStyle);
+                boolean locationChanged = false;
+                for (JsonNode day : after.path("planDays")) {
+                    for (JsonNode schedule : day.path("schedules")) {
+                        locationChanged |= nextLocation.equals(schedule.path("locationName").asText());
+                    }
+                }
+                assertThat(locationChanged)
+                        .isTrue();
+                before = after;
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("AI 대기 중 동행인 동의 철회 시 기존 건강 스냅샷 유지")
+    void keepsCapturedHealthSnapshotAfterConsentRevocation() throws Exception {
+
+        doAnswer(invocation -> {
+            TravelPlanContext context = invocation.getArgument(0);
+            assertThat(TransactionSynchronizationManager.isActualTransactionActive())
+                    .isFalse();
+            assertThat(jdbcTemplate.update(
+                    "UPDATE health SET sensitive_agree = 'N' WHERE health_id = ?",
+                    selectedHealthId
+            ))
+                    .isEqualTo(1);
+            assertThat(context.healthContexts())
+                    .extracting(health -> health.travelerName())
+                    .containsExactly("동행인1");
+            return fixture(1, invocation.getArgument(1), false);
+        })
+                .when(handler)
+                .createPlanByAi(any(), any());
+
+        success(postApi("/add-with-recommend", request));
+
+        assertThat(healths.findById(selectedHealthId).orElseThrow().isSensitiveAgree())
+                .isFalse();
+        assertThat(travelHealths.findAllByTravelId(travelId()))
+                .hasSize(1);
+    }
+
+    @Test
+    @DisplayName("AI 대기 중 동행인 소유권 변경 시 저장 거부와 부분 저장 방지")
+    void rejectsCompanionOwnershipChangeBeforeWrite() throws Exception {
+
+        String otherUsername = createUniqueUsername();
+        createUser(otherUsername);
+        List<Long> before = counts();
+
+        doAnswer(invocation -> {
+            TravelPlanContext context = invocation.getArgument(0);
+            assertThat(context.healthContexts())
+                    .extracting(health -> health.travelerName())
+                    .containsExactly("동행인1");
+            assertThat(TransactionSynchronizationManager.isActualTransactionActive())
+                    .isFalse();
+            assertThat(jdbcTemplate.update(
+                    "UPDATE health SET users_id = (SELECT id FROM users WHERE username = ?) WHERE health_id = ?",
+                    otherUsername,
+                    selectedHealthId
+            ))
+                    .isEqualTo(1);
+            return fixture(1, invocation.getArgument(1), false);
+        })
+                .when(handler)
+                .createPlanByAi(any(), any());
+
+        assertError(postApi("/add-with-recommend", request), "TRAVEL.EXCEPTION.COMPANION_NOT_OWNED");
+        assertThat(counts())
+                .isEqualTo(before);
     }
 
     @Test
@@ -1868,6 +2274,18 @@ class TravelValidationIntegrationTest extends TravelApiTestSupport {
         return objectMapper.readTree(result
                         .getResponse()
                 .getContentAsString());
+    }
+
+    private JsonNode shared(String token) throws Exception {
+
+        MvcResult result = mockMvc
+                .perform(get("/api/v1/travel/shared/{token}", token))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        return success(objectMapper.readTree(
+                result.getResponse().getContentAsString()
+        ));
     }
 
     private JsonNode stored(Long id) throws Exception {
